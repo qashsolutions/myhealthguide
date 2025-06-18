@@ -130,7 +130,71 @@
             transition: all 0.3s ease;
         }
 
-        /* Features Section */
+        /* App Preview Section */
+        .app-preview {
+            background: #f8f9fa;
+            padding: 5rem 0;
+        }
+
+        .app-preview h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .app-preview p {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .screenshot-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .screenshot-item {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .screenshot-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .screenshot-item img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .screenshot-item h4 {
+            padding: 1.5rem 1.5rem 0.5rem;
+            font-size: 1.3rem;
+            color: #333;
+            margin: 0;
+        }
+
+        .screenshot-item p {
+            padding: 0 1.5rem 1.5rem;
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin: 0;
+            text-align: left;
+        }
         .features {
             background: white;
             padding: 5rem 0;
@@ -388,7 +452,36 @@
         </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- App Preview Section -->
+    <section class="app-preview">
+        <div class="container">
+            <h2>See My Health Guide in Action</h2>
+            <p>Get a preview of our voice-first elder care app designed for simplicity and safety</p>
+            
+            <div class="screenshot-gallery">
+                <div class="screenshot-item">
+                    <img src="images/image1.jpg" alt="Voice medication entry interface" loading="lazy">
+                    <h4>Voice Medication Entry</h4>
+                    <p>Simply speak to add medications using Siri integration</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/image2.jpg" alt="AI conflict detection screen" loading="lazy">
+                    <h4>AI Safety Alerts</h4>
+                    <p>Claude Sonnet 4 prevents dangerous drug interactions</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/image3.jpg" alt="Caregiver dashboard view" loading="lazy">
+                    <h4>Family Coordination</h4>
+                    <p>Secure caregiver access with privacy controls</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/image4.jpg" alt="Doctor contact management" loading="lazy">
+                    <h4>Voice Contact Import</h4>
+                    <p>Add doctors and specialists with voice commands</p>
+                </div>
+            </div>
+        </div>
+    </section>
     <section class="features">
         <div class="container">
             <h2>Revolutionary Voice & AI Technology for Elder Care</h2>
