@@ -1,0 +1,25 @@
+{
+  "name": "my-health-guide-website",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Pre-launch website for My Health Guide: Voice First, AI-powered elder care iOS app",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static site - no build needed'",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "resend": "^3.2.0"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "healthcare",
+    "eldercare",
+    "ai",
+    "medication-management",
+    "vercel"
+  ],
+  "author": "My Health Guide",
+  "license": "MIT"
+}
