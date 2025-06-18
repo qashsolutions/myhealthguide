@@ -1,0 +1,24 @@
+{
+  "name": "my-guide-health-website",
+  "version": "1.0.0",
+  "description": "Pre-launch website for My Guide Health - AI-powered elder care app",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static site - no build needed'",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "resend": "^3.2.0"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "healthcare",
+    "eldercare",
+    "ai",
+    "medication-management",
+    "vercel"
+  ],
+  "author": "My Guide Health",
+  "license": "MIT"
+}

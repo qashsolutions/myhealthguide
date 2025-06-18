@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Guide Health - Elder Care Made Simple</title>
+    <meta name="description" content="AI-powered medication management and caregiver coordination app for families caring for elderly relatives.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #4a90e2;
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: #ff6b6b;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 50%, #45b7d1 100%);
+            color: white;
+            text-align: center;
+            padding: 5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-100px) rotate(360deg); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero .ai-badge {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 30px;
+            padding: 0.5rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+
+        .hero p {
+            font-size: 1.4rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.95;
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: 500;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            cursor: not-allowed;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+
+        /* Features Section */
+        .features {
+            background: white;
+            padding: 5rem 0;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #333;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 2.5rem;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 3px solid;
+            border-image: linear-gradient(135deg, #4ecdc4, #4a90e2) 1;
+            position: relative;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(135deg, #4ecdc4, #4a90e2);
+            border-radius: 20px;
+            z-index: -1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4ecdc4, #4a90e2);
+            border-radius: 50%;
+        }
+
+        .feature-icon svg {
+            width: 32px;
+            height: 32px;
+            stroke: white;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Signup Section */
+        .signup {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 5rem 0;
+            color: white;
+        }
+
+        .signup-content {
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .signup h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .signup p {
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+        }
+
+        .signup-form {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.9);
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 1rem 3rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .privacy-note {
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+            opacity: 0.8;
+        }
+
+        /* Footer */
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .footer-links {
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            color: #bdc3c7;
+            text-decoration: none;
+            margin: 0 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1.1rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .signup-form {
+                padding: 2rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">My Guide <span>Health</span></a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="ai-badge">🤖 AI-Powered Healthcare</div>
+                <h1>Voice-First Elder Care Made Simple</h1>
+                <p>Revolutionary AI technology meets compassionate care - featuring Claude Sonnet 4 AI, Siri integration, and voice-powered contact management for complete medication oversight</p>
+                <a href="#" class="download-btn">
+                    📱 Download iOS App (Coming Soon)
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2>Revolutionary Voice & AI Technology for Elder Care</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Complete Voice Control</h3>
+                    <p>Speak to add medications, import doctor contacts via Siri, and manage care instructions - completely hands-free for elderly users</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Claude Sonnet 4 AI Protection</h3>
+                    <p>Advanced AI instantly detects dangerous drug interactions during entry - preventing conflicts before they happen, not after</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 21V19C16 16.7909 14.2091 15 12 15H5C2.79086 15 1 16.7909 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M23 21V19C23 18.1 22.1 17.2 21 17.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M16 3.13C17.08 3.59 18 4.69 18 6C18 7.31 17.08 8.41 16 8.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Smart Caregiver Dashboard</h3>
+                    <p>Caregivers receive daily diet, medication, and supplement instructions with patient-controlled privacy settings</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="12" cy="16" r="1" stroke="currentColor" stroke-width="2"/>
+                            <path d="M7 11V7C7 4.23858 9.23858 2 12 2C14.7614 2 17 4.23858 17 7V11" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Patient-Controlled Access</h3>
+                    <p>You decide what information caregivers can see - from daily schedules to emergency contacts, all with granular permissions</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                            <rect x="7" y="7" width="4" height="4" rx="1" stroke="currentColor" stroke-width="2"/>
+                            <rect x="7" y="13" width="4" height="4" rx="1" stroke="currentColor" stroke-width="2"/>
+                            <rect x="13" y="7" width="4" height="4" rx="1" stroke="currentColor" stroke-width="2"/>
+                            <rect x="13" y="13" width="4" height="4" rx="1" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>QR Code Family Network</h3>
+                    <p>Instantly connect family members and caregivers with secure QR codes - no complex setup or password sharing</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                            <path d="M19.4 15C19.2 15.74 19.2 16.57 19.4 17.31L21 18L19 21L17.4 20.31C16.96 20.68 16.47 20.97 15.94 21.18L15.66 23H12.34L12.06 21.18C11.53 20.97 11.04 20.68 10.6 20.31L9 21L7 18L8.6 17.31C8.4 16.57 8.4 15.74 8.6 15L7 14L9 11L10.6 11.69C11.04 11.32 11.53 11.03 12.06 10.82L12.34 9H15.66L15.94 10.82C16.47 11.03 16.96 11.32 17.4 11.69L19 11L21 14L19.4 15Z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Intelligent Daily Guidance</h3>
+                    <p>Real-time medication reminders, dietary suggestions, and supplement schedules customized for each patient's needs</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Signup Section -->
+    <section class="signup">
+        <div class="container">
+            <div class="signup-content">
+                <h2>Get Notified When We Launch</h2>
+                <p>Be the first to know when My Guide Health becomes available</p>
+                
+                <form class="signup-form" id="signupForm">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" required>
+                        <div class="error-message" id="firstNameError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" required>
+                        <div class="error-message" id="emailError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="zipCode">ZIP Code *</label>
+                        <input type="text" id="zipCode" name="zipCode" required maxlength="5" pattern="[0-9]{5}">
+                        <div class="error-message" id="zipCodeError"></div>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        Notify Me at Launch
+                        <span class="loading" id="loading"></span>
+                    </button>
+                    
+                    <p class="privacy-note">
+                        We don't store medical information. Your privacy is protected. 
+                        <a href="#" style="color: #4ecdc4;">Privacy Policy</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Contact</a>
+                <a href="#">About</a>
+            </div>
+            <p>&copy; 2025 My Guide Health. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('signupForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+
+            // Form validation
+            function validateField(field, errorElement, validator) {
+                const value = field.value.trim();
+                const isValid = validator(value);
+                
+                if (!isValid.valid) {
+                    errorElement.textContent = isValid.message;
+                    errorElement.style.display = 'block';
+                    field.style.borderColor = '#ff6b6b';
+                    return false;
+                } else {
+                    errorElement.style.display = 'none';
+                    field.style.borderColor = '#4ecdc4';
+                    return true;
+                }
+            }
+
+            function validateFirstName(value) {
+                if (!value) return { valid: false, message: 'First name is required' };
+                if (value.length < 2) return { valid: false, message: 'First name must be at least 2 characters' };
+                if (value.length > 50) return { valid: false, message: 'First name must be less than 50 characters' };
+                if (!/^[a-zA-Z\s]+$/.test(value)) return { valid: false, message: 'First name can only contain letters and spaces' };
+                return { valid: true };
+            }
+
+            function validateEmail(value) {
+                if (!value) return { valid: false, message: 'Email is required' };
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) return { valid: false, message: 'Please enter a valid email address' };
+                return { valid: true };
+            }
+
+            function validateZipCode(value) {
+                if (!value) return { valid: false, message: 'ZIP code is required' };
+                if (!/^\d{5}$/.test(value)) return { valid: false, message: 'ZIP code must be 5 digits' };
+                return { valid: true };
+            }
+
+            // Real-time validation
+            document.getElementById('firstName').addEventListener('blur', function() {
+                validateField(this, document.getElementById('firstNameError'), validateFirstName);
+            });
+
+            document.getElementById('email').addEventListener('blur', function() {
+                validateField(this, document.getElementById('emailError'), validateEmail);
+            });
+
+            document.getElementById('zipCode').addEventListener('blur', function() {
+                validateField(this, document.getElementById('zipCodeError'), validateZipCode);
+            });
+
+            // Form submission
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const firstNameValid = validateField(
+                    document.getElementById('firstName'),
+                    document.getElementById('firstNameError'),
+                    validateFirstName
+                );
+
+                const emailValid = validateField(
+                    document.getElementById('email'),
+                    document.getElementById('emailError'),
+                    validateEmail
+                );
+
+                const zipCodeValid = validateField(
+                    document.getElementById('zipCode'),
+                    document.getElementById('zipCodeError'),
+                    validateZipCode
+                );
+
+                if (!firstNameValid || !emailValid || !zipCodeValid) {
+                    return;
+                }
+
+                // Show loading state
+                submitBtn.disabled = true;
+                loading.style.display = 'inline-block';
+                submitBtn.textContent = 'Sending...';
+
+                try {
+                    const formData = new FormData(form);
+                    const response = await fetch('/api/signup', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        // Redirect to thank you page
+                        window.location.href = '/thank-you.html';
+                    } else {
+                        throw new Error('Signup failed');
+                    }
+                } catch (error) {
+                    alert('Something went wrong. Please try again.');
+                    console.error('Signup error:', error);
+                } finally {
+                    // Reset button state
+                    submitBtn.disabled = false;
+                    loading.style.display = 'none';
+                    submitBtn.textContent = 'Notify Me at Launch';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
