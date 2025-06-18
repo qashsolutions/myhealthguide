@@ -20,6 +20,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Parse form data
+    let body;
+    if (req.headers['content-type']?.includes('application/json')) {
+      body = req.body;
+    } else {
+      // Parse form data
+      const formData = new URLSearchParams(req.body);
+      body = Object.fromEntries(formData);
+    }
+
     // Get client IP
     const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
     
@@ -38,7 +48,7 @@ export default async function handler(req, res) {
     }
 
     // Extract form data
-    const { firstName, email, zipCode, website } = req.body;
+    const { firstName, email, zipCode, website } = body;
 
     // Honeypot check - if 'website' field is filled, it's likely a bot
     if (website) {
