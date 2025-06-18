@@ -594,7 +594,7 @@
                     </button>
                     
                     <p class="privacy-note">
-                        We don't store medical information. Your privacy is protected. 
+                        Your privacy is protected. 
                         <a href="#" style="color: #4ecdc4;">Privacy Policy</a>
                     </p>
                 </form>
@@ -610,7 +610,7 @@
                 <a href="admin@myguide.health">Contact</a>
                 <a href="#">About</a>
             </div>
-            <p>&copy; 2025 My Guide Health. All rights reserved.</p>
+            <p>&copy; 2025 My Health Guide. All rights reserved.</p>
             <p>A unit of Qash Solutions Inc, D-U-N-S® Number 119536275</p>
         </div>
     </footer>
@@ -705,16 +705,23 @@
 
                 try {
                     const formData = new FormData(form);
+                    const data = Object.fromEntries(formData);
+                    
                     const response = await fetch('/api/signup', {
                         method: 'POST',
-                        body: formData
+                        headers: {
+                            Content-Type: 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                        
                     });
 
                     if (response.ok) {
                         // Redirect to thank you page
                         window.location.href = '/thank-you.html';
                     } else {
-                        throw new Error('Signup failed');
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Signup failed');
                     }
                 } catch (error) {
                     alert('Something went wrong. Please try again.');
