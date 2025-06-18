@@ -380,7 +380,7 @@
             <div class="hero-content">
                 <div class="ai-badge">🤖 AI-Powered Healthcare</div>
                 <h1>Voice-First Elder Care Made Simple</h1>
-                <p>Revolutionary AI technology meets compassionate care - featuring Claude Sonnet 4 AI, Siri integration, and voice-powered contact management for complete medication oversight</p>
+                <p>Integrated with Siri for voice first and Claude for proactive information of basic medication conflicts</p>
                 <a href="#" class="download-btn">
                     📱 Download iOS App (Coming Soon)
                 </a>
@@ -488,6 +488,11 @@
                         <label for="zipCode">ZIP Code *</label>
                         <input type="text" id="zipCode" name="zipCode" required maxlength="5" pattern="[0-9]{5}">
                         <div class="error-message" id="zipCodeError"></div>
+                    </div>
+                    
+                    <!-- Honeypot field - hidden from users -->
+                    <div style="position: absolute; left: -9999px;">
+                        <input type="text" name="website" tabindex="-1" autocomplete="off">
                     </div>
                     
                     <button type="submit" class="submit-btn" id="submitBtn">

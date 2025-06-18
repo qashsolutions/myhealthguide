@@ -2,6 +2,9 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Simple in-memory rate limiting (use Redis in production)
+const rateLimiter = new Map();
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,8 +20,30 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Get client IP
+    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    
+    // Rate limiting: 3 submissions per hour per IP
+    const now = Date.now();
+    const hourAgo = now - (60 * 60 * 1000);
+    
+    if (!rateLimiter.has(clientIP)) {
+      rateLimiter.set(clientIP, []);
+    }
+    
+    const submissions = rateLimiter.get(clientIP).filter(time => time > hourAgo);
+    
+    if (submissions.length >= 3) {
+      return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
+    }
+
     // Extract form data
-    const { firstName, email, zipCode } = req.body;
+    const { firstName, email, zipCode, website } = req.body;
+
+    // Honeypot check - if 'website' field is filled, it's likely a bot
+    if (website) {
+      return res.status(400).json({ error: 'Invalid submission' });
+    }
 
     // Validate inputs
     if (!firstName || !email || !zipCode) {
@@ -45,12 +70,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'ZIP code must be 5 digits' });
     }
 
-    // Rate limiting check (simple timestamp-based)
-    const now = Date.now();
-    const lastSubmission = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    
-    // In production, use a proper rate limiting solution like Upstash Redis
-    // For now, we'll skip complex rate limiting
+    // Update rate limiter
+    submissions.push(now);
+    rateLimiter.set(clientIP, submissions);
 
     // Store signup data (in production, save to database)
     const signupData = {
@@ -58,7 +80,7 @@ export default async function handler(req, res) {
       email,
       zipCode,
       timestamp: new Date().toISOString(),
-      ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      ip: clientIP
     };
 
     // Log signup (in production, save to database)
@@ -66,19 +88,19 @@ export default async function handler(req, res) {
 
     // Send confirmation email
     const emailData = {
-      from: 'My Guide Health <noreply@my-guide.health>',
+      from: 'My Health Guide <admin@myguide.health>',
       to: [email],
-      subject: 'Welcome to My Guide Health - Launch Notification Confirmed',
+      subject: 'Welcome to My Health Guide - Launch Notification Confirmed',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #4ecdc4, #44a08d); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
-            <h1 style="margin: 0; font-size: 28px;">Welcome to My Guide Health!</h1>
+            <h1 style="margin: 0; font-size: 28px;">Welcome to My Health Guide!</h1>
             <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">AI-powered elder care made simple</p>
           </div>
           
           <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
             <h2 style="color: #333; margin-top: 0;">Hi ${firstName},</h2>
-            <p style="color: #666; line-height: 1.6;">Thank you for signing up! We'll notify you as soon as My Guide Health launches in your area (${zipCode}).</p>
+            <p style="color: #666; line-height: 1.6;">Thank you for signing up! We'll notify you as soon as My Health Guide launches in your area (${zipCode}).</p>
             
             <h3 style="color: #4a90e2; margin-bottom: 15px;">Our app will help you and your family with:</h3>
             <ul style="color: #666; line-height: 1.8; padding-left: 20px;">
@@ -92,13 +114,13 @@ export default async function handler(req, res) {
           <div style="background: white; border: 2px solid #4ecdc4; border-radius: 10px; padding: 25px; text-align: center;">
             <h3 style="color: #333; margin-top: 0;">What's Next?</h3>
             <p style="color: #666; margin-bottom: 20px;">We're putting the finishing touches on our iOS app. You'll be among the first to know when it's ready!</p>
-            <a href="https://my-guide.health" style="background: linear-gradient(135deg, #4ecdc4, #44a08d); color: white; padding: 12px 25px; border-radius: 25px; text-decoration: none; font-weight: bold;">Visit Our Website</a>
+            <a href="https://myguide.health" style="background: linear-gradient(135deg, #4ecdc4, #44a08d); color: white; padding: 12px 25px; border-radius: 25px; text-decoration: none; font-weight: bold;">Visit Our Website</a>
           </div>
           
           <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
             <p style="color: #999; font-size: 14px;">
               Best regards,<br>
-              <strong>The My Guide Health Team</strong>
+              <strong>The My Health Guide Team</strong>
             </p>
             <p style="color: #ccc; font-size: 12px; margin-top: 20px;">
               If you no longer wish to receive these emails, you can unsubscribe at any time.
