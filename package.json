@@ -17,7 +17,8 @@
     "test:e2e:ui": "playwright test --ui",
     "analyze": "ANALYZE=true next build",
     "analyze:server": "BUNDLE_ANALYZE=server next build",
-    "analyze:browser": "BUNDLE_ANALYZE=browser next build"
+    "analyze:browser": "BUNDLE_ANALYZE=browser next build",
+    "postinstall": "node scripts/postinstall.js || true"
   },
   "dependencies": {
     "@google-cloud/aiplatform": "^3.25.0",
