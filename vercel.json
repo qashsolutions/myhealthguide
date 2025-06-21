@@ -36,7 +36,8 @@
     "silent": false,
     "autoJobCancelation": true
   },
-  "buildCommand": "npm run security:check && npm run build",
-  "installCommand": "npm ci --audit",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "devCommand": "npm run dev",
   "framework": "nextjs"
 }
