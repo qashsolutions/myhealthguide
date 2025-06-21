@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Interface - Medication Input</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+        
+        .voice-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .page-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 40px;
+        }
+        
+        /* Voice Input Section */
+        .voice-section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 2px solid #e2e8f0;
+            text-align: center;
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 30px;
+        }
+        
+        .voice-instruction {
+            background: #e6f7ff;
+            border: 2px solid #3182ce;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            font-size: 1.3rem;
+            color: #2d3748;
+        }
+        
+        .voice-button-container {
+            margin: 40px 0;
+        }
+        
+        .voice-button {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        
+        .voice-button.inactive {
+            background: #3182ce;
+            color: white;
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+        }
+        
+        .voice-button.listening {
+            background: #e53e3e;
+            color: white;
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 20px rgba(229, 62, 62, 0.5);
+        }
+        
+        .voice-button.processing {
+            background: #ed8936;
+            color: white;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .voice-status {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        
+        .voice-feedback {
+            font-size: 1.2rem;
+            color: #4a5568;
+        }
+        
+        .voice-alternative {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 2px dashed #cbd5e0;
+        }
+        
+        .voice-alternative p {
+            font-size: 1.2rem;
+            color: #4a5568;
+            margin-bottom: 15px;
+        }
+        
+        .text-input-fallback {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.3rem;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        /* Medication List with Voice */
+        .medication-list-section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 2px solid #e2e8f0;
+        }
+        
+        .medication-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .pill-icon {
+            width: 50px;
+            height: 50px;
+            background: #3182ce;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.8rem;
+        }
+        
+        .medication-details {
+            flex: 1;
+        }
+        
+        .medication-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 5px;
+        }
+        
+        .medication-meta {
+            font-size: 1.1rem;
+            color: #4a5568;
+        }
+        
+        .voice-controls {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .voice-control-btn {
+            padding: 10px 15px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #4a5568;
+        }
+        
+        .voice-control-btn:hover {
+            background: #cbd5e0;
+        }
+        
+        .voice-control-btn.speaking {
+            background: #38a169;
+            color: white;
+        }
+        
+        /* Results Section with Voice */
+        .results-section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 2px solid #e2e8f0;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .read-aloud-btn {
+            padding: 15px 25px;
+            background: #3182ce;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .read-aloud-btn:hover {
+            background: #2c5282;
+        }
+        
+        .read-aloud-btn.reading {
+            background: #38a169;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 0 5px rgba(56, 161, 105, 0.5); }
+            to { box-shadow: 0 0 20px rgba(56, 161, 105, 0.8); }
+        }
+        
+        .result-card {
+            background: #f0fff4;
+            border: 3px solid #38a169;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .result-icon {
+            font-size: 2.5rem;
+        }
+        
+        .result-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #38a169;
+        }
+        
+        .result-description {
+            font-size: 1.3rem;
+            color: #2d3748;
+            line-height: 1.7;
+        }
+        
+        /* Voice Commands Help */
+        .voice-commands {
+            background: #fef5e7;
+            border: 2px solid #ed8936;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .commands-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 20px;
+        }
+        
+        .commands-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .command-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .command-phrase {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 5px;
+        }
+        
+        .command-description {
+            font-size: 1rem;
+            color: #4a5568;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .voice-container {
+                padding: 20px 15px;
+            }
+            
+            .voice-section, .medication-list-section, .results-section {
+                padding: 25px 20px;
+            }
+            
+            .voice-button {
+                width: 120px;
+                height: 120px;
+                font-size: 3rem;
+            }
+            
+            .medication-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .voice-controls {
+                justify-content: center;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .commands-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="voice-container">
+        <h1 class="page-title">Voice-Enabled Medication Checker</h1>
+        
+        <!-- Voice Input Section -->
+        <div class="voice-section">
+            <h2 class="section-title">Add Your Medications by Voice</h2>
+            
+            <div class="voice-instruction">
+                🎤 <strong>Simply speak your medication names!</strong> Press the microphone button and clearly say each medication. For example: "Lisinopril ten milligrams" or "Metformin five hundred"
+            </div>
+            
+            <div class="voice-button-container">
+                <button class="voice-button inactive" id="voiceButton">
+                    🎤
+                </button>
+                <div class="voice-status" id="voiceStatus">Tap microphone to start</div>
+                <div class="voice-feedback" id="voiceFeedback">Ready to listen...</div>
+            </div>
+            
+            <div class="voice-alternative">
+                <p><strong>Prefer typing?</strong> You can also enter medications manually:</p>
+                <input type="text" class="text-input-fallback" placeholder="Type medication name here..." />
+            </div>
+        </div>
+        
+        <!-- Medication List -->
+        <div class="medication-list-section">
+            <h2 class="section-title">Your Medications</h2>
+            
+            <div class="medication-item">
+                <div class="pill-icon">💊</div>
+                <div class="medication-details">
+                    <div class="medication-name">Lisinopril 10mg</div>
+                    <div class="medication-meta">Added by voice • Blood pressure medication</div>
+                </div>
+                <div class="voice-controls">
+                    <button class="voice-control-btn">🔊 Repeat</button>
+                    <button class="voice-control-btn">✏️ Edit</button>
+                    <button class="voice-control-btn">🗑️ Remove</button>
+                </div>
+            </div>
+            
+            <div class="medication-item">
+                <div class="pill-icon">💊</div>
+                <div class="medication-details">
+                    <div class="medication-name">Metformin 500mg</div>
+                    <div class="medication-meta">Added by voice • Diabetes medication</div>
+                </div>
+                <div class="voice-controls">
+                    <button class="voice-control-btn">🔊 Repeat</button>
+                    <button class="voice-control-btn">✏️ Edit</button>
+                    <button class="voice-control-btn">🗑️ Remove</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Voice Commands Help -->
+        <div class="voice-commands">
+            <h3 class="commands-title">Voice Commands You Can Use</h3>
+            <div class="commands-grid">
+                <div class="command-item">
+                    <div class="command-phrase">"Add [medication name]"</div>
+                    <div class="command-description">Adds a new medication to your list</div>
+                </div>
+                <div class="command-item">
+                    <div class="command-phrase">"Check my medications"</div>
+                    <div class="command-description">Starts the AI conflict analysis</div>
+                </div>
+                <div class="command-item">
+                    <div class="command-phrase">"Read the results"</div>
+                    <div class="command-description">Reads AI analysis results aloud</div>
+                </div>
+                <div class="command-item">
+                    <div class="command-phrase">"What does this mean?"</div>
+                    <div class="command-description">Explains medical terms in simple language</div>
+                </div>
+                <div class="command-item">
+                    <div class="command-phrase">"Start over"</div>
+                    <div class="command-description">Clears all medications and starts fresh</div>
+                </div>
+                <div class="command-item">
+                    <div class="command-phrase">"Contact my doctor"</div>
+                    <div class="command-description">Shows options to reach healthcare providers</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section with Voice -->
+        <div class="results-section">
+            <div class="results-header">
+                <h2 class="section-title">AI Analysis Results</h2>
+                <button class="read-aloud-btn" id="readAloudBtn">
+                    🔊 Read Results Aloud
+                </button>
+            </div>
+            
+            <div class="result-card">
+                <div class="result-header">
+                    <div class="result-icon">✅</div>
+                    <div class="result-title">Safe Combination</div>
+                </div>
+                <div class="result-description">
+                    Good news! We found no major conflicts between Lisinopril and Metformin. These medications work well together for managing both blood pressure and diabetes. Continue taking them as prescribed by your doctor.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Voice Interface Simulation
+        const voiceButton = document.getElementById('voiceButton');
+        const voiceStatus = document.getElementById('voiceStatus');
+        const voiceFeedback = document.getElementById('voiceFeedback');
+        const readAloudBtn = document.getElementById('readAloudBtn');
+        
+        let isListening = false;
+        let isProcessing = false;
+        
+        voiceButton.addEventListener('click', function() {
+            if (!isListening && !isProcessing) {
+                startListening();
+            } else if (isListening) {
+                stopListening();
+            }
+        });
+        
+        function startListening() {
+            isListening = true;
+            voiceButton.className = 'voice-button listening';
+            voiceStatus.textContent = 'Listening...';
+            voiceFeedback.textContent = 'Speak clearly and say your medication name';
+            
+            // Simulate listening for 3 seconds
+            setTimeout(() => {
+                if (isListening) {
+                    processVoice();
+                }
+            }, 3000);
+        }
+        
+        function stopListening() {
+            isListening = false;
+            processVoice();
+        }
+        
+        function processVoice() {
+            isListening = false;
+            isProcessing = true;
+            voiceButton.className = 'voice-button processing';
+            voiceStatus.textContent = 'Processing...';
+            voiceFeedback.textContent = 'Understanding your medication...';
+            
+            // Simulate processing for 2 seconds
+            setTimeout(() => {
+                finishProcessing();
+            }, 2000);
+        }
+        
+        function finishProcessing() {
+            isProcessing = false;
+            voiceButton.className = 'voice-button inactive';
+            voiceStatus.textContent = 'Medication added!';
+            voiceFeedback.textContent = 'Say another medication or tap "Check my medications"';
+        }
+        
+        // Text-to-Speech for Results
+        readAloudBtn.addEventListener('click', function() {
+            if (readAloudBtn.classList.contains('reading')) {
+                // Stop reading
+                readAloudBtn.classList.remove('reading');
+                readAloudBtn.innerHTML = '🔊 Read Results Aloud';
+                // Stop speech synthesis
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                }
+            } else {
+                // Start reading
+                readAloudBtn.classList.add('reading');
+                readAloudBtn.innerHTML = '⏸️ Stop Reading';
+                
+                // Read the results aloud
+                const resultText = "Good news! We found no major conflicts between Lisinopril and Metformin. These medications work well together for managing both blood pressure and diabetes. Continue taking them as prescribed by your doctor.";
+                
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(resultText);
+                    utterance.rate = 0.8; // Slower for elderly users
+                    utterance.volume = 0.9;
+                    utterance.onend = function() {
+                        readAloudBtn.classList.remove('reading');
+                        readAloudBtn.innerHTML = '🔊 Read Results Aloud';
+                    };
+                    window.speechSynthesis.speak(utterance);
+                }
+            }
+        });
+        
+        // Voice control buttons
+        document.querySelectorAll('.voice-control-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (this.textContent.includes('Repeat')) {
+                    // Speak medication name
+                    const medName = this.closest('.medication-item').querySelector('.medication-name').textContent;
+                    if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(medName);
+                        utterance.rate = 0.7;
+                        window.speechSynthesis.speak(utterance);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

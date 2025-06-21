@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Disclaimer - HIPAA/FDA Compliance</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #1a202c;
+            line-height: 1.7;
+        }
+        
+        .disclaimer-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: #1a365d;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+        }
+        
+        .disclaimer-content {
+            background: white;
+            border-radius: 16px;
+            padding: 50px 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 2px solid #e2e8f0;
+            flex-grow: 1;
+        }
+        
+        .warning-banner {
+            background: #fed7d7;
+            border: 3px solid #e53e3e;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .warning-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #e53e3e;
+        }
+        
+        .warning-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #e53e3e;
+            margin-bottom: 15px;
+        }
+        
+        .warning-text {
+            font-size: 1.3rem;
+            color: #2d3748;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 35px;
+        }
+        
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 20px;
+            border-left: 4px solid #3182ce;
+            padding-left: 20px;
+        }
+        
+        .section-content {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #2d3748;
+        }
+        
+        .section-content p {
+            margin-bottom: 20px;
+        }
+        
+        .section-content ul {
+            margin: 20px 0;
+            padding-left: 30px;
+        }
+        
+        .section-content li {
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+        
+        .highlight-box {
+            background: #e6f7ff;
+            border: 2px solid #3182ce;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .highlight-box h4 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 15px;
+        }
+        
+        .highlight-box p {
+            font-size: 1.2rem;
+            color: #2d3748;
+        }
+        
+        .compliance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .compliance-card {
+            background: #f7fafc;
+            border: 2px solid #cbd5e0;
+            border-radius: 12px;
+            padding: 25px;
+        }
+        
+        .compliance-card h4 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 15px;
+        }
+        
+        .compliance-card p {
+            font-size: 1.1rem;
+            color: #4a5568;
+            line-height: 1.7;
+        }
+        
+        .acceptance-section {
+            background: #f0fff4;
+            border: 3px solid #38a169;
+            border-radius: 16px;
+            padding: 40px;
+            margin-top: 40px;
+            text-align: center;
+        }
+        
+        .acceptance-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 25px;
+        }
+        
+        .acceptance-text {
+            font-size: 1.3rem;
+            color: #2d3748;
+            margin-bottom: 30px;
+            line-height: 1.7;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+        }
+        
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #3182ce;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .accept-button {
+            padding: 20px 50px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: #38a169;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 20px;
+        }
+        
+        .accept-button:hover {
+            background: #2f855a;
+            transform: translateY(-2px);
+        }
+        
+        .accept-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .back-button {
+            padding: 20px 40px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #4a5568;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        
+        .footer-note {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fef5e7;
+            border: 2px solid #ed8936;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            color: #744210;
+            text-align: center;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .disclaimer-container {
+                padding: 20px 15px;
+            }
+            
+            .disclaimer-content {
+                padding: 30px 25px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .section-title {
+                font-size: 1.4rem;
+            }
+            
+            .section-content {
+                font-size: 1.1rem;
+            }
+            
+            .compliance-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .accept-button {
+                padding: 18px 35px;
+                font-size: 1.2rem;
+                margin-bottom: 15px;
+                margin-right: 0;
+            }
+            
+            .checkbox-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="disclaimer-container">
+        <div class="header">
+            <h1>Important Medical Disclaimer</h1>
+            <p>Please read carefully before using our AI health tools</p>
+        </div>
+        
+        <div class="disclaimer-content">
+            <div class="warning-banner">
+                <div class="warning-icon">⚠️</div>
+                <h2 class="warning-title">NOT MEDICAL ADVICE</h2>
+                <p class="warning-text">The information provided by our AI system is for educational and informational purposes only and should never replace professional medical advice, diagnosis, or treatment.</p>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">AI System Limitations</h3>
+                <div class="section-content">
+                    <p><strong>Our AI-powered medication checking tool has important limitations:</strong></p>
+                    <ul>
+                        <li><strong>Not 100% Accurate:</strong> AI systems can make errors and may miss important interactions or provide incorrect information</li>
+                        <li><strong>Limited Knowledge:</strong> The AI may not have the most current drug information or know about your specific medical history</li>
+                        <li><strong>General Information Only:</strong> Results are based on general population data and may not apply to your individual situation</li>
+                        <li><strong>No Medical Training:</strong> The AI is not a licensed healthcare provider and cannot practice medicine</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">FDA Compliance Statement</h3>
+                <div class="section-content">
+                    <div class="highlight-box">
+                        <h4>FDA Regulatory Notice</h4>
+                        <p><strong>This tool is not FDA-approved for medical diagnosis or treatment recommendations.</strong> The AI medication checking feature is designed for educational purposes only and has not been evaluated by the Food and Drug Administration for safety or efficacy in medical decision-making.</p>
+                    </div>
+                    <p>Our platform:</p>
+                    <ul>
+                        <li>Does not diagnose medical conditions</li>
+                        <li>Does not recommend specific treatments</li>
+                        <li>Does not replace pharmacist or physician consultation</li>
+                        <li>Should not be used for emergency medical situations</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">HIPAA & Privacy Protection</h3>
+                <div class="section-content">
+                    <div class="compliance-grid">
+                        <div class="compliance-card">
+                            <h4>Data Security</h4>
+                            <p>We implement industry-standard security measures to protect your health information, but no system is 100% secure. Use at your own discretion.</p>
+                        </div>
+                        <div class="compliance-card">
+                            <h4>Information Storage</h4>
+                            <p>We do not store your specific medication lists or health conditions permanently. Session data is used only for providing immediate responses.</p>
+                        </div>
+                        <div class="compliance-card">
+                            <h4>Third-Party AI</h4>
+                            <p>Our AI services are provided by Google Cloud and are subject to their privacy policies and data handling practices.</p>
+                        </div>
+                        <div class="compliance-card">
+                            <h4>No PHI Collection</h4>
+                            <p>We minimize collection of Protected Health Information (PHI) and do not share personal health data with unauthorized parties.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">When to Seek Professional Help</h3>
+                <div class="section-content">
+                    <p><strong>Always consult with healthcare professionals for:</strong></p>
+                    <ul>
+                        <li>Any concerns about medication interactions</li>
+                        <li>Changes to your medication regimen</li>
+                        <li>New or worsening symptoms</li>
+                        <li>Emergency medical situations</li>
+                        <li>Questions about dosing or timing</li>
+                        <li>Side effects or adverse reactions</li>
+                    </ul>
+                    
+                    <div class="highlight-box">
+                        <h4>Emergency Situations</h4>
+                        <p><strong>If you are experiencing a medical emergency, call 911 immediately.</strong> Do not rely on our AI system for urgent medical decisions.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">Liability Disclaimer</h3>
+                <div class="section-content">
+                    <p>By using this service, you acknowledge that:</p>
+                    <ul>
+                        <li>MyHealth Guide and its AI system are not liable for any medical decisions you make based on AI-generated information</li>
+                        <li>You use this tool at your own risk and discretion</li>
+                        <li>We strongly recommend consulting healthcare professionals before making any health-related decisions</li>
+                        <li>The accuracy and completeness of AI responses cannot be guaranteed</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="acceptance-section">
+                <h3 class="acceptance-title">Acknowledgment Required</h3>
+                <p class="acceptance-text">By proceeding, you confirm that you have read and understand these important limitations and disclaimers. You agree to use our AI tools responsibly and seek professional medical advice when appropriate.</p>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="understand-checkbox" class="checkbox">
+                    <label for="understand-checkbox" style="cursor: pointer;">I have read and understand all disclaimers above</label>
+                </div>
+                
+                <div>
+                    <button class="accept-button" disabled>Understand and Accept</button>
+                    <button class="back-button">Go Back</button>
+                </div>
+                
+                <div class="footer-note">
+                    <strong>Remember:</strong> This acknowledgment is required before accessing any AI-powered health features. You can review this information anytime in our Privacy Policy.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Enable accept button only when checkbox is checked
+        const checkbox = document.getElementById('understand-checkbox');
+        const acceptButton = document.querySelector('.accept-button');
+        
+        checkbox.addEventListener('change', function() {
+            acceptButton.disabled = !this.checked;
+        });
+        
+        acceptButton.addEventListener('click', function() {
+            if (checkbox.checked) {
+                // Store acceptance in session storage
+                sessionStorage.setItem('medicalDisclaimerAccepted', 'true');
+                // Redirect to medication check or dashboard
+                alert('Acceptance recorded. Proceeding to health tools...');
+            }
+        });
+        
+        document.querySelector('.back-button').addEventListener('click', function() {
+            // Go back to dashboard or previous page
+            alert('Returning to dashboard...');
+        });
+    </script>
+</body>
+</html>
