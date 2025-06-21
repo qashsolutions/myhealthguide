@@ -1,43 +1,6 @@
 {
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "maxDuration": 10,
-      "memory": 1024,
-      "runtime": "nodejs20.x"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-DNS-Prefetch-Control",
-          "value": "on"
-        }
-      ]
-    }
-  ],
-  "github": {
-    "silent": false,
-    "autoJobCancelation": true
-  },
+  "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
-  "devCommand": "npm run dev",
-  "framework": "nextjs"
+  "devCommand": "npm run dev"
 }
