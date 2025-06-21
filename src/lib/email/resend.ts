@@ -11,8 +11,8 @@ import { APP_NAME, APP_URL, EMAIL_CONFIG } from '@/lib/constants';
  * Handles welcome emails, password resets, and notifications
  */
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client with optional API key
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Email templates with eldercare-friendly styling
 const emailStyles = `
@@ -183,6 +183,11 @@ const getPasswordResetEmailHtml = (data: PasswordResetEmailData): string => {
 
 // Send welcome email
 export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<void> => {
+  if (!resend) {
+    console.warn('Resend API key not configured. Skipping email send.');
+    return;
+  }
+
   try {
     const emailData: EmailData = {
       to: data.userEmail,
@@ -213,6 +218,11 @@ export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<void> =>
 export const sendPasswordResetEmail = async (
   data: PasswordResetEmailData
 ): Promise<void> => {
+  if (!resend) {
+    console.warn('Resend API key not configured. Skipping email send.');
+    return;
+  }
+
   try {
     const emailData: EmailData = {
       to: data.userEmail,
@@ -241,6 +251,11 @@ export const sendPasswordResetEmail = async (
 
 // Send generic email
 export const sendEmail = async (data: EmailData): Promise<void> => {
+  if (!resend) {
+    console.warn('Resend API key not configured. Skipping email send.');
+    return;
+  }
+
   try {
     const result = await resend.emails.send({
       from: data.from || EMAIL_CONFIG.FROM,

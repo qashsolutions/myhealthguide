@@ -73,12 +73,15 @@ export interface MedicationInteraction {
 export interface MedicationCheckResult {
   id: string;
   status: 'safe' | 'warning' | 'danger';
+  overallRisk: 'safe' | 'warning' | 'danger';
   summary: string;
   interactions: MedicationInteraction[];
   generalAdvice: string;
   consultDoctorRecommended: boolean;
   checkedAt: Date;
   disclaimer: string;
+  conflicts?: MedicationInteraction[];
+  additionalInfo?: string;
 }
 
 // Health Q&A types
@@ -159,6 +162,7 @@ export interface ApiResponse<T = any> {
   error?: string;
   message?: string;
   code?: string;
+  errors?: Array<{ field: string; message: string }>;
 }
 
 // Form types

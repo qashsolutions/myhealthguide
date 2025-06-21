@@ -10,7 +10,7 @@ export const isSpeechRecognitionSupported = (): boolean => {
   if (typeof window === 'undefined') return false;
   
   return !!(
-    window.SpeechRecognition || 
+    (window as any).SpeechRecognition || 
     (window as any).webkitSpeechRecognition ||
     (window as any).mozSpeechRecognition ||
     (window as any).msSpeechRecognition
@@ -28,7 +28,7 @@ export const getSpeechRecognition = (): any => {
   if (typeof window === 'undefined') return null;
   
   return (
-    window.SpeechRecognition ||
+    (window as any).SpeechRecognition ||
     (window as any).webkitSpeechRecognition ||
     (window as any).mozSpeechRecognition ||
     (window as any).msSpeechRecognition

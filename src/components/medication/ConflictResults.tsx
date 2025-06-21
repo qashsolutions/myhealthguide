@@ -180,7 +180,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                       <ConflictIcon className={clsx('h-6 w-6', `text-${conflictLight.color}`)} />
                       <div>
                         <p className="text-elder-base font-semibold text-elder-text">
-                          {conflict.medications.join(' + ')}
+                          {conflict.medication1} + {conflict.medication2}
                         </p>
                         <p className={clsx('text-elder-sm', `text-${conflictLight.color}`)}>
                           {conflictLight.label} Risk

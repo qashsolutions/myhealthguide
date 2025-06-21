@@ -4,6 +4,7 @@ import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { Providers } from './providers';
 import { APP_NAME, APP_DESCRIPTION, APP_URL } from '@/lib/constants';
 
 // Font optimization for better readability
@@ -76,30 +77,32 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen flex flex-col text-selection">
-        <ErrorBoundary>
-          {/* Skip to main content link for screen readers */}
-          <a 
-            href="#main-content" 
-            className="skip-to-main"
-          >
-            Skip to main content
-          </a>
-          
-          {/* Header */}
-          <Header />
-          
-          {/* Main content */}
-          <main 
-            id="main-content"
-            className="flex-1 container mx-auto px-4 py-8"
-            role="main"
-          >
-            {children}
-          </main>
-          
-          {/* Footer */}
-          <Footer />
-        </ErrorBoundary>
+        <Providers>
+          <ErrorBoundary>
+            {/* Skip to main content link for screen readers */}
+            <a 
+              href="#main-content" 
+              className="skip-to-main"
+            >
+              Skip to main content
+            </a>
+            
+            {/* Header */}
+            <Header />
+            
+            {/* Main content */}
+            <main 
+              id="main-content"
+              className="flex-1 container mx-auto px-4 py-8"
+              role="main"
+            >
+              {children}
+            </main>
+            
+            {/* Footer */}
+            <Footer />
+          </ErrorBoundary>
+        </Providers>
       </body>
     </html>
   );

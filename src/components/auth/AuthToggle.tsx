@@ -83,8 +83,10 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
 
     if (response.success) {
       // Check for redirect
-      const redirect = sessionStorage.getItem('authRedirect');
-      sessionStorage.removeItem('authRedirect');
+      const redirect = typeof window !== 'undefined' ? sessionStorage.getItem('authRedirect') : null;
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('authRedirect');
+      }
       
       router.push(redirect || ROUTES.DASHBOARD);
     } else {
@@ -105,8 +107,10 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
 
     if (response.success) {
       // Check for redirect
-      const redirect = sessionStorage.getItem('authRedirect');
-      sessionStorage.removeItem('authRedirect');
+      const redirect = typeof window !== 'undefined' ? sessionStorage.getItem('authRedirect') : null;
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('authRedirect');
+      }
       
       router.push(redirect || ROUTES.DASHBOARD);
     } else {

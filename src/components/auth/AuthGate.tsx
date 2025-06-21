@@ -28,7 +28,7 @@ export function AuthGate({
 
   const handleSignUp = () => {
     // Store intended destination
-    if (redirectTo) {
+    if (redirectTo && typeof window !== 'undefined') {
       sessionStorage.setItem('authRedirect', redirectTo);
     }
     router.push(`${ROUTES.AUTH}?mode=signup`);
@@ -36,7 +36,7 @@ export function AuthGate({
 
   const handleSignIn = () => {
     // Store intended destination
-    if (redirectTo) {
+    if (redirectTo && typeof window !== 'undefined') {
       sessionStorage.setItem('authRedirect', redirectTo);
     }
     router.push(`${ROUTES.AUTH}?mode=login`);

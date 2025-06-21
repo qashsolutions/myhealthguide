@@ -96,10 +96,10 @@ export const signUp = async (data: SignupData): Promise<AuthResponse> => {
     console.error('Signup error:', error);
     
     // Map Firebase error codes to user-friendly messages
-    let message = ERROR_MESSAGES.SIGNUP_FAILED;
+    let message: string = ERROR_MESSAGES.SIGNUP_FAILED;
     
     if (error.code === 'auth/email-already-in-use') {
-      message = 'This email is already registered. Please sign in instead.';
+      message = ERROR_MESSAGES.SIGNUP_FAILED;
     } else if (error.code === 'auth/weak-password') {
       message = 'Password is too weak. Please use at least 6 characters.';
     } else if (error.code === 'auth/invalid-email') {
@@ -150,7 +150,7 @@ export const signIn = async (data: LoginData): Promise<AuthResponse> => {
     console.error('Login error:', error);
     
     // Map Firebase error codes to user-friendly messages
-    let message = ERROR_MESSAGES.AUTH_FAILED;
+    let message: string = ERROR_MESSAGES.AUTH_FAILED;
     
     if (error.code === 'auth/user-not-found') {
       message = 'No account found with this email. Please sign up first.';
@@ -187,7 +187,6 @@ export const resetPassword = async (email: string): Promise<AuthResponse> => {
     
     return {
       success: true,
-      message: 'Password reset email sent. Please check your inbox.',
     };
   } catch (error: any) {
     console.error('Password reset error:', error);

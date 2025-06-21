@@ -1,16 +1,15 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Shield, Heart, CheckCircle } from 'lucide-react';
 import { AuthToggle } from '@/components/auth/AuthToggle';
 import { APP_NAME } from '@/lib/constants';
 
 /**
- * Authentication page with signup/login toggle
- * Eldercare-optimized with clear benefits messaging
+ * Authentication page content component
  */
-export default function AuthPage() {
+function AuthPageContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') as 'signup' | 'login' | null;
 
@@ -97,5 +96,17 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Authentication page with signup/login toggle
+ * Eldercare-optimized with clear benefits messaging
+ */
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <AuthPageContent />
+    </Suspense>
   );
 }

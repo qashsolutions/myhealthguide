@@ -32,12 +32,6 @@ const makeVertexAIRequest = async (
     throw new Error('Failed to get access token');
   }
 
-  const request: VertexAIRequest = {
-    instances: [{ prompt }],
-    parameters,
-    safety_settings: SAFETY_SETTINGS,
-  };
-
   const response = await fetch(VERTEX_AI_ENDPOINTS.generateContent, {
     method: 'POST',
     headers: {
@@ -99,6 +93,7 @@ const parseCheckResponse = (
   let result: MedicationCheckResult = {
     id: `check-${Date.now()}`,
     status: 'safe',
+    overallRisk: 'safe',
     summary: HEALTH_STATUS.SAFE.message,
     interactions: [],
     generalAdvice: 'Continue taking your medications as prescribed by your doctor.',
@@ -162,10 +157,12 @@ const parseCheckResponse = (
     // Update status based on severity
     if (severityScore >= 3) {
       result.status = 'danger';
+      result.overallRisk = 'danger';
       result.summary = HEALTH_STATUS.MAJOR.message;
       result.consultDoctorRecommended = true;
     } else if (severityScore >= 2) {
       result.status = 'warning';
+      result.overallRisk = 'warning';
       result.summary = HEALTH_STATUS.MINOR.message;
       result.consultDoctorRecommended = true;
     }
@@ -341,6 +338,7 @@ Important: This is for educational purposes only. Always recommend consulting he
     return {
       id: `check-error-${Date.now()}`,
       status: 'warning',
+      overallRisk: 'warning',
       summary: 'Unable to complete medication check',
       interactions: [],
       generalAdvice: 'We encountered an error checking your medications. Please try again or consult your healthcare provider directly.',

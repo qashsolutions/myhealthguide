@@ -112,7 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       // Store in session
-      sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
+      }
     } catch (err) {
       console.error('Accept disclaimer error:', err);
       setError('Failed to accept disclaimer');
@@ -145,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error,
     isAuthenticated: !!user,
     disclaimerAccepted: user?.disclaimerAccepted || 
-      sessionStorage.getItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED) === 'true',
+      (typeof window !== 'undefined' && sessionStorage.getItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED) === 'true'),
     login,
     logout,
     acceptDisclaimer,

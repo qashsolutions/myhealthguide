@@ -21,20 +21,22 @@ function MedicationCheckResultsPage() {
 
   useEffect(() => {
     // Retrieve results from session storage
-    const storedResult = sessionStorage.getItem('medicationCheckResult');
-    const storedMedications = sessionStorage.getItem('checkedMedications');
-    
-    if (storedResult && storedMedications) {
-      try {
-        setResult(JSON.parse(storedResult));
-        setMedications(JSON.parse(storedMedications));
-      } catch (error) {
-        console.error('Failed to parse stored results:', error);
+    if (typeof window !== 'undefined') {
+      const storedResult = sessionStorage.getItem('medicationCheckResult');
+      const storedMedications = sessionStorage.getItem('checkedMedications');
+      
+      if (storedResult && storedMedications) {
+        try {
+          setResult(JSON.parse(storedResult));
+          setMedications(JSON.parse(storedMedications));
+        } catch (error) {
+          console.error('Failed to parse stored results:', error);
+          router.push(ROUTES.MEDICATION_CHECK);
+        }
+      } else {
+        // No results, redirect back
         router.push(ROUTES.MEDICATION_CHECK);
       }
-    } else {
-      // No results, redirect back
-      router.push(ROUTES.MEDICATION_CHECK);
     }
     
     setLoading(false);
@@ -48,8 +50,10 @@ function MedicationCheckResultsPage() {
   // Start new check
   const handleNewCheck = () => {
     // Clear session storage
-    sessionStorage.removeItem('medicationCheckResult');
-    sessionStorage.removeItem('checkedMedications');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('medicationCheckResult');
+      sessionStorage.removeItem('checkedMedications');
+    }
     router.push(ROUTES.MEDICATION_CHECK);
   };
 

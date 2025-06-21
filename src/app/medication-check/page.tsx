@@ -62,7 +62,6 @@ function MedicationCheckPage() {
         },
         body: JSON.stringify({
           medications,
-          userAge: user?.age,
           checkType: 'detailed',
         }),
       });
@@ -74,8 +73,10 @@ function MedicationCheckPage() {
       }
 
       // Store results in session storage
-      sessionStorage.setItem('medicationCheckResult', JSON.stringify(data.data));
-      sessionStorage.setItem('checkedMedications', JSON.stringify(medications));
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('medicationCheckResult', JSON.stringify(data.data));
+        sessionStorage.setItem('checkedMedications', JSON.stringify(medications));
+      }
       
       // Navigate to results page
       router.push(`${ROUTES.MEDICATION_CHECK}/results`);

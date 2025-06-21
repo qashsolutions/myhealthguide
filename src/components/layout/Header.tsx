@@ -9,7 +9,7 @@ import { MobileMenu } from './MobileMenu';
 import { Button } from '../ui/Button';
 import { APP_NAME, ROUTES, ARIA_LABELS } from '@/lib/constants';
 import { useAuth } from '@/hooks/useAuth';
-import { signOut } from '@/lib/firebase/auth';
+import { logOut } from '@/lib/firebase/auth';
 
 /**
  * Responsive header with eldercare-optimized navigation
@@ -28,7 +28,7 @@ export function Header(): JSX.Element {
   // Handle sign out
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logOut();
       router.push(ROUTES.HOME);
     } catch (error) {
       console.error('Sign out error:', error);
@@ -93,7 +93,7 @@ export function Header(): JSX.Element {
               ) : user ? (
                 <div className="flex items-center gap-4">
                   <span className="text-elder-base text-elder-text-secondary">
-                    Welcome, {user.firstName || 'User'}
+                    Welcome, {user.name || 'User'}
                   </span>
                   <Button
                     variant="secondary"
@@ -140,7 +140,7 @@ export function Header(): JSX.Element {
         onClose={() => setIsMobileMenuOpen(false)}
         navItems={navItems}
         isAuthenticated={!!user}
-        userName={user?.firstName}
+        userName={user?.name}
         onSignOut={handleSignOut}
         onSignIn={() => router.push(ROUTES.AUTH)}
       />

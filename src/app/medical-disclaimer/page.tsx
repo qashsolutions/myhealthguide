@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DisclaimerContent } from '@/components/legal/DisclaimerContent';
 import { Button } from '@/components/ui/Button';
@@ -9,10 +9,9 @@ import { ROUTES } from '@/lib/constants';
 import { AlertCircle, ArrowLeft, FileText } from 'lucide-react';
 
 /**
- * Medical disclaimer page
- * Legal compliance and user acknowledgment
+ * Medical disclaimer page content
  */
-export default function MedicalDisclaimerPage() {
+function MedicalDisclaimerContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -28,8 +27,10 @@ export default function MedicalDisclaimerPage() {
     
     try {
       // Store disclaimer acceptance in session
-      sessionStorage.setItem('disclaimerAccepted', 'true');
-      sessionStorage.setItem('disclaimerAcceptedAt', new Date().toISOString());
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('disclaimerAccepted', 'true');
+        sessionStorage.setItem('disclaimerAcceptedAt', new Date().toISOString());
+      }
       
       // If user is logged in, could also store in database
       // await api.acceptDisclaimer() 
@@ -46,8 +47,10 @@ export default function MedicalDisclaimerPage() {
   // Handle decline
   const handleDecline = () => {
     // Clear any partial acceptance
-    sessionStorage.removeItem('disclaimerAccepted');
-    sessionStorage.removeItem('disclaimerAcceptedAt');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('disclaimerAccepted');
+      sessionStorage.removeItem('disclaimerAcceptedAt');
+    }
     
     // Redirect to home or show message
     router.push('/');
@@ -163,5 +166,17 @@ export default function MedicalDisclaimerPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Medical disclaimer page
+ * Legal compliance and user acknowledgment
+ */
+export default function MedicalDisclaimerPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <MedicalDisclaimerContent />
+    </Suspense>
   );
 }

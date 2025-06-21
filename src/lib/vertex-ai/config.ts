@@ -1,4 +1,5 @@
 import { GoogleAuth } from 'google-auth-library';
+import { SafetySetting } from '@/types';
 
 /**
  * Vertex AI configuration for federated MedGemma model
@@ -71,7 +72,7 @@ export const MODEL_PARAMETERS = {
 };
 
 // Safety settings for medical content
-export const SAFETY_SETTINGS = [
+export const SAFETY_SETTINGS: SafetySetting[] = [
   {
     category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
     threshold: 'BLOCK_MEDIUM_AND_ABOVE',
