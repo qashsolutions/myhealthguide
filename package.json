@@ -23,6 +23,7 @@
     "@google-cloud/aiplatform": "^3.25.0",
     "@hookform/resolvers": "^3.6.0",
     "clsx": "^2.1.1",
+    "crypto-browserify": "^3.12.1",
     "firebase": "^10.12.2",
     "firebase-admin": "^12.1.0",
     "lucide-react": "^0.396.0",
@@ -31,6 +32,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.51.5",
     "resend": "^3.2.0",
+    "stream-browserify": "^3.0.0",
     "tailwind-merge": "^2.3.0",
     "zod": "^3.23.8"
   },
