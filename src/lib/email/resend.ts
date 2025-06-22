@@ -122,7 +122,8 @@ const getWelcomeEmailHtml = (data: WelcomeEmailData): string => {
           
           <div class="footer">
             <p>${APP_NAME} • <a href="${APP_URL}/privacy">Privacy Policy</a> • <a href="${APP_URL}/account/delete">Unsubscribe</a></p>
-            <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+            <p>© 2025 <a href="${APP_URL}">${APP_URL}</a> - A unit of QaSH Solutions Inc.</p>
+            <p>D-U-N-S® Number: 119536275</p>
           </div>
         </div>
       </body>
@@ -173,7 +174,8 @@ const getPasswordResetEmailHtml = (data: PasswordResetEmailData): string => {
           
           <div class="footer">
             <p>${APP_NAME} • <a href="${APP_URL}/privacy">Privacy Policy</a> • <a href="${APP_URL}/account/delete">Unsubscribe</a></p>
-            <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+            <p>© 2025 <a href="${APP_URL}">${APP_URL}</a> - A unit of QaSH Solutions Inc.</p>
+            <p>D-U-N-S® Number: 119536275</p>
           </div>
         </div>
       </body>

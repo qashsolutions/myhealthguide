@@ -23,17 +23,11 @@ function MedicalDisclaimerContent() {
 
   // Handle accept disclaimer
   const handleAccept = async () => {
-    console.log('DEBUG: Accept button clicked');
-    console.log('DEBUG: User:', user);
-    console.log('DEBUG: Has read:', hasRead);
-    
     setAcceptLoading(true);
     
     try {
       // Call the acceptDisclaimer function from useAuth
-      console.log('DEBUG: Calling acceptDisclaimer...');
       await acceptDisclaimer();
-      console.log('DEBUG: acceptDisclaimer completed');
       
       // Store disclaimer acceptance in session (backup)
       if (typeof window !== 'undefined') {
@@ -41,11 +35,12 @@ function MedicalDisclaimerContent() {
         sessionStorage.setItem('disclaimerAcceptedAt', new Date().toISOString());
       }
       
-      // Redirect to intended page
-      console.log('DEBUG: Redirecting to:', redirectTo);
-      router.push(redirectTo);
+      // Small delay to ensure state updates propagate
+      setTimeout(() => {
+        router.push(redirectTo);
+      }, 100);
     } catch (error) {
-      console.error('DEBUG: Failed to accept disclaimer:', error);
+      console.error('Failed to accept disclaimer:', error);
     } finally {
       setAcceptLoading(false);
     }

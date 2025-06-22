@@ -74,8 +74,8 @@ export const signUp = async (data: SignupData): Promise<AuthResponse> => {
       updatedAt: serverTimestamp(),
     });
     
-    // Send verification email
-    await sendEmailVerification(firebaseUser);
+    // Skip Firebase email verification - using Resend instead
+    // await sendEmailVerification(firebaseUser);
     
     // Get ID token for API calls
     const token = await firebaseUser.getIdToken();
@@ -225,21 +225,14 @@ export const updateUserProfile = async (
 
 // Accept medical disclaimer
 export const acceptDisclaimer = async (userId: string): Promise<void> => {
-  console.log('DEBUG: acceptDisclaimer called with userId:', userId);
-  
   try {
-    const userRef = doc(db, 'users', userId);
-    console.log('DEBUG: Updating Firestore document...');
-    
-    await updateDoc(userRef, {
+    await updateDoc(doc(db, 'users', userId), {
       disclaimerAccepted: true,
       disclaimerAcceptedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    
-    console.log('DEBUG: Firestore update successful');
   } catch (error) {
-    console.error('DEBUG: Accept disclaimer error:', error);
+    console.error('Accept disclaimer error:', error);
     throw error;
   }
 };

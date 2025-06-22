@@ -74,13 +74,22 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Send welcome email (don't wait for it)
-    sendWelcomeEmail({
-      userName: authResponse.user.name,
-      userEmail: authResponse.user.email,
-    }).catch(error => {
+    // Send welcome email asynchronously
+    try {
+      await sendWelcomeEmail({
+        userName: authResponse.user.name,
+        userEmail: authResponse.user.email,
+      });
+      console.log('Welcome email sent successfully to:', authResponse.user.email);
+    } catch (error: any) {
       console.error('Failed to send welcome email:', error);
-    });
+      console.error('Email error details:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        response: error.response
+      });
+      // Don't fail the signup if email fails
+    }
     
     // Return success response
     return NextResponse.json<ApiResponse>(
