@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Mail, Lock, User, Phone, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { OTPVerification } from './OTPVerification';
 import { signUp, signIn } from '@/lib/firebase/auth';
 import { SignupData, LoginData } from '@/types';
 import { VALIDATION_MESSAGES, SUCCESS_MESSAGES, ROUTES } from '@/lib/constants';
@@ -42,6 +43,8 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
   const [showPhoneField, setShowPhoneField] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
+  const [otpEmail, setOtpEmail] = useState('');
 
   // Form setup for signup
   const signupForm = useForm<SignupFormData>({
@@ -101,11 +104,10 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
             }));
           }
           
+          setOtpEmail(data.email);
+          setShowOTP(true);
           setSignupSuccess(true);
           signupForm.reset();
-          
-          // TODO: Navigate to OTP verification page
-          // router.push('/auth/verify-otp');
         } else {
           setAuthError(apiData.error || 'Failed to send verification code');
         }
@@ -148,6 +150,23 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
     signupForm.reset();
     loginForm.reset();
   };
+
+  // Show OTP verification if needed
+  if (showOTP) {
+    return (
+      <div className="w-full max-w-md mx-auto">
+        <OTPVerification
+          email={otpEmail}
+          purpose="signup"
+          onCancel={() => {
+            setShowOTP(false);
+            setSignupSuccess(false);
+            setAuthError(null);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md mx-auto">
