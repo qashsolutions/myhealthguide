@@ -9,6 +9,8 @@ import { Mail, Lock, User, Phone, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { signUp, signIn } from '@/lib/firebase/auth';
+import { sendSignInLinkToEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
 import { SignupData, LoginData } from '@/types';
 import { VALIDATION_MESSAGES, SUCCESS_MESSAGES, ROUTES } from '@/lib/constants';
 
@@ -20,13 +22,8 @@ import { VALIDATION_MESSAGES, SUCCESS_MESSAGES, ROUTES } from '@/lib/constants';
 // Validation schemas
 const signupSchema = z.object({
   email: z.string().email(VALIDATION_MESSAGES.EMAIL_INVALID),
-  password: z.string().min(6, VALIDATION_MESSAGES.PASSWORD_MIN),
-  confirmPassword: z.string(),
   name: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
   phoneNumber: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: VALIDATION_MESSAGES.PASSWORD_MISMATCH,
-  path: ['confirmPassword'],
 });
 
 const loginSchema = z.object({
@@ -46,14 +43,13 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
   const [mode, setMode] = useState<'signup' | 'login'>(defaultMode);
   const [showPhoneField, setShowPhoneField] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   // Form setup for signup
   const signupForm = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       email: '',
-      password: '',
-      confirmPassword: '',
       name: '',
       phoneNumber: '',
     },
@@ -74,23 +70,48 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
     
     const signupData: SignupData = {
       email: data.email,
-      password: data.password,
+      password: '', // Not used with magic link
       name: data.name,
       phoneNumber: data.phoneNumber || undefined,
     };
 
+    // First, store the user data locally for later
     const response = await signUp(signupData);
 
     if (response.success) {
-      // Check for redirect
-      const redirect = typeof window !== 'undefined' ? sessionStorage.getItem('authRedirect') : null;
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('authRedirect');
+      try {
+        // Send the magic link using Firebase client SDK
+        await sendSignInLinkToEmail(auth, data.email, {
+          url: `${window.location.origin}/auth/action`,
+          handleCodeInApp: true,
+        });
+        
+        // Magic link sent successfully, now send welcome email
+        const apiResponse = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: data.email,
+            name: data.name,
+          }),
+        });
+
+        const apiData = await apiResponse.json();
+        
+        if (!apiResponse.ok || !apiData.success) {
+          console.error('Welcome email failed:', apiData.error);
+          // Don't show error to user since magic link was sent successfully
+        }
+
+        setSignupSuccess(true);
+        signupForm.reset();
+      } catch (error) {
+        setAuthError('Failed to send verification email. Please try again.');
       }
-      
-      router.push(redirect || ROUTES.DASHBOARD);
     } else {
-      setAuthError(response.error || 'Signup failed');
+      setAuthError(response.error || 'Failed to process signup');
     }
   };
 
@@ -162,96 +183,109 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
 
       {/* Signup Form */}
       {mode === 'signup' && (
-        <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-6">
-          <Input
-            {...signupForm.register('name')}
-            label="Full Name"
-            placeholder="Enter your full name"
-            icon={<User className="h-5 w-5" />}
-            error={signupForm.formState.errors.name?.message}
-            required
-          />
-
-          <Input
-            {...signupForm.register('email')}
-            type="email"
-            label="Email Address"
-            placeholder="your@email.com"
-            icon={<Mail className="h-5 w-5" />}
-            error={signupForm.formState.errors.email?.message}
-            required
-          />
-
-          <Input
-            {...signupForm.register('password')}
-            type="password"
-            label="Password"
-            placeholder="At least 6 characters"
-            helpText="Must be at least 6 characters"
-            icon={<Lock className="h-5 w-5" />}
-            error={signupForm.formState.errors.password?.message}
-            showPasswordToggle
-            required
-          />
-
-          <Input
-            {...signupForm.register('confirmPassword')}
-            type="password"
-            label="Confirm Password"
-            placeholder="Re-enter your password"
-            icon={<Lock className="h-5 w-5" />}
-            error={signupForm.formState.errors.confirmPassword?.message}
-            showPasswordToggle
-            required
-          />
-
-          {/* Progressive phone field */}
-          {showPhoneField ? (
-            <Input
-              {...signupForm.register('phoneNumber')}
-              type="tel"
-              label="Phone Number (Optional)"
-              placeholder="+1 (555) 123-4567"
-              icon={<Phone className="h-5 w-5" />}
-              error={signupForm.formState.errors.phoneNumber?.message}
-              helpText="We'll use this for important health reminders"
-            />
+        <>
+          {signupSuccess ? (
+            <div className="text-center py-8">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-health-safe-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail className="h-10 w-10 text-health-safe" />
+                </div>
+                <h3 className="text-elder-xl font-semibold text-elder-text mb-2">
+                  Check Your Email!
+                </h3>
+                <p className="text-elder-base text-elder-text-secondary">
+                  We've sent a verification link to your email address.
+                </p>
+                <p className="text-elder-base text-elder-text-secondary mt-2">
+                  Click the link in the email to complete your registration.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSignupSuccess(false);
+                  setMode('login');
+                }}
+                className="text-elder-base text-primary-600 hover:text-primary-700 hover:underline"
+              >
+                Already verified? Sign in
+              </button>
+            </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowPhoneField(true)}
-              className="w-full text-left p-4 border-2 border-dashed border-elder-border rounded-elder hover:border-primary-500 transition-colors"
-            >
-              <p className="text-elder-base text-elder-text-secondary">
-                + Add phone number (optional)
+            <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-6">
+              <Input
+                {...signupForm.register('name')}
+                label="Full Name"
+                placeholder="Enter your full name"
+                icon={<User className="h-5 w-5" />}
+                error={signupForm.formState.errors.name?.message}
+                required
+              />
+
+              <Input
+                {...signupForm.register('email')}
+                type="email"
+                label="Email Address"
+                placeholder="your@email.com"
+                icon={<Mail className="h-5 w-5" />}
+                error={signupForm.formState.errors.email?.message}
+                required
+              />
+
+              {/* Progressive phone field */}
+              {showPhoneField ? (
+                <Input
+                  {...signupForm.register('phoneNumber')}
+                  type="tel"
+                  label="Phone Number (Optional)"
+                  placeholder="+1 (555) 123-4567"
+                  icon={<Phone className="h-5 w-5" />}
+                  error={signupForm.formState.errors.phoneNumber?.message}
+                  helpText="We'll use this for important health reminders"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowPhoneField(true)}
+                  className="w-full text-left p-4 border-2 border-dashed border-elder-border rounded-elder hover:border-primary-500 transition-colors"
+                >
+                  <p className="text-elder-base text-elder-text-secondary">
+                    + Add phone number (optional)
+                  </p>
+                  <p className="text-elder-sm text-elder-text-secondary mt-1">
+                    For medication reminders
+                  </p>
+                </button>
+              )}
+
+              <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-4">
+                <p className="text-elder-sm text-primary-800">
+                  <strong>No password needed!</strong> We'll send you a secure link to verify your email and complete registration.
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="large"
+                fullWidth
+                loading={signupForm.formState.isSubmitting}
+              >
+                Send Verification Email
+              </Button>
+
+              <p className="text-elder-sm text-elder-text-secondary text-center">
+                By creating an account, you agree to our{' '}
+                <a href={ROUTES.PRIVACY} className="text-primary-600 hover:underline">
+                  Privacy Policy
+                </a>{' '}
+                and{' '}
+                <a href={ROUTES.MEDICAL_DISCLAIMER} className="text-primary-600 hover:underline">
+                  Medical Disclaimer
+                </a>
               </p>
-              <p className="text-elder-sm text-elder-text-secondary mt-1">
-                For medication reminders
-              </p>
-            </button>
+            </form>
           )}
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="large"
-            fullWidth
-            loading={signupForm.formState.isSubmitting}
-          >
-            Create My Account
-          </Button>
-
-          <p className="text-elder-sm text-elder-text-secondary text-center">
-            By creating an account, you agree to our{' '}
-            <a href={ROUTES.PRIVACY} className="text-primary-600 hover:underline">
-              Privacy Policy
-            </a>{' '}
-            and{' '}
-            <a href={ROUTES.MEDICAL_DISCLAIMER} className="text-primary-600 hover:underline">
-              Medical Disclaimer
-            </a>
-          </p>
-        </form>
+        </>
       )}
 
       {/* Login Form */}

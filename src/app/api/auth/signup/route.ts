@@ -1,43 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import admin from 'firebase-admin';
 import { sendEmail } from '@/lib/email/resend';
-import { ApiResponse, SignupData } from '@/types';
+import { ApiResponse } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, APP_NAME, APP_URL, DISCLAIMERS } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
 
 /**
  * POST /api/auth/signup
- * Create new user account with magic link
+ * Send welcome email after user registration
  */
 
-// Initialize Firebase Admin if needed
-const initializeFirebaseAdmin = () => {
-  if (!admin.apps.length) {
-    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
-
-    if (projectId && clientEmail && privateKey) {
-      try {
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey: privateKey.replace(/\\n/g, '\n'),
-          }),
-        });
-      } catch (error) {
-        console.error('Firebase admin initialization error:', error);
-      }
-    }
-  }
-};
-
-initializeFirebaseAdmin();
-
-// Validation schema (no password needed for magic link)
-const signupSchema = z.object({
+// Validation schema for welcome email
+const welcomeEmailSchema = z.object({
   email: z
     .string()
     .email(VALIDATION_MESSAGES.EMAIL_INVALID)
@@ -46,13 +20,6 @@ const signupSchema = z.object({
     .string()
     .min(1, VALIDATION_MESSAGES.REQUIRED)
     .max(100),
-  phoneNumber: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || /^\+?[\d\s\-\(\)]+$/.test(val),
-      VALIDATION_MESSAGES.PHONE_INVALID
-    ),
 });
 
 export async function POST(request: NextRequest) {
@@ -61,54 +28,36 @@ export async function POST(request: NextRequest) {
       // Parse request body
       const body = await request.json();
     
-    // Validate input
-    const validationResult = signupSchema.safeParse(body);
+      // Validate input
+      const validationResult = welcomeEmailSchema.safeParse(body);
     
-    if (!validationResult.success) {
-      const errors = validationResult.error.issues.map(issue => ({
-        field: issue.path[0] as string,
-        message: issue.message,
-      }));
-      
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Validation failed',
-          errors,
-        },
-        { status: 400 }
-      );
-    }
-    
-    const { email, name, phoneNumber } = validationResult.data;
-    
-    try {
-      // Generate magic link using Firebase Admin
-      let magicLink = '';
-      
-      if (admin.apps.length) {
-        const actionCodeSettings = {
-          url: `${APP_URL}/auth/action?email=${encodeURIComponent(email)}`,
-          handleCodeInApp: true,
-        };
+      if (!validationResult.success) {
+        const errors = validationResult.error.issues.map(issue => ({
+          field: issue.path[0] as string,
+          message: issue.message,
+        }));
         
-        magicLink = await admin.auth().generateSignInWithEmailLink(email, actionCodeSettings);
-      } else {
-        // Fallback for development
-        magicLink = `${APP_URL}/auth/action?mode=signIn&email=${encodeURIComponent(email)}&apiKey=development`;
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Validation failed',
+            errors,
+          },
+          { status: 400 }
+        );
       }
-      
-      // Store user data temporarily (will be created when they verify)
-      // This is handled client-side in the signUp function
-      
-      // Send magic link email via Resend
+    
+      const { email, name } = validationResult.data;
+    
+      try {
+        // Send welcome email via Resend
       const emailHtml = `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Verify Your Email - ${APP_NAME}</title>
+            <title>Welcome to ${APP_NAME}</title>
             <style>
               body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -197,20 +146,21 @@ export async function POST(request: NextRequest) {
               <div class="content">
                 <h2>Hello ${name},</h2>
                 
-                <p>Thank you for joining ${APP_NAME}! Please verify your email address to complete your registration.</p>
+                <p>Welcome to ${APP_NAME}! We're excited to help you manage your medications safely.</p>
                 
-                <p>Click the button below to verify your email and start using our medication safety features:</p>
+                <p><strong>What you can do now:</strong></p>
+                <ul style="margin: 20px 0; padding-left: 20px;">
+                  <li>Check your medications for potential conflicts</li>
+                  <li>Get answers to health questions in simple language</li>
+                  <li>Use voice commands instead of typing</li>
+                  <li>Access clear, easy-to-understand safety indicators</li>
+                </ul>
                 
                 <div style="text-align: center;">
-                  <a href="${magicLink}" class="button">Verify Email & Complete Registration</a>
+                  <a href="${APP_URL}/medication-check" class="button">Check Your Medications</a>
                 </div>
                 
-                <p><strong>This link will expire in 1 hour for security reasons.</strong></p>
-                
-                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-                <p style="word-break: break-all; color: #3182ce; font-size: 14px;">${magicLink}</p>
-                
-                <p>If you didn't create an account with ${APP_NAME}, you can safely ignore this email.</p>
+                <p>If you have any questions, please don't hesitate to reach out. We're here to help!</p>
                 
                 <div class="disclaimer">
                   <strong>
@@ -240,35 +190,33 @@ export async function POST(request: NextRequest) {
         </html>
       `;
       
-      await sendEmail({
-        to: email,
-        subject: `Verify Your Email - ${APP_NAME}`,
-        html: emailHtml,
-      });
-      
-      // Return success response
-      return NextResponse.json<ApiResponse>(
-        {
-          success: true,
-          message: 'Verification email sent successfully. Please check your inbox.',
-        },
-        { status: 201 }
-      );
-    } catch (emailError: any) {
-      console.error('Failed to send verification email:', emailError);
-      
-      // Account might have been created but email failed
-      // Return partial success with warning
-      return NextResponse.json<ApiResponse>(
-        {
-          success: true,
-          message: 'Account created successfully. However, we could not send the verification email. Please contact support at support@myguide.health.',
-          warning: 'email_delivery_failed',
-          code: 'email/send-failed',
-        },
-        { status: 201 }
-      );
-    }
+        await sendEmail({
+          to: email,
+          subject: `Welcome to ${APP_NAME}`,
+          html: emailHtml,
+        });
+        
+        // Return success response
+        return NextResponse.json<ApiResponse>(
+          {
+            success: true,
+            message: 'Welcome email sent successfully.',
+          },
+          { status: 200 }
+        );
+      } catch (emailError: any) {
+        console.error('Failed to send welcome email:', emailError);
+        
+        // Return error response
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Failed to send welcome email. Please try again.',
+            code: 'email/send-failed',
+          },
+          { status: 500 }
+        );
+      }
     
   } catch (error) {
     console.error('Signup API error:', error);
