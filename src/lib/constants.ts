@@ -134,8 +134,9 @@ export const ROUTES = {
   MEDICATION_CHECK: '/medication-check',
   HEALTH_QA: '/health-qa',
   ACCOUNT: '/account',
+  ACCOUNT_DELETE: '/account/delete',
   PRIVACY: '/privacy',
-  UNSUBSCRIBE: '/privacy/unsubscribe',
+  UNSUBSCRIBE: '/account/delete', // Redirects to account deletion
   MEDICAL_DISCLAIMER: '/medical-disclaimer',
 } as const;
 

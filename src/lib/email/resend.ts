@@ -121,7 +121,7 @@ const getWelcomeEmailHtml = (data: WelcomeEmailData): string => {
           </div>
           
           <div class="footer">
-            <p>${APP_NAME} • <a href="${APP_URL}/privacy">Privacy Policy</a> • <a href="${APP_URL}/privacy/unsubscribe">Unsubscribe</a></p>
+            <p>${APP_NAME} • <a href="${APP_URL}/privacy">Privacy Policy</a> • <a href="${APP_URL}/account/delete">Unsubscribe</a></p>
             <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
           </div>
         </div>
@@ -172,7 +172,7 @@ const getPasswordResetEmailHtml = (data: PasswordResetEmailData): string => {
           </div>
           
           <div class="footer">
-            <p>${APP_NAME} • <a href="${APP_URL}/privacy">Privacy Policy</a> • <a href="${APP_URL}/privacy/unsubscribe">Unsubscribe</a></p>
+            <p>${APP_NAME} • <a href="${APP_URL}/privacy">Privacy Policy</a> • <a href="${APP_URL}/account/delete">Unsubscribe</a></p>
             <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
           </div>
         </div>

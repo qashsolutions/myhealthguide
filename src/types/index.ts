@@ -13,6 +13,11 @@ export interface User {
   emailVerified: boolean;
   disclaimerAccepted?: boolean;
   disclaimerAcceptedAt?: Date;
+  // Account deletion fields
+  deletionRequested?: Date;
+  deletionScheduled?: Date;
+  deletionReason?: string;
+  status?: 'active' | 'pending_deletion' | 'deleted';
 }
 
 export interface AuthUser {
