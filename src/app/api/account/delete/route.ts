@@ -225,7 +225,8 @@ const sendDeletionEmail = async (userEmail: string, userName: string) => {
           
           <div class="footer">
             <p>${APP_NAME} • <a href="${APP_URL}/privacy">Privacy Policy</a></p>
-            <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+            <p>© 2025 <a href="${APP_URL}">${APP_URL}</a> - A unit of QaSH Solutions Inc.</p>
+            <p>D-U-N-S® Number: 119536275</p>
             <p><small>This is an automated message. Please do not reply to this email.</small></p>
           </div>
         </div>
@@ -292,8 +293,30 @@ export async function POST(request: NextRequest) {
         userEmail = userRecord.email || 'unknown';
         userName = userRecord.displayName || 'User';
         
-        // TODO: Verify password by attempting to sign in with Firebase Auth
-        // This would require the client-side SDK or a separate verification endpoint
+        // Verify password by checking with a separate endpoint
+        // Since we can't use Firebase client SDK in server-side code,
+        // we'll verify by making a request to the login endpoint
+        const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/verify-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: userEmail,
+            password: password,
+          }),
+        });
+        
+        if (!verifyResponse.ok) {
+          return NextResponse.json<ApiResponse>(
+            {
+              success: false,
+              error: 'Invalid password. Please try again.',
+              code: 'auth/wrong-password',
+            },
+            { status: 401 }
+          );
+        }
         
         // Mark user for deletion (soft delete)
         await admin.auth().updateUser(userId, {
