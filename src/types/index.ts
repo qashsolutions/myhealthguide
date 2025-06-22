@@ -166,6 +166,7 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+  warning?: string;
   code?: string;
   errors?: Array<{ field: string; message: string }>;
 }

@@ -7,6 +7,9 @@ import {
   User as FirebaseUser,
   onAuthStateChanged,
   sendEmailVerification,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './config';
@@ -46,51 +49,27 @@ export const mapFirebaseUser = async (firebaseUser: FirebaseUser): Promise<User 
   }
 };
 
-// Sign up new user
+// Action code settings for email link
+export const actionCodeSettings = {
+  url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health'}/auth/action`,
+  handleCodeInApp: true,
+};
+
+// Sign up new user - just store data, email will be sent by API
 export const signUp = async (data: SignupData): Promise<AuthResponse> => {
   try {
-    // Create Firebase auth user
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      data.email,
-      data.password
-    );
-    
-    const firebaseUser = userCredential.user;
-    
-    // Update display name
-    await updateProfile(firebaseUser, {
-      displayName: data.name,
-    });
-    
-    // Create user document in Firestore
-    await setDoc(doc(db, 'users', firebaseUser.uid), {
-      email: data.email,
-      name: data.name,
-      phoneNumber: data.phoneNumber || null,
-      emailVerified: false,
-      disclaimerAccepted: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    
-    // Skip Firebase email verification - using Resend instead
-    // await sendEmailVerification(firebaseUser);
-    
-    // Get ID token for API calls
-    const token = await firebaseUser.getIdToken();
-    
-    // Map to our User type
-    const user = await mapFirebaseUser(firebaseUser);
-    
-    if (!user) {
-      throw new Error('Failed to create user profile');
+    // Store email and user data for completion after verification
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('emailForSignIn', data.email);
+      window.localStorage.setItem('pendingUserData', JSON.stringify({
+        name: data.name,
+        phoneNumber: data.phoneNumber,
+      }));
     }
     
+    // Return success - the API will handle sending the magic link email
     return {
       success: true,
-      user,
-      token,
     };
   } catch (error: any) {
     console.error('Signup error:', error);
@@ -262,6 +241,83 @@ export const getCurrentUser = async (): Promise<User | null> => {
   return mapFirebaseUser(firebaseUser);
 };
 
+// Complete signup with email link
+export const completeSignupWithEmailLink = async (email: string, emailLink: string): Promise<AuthResponse> => {
+  try {
+    // Verify the link is valid
+    if (!isSignInWithEmailLink(auth, emailLink)) {
+      throw new Error('Invalid verification link');
+    }
+
+    // Sign in with the email link
+    const result = await signInWithEmailLink(auth, email, emailLink);
+    const firebaseUser = result.user;
+
+    // Get stored user data
+    let userData = { name: '', phoneNumber: undefined };
+    if (typeof window !== 'undefined') {
+      const storedData = window.localStorage.getItem('pendingUserData');
+      if (storedData) {
+        userData = JSON.parse(storedData);
+        // Clean up stored data
+        window.localStorage.removeItem('emailForSignIn');
+        window.localStorage.removeItem('pendingUserData');
+      }
+    }
+
+    // Update display name if available
+    if (userData.name) {
+      await updateProfile(firebaseUser, {
+        displayName: userData.name,
+      });
+    }
+
+    // Create user document in Firestore
+    await setDoc(doc(db, 'users', firebaseUser.uid), {
+      email: email,
+      name: userData.name || firebaseUser.displayName || '',
+      phoneNumber: userData.phoneNumber || null,
+      emailVerified: true, // Email is verified through magic link
+      disclaimerAccepted: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Get ID token
+    const token = await firebaseUser.getIdToken();
+
+    // Map to our User type
+    const user = await mapFirebaseUser(firebaseUser);
+
+    if (!user) {
+      throw new Error('Failed to create user profile');
+    }
+
+    return {
+      success: true,
+      user,
+      token,
+    };
+  } catch (error: any) {
+    console.error('Complete signup error:', error);
+    
+    return {
+      success: false,
+      error: error.message || 'Failed to complete signup',
+      code: error.code,
+    };
+  }
+};
+
+// Generate email sign-in link for server-side use
+export const generateSignInLink = async (email: string): Promise<string> => {
+  return await sendSignInLinkToEmail(auth, email, actionCodeSettings).then(() => {
+    // Firebase doesn't return the link, so we'll need to handle this differently
+    // For now, return a success indicator
+    return 'link-sent';
+  });
+};
+
 // Get ID token for API calls
 export const getIdToken = async (): Promise<string | null> => {
   const firebaseUser = auth.currentUser;
@@ -277,3 +333,6 @@ export const getIdToken = async (): Promise<string | null> => {
     return null;
   }
 };
+
+// Export isSignInWithEmailLink for external use
+export { isSignInWithEmailLink };

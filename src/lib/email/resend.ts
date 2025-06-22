@@ -14,6 +14,15 @@ import { APP_NAME, APP_URL, EMAIL_CONFIG } from '@/lib/constants';
 // Initialize Resend client with optional API key
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+// Log initialization status for debugging
+if (process.env.NODE_ENV !== 'test') {
+  console.log('[Resend] Email service initialization:', {
+    configured: !!resend,
+    hasApiKey: !!process.env.RESEND_API_KEY,
+    apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 7) + '...',
+  });
+}
+
 // Email templates with eldercare-friendly styling
 const emailStyles = `
   <style>
@@ -186,8 +195,9 @@ const getPasswordResetEmailHtml = (data: PasswordResetEmailData): string => {
 // Send welcome email
 export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<void> => {
   if (!resend) {
-    console.warn('Resend API key not configured. Skipping email send.');
-    return;
+    const error = new Error('Email service not configured: RESEND_API_KEY is missing or invalid');
+    console.error('[Resend] Error:', error.message);
+    throw error;
   }
 
   try {
@@ -221,8 +231,9 @@ export const sendPasswordResetEmail = async (
   data: PasswordResetEmailData
 ): Promise<void> => {
   if (!resend) {
-    console.warn('Resend API key not configured. Skipping email send.');
-    return;
+    const error = new Error('Email service not configured: RESEND_API_KEY is missing or invalid');
+    console.error('[Resend] Error:', error.message);
+    throw error;
   }
 
   try {
@@ -254,11 +265,18 @@ export const sendPasswordResetEmail = async (
 // Send generic email
 export const sendEmail = async (data: EmailData): Promise<void> => {
   if (!resend) {
-    console.warn('Resend API key not configured. Skipping email send.');
-    return;
+    const error = new Error('Email service not configured: RESEND_API_KEY is missing or invalid');
+    console.error('[Resend] Error:', error.message);
+    throw error;
   }
 
   try {
+    console.log('[Resend] Sending email:', {
+      to: data.to,
+      subject: data.subject,
+      from: data.from || EMAIL_CONFIG.FROM,
+    });
+
     const result = await resend.emails.send({
       from: data.from || EMAIL_CONFIG.FROM,
       to: data.to,
@@ -269,10 +287,13 @@ export const sendEmail = async (data: EmailData): Promise<void> => {
     });
 
     if (result.error) {
-      throw new Error(result.error.message);
+      console.error('[Resend] API error:', result.error);
+      throw new Error(`Resend API error: ${result.error.message}`);
     }
-  } catch (error) {
-    console.error('Send email error:', error);
+
+    console.log('[Resend] Email sent successfully:', result);
+  } catch (error: any) {
+    console.error('[Resend] Send email error:', error);
     throw error;
   }
 };
