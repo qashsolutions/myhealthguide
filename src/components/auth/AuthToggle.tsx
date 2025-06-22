@@ -9,8 +9,6 @@ import { Mail, Lock, User, Phone, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { signUp, signIn } from '@/lib/firebase/auth';
-import { sendSignInLinkToEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
 import { SignupData, LoginData } from '@/types';
 import { VALIDATION_MESSAGES, SUCCESS_MESSAGES, ROUTES } from '@/lib/constants';
 
@@ -80,13 +78,7 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
 
     if (response.success) {
       try {
-        // Send the magic link using Firebase client SDK
-        await sendSignInLinkToEmail(auth, data.email, {
-          url: `${window.location.origin}/auth/action`,
-          handleCodeInApp: true,
-        });
-        
-        // Magic link sent successfully, now send welcome email
+        // Request OTP for email verification
         const apiResponse = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: {
@@ -100,13 +92,23 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
 
         const apiData = await apiResponse.json();
         
-        if (!apiResponse.ok || !apiData.success) {
-          console.error('Welcome email failed:', apiData.error);
-          // Don't show error to user since magic link was sent successfully
+        if (apiResponse.ok && apiData.success) {
+          // Store user data for OTP verification
+          if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem('pendingSignup', JSON.stringify({
+              email: data.email,
+              name: data.name,
+            }));
+          }
+          
+          setSignupSuccess(true);
+          signupForm.reset();
+          
+          // TODO: Navigate to OTP verification page
+          // router.push('/auth/verify-otp');
+        } else {
+          setAuthError(apiData.error || 'Failed to send verification code');
         }
-
-        setSignupSuccess(true);
-        signupForm.reset();
       } catch (error) {
         setAuthError('Failed to send verification email. Please try again.');
       }

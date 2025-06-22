@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sendEmail } from '@/lib/email/resend';
+import { storeOTP, hasValidOTP, getOTPRemainingTime } from '@/lib/auth/otp';
 import { ApiResponse } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, APP_NAME, APP_URL, DISCLAIMERS } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
 
 /**
  * POST /api/auth/signup
- * Send welcome email after user registration
+ * Generate and send OTP for email verification during signup
+ * 
+ * Flow:
+ * 1. Validate email and name
+ * 2. Check if OTP already exists (prevent spam)
+ * 3. Generate 6-digit OTP
+ * 4. Send OTP via Resend email
+ * 5. Return success with remaining time
  */
 
 // Validation schema for welcome email
@@ -48,9 +56,29 @@ export async function POST(request: NextRequest) {
       }
     
       const { email, name } = validationResult.data;
+      
+      // Check if user already has a valid OTP to prevent spam
+      if (hasValidOTP(email, 'signup')) {
+        const remainingTime = getOTPRemainingTime(email, 'signup');
+        
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: `An OTP was already sent to this email. Please wait ${remainingTime} seconds before requesting a new one.`,
+            data: { remainingTime },
+          },
+          { status: 429 } // Too Many Requests
+        );
+      }
     
       try {
-        // Send welcome email via Resend
+        // Generate and store OTP with user metadata
+        const otp = storeOTP(email, 'signup', { name });
+        
+        // Log OTP generation (remove in production for security)
+        console.log(`[Signup] Generated OTP for ${email}: ${otp}`);
+        
+        // Send OTP email via Resend
       const emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -146,21 +174,23 @@ export async function POST(request: NextRequest) {
               <div class="content">
                 <h2>Hello ${name},</h2>
                 
-                <p>Welcome to ${APP_NAME}! We're excited to help you manage your medications safely.</p>
+                <p>Welcome to ${APP_NAME}! To complete your registration, please enter the verification code below:</p>
                 
-                <p><strong>What you can do now:</strong></p>
-                <ul style="margin: 20px 0; padding-left: 20px;">
-                  <li>Check your medications for potential conflicts</li>
-                  <li>Get answers to health questions in simple language</li>
-                  <li>Use voice commands instead of typing</li>
-                  <li>Access clear, easy-to-understand safety indicators</li>
-                </ul>
-                
-                <div style="text-align: center;">
-                  <a href="${APP_URL}/medication-check" class="button">Check Your Medications</a>
+                <!-- OTP Code Display -->
+                <div style="background-color: #f7fafc; border: 2px solid #3182ce; border-radius: 8px; padding: 30px; margin: 30px 0; text-align: center;">
+                  <p style="margin: 0 0 10px 0; font-size: 16px; color: #4a5568;">Your verification code is:</p>
+                  <h1 style="font-size: 48px; letter-spacing: 8px; color: #3182ce; margin: 0; font-family: monospace;">${otp}</h1>
+                  <p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">This code expires in 10 minutes</p>
                 </div>
                 
-                <p>If you have any questions, please don't hesitate to reach out. We're here to help!</p>
+                <p><strong>Why verification is needed:</strong></p>
+                <ul style="margin: 20px 0; padding-left: 20px;">
+                  <li>Ensures your email address is correct</li>
+                  <li>Protects your health information</li>
+                  <li>Prevents unauthorized access</li>
+                </ul>
+                
+                <p>If you didn't create an account with ${APP_NAME}, please ignore this email.</p>
                 
                 <div class="disclaimer">
                   <strong>
@@ -192,26 +222,30 @@ export async function POST(request: NextRequest) {
       
         await sendEmail({
           to: email,
-          subject: `Welcome to ${APP_NAME}`,
+          subject: `Your ${APP_NAME} Verification Code: ${otp}`,
           html: emailHtml,
         });
         
-        // Return success response
+        // Return success response with OTP expiry info
         return NextResponse.json<ApiResponse>(
           {
             success: true,
-            message: 'Welcome email sent successfully.',
+            message: 'Verification code sent successfully. Please check your email.',
+            data: {
+              email,
+              expiresIn: 600, // 10 minutes in seconds
+            },
           },
           { status: 200 }
         );
       } catch (emailError: any) {
-        console.error('Failed to send welcome email:', emailError);
+        console.error('Failed to send OTP email:', emailError);
         
         // Return error response
         return NextResponse.json<ApiResponse>(
           {
             success: false,
-            error: 'Failed to send welcome email. Please try again.',
+            error: 'Failed to send verification code. Please try again.',
             code: 'email/send-failed',
           },
           { status: 500 }
