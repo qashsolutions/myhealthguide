@@ -107,7 +107,9 @@ export function Footer(): JSX.Element {
         <div className="mt-8 pt-8 border-t border-elder-border">
           <div className="flex flex-col elder-tablet:flex-row justify-between items-center gap-4">
             <p className="text-elder-sm text-elder-text-secondary text-center elder-tablet:text-left">
-              © {currentYear} {APP_NAME}. All rights reserved.
+              © 2025 <a href="https://www.myguide.health" className="hover:text-primary-600">https://www.myguide.health</a> - A unit of QaSH Solutions Inc.
+              <br />
+              D-U-N-S® Number: 119536275
             </p>
             <p className="text-elder-sm text-elder-text-secondary text-center elder-tablet:text-right">
               Made with care for seniors managing their health

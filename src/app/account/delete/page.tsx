@@ -51,7 +51,10 @@ function AccountDeletePage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${await getAuthToken()}`,
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ 
+          email: user?.email || '',
+          password 
+        }),
       });
 
       if (!response.ok) {
