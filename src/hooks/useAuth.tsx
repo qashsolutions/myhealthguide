@@ -99,24 +99,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Accept disclaimer
   const acceptDisclaimer = useCallback(async () => {
-    if (!user) return;
+    console.log('DEBUG: acceptDisclaimer hook called');
+    console.log('DEBUG: Current user:', user);
+    
+    if (!user) {
+      console.log('DEBUG: No user found, returning');
+      return;
+    }
 
     try {
+      console.log('DEBUG: Calling acceptDisclaimerInDb with user.id:', user.id);
       await acceptDisclaimerInDb(user.id);
+      console.log('DEBUG: acceptDisclaimerInDb completed successfully');
       
       // Update local user state
-      setUser({
+      const updatedUser = {
         ...user,
         disclaimerAccepted: true,
         disclaimerAcceptedAt: new Date(),
-      });
+      };
+      console.log('DEBUG: Updating local user state:', updatedUser);
+      setUser(updatedUser);
       
       // Store in session
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
+        console.log('DEBUG: Stored in sessionStorage');
       }
     } catch (err) {
-      console.error('Accept disclaimer error:', err);
+      console.error('DEBUG: Accept disclaimer error:', err);
       setError('Failed to accept disclaimer');
     }
   }, [user]);

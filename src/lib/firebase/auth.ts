@@ -225,14 +225,21 @@ export const updateUserProfile = async (
 
 // Accept medical disclaimer
 export const acceptDisclaimer = async (userId: string): Promise<void> => {
+  console.log('DEBUG: acceptDisclaimer called with userId:', userId);
+  
   try {
-    await updateDoc(doc(db, 'users', userId), {
+    const userRef = doc(db, 'users', userId);
+    console.log('DEBUG: Updating Firestore document...');
+    
+    await updateDoc(userRef, {
       disclaimerAccepted: true,
       disclaimerAcceptedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    
+    console.log('DEBUG: Firestore update successful');
   } catch (error) {
-    console.error('Accept disclaimer error:', error);
+    console.error('DEBUG: Accept disclaimer error:', error);
     throw error;
   }
 };

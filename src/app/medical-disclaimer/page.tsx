@@ -14,7 +14,7 @@ import { AlertCircle, ArrowLeft, FileText } from 'lucide-react';
 function MedicalDisclaimerContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, acceptDisclaimer } = useAuth();
   const [hasRead, setHasRead] = useState(false);
   const [acceptLoading, setAcceptLoading] = useState(false);
   
@@ -23,22 +23,29 @@ function MedicalDisclaimerContent() {
 
   // Handle accept disclaimer
   const handleAccept = async () => {
+    console.log('DEBUG: Accept button clicked');
+    console.log('DEBUG: User:', user);
+    console.log('DEBUG: Has read:', hasRead);
+    
     setAcceptLoading(true);
     
     try {
-      // Store disclaimer acceptance in session
+      // Call the acceptDisclaimer function from useAuth
+      console.log('DEBUG: Calling acceptDisclaimer...');
+      await acceptDisclaimer();
+      console.log('DEBUG: acceptDisclaimer completed');
+      
+      // Store disclaimer acceptance in session (backup)
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('disclaimerAccepted', 'true');
         sessionStorage.setItem('disclaimerAcceptedAt', new Date().toISOString());
       }
       
-      // If user is logged in, could also store in database
-      // await api.acceptDisclaimer() 
-      
       // Redirect to intended page
+      console.log('DEBUG: Redirecting to:', redirectTo);
       router.push(redirectTo);
     } catch (error) {
-      console.error('Failed to accept disclaimer:', error);
+      console.error('DEBUG: Failed to accept disclaimer:', error);
     } finally {
       setAcceptLoading(false);
     }
