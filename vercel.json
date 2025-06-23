@@ -7,9 +7,15 @@
   }],
   "redirects": [
     {
-      "source": "/:path*",
-      "destination": "https://www.myguide.health/:path*",
-      "permanent": true
+      "source": "/(.*)",
+      "destination": "https://www.myguide.health/$1",
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "myguide.health"
+        }
+      ]
     }
   ]
 }
