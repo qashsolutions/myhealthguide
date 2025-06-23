@@ -58,19 +58,44 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Step 4: Check client auth state
-    try {
-      steps.clientAuthState.initialized = !!auth;
-      if (!auth) {
-        steps.clientAuthState.error = 'Firebase client auth not initialized';
-      }
-    } catch (e: any) {
-      steps.clientAuthState.error = e.message;
+    // Step 4: Check API key availability
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    steps.clientAuthState.initialized = !!apiKey;
+    if (!apiKey) {
+      steps.clientAuthState.error = 'Firebase API key not found';
     }
 
-    // Step 5: Attempt sign in with client SDK
+    // Step 5: Attempt sign in with REST API
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const verifyPasswordResponse = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            returnSecureToken: true,
+          }),
+        }
+      );
+
+      if (!verifyPasswordResponse.ok) {
+        const errorData = await verifyPasswordResponse.json();
+        steps.attemptSignIn.error = `${errorData.error?.code}: ${errorData.error?.message}`;
+        
+        return NextResponse.json({
+          success: false,
+          message: 'Login failed',
+          error: errorData.error?.message,
+          errorCode: errorData.error?.code,
+          steps
+        }, { status: 401 });
+      }
+
+      const authData = await verifyPasswordResponse.json();
       steps.attemptSignIn.success = true;
       
       return NextResponse.json({
@@ -78,9 +103,9 @@ export async function POST(request: NextRequest) {
         message: 'Login successful',
         steps,
         user: {
-          uid: userCredential.user.uid,
-          email: userCredential.user.email,
-          emailVerified: userCredential.user.emailVerified
+          uid: authData.localId,
+          email: authData.email,
+          idToken: authData.idToken
         }
       });
       
