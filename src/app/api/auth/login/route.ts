@@ -184,7 +184,14 @@ export async function POST(request: NextRequest) {
         // Use the ID token from the REST API response
         const token = authData.idToken;
         
-        // Create session
+        // Create session cookie for authenticated user
+        // This session will be used for all subsequent authenticated requests
+        console.log('[Login] Creating session for user:', {
+          userId: userRecord.uid,
+          email: userRecord.email,
+          emailVerified: userRecord.emailVerified,
+        });
+        
         await createSession({
           userId: userRecord.uid,
           email: userRecord.email!,
@@ -196,11 +203,12 @@ export async function POST(request: NextRequest) {
         // Clear failed attempts on successful login
         failedAttempts.delete(email);
         
-        // Log successful login
+        // Log successful login and session creation
         console.log(`[Login] User ${email} logged in successfully`);
+        console.log('[Login] Session cookie should now be set');
         
-        // Return success response
-        return NextResponse.json<ApiResponse>(
+        // Create the response with success data
+        const response = NextResponse.json<ApiResponse>(
           {
             success: true,
             message: SUCCESS_MESSAGES.LOGIN,
@@ -218,6 +226,14 @@ export async function POST(request: NextRequest) {
           },
           { status: 200 }
         );
+        
+        // Add debug headers in development to verify cookie was set
+        if (process.env.NODE_ENV === 'development') {
+          response.headers.set('X-Session-Created', 'true');
+          response.headers.set('X-User-ID', userRecord.uid);
+        }
+        
+        return response;
         
       } catch (authError: any) {
         // Track failed attempt

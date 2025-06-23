@@ -6,18 +6,34 @@ import { ApiResponse } from '@/types';
 /**
  * GET /api/auth/session
  * Get current user session from server-side cookies
+ * This endpoint is called by the client to check authentication status
  */
 export async function GET(request: NextRequest) {
   try {
+    // Log the incoming request details for debugging
+    console.log('[API Session] Session check request:', {
+      url: request.url,
+      headers: {
+        cookie: request.headers.get('cookie') ? 'present' : 'missing',
+        origin: request.headers.get('origin'),
+        referer: request.headers.get('referer'),
+      },
+    });
+    
     // Get session from cookies
+    // This reads the httpOnly session cookie that was set during login
     const session = await getSession();
     
+    // Check if we have a valid session
     if (!session || !session.userId) {
+      console.log('[API Session] No valid session found');
       return NextResponse.json<ApiResponse>({
         success: false,
         error: 'No active session',
       }, { status: 401 });
     }
+    
+    console.log('[API Session] Valid session found for user:', session.email);
     
     // Get user data from Firestore
     const userDoc = await adminDb().collection('users').doc(session.userId).get();

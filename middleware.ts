@@ -93,8 +93,21 @@ export async function middleware(request: NextRequest) {
     // For now, we'll check for the session cookie
     const sessionCookie = request.cookies.get('mhg-auth-session');
     
+    // Debug logging for cookie checks (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Middleware] Route check:', {
+        pathname,
+        isProtectedRoute,
+        isAuthRoute,
+        hasSessionCookie: !!sessionCookie,
+        cookieValue: sessionCookie?.value ? 'present (hidden)' : 'missing',
+        allCookies: request.cookies.getAll().map(c => c.name),
+      });
+    }
+    
     if (isProtectedRoute && !sessionCookie) {
       // Not logged in - redirect to auth with return URL
+      console.log('[Middleware] Redirecting to auth - no session cookie');
       const redirectUrl = new URL('/auth', request.url);
       redirectUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(redirectUrl);
@@ -102,6 +115,7 @@ export async function middleware(request: NextRequest) {
     
     if (isAuthRoute && sessionCookie && !pathname.includes('verify-email')) {
       // Already logged in - redirect to dashboard
+      console.log('[Middleware] Redirecting to dashboard - user already authenticated');
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     

@@ -39,31 +39,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Define checkServerSession as a reusable function
+  const checkServerSession = useCallback(async () => {
+    try {
+      console.log('[useAuth] Checking server session...');
+      
+      const response = await fetch('/api/auth/session', {
+        credentials: 'include', // Ensure cookies are sent with the request
+      });
+      
+      console.log('[useAuth] Session check response:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText,
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.data?.user) {
+        // We have a valid server session
+        console.log('[useAuth] Valid server session found:', data.data.user.email);
+        setUser(data.data.user);
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
+        
+        // If disclaimer is accepted, store it
+        if (data.data.user.disclaimerAccepted) {
+          sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
+        }
+        return true;
+      } else {
+        console.log('[useAuth] No valid server session:', data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('[useAuth] Session check error:', error);
+      return false;
+    }
+  }, []);
 
   // Check server-side session first, then subscribe to client-side auth state
   useEffect(() => {
     setLoading(true);
-    
-    // First, check if we have a server-side session
-    const checkServerSession = async () => {
-      try {
-        const response = await fetch('/api/auth/session');
-        const data = await response.json();
-        
-        if (data.success && data.data?.user) {
-          // We have a valid server session
-          setUser(data.data.user);
-          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
-          
-          // If disclaimer is accepted, store it
-          if (data.data.user.disclaimerAccepted) {
-            sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
-          }
-        }
-      } catch (error) {
-        console.error('Session check error:', error);
-      }
-    };
     
     // Check server session first
     checkServerSession().finally(() => {
@@ -97,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Set loading to false after initial check
     setTimeout(() => setLoading(false), 1000);
-  }, []);
+  }, [checkServerSession]);
 
   // Login function
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
@@ -107,15 +124,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include', // Ensure cookies are included in the request
       });
 
       const data = await response.json();
 
       if (data.success) {
+        console.log('[useAuth] Login successful, updating user state');
         // Update user state directly from server response
         if (data.data?.user) {
           setUser(data.data.user);
           localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
+          
+          // Force a session check to ensure cookie was set properly
+          setTimeout(() => {
+            console.log('[useAuth] Verifying session after login...');
+            checkServerSession();
+          }, 500);
         }
         return true;
       } else {
@@ -131,8 +156,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout function
   const logout = useCallback(async () => {
     try {
-      // Call server-side logout endpoint
-      await fetch('/api/auth/logout', { method: 'POST' });
+      // Call server-side logout endpoint with credentials to include cookies
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include', // Ensure cookies are sent with the request
+      });
       
       // Also logout from Firebase client
       try {
