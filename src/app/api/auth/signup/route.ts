@@ -3,7 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { sendEmail } from '@/lib/email/resend';
 import { getVerificationEmailHtml, getVerificationEmailText } from '@/lib/email/templates/verification';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import admin, { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { ApiResponse } from '@/types';
 import { 
   VALIDATION_MESSAGES, 
@@ -118,9 +118,9 @@ export async function POST(request: NextRequest) {
         await adminDb().collection('emailVerifications').doc(verificationToken).set({
           userId: userRecord.uid,
           email,
-          expires: expires,
+          expires: admin.firestore.Timestamp.fromDate(expires),
           used: false,
-          createdAt: new Date(),
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
           type: 'signup',
         });
         
@@ -131,8 +131,8 @@ export async function POST(request: NextRequest) {
           phoneNumber: phoneNumber || null,
           emailVerified: false,
           disclaimerAccepted: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           status: 'active',
         });
         
