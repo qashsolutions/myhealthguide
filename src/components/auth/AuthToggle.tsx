@@ -157,9 +157,11 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
           localStorage.setItem('auth-token', result.data.token);
         }
         
-        // Check for redirect
-        const redirect = searchParams.get('redirect') || ROUTES.DASHBOARD;
-        router.push(redirect);
+        // Give the auth context time to update
+        setTimeout(() => {
+          // Use client-side navigation
+          router.push(searchParams.get('redirect') || ROUTES.DASHBOARD);
+        }, 100);
       } else {
         setAuthError(result.error || 'Login failed');
         

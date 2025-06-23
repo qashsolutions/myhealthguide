@@ -40,24 +40,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Subscribe to auth state changes
+  // Check server-side session first, then subscribe to client-side auth state
   useEffect(() => {
     setLoading(true);
     
-    const unsubscribe = subscribeToAuthState(async (authUser) => {
-      setUser(authUser);
-      setLoading(false);
-      
-      // Store auth state in localStorage for persistence
-      if (authUser) {
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
+    // First, check if we have a server-side session
+    const checkServerSession = async () => {
+      try {
+        const response = await fetch('/api/auth/session');
+        const data = await response.json();
+        
+        if (data.success && data.data?.user) {
+          // We have a valid server session
+          setUser(data.data.user);
+          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
+          
+          // If disclaimer is accepted, store it
+          if (data.data.user.disclaimerAccepted) {
+            sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
       }
+    };
+    
+    // Check server session first
+    checkServerSession().finally(() => {
+      // Then subscribe to Firebase auth state changes as fallback
+      const unsubscribe = subscribeToAuthState(async (authUser) => {
+        setUser((currentUser) => {
+          // Only update if we don't already have a user from server session
+          if (!currentUser || (authUser && authUser.id !== currentUser.id)) {
+            return authUser;
+          }
+          return currentUser;
+        });
+        setLoading(false);
+        
+        // Store auth state in localStorage for persistence
+        if (authUser) {
+          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
+        } else {
+          // Check if we have server session before clearing
+          fetch('/api/auth/session').then(res => res.json()).then(data => {
+            if (!data.success) {
+              localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+              localStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
+            }
+          });
+        }
+      });
+      
+      return () => unsubscribe();
     });
-
-    return () => unsubscribe();
+    
+    // Set loading to false after initial check
+    setTimeout(() => setLoading(false), 1000);
   }, []);
 
   // Login function
@@ -73,7 +112,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
-        // User will be updated via auth state listener
+        // Update user state directly from server response
+        if (data.data?.user) {
+          setUser(data.data.user);
+          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
+        }
         return true;
       } else {
         setError(data.error || 'Login failed');
@@ -88,8 +131,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout function
   const logout = useCallback(async () => {
     try {
-      await firebaseLogOut();
+      // Call server-side logout endpoint
+      await fetch('/api/auth/logout', { method: 'POST' });
+      
+      // Also logout from Firebase client
+      try {
+        await firebaseLogOut();
+      } catch (firebaseErr) {
+        console.error('Firebase logout error:', firebaseErr);
+      }
+      
       setUser(null);
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
+      sessionStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
+      
       router.push(ROUTES.HOME);
     } catch (err) {
       console.error('Logout error:', err);
