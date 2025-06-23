@@ -7,7 +7,7 @@
   }],
   "redirects": [
     {
-      "source": "https://myguide.health/:path*",
+      "source": "/:path*",
       "destination": "https://www.myguide.health/:path*",
       "permanent": true
     }
