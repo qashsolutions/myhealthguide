@@ -12,6 +12,15 @@ export const initializeFirebaseAdmin = () => {
     const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
+    // During build time, environment variables might not be available
+    // This is expected behavior for static generation
+    const isBuildTime = typeof window === 'undefined' && !process.env.FIREBASE_ADMIN_PROJECT_ID;
+    
+    if (isBuildTime) {
+      // Silently skip during build - this is normal
+      return;
+    }
+
     if (projectId && clientEmail && privateKey) {
       try {
         admin.initializeApp({
@@ -21,13 +30,24 @@ export const initializeFirebaseAdmin = () => {
             privateKey: privateKey.replace(/\\n/g, '\n'),
           }),
         });
-        console.log('Firebase Admin initialized successfully');
+        console.log('[Firebase Admin] Service initialized successfully');
       } catch (error) {
-        console.error('Firebase admin initialization error:', error);
-        throw error;
+        console.error('[Firebase Admin] Initialization failed:', error);
+        // Log additional context for debugging
+        console.error('[Firebase Admin] Project ID present:', !!projectId);
+        console.error('[Firebase Admin] Client email present:', !!clientEmail);
+        console.error('[Firebase Admin] Private key present:', !!privateKey);
+        throw new Error('Firebase Admin initialization failed. Please check server configuration.');
       }
     } else {
-      console.warn('Firebase Admin credentials not found in environment');
+      // Production-friendly error message
+      const missingVars = [];
+      if (!projectId) missingVars.push('Project ID');
+      if (!clientEmail) missingVars.push('Client Email');
+      if (!privateKey) missingVars.push('Private Key');
+      
+      console.error('[Firebase Admin] Missing required configuration:', missingVars.join(', '));
+      console.log('[Firebase Admin] This may be normal during build time, but will cause issues at runtime.');
     }
   }
 };
@@ -38,14 +58,31 @@ initializeFirebaseAdmin();
 // Export admin instance
 export default admin;
 
+// Helper to check if Firebase Admin is initialized
+export const isFirebaseAdminInitialized = (): boolean => {
+  return admin.apps.length > 0;
+};
+
 // Export getters to ensure initialization
 export const adminAuth = () => {
   initializeFirebaseAdmin();
+  
+  if (!admin.apps.length) {
+    console.error('[Firebase Admin] Cannot access auth service - not initialized');
+    throw new Error('Authentication service is temporarily unavailable. Please try again later.');
+  }
+  
   return admin.auth();
 };
 
 export const adminDb = () => {
   initializeFirebaseAdmin();
+  
+  if (!admin.apps.length) {
+    console.error('[Firebase Admin] Cannot access Firestore service - not initialized');
+    throw new Error('Database service is temporarily unavailable. Please try again later.');
+  }
+  
   return admin.firestore();
 };
 
