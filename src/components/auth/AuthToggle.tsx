@@ -143,6 +143,7 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           email: data.email,
           password: data.password,
@@ -152,15 +153,15 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Store token if provided
-        if (result.data?.token && typeof window !== 'undefined') {
-          localStorage.setItem('auth-token', result.data.token);
-        }
-        
         // Give the auth context time to update
         setTimeout(() => {
-          // Use client-side navigation
-          router.push(searchParams.get('redirect') || ROUTES.DASHBOARD);
+          // Check if user needs to accept disclaimer
+          if (result.data?.user && !result.data.user.disclaimerAccepted) {
+            router.push(ROUTES.MEDICAL_DISCLAIMER);
+          } else {
+            // Use client-side navigation
+            router.push(searchParams.get('redirect') || ROUTES.DASHBOARD);
+          }
         }, 100);
       } else {
         setAuthError(result.error || 'Login failed');
