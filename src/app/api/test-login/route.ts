@@ -18,16 +18,17 @@ export async function POST(request: NextRequest) {
 
   try {
     // Step 1: Parse body
+    let email, password;
     try {
       const body = await request.json();
+      email = body.email;
+      password = body.password;
       steps.parseBody.data = { email: body.email, hasPassword: !!body.password };
       steps.parseBody.success = true;
     } catch (e: any) {
       steps.parseBody.error = e.message;
       throw e;
     }
-
-    const { email, password } = await request.json();
 
     // Step 2: Get user by email from Admin SDK
     try {
