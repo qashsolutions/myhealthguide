@@ -15,7 +15,9 @@
       "Bash(chmod:*)",
       "Bash(find:*)",
       "Bash(rg:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

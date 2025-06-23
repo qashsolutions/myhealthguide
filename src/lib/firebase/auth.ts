@@ -14,7 +14,7 @@ import {
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './config';
 import { User, SignupData, LoginData, AuthResponse } from '@/types';
-import { ERROR_MESSAGES } from '@/lib/constants';
+import { ERROR_MESSAGES, VALIDATION_MESSAGES } from '@/lib/constants';
 
 /**
  * Firebase Authentication functions
@@ -331,6 +331,54 @@ export const getIdToken = async (): Promise<string | null> => {
   } catch (error) {
     console.error('Get ID token error:', error);
     return null;
+  }
+};
+
+// Create user with email and password (client-side only)
+export const createUser = async (email: string, password: string, displayName?: string): Promise<AuthResponse> => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
+
+    // Update display name if provided
+    if (displayName) {
+      await updateProfile(firebaseUser, { displayName });
+    }
+
+    // Get ID token
+    const token = await firebaseUser.getIdToken();
+
+    return {
+      success: true,
+      token,
+      user: {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || email,
+        name: displayName || '',
+        emailVerified: firebaseUser.emailVerified,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        disclaimerAccepted: false,
+      },
+    };
+  } catch (error: any) {
+    console.error('Create user error:', error);
+    
+    let message: string = ERROR_MESSAGES.SIGNUP_FAILED;
+    
+    if (error.code === 'auth/email-already-in-use') {
+      message = ERROR_MESSAGES.SIGNUP_FAILED;
+    } else if (error.code === 'auth/weak-password') {
+      message = 'Password must be at least 6 characters';
+    } else if (error.code === 'auth/invalid-email') {
+      message = 'Please enter a valid email address';
+    }
+    
+    return {
+      success: false,
+      error: message,
+      code: error.code,
+    };
   }
 };
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { APP_NAME, ROUTES } from '@/lib/constants';
+import { createUser } from '@/lib/firebase/auth';
 
 /**
  * OTP Verification Component
@@ -159,42 +160,78 @@ export function OTPVerification({ email, purpose, expiresAt, onSuccess, onCancel
     setIsLoading(true);
 
     try {
-      const endpoint = purpose === 'signup' 
-        ? '/api/auth/verify-otp' 
-        : '/api/account/verify-deletion';
-      
-      const body = purpose === 'signup'
-        ? { email, otp: otpCode, password }
-        : { email, otp: otpCode };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Verification failed');
-      }
-
-      setSuccess(true);
-      
       if (purpose === 'signup') {
-        // Store token and redirect to dashboard
-        if (data.data?.token) {
-          localStorage.setItem('authToken', data.data.token);
+        // Step 1: Verify OTP on server (no password sent)
+        const verifyResponse = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp: otpCode }),
+        });
+
+        const verifyData = await verifyResponse.json();
+
+        if (!verifyResponse.ok) {
+          throw new Error(verifyData.error || 'OTP verification failed');
         }
+
+        // Step 2: Create Firebase user client-side
+        const createResult = await createUser(email, password, verifyData.data?.name);
+        
+        if (!createResult.success) {
+          throw new Error(createResult.error || 'Failed to create user account');
+        }
+
+        // Step 3: Get ID token
+        const idToken = createResult.token;
+
+        // Step 4: Complete profile setup server-side
+        const profileResponse = await fetch('/api/auth/complete-profile', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ 
+            email, 
+            name: verifyData.data?.name || '',
+          }),
+        });
+
+        const profileData = await profileResponse.json();
+
+        if (!profileResponse.ok) {
+          throw new Error(profileData.error || 'Failed to complete registration');
+        }
+
+        setSuccess(true);
+        
+        // Redirect to dashboard
         setTimeout(() => {
           router.push(ROUTES.DASHBOARD);
         }, 2000);
       } else {
-        // Show deletion success
+        // Account deletion flow remains the same
+        const endpoint = '/api/account/verify-deletion';
+        const body = { email, otp: otpCode };
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Verification failed');
+        }
+
+        setSuccess(true);
         onSuccess?.();
       }
     } catch (err: any) {
       setError(err.message);
+      console.error('Registration error:', err);
     } finally {
       setIsLoading(false);
     }
