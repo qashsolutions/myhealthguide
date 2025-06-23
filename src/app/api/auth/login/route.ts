@@ -96,12 +96,19 @@ export async function POST(request: NextRequest) {
       }
       
       try {
-        // Attempt to sign in with Firebase Auth
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        // First, get the user by email using Admin SDK
+        let userRecord;
+        try {
+          userRecord = await adminAuth().getUserByEmail(email);
+        } catch (error: any) {
+          if (error.code === 'auth/user-not-found') {
+            throw new Error('Invalid email or password');
+          }
+          throw error;
+        }
         
-        // Check if email is verified
-        if (!user.emailVerified) {
+        // Check if email is verified using Admin SDK data
+        if (!userRecord.emailVerified) {
           // Track this as a failed attempt (to prevent brute force on unverified accounts)
           const current = failedAttempts.get(email) || { count: 0, timestamp: Date.now() };
           current.count++;
@@ -122,12 +129,16 @@ export async function POST(request: NextRequest) {
           );
         }
         
+        // Now attempt to sign in with Firebase Auth to verify password
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
         // Get user profile from Firestore
-        const userDoc = await adminDb().collection('users').doc(user.uid).get();
+        const userDoc = await adminDb().collection('users').doc(userRecord.uid).get();
         const userData = userDoc.data();
         
         // Update last login
-        await adminDb().collection('users').doc(user.uid).update({
+        await adminDb().collection('users').doc(userRecord.uid).update({
           lastLoginAt: new Date(),
           updatedAt: new Date(),
         });
@@ -137,10 +148,10 @@ export async function POST(request: NextRequest) {
         
         // Create session
         await createSession({
-          userId: user.uid,
-          email: user.email!,
-          emailVerified: user.emailVerified,
-          name: userData?.name || user.displayName || undefined,
+          userId: userRecord.uid,
+          email: userRecord.email!,
+          emailVerified: userRecord.emailVerified,
+          name: userData?.name || userRecord.displayName || undefined,
           disclaimerAccepted: userData?.disclaimerAccepted || false,
         });
         
@@ -157,11 +168,11 @@ export async function POST(request: NextRequest) {
             message: SUCCESS_MESSAGES.LOGIN,
             data: {
               user: {
-                id: user.uid,
-                email: user.email,
-                name: userData?.name || user.displayName,
-                emailVerified: user.emailVerified,
-                phoneNumber: userData?.phoneNumber || user.phoneNumber,
+                id: userRecord.uid,
+                email: userRecord.email,
+                name: userData?.name || userRecord.displayName,
+                emailVerified: userRecord.emailVerified,
+                phoneNumber: userData?.phoneNumber || userRecord.phoneNumber,
                 disclaimerAccepted: userData?.disclaimerAccepted || false,
               },
               token,
@@ -177,7 +188,9 @@ export async function POST(request: NextRequest) {
         current.timestamp = Date.now();
         failedAttempts.set(email, current);
         
-        console.error('Firebase auth error:', authError);
+        console.error('[Login] Firebase auth error:', authError);
+        console.error('[Login] Error code:', authError.code);
+        console.error('[Login] Error message:', authError.message);
         
         // Handle specific Firebase errors
         if (authError.code === 'auth/user-not-found') {
@@ -191,7 +204,7 @@ export async function POST(request: NextRequest) {
           );
         }
         
-        if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-password') {
+        if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-password' || authError.code === 'auth/invalid-credential') {
           const attemptsLeft = MAX_ATTEMPTS - current.count;
           const warningMessage = attemptsLeft > 0 
             ? ` You have ${attemptsLeft} attempt${attemptsLeft > 1 ? 's' : ''} remaining.`
