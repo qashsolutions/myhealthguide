@@ -6,27 +6,34 @@ export default function DebugFirebase() {
   const [config, setConfig] = useState<any>(null);
   
   useEffect(() => {
-    // Import Firebase config to see what values it has
-    import('@/lib/firebase/config').then((module) => {
-      // Get the auth instance to see if it's initialized
-      const auth = module.auth;
-      const app = module.default;
-      
-      // Try to get the app config
-      const appConfig = app.options || {};
-      
-      setConfig({
-        apiKey: appConfig.apiKey,
-        authDomain: appConfig.authDomain,
-        projectId: appConfig.projectId,
-        storageBucket: appConfig.storageBucket,
-        messagingSenderId: appConfig.messagingSenderId,
-        appId: appConfig.appId,
-        authInitialized: !!auth,
-        appInitialized: !!app,
-      });
-    }).catch(err => {
-      setConfig({ error: err.message });
+    // Firebase client config has been removed
+    // This page now shows the deprecation status
+    setConfig({
+      status: 'deprecated',
+      message: 'Client-side Firebase has been removed',
+      authMethod: 'Server-side sessions via cookies',
+      apiEndpoints: [
+        '/api/auth/login',
+        '/api/auth/logout', 
+        '/api/auth/signup',
+        '/api/auth/session',
+      ],
+      environmentVariables: {
+        removed: [
+          'NEXT_PUBLIC_FIREBASE_API_KEY',
+          'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+          'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+          'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+          'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+          'NEXT_PUBLIC_FIREBASE_APP_ID',
+        ],
+        serverOnly: [
+          'FIREBASE_SERVER_API_KEY',
+          'FIREBASE_ADMIN_PROJECT_ID',
+          'FIREBASE_ADMIN_CLIENT_EMAIL',
+          'FIREBASE_ADMIN_PRIVATE_KEY',
+        ],
+      },
     });
   }, []);
   

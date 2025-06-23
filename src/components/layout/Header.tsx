@@ -9,7 +9,6 @@ import { MobileMenu } from './MobileMenu';
 import { Button } from '../ui/Button';
 import { APP_NAME, ROUTES, ARIA_LABELS } from '@/lib/constants';
 import { useAuth } from '@/hooks/useAuth';
-import { logOut } from '@/lib/firebase/auth';
 
 /**
  * Responsive header with eldercare-optimized navigation
@@ -19,7 +18,7 @@ export function Header(): JSX.Element {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -28,8 +27,8 @@ export function Header(): JSX.Element {
   // Handle sign out
   const handleSignOut = async () => {
     try {
-      await logOut();
-      router.push(ROUTES.HOME);
+      // Use the logout function from useAuth which handles both server and client
+      await logout();
     } catch (error) {
       console.error('Sign out error:', error);
     }

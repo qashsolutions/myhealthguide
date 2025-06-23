@@ -3,10 +3,8 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  subscribeToAuthState, 
   getCurrentUser, 
   logOut as firebaseLogOut,
-  getIdToken,
   acceptDisclaimer as acceptDisclaimerInDb
 } from '@/lib/firebase/auth';
 import { User } from '@/types';
@@ -78,42 +76,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Check server-side session first, then subscribe to client-side auth state
+  // Check server-side session on mount and set up periodic checks
   useEffect(() => {
+    console.log('[useAuth] Initializing auth state');
     setLoading(true);
     
-    // Check server session first
+    // Initial session check
     checkServerSession().finally(() => {
-      // Then subscribe to Firebase auth state changes as fallback
-      const unsubscribe = subscribeToAuthState(async (authUser) => {
-        setUser((currentUser) => {
-          // Only update if we don't already have a user from server session
-          if (!currentUser || (authUser && authUser.id !== currentUser.id)) {
-            return authUser;
-          }
-          return currentUser;
-        });
-        setLoading(false);
-        
-        // Store auth state in localStorage for persistence
-        if (authUser) {
-          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
-        } else {
-          // Check if we have server session before clearing
-          fetch('/api/auth/session').then(res => res.json()).then(data => {
-            if (!data.success) {
-              localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-              localStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
-            }
-          });
-        }
-      });
-      
-      return () => unsubscribe();
+      setLoading(false);
     });
     
-    // Set loading to false after initial check
-    setTimeout(() => setLoading(false), 1000);
+    // Set up periodic session checks every 30 seconds
+    // This ensures we catch session changes even if user has multiple tabs
+    const interval = setInterval(() => {
+      console.log('[useAuth] Periodic session check');
+      checkServerSession();
+    }, 30000); // 30 seconds
+    
+    // Also check session when window regains focus
+    const handleFocus = () => {
+      console.log('[useAuth] Window focused, checking session');
+      checkServerSession();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    // Cleanup
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [checkServerSession]);
 
   // Login function
@@ -144,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         return true;
       } else {
+        console.error('[useAuth] Login failed:', data.error);
         setError(data.error || 'Login failed');
         return false;
       }
@@ -155,29 +148,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Logout function
   const logout = useCallback(async () => {
+    console.log('[useAuth] Starting logout process');
+    
     try {
-      // Call server-side logout endpoint with credentials to include cookies
-      await fetch('/api/auth/logout', { 
-        method: 'POST',
-        credentials: 'include', // Ensure cookies are sent with the request
-      });
+      // Call the centralized logout function which handles server logout
+      await firebaseLogOut();
       
-      // Also logout from Firebase client
-      try {
-        await firebaseLogOut();
-      } catch (firebaseErr) {
-        console.error('Firebase logout error:', firebaseErr);
-      }
-      
+      // Clear local state
       setUser(null);
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
       sessionStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
       
+      console.log('[useAuth] Logout successful, redirecting to home');
       router.push(ROUTES.HOME);
     } catch (err) {
-      console.error('Logout error:', err);
+      console.error('[useAuth] Logout error:', err);
       setError('Failed to log out');
+      
+      // Even if logout fails, clear local state and redirect
+      setUser(null);
+      router.push(ROUTES.HOME);
     }
   }, [router]);
 
@@ -204,25 +195,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  // Get auth token for API calls
+  // Get auth token for API calls - now returns null as tokens are server-managed
   const getAuthToken = useCallback(async (): Promise<string | null> => {
-    try {
-      return await getIdToken();
-    } catch (err) {
-      console.error('Get auth token error:', err);
-      return null;
-    }
+    console.warn('[useAuth] getAuthToken is deprecated - auth is handled server-side');
+    // Tokens are now managed server-side via httpOnly cookies
+    // This function is kept for backward compatibility
+    return null;
   }, []);
 
   // Refresh user data
   const refreshUser = useCallback(async () => {
+    console.log('[useAuth] Refreshing user data');
     try {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
+      // Use the checkServerSession function which already handles everything
+      await checkServerSession();
     } catch (err) {
-      console.error('Refresh user error:', err);
+      console.error('[useAuth] Refresh user error:', err);
     }
-  }, []);
+  }, [checkServerSession]);
 
   const value: AuthContextValue = {
     user,

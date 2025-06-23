@@ -47,6 +47,8 @@ export interface AuthResponse {
   token?: string;
   error?: string;
   code?: string;
+  message?: string;
+  data?: any; // For additional response data
 }
 
 // Medication types

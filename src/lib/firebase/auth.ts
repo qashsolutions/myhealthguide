@@ -1,386 +1,308 @@
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  updateProfile,
-  User as FirebaseUser,
-  onAuthStateChanged,
-  sendEmailVerification,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './config';
+/**
+ * Client-side authentication functions
+ * IMPORTANT: This file is being migrated to server-side only auth
+ * All functions here now make API calls instead of using Firebase directly
+ */
+
 import { User, SignupData, LoginData, AuthResponse } from '@/types';
 import { ERROR_MESSAGES, VALIDATION_MESSAGES } from '@/lib/constants';
 
 /**
- * Firebase Authentication functions
- * Handles user signup, login, and session management
+ * Authentication functions that communicate with server-side API
+ * All Firebase operations are now handled on the server
  */
 
-// Convert Firebase user to our User type
-export const mapFirebaseUser = async (firebaseUser: FirebaseUser): Promise<User | null> => {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-    
-    if (!userDoc.exists()) {
-      return null;
-    }
-    
-    const userData = userDoc.data();
-    
-    return {
-      id: firebaseUser.uid,
-      email: firebaseUser.email || '',
-      name: userData.name || firebaseUser.displayName || '',
-      phoneNumber: userData.phoneNumber || firebaseUser.phoneNumber || undefined,
-      emailVerified: firebaseUser.emailVerified,
-      createdAt: userData.createdAt?.toDate() || new Date(),
-      updatedAt: userData.updatedAt?.toDate() || new Date(),
-      disclaimerAccepted: userData.disclaimerAccepted || false,
-      disclaimerAcceptedAt: userData.disclaimerAcceptedAt?.toDate() || undefined,
-    };
-  } catch (error) {
-    console.error('Error mapping Firebase user:', error);
-    return null;
-  }
+// Helper function to make authenticated API calls
+const authFetch = async (url: string, options: RequestInit = {}) => {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    credentials: 'include', // Always include cookies for auth
+  });
+  
+  // Log response details for debugging
+  console.log(`[Auth API] ${options.method || 'GET'} ${url}:`, {
+    status: response.status,
+    ok: response.ok,
+  });
+  
+  return response;
 };
 
-// Action code settings for email link
-export const actionCodeSettings = {
-  url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health'}/auth/action`,
-  handleCodeInApp: true,
-};
+// Note: Action code settings are now handled server-side
+// This is kept for backward compatibility but not used
 
-// Sign up new user - just store data, email will be sent by API
+// Sign up new user via API
 export const signUp = async (data: SignupData): Promise<AuthResponse> => {
+  console.log('[Auth] Initiating signup for:', data.email);
+  
   try {
-    // Store email and user data for completion after verification
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('emailForSignIn', data.email);
-      window.localStorage.setItem('pendingUserData', JSON.stringify({
-        name: data.name,
-        phoneNumber: data.phoneNumber,
-      }));
-    }
-    
-    // Return success - the API will handle sending the magic link email
-    return {
-      success: true,
-    };
-  } catch (error: any) {
-    console.error('Signup error:', error);
-    
-    // Map Firebase error codes to user-friendly messages
-    let message: string = ERROR_MESSAGES.SIGNUP_FAILED;
-    
-    if (error.code === 'auth/email-already-in-use') {
-      message = ERROR_MESSAGES.SIGNUP_FAILED;
-    } else if (error.code === 'auth/weak-password') {
-      message = 'Password is too weak. Please use at least 6 characters.';
-    } else if (error.code === 'auth/invalid-email') {
-      message = 'Please enter a valid email address.';
-    }
-    
-    return {
-      success: false,
-      error: message,
-      code: error.code,
-    };
-  }
-};
-
-// Sign in existing user
-export const signIn = async (data: LoginData): Promise<AuthResponse> => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      data.email,
-      data.password
-    );
-    
-    const firebaseUser = userCredential.user;
-    
-    // Get ID token for API calls
-    const token = await firebaseUser.getIdToken();
-    
-    // Map to our User type
-    const user = await mapFirebaseUser(firebaseUser);
-    
-    if (!user) {
-      throw new Error('User profile not found');
-    }
-    
-    // Update last login
-    await updateDoc(doc(db, 'users', firebaseUser.uid), {
-      lastLoginAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    const response = await authFetch('/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
     
-    return {
-      success: true,
-      user,
-      token,
-    };
-  } catch (error: any) {
-    console.error('Login error:', error);
+    const result = await response.json();
     
-    // Map Firebase error codes to user-friendly messages
-    let message: string = ERROR_MESSAGES.AUTH_FAILED;
-    
-    if (error.code === 'auth/user-not-found') {
-      message = 'No account found with this email. Please sign up first.';
-    } else if (error.code === 'auth/wrong-password') {
-      message = 'Incorrect password. Please try again.';
-    } else if (error.code === 'auth/invalid-email') {
-      message = 'Please enter a valid email address.';
-    } else if (error.code === 'auth/too-many-requests') {
-      message = 'Too many failed attempts. Please try again later.';
+    if (response.ok && result.success) {
+      console.log('[Auth] Signup successful:', data.email);
+      
+      // Store email locally for verification flow
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('emailForSignIn', data.email);
+      }
+      
+      return {
+        success: true,
+        message: result.message,
+      };
+    } else {
+      console.error('[Auth] Signup failed:', result.error);
+      return {
+        success: false,
+        error: result.error || ERROR_MESSAGES.SIGNUP_FAILED,
+        code: result.code,
+      };
     }
-    
+  } catch (error: any) {
+    console.error('[Auth] Signup network error:', error);
     return {
       success: false,
-      error: message,
-      code: error.code,
+      error: 'Network error. Please check your connection and try again.',
+      code: 'network-error',
     };
   }
 };
 
-// Sign out user
-export const logOut = async (): Promise<void> => {
+// Sign in existing user via API
+export const signIn = async (data: LoginData): Promise<AuthResponse> => {
+  console.log('[Auth] Initiating login for:', data.email);
+  
   try {
-    await signOut(auth);
+    const response = await authFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      console.log('[Auth] Login successful:', data.email);
+      console.log('[Auth] User data received:', result.data?.user?.email);
+      
+      return {
+        success: true,
+        user: result.data?.user,
+        token: result.data?.token,
+        message: result.message,
+      };
+    } else {
+      console.error('[Auth] Login failed:', result.error);
+      console.error('[Auth] Error code:', result.code);
+      
+      return {
+        success: false,
+        error: result.error || ERROR_MESSAGES.AUTH_FAILED,
+        code: result.code,
+        data: result.data, // May contain additional error context
+      };
+    }
+  } catch (error: any) {
+    console.error('[Auth] Login network error:', error);
+    return {
+      success: false,
+      error: 'Network error. Please check your connection and try again.',
+      code: 'network-error',
+    };
+  }
+};
+
+// Sign out user via API
+export const logOut = async (): Promise<void> => {
+  console.log('[Auth] Initiating logout');
+  
+  try {
+    const response = await authFetch('/api/auth/logout', {
+      method: 'POST',
+    });
+    
+    if (response.ok) {
+      console.log('[Auth] Logout successful');
+      
+      // Clear any local storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('emailForSignIn');
+        sessionStorage.clear();
+      }
+    } else {
+      const result = await response.json();
+      console.error('[Auth] Logout failed:', result.error);
+      throw new Error(result.error || 'Logout failed');
+    }
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('[Auth] Logout error:', error);
     throw error;
   }
 };
 
-// Send password reset email
+// Send password reset email via API
 export const resetPassword = async (email: string): Promise<AuthResponse> => {
+  console.log('[Auth] Requesting password reset for:', email);
+  
   try {
-    await sendPasswordResetEmail(auth, email);
+    const response = await authFetch('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
     
-    return {
-      success: true,
-    };
-  } catch (error: any) {
-    console.error('Password reset error:', error);
+    const result = await response.json();
     
-    let message = 'Failed to send password reset email.';
-    
-    if (error.code === 'auth/user-not-found') {
-      message = 'No account found with this email address.';
-    } else if (error.code === 'auth/invalid-email') {
-      message = 'Please enter a valid email address.';
+    if (response.ok && result.success) {
+      console.log('[Auth] Password reset email sent successfully');
+      return {
+        success: true,
+        message: result.message,
+      };
+    } else {
+      console.error('[Auth] Password reset failed:', result.error);
+      return {
+        success: false,
+        error: result.error || 'Failed to send password reset email.',
+        code: result.code,
+      };
     }
-    
+  } catch (error: any) {
+    console.error('[Auth] Password reset network error:', error);
     return {
       success: false,
-      error: message,
-      code: error.code,
+      error: 'Network error. Please check your connection and try again.',
+      code: 'network-error',
     };
   }
 };
 
-// Update user profile
+// Update user profile via API
 export const updateUserProfile = async (
   userId: string,
   updates: Partial<User>
 ): Promise<void> => {
+  console.log('[Auth] Updating profile for user:', userId);
+  
   try {
-    await updateDoc(doc(db, 'users', userId), {
-      ...updates,
-      updatedAt: serverTimestamp(),
+    const response = await authFetch('/api/user/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ userId, updates }),
     });
+    
+    if (!response.ok) {
+      const result = await response.json();
+      console.error('[Auth] Profile update failed:', result.error);
+      throw new Error(result.error || 'Failed to update profile');
+    }
+    
+    console.log('[Auth] Profile updated successfully');
   } catch (error) {
-    console.error('Update profile error:', error);
+    console.error('[Auth] Update profile error:', error);
     throw error;
   }
 };
 
-// Accept medical disclaimer
+// Accept medical disclaimer via API
 export const acceptDisclaimer = async (userId: string): Promise<void> => {
+  console.log('[Auth] Accepting disclaimer for user:', userId);
+  
   try {
-    await updateDoc(doc(db, 'users', userId), {
-      disclaimerAccepted: true,
-      disclaimerAcceptedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+    const response = await authFetch('/api/user/accept-disclaimer', {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
     });
+    
+    if (!response.ok) {
+      const result = await response.json();
+      console.error('[Auth] Accept disclaimer failed:', result.error);
+      throw new Error(result.error || 'Failed to accept disclaimer');
+    }
+    
+    console.log('[Auth] Disclaimer accepted successfully');
   } catch (error) {
-    console.error('Accept disclaimer error:', error);
+    console.error('[Auth] Accept disclaimer error:', error);
     throw error;
   }
 };
 
-// Subscribe to auth state changes
+// Subscribe to auth state changes - now polls server session
+// This is kept for backward compatibility but will be removed
 export const subscribeToAuthState = (
   callback: (user: User | null) => void
 ): (() => void) => {
-  return onAuthStateChanged(auth, async (firebaseUser) => {
-    if (firebaseUser) {
-      const user = await mapFirebaseUser(firebaseUser);
-      callback(user);
-    } else {
-      callback(null);
-    }
-  });
+  console.warn('[Auth] subscribeToAuthState is deprecated. Use server session instead.');
+  
+  // Return empty unsubscribe function
+  return () => {
+    console.log('[Auth] Unsubscribed from auth state (no-op)');
+  };
 };
 
-// Get current user
+// Get current user from server session
 export const getCurrentUser = async (): Promise<User | null> => {
-  const firebaseUser = auth.currentUser;
+  console.log('[Auth] Getting current user from server');
   
-  if (!firebaseUser) {
-    return null;
-  }
-  
-  return mapFirebaseUser(firebaseUser);
-};
-
-// Complete signup with email link
-export const completeSignupWithEmailLink = async (email: string, emailLink: string): Promise<AuthResponse> => {
   try {
-    // Verify the link is valid
-    if (!isSignInWithEmailLink(auth, emailLink)) {
-      throw new Error('Invalid verification link');
-    }
-
-    // Sign in with the email link
-    const result = await signInWithEmailLink(auth, email, emailLink);
-    const firebaseUser = result.user;
-
-    // Get stored user data
-    let userData = { name: '', phoneNumber: undefined };
-    if (typeof window !== 'undefined') {
-      const storedData = window.localStorage.getItem('pendingUserData');
-      if (storedData) {
-        userData = JSON.parse(storedData);
-        // Clean up stored data
-        window.localStorage.removeItem('emailForSignIn');
-        window.localStorage.removeItem('pendingUserData');
+    const response = await authFetch('/api/auth/session');
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data?.user) {
+        console.log('[Auth] Current user found:', result.data.user.email);
+        return result.data.user;
       }
     }
-
-    // Update display name if available
-    if (userData.name) {
-      await updateProfile(firebaseUser, {
-        displayName: userData.name,
-      });
-    }
-
-    // Create user document in Firestore
-    await setDoc(doc(db, 'users', firebaseUser.uid), {
-      email: email,
-      name: userData.name || firebaseUser.displayName || '',
-      phoneNumber: userData.phoneNumber || null,
-      emailVerified: true, // Email is verified through magic link
-      disclaimerAccepted: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-
-    // Get ID token
-    const token = await firebaseUser.getIdToken();
-
-    // Map to our User type
-    const user = await mapFirebaseUser(firebaseUser);
-
-    if (!user) {
-      throw new Error('Failed to create user profile');
-    }
-
-    return {
-      success: true,
-      user,
-      token,
-    };
-  } catch (error: any) {
-    console.error('Complete signup error:', error);
     
-    return {
-      success: false,
-      error: error.message || 'Failed to complete signup',
-      code: error.code,
-    };
-  }
-};
-
-// Generate email sign-in link for server-side use
-export const generateSignInLink = async (email: string): Promise<string> => {
-  return await sendSignInLinkToEmail(auth, email, actionCodeSettings).then(() => {
-    // Firebase doesn't return the link, so we'll need to handle this differently
-    // For now, return a success indicator
-    return 'link-sent';
-  });
-};
-
-// Get ID token for API calls
-export const getIdToken = async (): Promise<string | null> => {
-  const firebaseUser = auth.currentUser;
-  
-  if (!firebaseUser) {
+    console.log('[Auth] No current user found');
     return null;
-  }
-  
-  try {
-    return await firebaseUser.getIdToken();
   } catch (error) {
-    console.error('Get ID token error:', error);
+    console.error('[Auth] Error getting current user:', error);
     return null;
   }
 };
 
-// Create user with email and password (client-side only)
-export const createUser = async (email: string, password: string, displayName?: string): Promise<AuthResponse> => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
+// These functions are deprecated and no longer used
+// They are kept temporarily for backward compatibility
 
-    // Update display name if provided
-    if (displayName) {
-      await updateProfile(firebaseUser, { displayName });
-    }
-
-    // Get ID token
-    const token = await firebaseUser.getIdToken();
-
-    return {
-      success: true,
-      token,
-      user: {
-        id: firebaseUser.uid,
-        email: firebaseUser.email || email,
-        name: displayName || '',
-        emailVerified: firebaseUser.emailVerified,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        disclaimerAccepted: false,
-      },
-    };
-  } catch (error: any) {
-    console.error('Create user error:', error);
-    
-    let message: string = ERROR_MESSAGES.SIGNUP_FAILED;
-    
-    if (error.code === 'auth/email-already-in-use') {
-      message = ERROR_MESSAGES.SIGNUP_FAILED;
-    } else if (error.code === 'auth/weak-password') {
-      message = 'Password must be at least 6 characters';
-    } else if (error.code === 'auth/invalid-email') {
-      message = 'Please enter a valid email address';
-    }
-    
-    return {
-      success: false,
-      error: message,
-      code: error.code,
-    };
-  }
+export const completeSignupWithEmailLink = async (email: string, emailLink: string): Promise<AuthResponse> => {
+  console.error('[Auth] completeSignupWithEmailLink is deprecated');
+  return {
+    success: false,
+    error: 'This function is no longer supported',
+    code: 'deprecated',
+  };
 };
 
-// Export isSignInWithEmailLink for external use
-export { isSignInWithEmailLink };
+export const generateSignInLink = async (email: string): Promise<string> => {
+  console.error('[Auth] generateSignInLink is deprecated');
+  return 'deprecated';
+};
+
+export const getIdToken = async (): Promise<string | null> => {
+  console.warn('[Auth] getIdToken is deprecated. Auth tokens are managed server-side.');
+  return null;
+};
+
+export const createUser = async (email: string, password: string, displayName?: string): Promise<AuthResponse> => {
+  console.error('[Auth] createUser is deprecated. Use signUp() instead.');
+  return {
+    success: false,
+    error: 'This function is no longer supported',
+    code: 'deprecated',
+  };
+};
+
+// Remove the Firebase import that no longer exists
+export const isSignInWithEmailLink = (auth: any, link: string): boolean => {
+  console.warn('[Auth] isSignInWithEmailLink is deprecated');
+  return false;
+};
