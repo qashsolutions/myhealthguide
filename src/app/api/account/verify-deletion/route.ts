@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import admin from 'firebase-admin';
 import { ApiResponse } from '@/types';
-import { verifyOTP } from '@/lib/auth/otp';
+import { verifyOTP, consumeOTP } from '@/lib/auth/otp';
 import { sendEmail } from '@/lib/email/resend';
 import { APP_NAME, APP_URL, ERROR_MESSAGES } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
@@ -221,6 +221,9 @@ export async function POST(request: NextRequest) {
         sendDeletionConfirmationEmail(email).catch(error => {
           console.error('Failed to send deletion confirmation email:', error);
         });
+        
+        // Now that everything succeeded, consume the OTP
+        consumeOTP(email, 'delete');
         
         // Return success
         return NextResponse.json<ApiResponse>(

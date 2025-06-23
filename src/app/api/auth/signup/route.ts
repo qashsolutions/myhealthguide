@@ -73,10 +73,10 @@ export async function POST(request: NextRequest) {
     
       try {
         // Generate and store OTP with user metadata
-        const otp = storeOTP(email, 'signup', { name });
+        const otpData = storeOTP(email, 'signup', { name });
         
         // Log OTP generation (remove in production for security)
-        console.log(`[Signup] Generated OTP for ${email}: ${otp}`);
+        console.log(`[Signup] Generated OTP for ${email}: ${otpData.code}`);
         
         // Send OTP email via Resend
       const emailHtml = `
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
                 <!-- OTP Code Display -->
                 <div style="background-color: #f7fafc; border: 2px solid #3182ce; border-radius: 8px; padding: 30px; margin: 30px 0; text-align: center;">
                   <p style="margin: 0 0 10px 0; font-size: 16px; color: #4a5568;">Your verification code is:</p>
-                  <h1 style="font-size: 48px; letter-spacing: 8px; color: #3182ce; margin: 0; font-family: monospace;">${otp}</h1>
+                  <h1 style="font-size: 48px; letter-spacing: 8px; color: #3182ce; margin: 0; font-family: monospace;">${otpData.code}</h1>
                   <p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">This code expires in 10 minutes</p>
                 </div>
                 
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
       
         await sendEmail({
           to: email,
-          subject: `Your ${APP_NAME} Verification Code: ${otp}`,
+          subject: `Your ${APP_NAME} Verification Code: ${otpData.code}`,
           html: emailHtml,
         });
         
@@ -233,7 +233,8 @@ export async function POST(request: NextRequest) {
             message: 'Verification code sent successfully. Please check your email.',
             data: {
               email,
-              expiresIn: 600, // 10 minutes in seconds
+              expiresAt: otpData.expiresAt.toISOString(),
+              createdAt: otpData.createdAt.toISOString(),
             },
           },
           { status: 200 }

@@ -61,13 +61,13 @@ export const generateOTP = (): string => {
  * @param email - User's email address
  * @param purpose - What this OTP is for (signup, delete, reset)
  * @param metadata - Additional data to store with OTP
- * @returns The generated OTP code
+ * @returns Object containing the OTP code and expiration details
  */
 export const storeOTP = (
   email: string, 
   purpose: OTPData['purpose'],
   metadata?: any
-): string => {
+): { code: string; expiresAt: Date; createdAt: Date } => {
   // Generate new OTP code
   const code = generateOTP();
   
@@ -93,11 +93,12 @@ export const storeOTP = (
   // Log for debugging (remove in production)
   console.log(`[OTP] Generated ${purpose} OTP for ${email}: ${code}`);
   
-  return code;
+  return { code, expiresAt, createdAt: now };
 };
 
 /**
- * Verify an OTP code
+ * Verify an OTP code WITHOUT deleting it
+ * This allows for retries if subsequent steps fail
  * 
  * @param email - User's email address
  * @param code - The OTP code to verify
@@ -148,11 +149,12 @@ export const verifyOTP = (
   
   // Verify the code (case-insensitive comparison)
   if (otpData.code === code) {
-    // Success! Remove OTP so it can't be reused
-    otpStore.delete(key);
+    // Success! But DON'T delete OTP yet - wait for complete flow
+    // Update attempts in store
+    otpStore.set(key, otpData);
     
     // Log success (remove in production)
-    console.log(`[OTP] Verified ${purpose} OTP for ${email}`);
+    console.log(`[OTP] Verified ${purpose} OTP for ${email} - OTP retained for flow completion`);
     
     return { 
       success: true, 
@@ -167,6 +169,25 @@ export const verifyOTP = (
     success: false, 
     error: `Invalid OTP. ${OTP_CONFIG.MAX_ATTEMPTS - otpData.attempts} attempts remaining.` 
   };
+};
+
+/**
+ * Consume/delete an OTP after successful completion
+ * Call this only after the entire flow is complete
+ * 
+ * @param email - User's email address
+ * @param purpose - What this OTP is for
+ */
+export const consumeOTP = (
+  email: string,
+  purpose: OTPData['purpose']
+): void => {
+  const key = `${email.toLowerCase()}:${purpose}`;
+  
+  if (otpStore.has(key)) {
+    otpStore.delete(key);
+    console.log(`[OTP] Consumed ${purpose} OTP for ${email}`);
+  }
 };
 
 /**

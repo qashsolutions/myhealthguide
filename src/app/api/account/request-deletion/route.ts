@@ -68,10 +68,10 @@ export async function POST(request: NextRequest) {
       
       try {
         // Generate and store OTP with deletion metadata
-        const otp = storeOTP(email, 'delete', { reason });
+        const otpData = storeOTP(email, 'delete', { reason });
         
         // Log OTP generation (remove in production for security)
-        console.log(`[Account Deletion] Generated OTP for ${email}: ${otp}`);
+        console.log(`[Account Deletion] Generated OTP for ${email}: ${otpData.code}`);
         
         // Send deletion OTP email via Resend
         const emailHtml = `
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
                   <!-- OTP Code Display -->
                   <div class="otp-box">
                     <p style="margin: 0 0 10px 0; font-size: 16px; color: #4a5568;">Your deletion confirmation code is:</p>
-                    <h1 style="font-size: 48px; letter-spacing: 8px; color: #dc2626; margin: 0; font-family: monospace;">${otp}</h1>
+                    <h1 style="font-size: 48px; letter-spacing: 8px; color: #dc2626; margin: 0; font-family: monospace;">${otpData.code}</h1>
                     <p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">This code expires in 10 minutes</p>
                   </div>
                   
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
           html: emailHtml,
         });
         
-        // Return success response
+        // Return success response with server timestamps
         return NextResponse.json<ApiResponse>(
           {
             success: true,
@@ -253,6 +253,8 @@ export async function POST(request: NextRequest) {
             data: {
               email,
               expiresIn: 600, // 10 minutes in seconds
+              expiresAt: otpData.expiresAt.toISOString(),
+              createdAt: otpData.createdAt.toISOString(),
             },
           },
           { status: 200 }

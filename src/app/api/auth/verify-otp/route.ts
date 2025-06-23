@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
-import { verifyOTP } from '@/lib/auth/otp';
+import { verifyOTP, consumeOTP } from '@/lib/auth/otp';
 import { sendEmail } from '@/lib/email/resend';
 import { ApiResponse } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, APP_NAME, APP_URL, DISCLAIMERS } from '@/lib/constants';
@@ -104,6 +104,9 @@ export async function POST(request: NextRequest) {
         
         // Get ID token for immediate login
         const idToken = await firebaseUser.getIdToken();
+        
+        // Now that everything succeeded, consume the OTP
+        consumeOTP(email, 'signup');
         
         // Send welcome email (non-blocking - don't wait for it)
         sendWelcomeEmail(email, name).catch(error => {

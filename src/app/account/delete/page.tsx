@@ -15,11 +15,9 @@ import { withAuth } from '@/hooks/useAuth';
 function AccountDeletePage() {
   const router = useRouter();
   const { user, getAuthToken } = useAuth();
-  const [showModal, setShowModal] = useState(false);
-  const [password, setPassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<'warning' | 'password' | 'confirm'>('warning');
+  const [step, setStep] = useState<'warning' | 'email-sent'>('warning');
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -30,48 +28,11 @@ function AccountDeletePage() {
 
   // Handle initial warning acceptance
   const handleAcceptWarning = () => {
-    setStep('password');
+    handleRequestDeletion();
   };
 
-  // Handle password verification
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!password) {
-      setError('Please enter your password');
-      return;
-    }
-
-    try {
-      // Re-authenticate user
-      const response = await fetch('/api/auth/verify-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await getAuthToken()}`,
-        },
-        body: JSON.stringify({ 
-          email: user?.email || '',
-          password 
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Invalid password');
-      }
-
-      // Move to final confirmation
-      setStep('confirm');
-      setShowModal(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to verify password');
-    }
-  };
-
-  // Handle account deletion
-  const handleDeleteAccount = async () => {
+  // Handle account deletion request
+  const handleRequestDeletion = async () => {
     setIsDeleting(true);
     setError(null);
 
@@ -81,14 +42,13 @@ function AccountDeletePage() {
         throw new Error('Authentication required');
       }
 
-      const response = await fetch('/api/account/delete', {
+      const response = await fetch('/api/account/request-deletion-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          password, // Include password for re-verification
           reason: 'User requested deletion',
         }),
       });
@@ -96,13 +56,13 @@ function AccountDeletePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete account');
+        throw new Error(data.error || 'Failed to send deletion email');
       }
 
-      // Redirect to goodbye page
-      router.push('/goodbye');
+      // Show success message
+      setStep('email-sent');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete account');
+      setError(err instanceof Error ? err.message : 'Failed to request deletion');
       setIsDeleting(false);
     }
   };
@@ -192,11 +152,18 @@ function AccountDeletePage() {
               </div>
             </div>
 
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+                <p className="text-red-800">{error}</p>
+              </div>
+            )}
+
             <div className="flex gap-4">
               <Button
                 variant="secondary"
                 size="large"
                 onClick={() => router.push(ROUTES.ACCOUNT)}
+                disabled={isDeleting}
               >
                 Cancel
               </Button>
@@ -205,6 +172,7 @@ function AccountDeletePage() {
                 size="large"
                 onClick={handleAcceptWarning}
                 icon={<AlertTriangle className="h-5 w-5" />}
+                loading={isDeleting}
               >
                 I Understand, Continue
               </Button>
@@ -212,118 +180,46 @@ function AccountDeletePage() {
           </div>
         )}
 
-        {/* Password Verification */}
-        {step === 'password' && (
+        {/* Email Sent Confirmation */}
+        {step === 'email-sent' && (
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Shield className="h-6 w-6 text-primary-600" />
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Verify Your Identity
-                </h2>
+            <div className="text-center">
+              <div className="mx-auto w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mb-6">
+                <AlertTriangle className="h-10 w-10 text-yellow-600" />
               </div>
-              <p className="text-gray-600">
-                For your security, please enter your password to continue with account deletion.
+              
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Check Your Email
+              </h2>
+              
+              <p className="text-lg text-gray-700 mb-6">
+                We've sent a confirmation email to <strong>{user?.email}</strong>
               </p>
-            </div>
-
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter your password"
-                  required
-                />
+              
+              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6 mb-6">
+                <h3 className="font-semibold text-yellow-900 mb-2">Important:</h3>
+                <ul className="text-left space-y-2 text-yellow-800">
+                  <li>• The deletion link will expire in 1 hour</li>
+                  <li>• Clicking the link will start the 30-day deletion process</li>
+                  <li>• You can still recover your account within 30 days</li>
+                  <li>• After 30 days, deletion is permanent</li>
+                </ul>
               </div>
-
+              
               {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
                   <p className="text-red-800">{error}</p>
                 </div>
               )}
-
-              <div className="flex gap-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="large"
-                  onClick={() => setStep('warning')}
-                >
-                  Back
-                </Button>
-                <Button
-                  type="submit"
-                  variant="danger"
-                  size="large"
-                >
-                  Verify & Continue
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Final Confirmation Modal */}
-        {showModal && step === 'confirm' && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <div className="text-center mb-6">
-                <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <Trash2 className="h-8 w-8 text-red-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Final Confirmation
-                </h3>
-                <p className="text-gray-600">
-                  This will delete your account and all of your information with us.
-                </p>
-              </div>
-
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <p className="text-red-800 text-sm text-center font-medium">
-                  Type "DELETE" to confirm you want to permanently delete your account
-                </p>
-              </div>
-
-              <input
-                type="text"
-                placeholder="Type DELETE"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-6 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                onChange={(e) => {
-                  if (e.target.value === 'DELETE') {
-                    // Enable delete button
-                  }
-                }}
-              />
-
+              
               <div className="flex gap-4">
                 <Button
                   variant="secondary"
                   size="large"
-                  onClick={() => {
-                    setShowModal(false);
-                    setStep('password');
-                  }}
-                  disabled={isDeleting}
-                  className="flex-1"
+                  onClick={() => router.push(ROUTES.ACCOUNT)}
+                  fullWidth
                 >
-                  Cancel
-                </Button>
-                <Button
-                  variant="danger"
-                  size="large"
-                  onClick={handleDeleteAccount}
-                  loading={isDeleting}
-                  className="flex-1"
-                >
-                  Delete My Account
+                  Back to Account
                 </Button>
               </div>
             </div>

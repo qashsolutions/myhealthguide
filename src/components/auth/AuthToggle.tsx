@@ -45,6 +45,7 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
   const [otpEmail, setOtpEmail] = useState('');
+  const [otpExpiresAt, setOtpExpiresAt] = useState<string | undefined>();
 
   // Form setup for signup
   const signupForm = useForm<SignupFormData>({
@@ -105,6 +106,7 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
           }
           
           setOtpEmail(data.email);
+          setOtpExpiresAt(apiData.data?.expiresAt);
           setShowOTP(true);
           setSignupSuccess(true);
           signupForm.reset();
@@ -158,6 +160,7 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
         <OTPVerification
           email={otpEmail}
           purpose="signup"
+          expiresAt={otpExpiresAt}
           onCancel={() => {
             setShowOTP(false);
             setSignupSuccess(false);

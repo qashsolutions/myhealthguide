@@ -20,11 +20,12 @@ import { APP_NAME, ROUTES } from '@/lib/constants';
 interface OTPVerificationProps {
   email: string;
   purpose: 'signup' | 'delete';
+  expiresAt?: string; // ISO timestamp from server
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function OTPVerification({ email, purpose, onSuccess, onCancel }: OTPVerificationProps) {
+export function OTPVerification({ email, purpose, expiresAt, onSuccess, onCancel }: OTPVerificationProps) {
   const router = useRouter();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [password, setPassword] = useState('');
@@ -32,25 +33,36 @@ export function OTPVerification({ email, purpose, onSuccess, onCancel }: OTPVeri
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
+  const [timeLeft, setTimeLeft] = useState(0);
   const [showPasswordFields, setShowPasswordFields] = useState(false);
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Countdown timer
+  // Calculate time left based on server timestamp
   useEffect(() => {
+    const calculateTimeLeft = () => {
+      if (!expiresAt) {
+        // Fallback to 10 minutes if no server time
+        return 600;
+      }
+      
+      const expiry = new Date(expiresAt).getTime();
+      const now = new Date().getTime();
+      const diff = Math.floor((expiry - now) / 1000);
+      
+      return Math.max(0, diff);
+    };
+
+    // Set initial time
+    setTimeLeft(calculateTimeLeft());
+
+    // Update every second
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft(calculateTimeLeft());
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [expiresAt]);
 
   // Format time display
   const formatTime = (seconds: number) => {
