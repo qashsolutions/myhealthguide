@@ -129,8 +129,15 @@ export async function POST(request: NextRequest) {
         }
         
         // We can't use client SDK on server. Instead, we'll use Firebase REST API to verify password
+        // Get the API key - it should be available even on server side since it's NEXT_PUBLIC
+        const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+        if (!apiKey) {
+          console.error('[Login] Firebase API key not found in environment');
+          throw new Error('Configuration error');
+        }
+        
         const verifyPasswordResponse = await fetch(
-          `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
+          `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
           {
             method: 'POST',
             headers: {
@@ -147,8 +154,16 @@ export async function POST(request: NextRequest) {
         if (!verifyPasswordResponse.ok) {
           const errorData = await verifyPasswordResponse.json();
           console.error('[Login] Password verification failed:', errorData);
+          console.error('[Login] Error details:', {
+            status: verifyPasswordResponse.status,
+            message: errorData.error?.message,
+            code: errorData.error?.code,
+            errors: errorData.error?.errors
+          });
           
-          if (errorData.error?.message === 'INVALID_PASSWORD' || errorData.error?.message === 'INVALID_LOGIN_CREDENTIALS') {
+          if (errorData.error?.message === 'INVALID_PASSWORD' || 
+              errorData.error?.message === 'INVALID_LOGIN_CREDENTIALS' ||
+              errorData.error?.message === 'INVALID_EMAIL') {
             throw { code: 'auth/wrong-password', message: 'Invalid password' };
           }
           throw { code: 'auth/invalid-credential', message: errorData.error?.message || 'Authentication failed' };
