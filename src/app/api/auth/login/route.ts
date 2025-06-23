@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@/lib/firebase/config';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+// Removed client-side Firebase imports - using REST API instead
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { createSession } from '@/lib/auth/session';
 import { ApiResponse, LoginData } from '@/types';
@@ -129,9 +128,33 @@ export async function POST(request: NextRequest) {
           );
         }
         
-        // Now attempt to sign in with Firebase Auth to verify password
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        // We can't use client SDK on server. Instead, we'll use Firebase REST API to verify password
+        const verifyPasswordResponse = await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email,
+              password,
+              returnSecureToken: true,
+            }),
+          }
+        );
+
+        if (!verifyPasswordResponse.ok) {
+          const errorData = await verifyPasswordResponse.json();
+          console.error('[Login] Password verification failed:', errorData);
+          
+          if (errorData.error?.message === 'INVALID_PASSWORD' || errorData.error?.message === 'INVALID_LOGIN_CREDENTIALS') {
+            throw { code: 'auth/wrong-password', message: 'Invalid password' };
+          }
+          throw { code: 'auth/invalid-credential', message: errorData.error?.message || 'Authentication failed' };
+        }
+
+        const authData = await verifyPasswordResponse.json();
         
         // Get user profile from Firestore
         const userDoc = await adminDb().collection('users').doc(userRecord.uid).get();
@@ -143,8 +166,8 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date(),
         });
         
-        // Get ID token for authenticated requests
-        const token = await user.getIdToken();
+        // Use the ID token from the REST API response
+        const token = authData.idToken;
         
         // Create session
         await createSession({
