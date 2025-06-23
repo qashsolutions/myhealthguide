@@ -36,8 +36,8 @@ const SESSION_DURATION = 60 * 60 * 24 * 7; // 7 days in seconds
 // In development: localhost
 const getAppDomain = () => {
   if (process.env.NODE_ENV === 'production') {
-    // Extract domain from NEXT_PUBLIC_APP_URL or use default
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
+    // USE SERVER SIDE BASE_URL DO NOT USE CLIENT SIDE NEXT_PUBLIC
+    const appUrl = process.env.BASE_URL || 'https://www.myguide.health';
     try {
       const url = new URL(appUrl);
       // Return domain without subdomain for broader cookie access
