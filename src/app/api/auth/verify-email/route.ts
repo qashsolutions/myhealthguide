@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import { createSession } from '@/lib/auth/session';
+import { 
+  verifyEmailToken,
+  markEmailAsVerified,
+  getUserData 
+} from '@/lib/auth/firebase-auth';
+import { adminAuth } from '@/lib/firebase/admin';
 import { ApiResponse } from '@/types';
 import { ERROR_MESSAGES } from '@/lib/constants';
 
 /**
  * POST /api/auth/verify-email
- * Verify email using the token sent via email
+ * Verify email using custom token
  * 
  * Flow:
  * 1. Validate token from request
- * 2. Lookup token in Firestore
- * 3. Check if token is valid (not used, not expired)
- * 4. Mark user as email verified in Firebase Auth
- * 5. Mark token as used
- * 6. Update user profile in Firestore
- * 7. Return success response
+ * 2. Verify token in Firestore
+ * 3. Mark email as verified in Firebase Auth
+ * 4. Update user profile
+ * 5. Return success (no session created - user must login)
  */
 
 const verifyEmailSchema = z.object({
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: 'Invalid verification token',
+          error: 'Invalid verification link',
         },
         { status: 400 }
       );
@@ -43,105 +45,77 @@ export async function POST(request: NextRequest) {
     
     const { token } = validationResult.data;
     
-    // Get token from Firestore
-    const tokenDoc = await adminDb()
-      .collection('emailVerifications')
-      .doc(token)
-      .get();
+    // Verify the token
+    const tokenData = await verifyEmailToken(token);
     
-    if (!tokenDoc.exists) {
+    if (!tokenData) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: 'Invalid or expired verification link',
+          error: 'This verification link is invalid or has expired. Please request a new one.',
           code: 'auth/invalid-token',
         },
         { status: 400 }
       );
     }
     
-    const tokenData = tokenDoc.data()!;
-    
-    // Check if already used
-    if (tokenData.used) {
+    try {
+      // Get user by email to find their UID
+      const user = await adminAuth().getUserByEmail(tokenData.email);
+      
+      if (!user) {
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Account not found. Please sign up again.',
+            code: 'auth/user-not-found',
+          },
+          { status: 404 }
+        );
+      }
+      
+      // Mark email as verified
+      await markEmailAsVerified(user.uid);
+      
+      // Get user data for response
+      const userData = await getUserData(user.uid);
+      
+      console.log(`[Email Verification] User ${tokenData.email} verified successfully`);
+      
+      // Return success without creating session
+      // User must login after verification
+      return NextResponse.json<ApiResponse>(
+        {
+          success: true,
+          message: 'Email verified successfully! Please sign in to access your account.',
+          data: {
+            email: tokenData.email,
+            name: userData?.name || userData?.displayName || '',
+            redirectTo: '/auth/login',
+          },
+        },
+        { status: 200 }
+      );
+      
+    } catch (error: any) {
+      console.error('[Email Verification] Error updating user:', error);
+      
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: 'This verification link has already been used',
-          code: 'auth/token-already-used',
+          error: 'Failed to verify email. Please try again.',
         },
-        { status: 400 }
+        { status: 500 }
       );
     }
     
-    // Check if expired
-    const expiryDate = tokenData.expires.toDate ? tokenData.expires.toDate() : new Date(tokenData.expires);
-    if (new Date() > expiryDate) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'This verification link has expired. Please request a new one.',
-          code: 'auth/token-expired',
-        },
-        { status: 400 }
-      );
-    }
-    
-    // Mark user as verified in Firebase Auth
-    await adminAuth().updateUser(tokenData.userId, {
-      emailVerified: true,
-    });
-    
-    // Mark token as used
-    await tokenDoc.ref.update({
-      used: true,
-      usedAt: new Date(),
-    });
-    
-    // Update user profile in Firestore
-    await adminDb().collection('users').doc(tokenData.userId).update({
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-      updatedAt: new Date(),
-    });
-    
-    // Get user data for response
-    const userDoc = await adminDb().collection('users').doc(tokenData.userId).get();
-    const userData = userDoc.data();
-    
-    // Create a session for the verified user
-    // This allows them to be automatically logged in after verification
-    console.log(`[Email Verification] Creating session for user ${tokenData.email}`);
-    
-    await createSession({
-      userId: tokenData.userId,
-      email: tokenData.email,
-      emailVerified: true,
-      name: userData?.name || undefined,
-      disclaimerAccepted: userData?.disclaimerAccepted || false,
-    });
-    
-    console.log(`[Email Verification] User ${tokenData.email} verified successfully with session`);
-    
-    return NextResponse.json<ApiResponse>(
-      {
-        success: true,
-        message: 'Email verified successfully! You can now sign in to your account.',
-        data: {
-          email: tokenData.email,
-          name: userData?.name,
-        },
-      },
-      { status: 200 }
-    );
-    
-  } catch (error) {
-    console.error('Email verification error:', error);
+  } catch (error: any) {
+    console.error('[Email Verification] Unexpected error:', error);
     
     return NextResponse.json<ApiResponse>(
       {
         success: false,
-        error: ERROR_MESSAGES.GENERIC,
+        error: 'Something went wrong. Please try again later.',
       },
       { status: 500 }
     );

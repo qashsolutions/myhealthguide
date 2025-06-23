@@ -1,73 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
-import { adminDb } from '@/lib/firebase/admin';
+import { getCurrentUser, getUserData } from '@/lib/auth/firebase-auth';
 import { ApiResponse } from '@/types';
 
 // Force dynamic rendering for this route
-// This prevents Next.js from trying to statically generate this endpoint
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/auth/session
- * Get current user session from server-side cookies
- * This endpoint is called by the client to check authentication status
+ * Get current user session from Firebase session cookie
+ * 
+ * Flow:
+ * 1. Check for Firebase session cookie
+ * 2. Verify session cookie with Firebase Admin
+ * 3. Get user data from Firestore
+ * 4. Return user session data
  */
 export async function GET(request: NextRequest) {
   try {
-    // Log the incoming request details for debugging
-    console.log('[API Session] Session check request:', {
-      url: request.url,
-      headers: {
-        cookie: request.headers.get('cookie') ? 'present' : 'missing',
-        origin: request.headers.get('origin'),
-        referer: request.headers.get('referer'),
-      },
-    });
+    // Get current user from Firebase session cookie
+    const decodedToken = await getCurrentUser();
     
-    // Get session from cookies
-    // This reads the httpOnly session cookie that was set during login
-    const session = await getSession();
-    
-    // Check if we have a valid session
-    if (!session || !session.userId) {
-      console.log('[API Session] No valid session found');
+    if (!decodedToken) {
       return NextResponse.json<ApiResponse>({
         success: false,
         error: 'No active session',
       }, { status: 401 });
     }
     
-    console.log('[API Session] Valid session found for user:', session.email);
+    console.log('[Session] Valid session found for user:', decodedToken.email);
     
     // Get user data from Firestore
-    const userDoc = await adminDb().collection('users').doc(session.userId).get();
+    const userData = await getUserData(decodedToken.uid);
     
-    if (!userDoc.exists) {
+    if (!userData) {
       return NextResponse.json<ApiResponse>({
         success: false,
         error: 'User not found',
       }, { status: 404 });
     }
     
-    const userData = userDoc.data();
-    
     return NextResponse.json<ApiResponse>({
       success: true,
       data: {
         user: {
-          id: session.userId,
-          email: session.email,
-          name: userData?.name || session.name,
-          emailVerified: session.emailVerified,
-          phoneNumber: userData?.phoneNumber,
-          disclaimerAccepted: userData?.disclaimerAccepted || false,
-          createdAt: userData?.createdAt?.toDate(),
-          updatedAt: userData?.updatedAt?.toDate(),
+          id: decodedToken.uid,
+          email: decodedToken.email || userData.email,
+          name: userData.displayName || userData.name || '',
+          emailVerified: decodedToken.email_verified !== false,
+          disclaimerAccepted: userData.disclaimerAccepted || false,
+          createdAt: userData.createdAt,
+          updatedAt: userData.updatedAt,
         },
       },
     });
-  } catch (error) {
-    console.error('Session check error:', error);
+  } catch (error: any) {
+    console.error('[Session] Error checking session:', error);
+    
+    // If session is expired or invalid, return 401
+    if (error.code === 'auth/session-cookie-expired' || 
+        error.code === 'auth/invalid-session-cookie') {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: 'Session expired. Please sign in again.',
+      }, { status: 401 });
+    }
     
     return NextResponse.json<ApiResponse>({
       success: false,

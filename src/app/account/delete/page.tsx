@@ -14,7 +14,7 @@ import { withAuth } from '@/hooks/useAuth';
  */
 function AccountDeletePage() {
   const router = useRouter();
-  const { user, getAuthToken } = useAuth();
+  const { user } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'warning' | 'email-sent'>('warning');
@@ -37,17 +37,12 @@ function AccountDeletePage() {
     setError(null);
 
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
       const response = await fetch('/api/account/request-deletion-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           reason: 'User requested deletion',
         }),

@@ -270,39 +270,5 @@ export const getCurrentUser = async (): Promise<User | null> => {
   }
 };
 
-// These functions are deprecated and no longer used
-// They are kept temporarily for backward compatibility
-
-export const completeSignupWithEmailLink = async (email: string, emailLink: string): Promise<AuthResponse> => {
-  console.error('[Auth] completeSignupWithEmailLink is deprecated');
-  return {
-    success: false,
-    error: 'This function is no longer supported',
-    code: 'deprecated',
-  };
-};
-
-export const generateSignInLink = async (email: string): Promise<string> => {
-  console.error('[Auth] generateSignInLink is deprecated');
-  return 'deprecated';
-};
-
-export const getIdToken = async (): Promise<string | null> => {
-  console.warn('[Auth] getIdToken is deprecated. Auth tokens are managed server-side.');
-  return null;
-};
-
-export const createUser = async (email: string, password: string, displayName?: string): Promise<AuthResponse> => {
-  console.error('[Auth] createUser is deprecated. Use signUp() instead.');
-  return {
-    success: false,
-    error: 'This function is no longer supported',
-    code: 'deprecated',
-  };
-};
-
-// Remove the Firebase import that no longer exists
-export const isSignInWithEmailLink = (auth: any, link: string): boolean => {
-  console.warn('[Auth] isSignInWithEmailLink is deprecated');
-  return false;
-};
+// All Firebase operations are now server-side only
+// Client-side Firebase functions have been removed

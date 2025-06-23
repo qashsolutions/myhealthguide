@@ -16,18 +16,19 @@ if (!fs.existsSync(nextDir)) {
   console.log('✅ Created .next directory');
 }
 
-// Check for required environment variables
+// Check for required server-side environment variables
 const requiredEnvVars = [
-  'NEXT_PUBLIC_FIREBASE_API_KEY',
-  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'FIREBASE_ADMIN_PROJECT_ID',
+  'FIREBASE_ADMIN_CLIENT_EMAIL',
+  'FIREBASE_ADMIN_PRIVATE_KEY',
+  'FIREBASE_SERVER_API_KEY',
 ];
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  console.warn('⚠️  Missing environment variables:', missingEnvVars.join(', '));
-  console.warn('   Using fallback values for build...');
+  console.warn('⚠️  Missing server-side environment variables:', missingEnvVars.join(', '));
+  console.warn('   These are required for production but can be omitted for local builds.');
 }
 
 console.log('✅ Pre-build checks complete');

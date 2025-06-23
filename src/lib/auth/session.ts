@@ -1,3 +1,17 @@
+/**
+ * @deprecated This file is deprecated and will be removed soon.
+ * 
+ * Authentication has been migrated to pure Firebase Auth with session cookies.
+ * Please use the new authentication utilities in /lib/auth/firebase-auth.ts
+ * 
+ * DO NOT USE THIS FILE FOR NEW CODE.
+ * 
+ * Migration notes:
+ * - createSession() → Use Firebase session cookies via firebase-auth.ts
+ * - getSession() → Use getCurrentUser() from firebase-auth.ts
+ * - clearSession() → Use clearSessionCookie() from firebase-auth.ts
+ */
+
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
 import { ApiResponse } from '@/types';

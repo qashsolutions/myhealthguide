@@ -30,7 +30,7 @@ import {
  */
 function HealthQAPage() {
   const router = useRouter();
-  const { user, getAuthToken } = useAuth();
+  const { user } = useAuth();
   const [question, setQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -151,17 +151,12 @@ function HealthQAPage() {
     setIsAsking(true);
 
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
       const response = await fetch('/api/health-qa', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           question: trimmedQuestion,
           context: `User is ${user?.name || 'an elderly person'}`,

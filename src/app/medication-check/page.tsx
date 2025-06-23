@@ -16,7 +16,7 @@ import { AlertCircle, ArrowLeft } from 'lucide-react';
  */
 function MedicationCheckPage() {
   const router = useRouter();
-  const { user, getAuthToken } = useAuth();
+  const { user } = useAuth();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,17 +49,12 @@ function MedicationCheckPage() {
     setIsChecking(true);
 
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error('Authentication required');
-      }
-
       const response = await fetch('/api/medication/check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           medications,
           checkType: 'detailed',
