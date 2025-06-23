@@ -13,6 +13,7 @@ import { ROUTES, STORAGE_KEYS } from '@/lib/constants';
 /**
  * Authentication hook and context
  * Manages user authentication state across the app
+ * FIXED: Resolved endless polling loop and state inconsistency issues
  */
 
 interface AuthContextValue {
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   
   // Define checkServerSession as a reusable function
+  // FIXED: Added proper state cleanup when session is invalid
   const checkServerSession = useCallback(async () => {
     // Don't run on server-side
     if (typeof window === 'undefined') {
@@ -70,18 +72,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.data.user.disclaimerAccepted) {
           sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
         }
+        
+        // Clear any previous errors since session is valid
+        setError(null);
         return true;
       } else {
+        // FIXED: Clear user state when session is invalid to prevent inconsistent state
         console.log('[useAuth] No valid server session:', data.error);
+        setUser(null);
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        sessionStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
         return false;
       }
     } catch (error) {
       console.error('[useAuth] Session check error:', error);
+      
+      // FIXED: Clear user state on network errors to prevent stale authentication
+      setUser(null);
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
       return false;
     }
   }, []);
 
   // Check server-side session on mount and set up periodic checks
+  // FIXED: Reduced polling frequency from 30 seconds to 5 minutes to reduce server load
   useEffect(() => {
     // Skip session checks during server-side rendering
     if (typeof window === 'undefined') {
@@ -98,14 +113,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
     
-    // Set up periodic session checks every 30 seconds
-    // This ensures we catch session changes even if user has multiple tabs
+    // FIXED: Reduced periodic session checks from every 30 seconds to every 5 minutes
+    // This reduces server load while still catching session changes
     const interval = setInterval(() => {
-      console.log('[useAuth] Periodic session check');
+      console.log('[useAuth] Periodic session check (5 min interval)');
       checkServerSession();
-    }, 30000); // 30 seconds
+    }, 300000); // 5 minutes instead of 30 seconds
     
-    // Also check session when window regains focus
+    // Also check session when window regains focus (keep this for better UX)
     const handleFocus = () => {
       console.log('[useAuth] Window focused, checking session');
       checkServerSession();
@@ -121,9 +136,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [checkServerSession]);
 
   // Login function
+  // FIXED: Removed unnecessary session re-check after login that was causing immediate failures
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       setError(null);
+      console.log('[useAuth] Attempting login for:', email);
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -135,16 +153,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.success) {
         console.log('[useAuth] Login successful, updating user state');
+        
         // Update user state directly from server response
         if (data.data?.user) {
           setUser(data.data.user);
           localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'authenticated');
           
-          // Force a session check to ensure cookie was set properly
-          setTimeout(() => {
-            console.log('[useAuth] Verifying session after login...');
-            checkServerSession();
-          }, 500);
+          // Store disclaimer status if present
+          if (data.data.user.disclaimerAccepted) {
+            sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
+          }
+          
+          console.log('[useAuth] User state updated successfully');
+          
+          // FIXED: Removed the setTimeout session re-check that was causing immediate 401 errors
+          // The login response already contains the user data, no need to re-verify immediately
         }
         return true;
       } else {
@@ -153,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
     } catch (err) {
+      console.error('[useAuth] Login network error:', err);
       setError('Network error. Please try again.');
       return false;
     }
@@ -178,31 +202,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('[useAuth] Logout error:', err);
       setError('Failed to log out');
       
-      // Even if logout fails, clear local state and redirect
+      // Even if logout fails, clear local state and redirect for security
       setUser(null);
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
+      sessionStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
       router.push(ROUTES.HOME);
     }
   }, [router]);
 
   // Accept disclaimer
   const acceptDisclaimer = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.error('[useAuth] Cannot accept disclaimer: No user found');
+      return;
+    }
 
     try {
+      console.log('[useAuth] Accepting disclaimer for user:', user.id);
       await acceptDisclaimerInDb(user.id);
       
-      // Refresh user data from Firestore to ensure state is in sync
+      // Refresh user data from server to ensure state is in sync
       const refreshedUser = await getCurrentUser();
       if (refreshedUser) {
         setUser(refreshedUser);
+        console.log('[useAuth] User data refreshed after disclaimer acceptance');
       }
       
-      // Store in session
+      // Store in session storage for immediate UI updates
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED, 'true');
       }
+      
+      console.log('[useAuth] Disclaimer accepted successfully');
     } catch (err) {
-      console.error('Accept disclaimer error:', err);
+      console.error('[useAuth] Accept disclaimer error:', err);
       setError('Failed to accept disclaimer');
     }
   }, [user]);
@@ -215,9 +249,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   }, []);
 
-  // Refresh user data
+  // Refresh user data from server
   const refreshUser = useCallback(async () => {
-    console.log('[useAuth] Refreshing user data');
+    console.log('[useAuth] Refreshing user data from server');
     try {
       // Use the checkServerSession function which already handles everything
       await checkServerSession();
@@ -226,13 +260,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [checkServerSession]);
 
+  // FIXED: Added better computed values for authentication state
+  const isAuthenticated = !!user;
+  const disclaimerAccepted = user?.disclaimerAccepted || 
+    (typeof window !== 'undefined' && sessionStorage.getItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED) === 'true');
+
   const value: AuthContextValue = {
     user,
     loading,
     error,
-    isAuthenticated: !!user,
-    disclaimerAccepted: user?.disclaimerAccepted || 
-      (typeof window !== 'undefined' && sessionStorage.getItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED) === 'true'),
+    isAuthenticated,
+    disclaimerAccepted,
     login,
     logout,
     acceptDisclaimer,
@@ -255,6 +293,7 @@ export function useAuth() {
 }
 
 // HOC for protected routes
+// FIXED: Added better loading handling and clearer redirect logic
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>,
   options?: { requireDisclaimer?: boolean }
@@ -264,15 +303,21 @@ export function withAuth<P extends object>(
     const router = useRouter();
 
     useEffect(() => {
+      // Wait for loading to complete before making redirect decisions
       if (!loading) {
         if (!isAuthenticated) {
+          // User is not authenticated, redirect to auth page with return URL
+          console.log('[withAuth] User not authenticated, redirecting to auth');
           router.push(`${ROUTES.AUTH}?redirect=${encodeURIComponent(window.location.pathname)}`);
         } else if (options?.requireDisclaimer && !disclaimerAccepted) {
+          // User is authenticated but hasn't accepted disclaimer
+          console.log('[withAuth] User needs to accept disclaimer, redirecting');
           router.push(ROUTES.MEDICAL_DISCLAIMER);
         }
       }
     }, [isAuthenticated, disclaimerAccepted, loading, router]);
 
+    // Show loading spinner while determining auth state
     if (loading) {
       return (
         <div className="flex items-center justify-center min-h-screen">
@@ -281,10 +326,12 @@ export function withAuth<P extends object>(
       );
     }
 
+    // Don't render component if user doesn't meet requirements
     if (!isAuthenticated || (options?.requireDisclaimer && !disclaimerAccepted)) {
       return null;
     }
 
+    // All checks passed, render the protected component
     return <Component {...props} />;
   };
 }
