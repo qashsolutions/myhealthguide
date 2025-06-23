@@ -40,6 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   // Define checkServerSession as a reusable function
   const checkServerSession = useCallback(async () => {
+    // Don't run on server-side
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    
     try {
       console.log('[useAuth] Checking server session...');
       
@@ -78,6 +83,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check server-side session on mount and set up periodic checks
   useEffect(() => {
+    // Skip session checks during server-side rendering
+    if (typeof window === 'undefined') {
+      console.log('[useAuth] Skipping session check during SSR');
+      setLoading(false);
+      return;
+    }
+    
     console.log('[useAuth] Initializing auth state');
     setLoading(true);
     

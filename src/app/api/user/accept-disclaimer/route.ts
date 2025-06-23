@@ -3,6 +3,9 @@ import { getSession, updateSession } from '@/lib/auth/session';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiResponse } from '@/types';
 
+// Force dynamic rendering - this route uses session cookies
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/user/accept-disclaimer
  * Accept medical disclaimer

@@ -3,6 +3,10 @@ import { getSession } from '@/lib/auth/session';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiResponse } from '@/types';
 
+// Force dynamic rendering for this route
+// This prevents Next.js from trying to statically generate this endpoint
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/auth/session
  * Get current user session from server-side cookies

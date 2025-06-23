@@ -3,6 +3,9 @@ import { getSession } from '@/lib/auth/session';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiResponse } from '@/types';
 
+// Force dynamic rendering - this route uses session cookies
+export const dynamic = 'force-dynamic';
+
 /**
  * PATCH /api/user/profile
  * Update user profile information
