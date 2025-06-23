@@ -21,8 +21,10 @@ export const initializeFirebaseAdmin = () => {
             privateKey: privateKey.replace(/\\n/g, '\n'),
           }),
         });
+        console.log('Firebase Admin initialized successfully');
       } catch (error) {
         console.error('Firebase admin initialization error:', error);
+        throw error;
       }
     } else {
       console.warn('Firebase Admin credentials not found in environment');
@@ -32,6 +34,11 @@ export const initializeFirebaseAdmin = () => {
 
 // Initialize on module load
 initializeFirebaseAdmin();
+
+// Export admin instance and shortcuts
+export default admin;
+export const adminAuth = admin.auth();
+export const adminDb = admin.firestore();
 
 /**
  * Verify Firebase ID token

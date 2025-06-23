@@ -1,28 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Lock, User, Phone, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { OTPVerification } from './OTPVerification';
-import { signUp, signIn } from '@/lib/firebase/auth';
 import { SignupData, LoginData } from '@/types';
 import { VALIDATION_MESSAGES, SUCCESS_MESSAGES, ROUTES } from '@/lib/constants';
 
 /**
  * Single-page authentication component with toggle between signup/login
- * Eldercare-optimized with progressive onboarding
+ * Eldercare-optimized with email verification flow
  */
 
 // Validation schemas
 const signupSchema = z.object({
   email: z.string().email(VALIDATION_MESSAGES.EMAIL_INVALID),
+  password: z.string().min(6, VALIDATION_MESSAGES.PASSWORD_MIN),
+  confirmPassword: z.string(),
   name: z.string().min(1, VALIDATION_MESSAGES.REQUIRED),
   phoneNumber: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: VALIDATION_MESSAGES.PASSWORD_MISMATCH,
+  path: ['confirmPassword'],
 });
 
 const loginSchema = z.object({
@@ -39,19 +42,51 @@ interface AuthToggleProps {
 
 export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Element {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<'signup' | 'login'>(defaultMode);
   const [showPhoneField, setShowPhoneField] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [signupSuccess, setSignupSuccess] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
-  const [otpEmail, setOtpEmail] = useState('');
-  const [otpExpiresAt, setOtpExpiresAt] = useState<string | undefined>();
+  const [signupEmail, setSignupEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
+
+  // Check URL params on mount
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    if (modeParam === 'login' || modeParam === 'signup') {
+      setMode(modeParam);
+    }
+    
+    // Check if user just verified their email
+    const verified = searchParams.get('verified');
+    if (verified === 'true' && mode === 'login') {
+      setAuthError(null);
+      // Show success message
+      setTimeout(() => {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'mb-6 p-4 bg-health-safe-bg border-2 border-health-safe rounded-elder flex items-start gap-3';
+        successDiv.innerHTML = `
+          <svg class="h-6 w-6 text-health-safe flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p class="text-elder-base text-health-safe">Email verified successfully! You can now sign in.</p>
+        `;
+        const form = document.querySelector('form');
+        if (form && form.parentNode) {
+          form.parentNode.insertBefore(successDiv, form);
+          setTimeout(() => successDiv.remove(), 5000);
+        }
+      }, 100);
+    }
+  }, [searchParams, mode]);
 
   // Form setup for signup
   const signupForm = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       email: '',
+      password: '',
+      confirmPassword: '',
       name: '',
       phoneNumber: '',
     },
@@ -70,54 +105,31 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
   const handleSignup = async (data: SignupFormData) => {
     setAuthError(null);
     
-    const signupData: SignupData = {
-      email: data.email,
-      password: '', // Not used with magic link
-      name: data.name,
-      phoneNumber: data.phoneNumber || undefined,
-    };
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          name: data.name,
+          phoneNumber: data.phoneNumber || undefined,
+        }),
+      });
 
-    // First, store the user data locally for later
-    const response = await signUp(signupData);
-
-    if (response.success) {
-      try {
-        // Request OTP for email verification
-        const apiResponse = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: data.email,
-            name: data.name,
-          }),
-        });
-
-        const apiData = await apiResponse.json();
-        
-        if (apiResponse.ok && apiData.success) {
-          // Store user data for OTP verification
-          if (typeof window !== 'undefined') {
-            window.sessionStorage.setItem('pendingSignup', JSON.stringify({
-              email: data.email,
-              name: data.name,
-            }));
-          }
-          
-          setOtpEmail(data.email);
-          setOtpExpiresAt(apiData.data?.expiresAt);
-          setShowOTP(true);
-          setSignupSuccess(true);
-          signupForm.reset();
-        } else {
-          setAuthError(apiData.error || 'Failed to send verification code');
-        }
-      } catch (error) {
-        setAuthError('Failed to send verification email. Please try again.');
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        setSignupEmail(data.email);
+        setSignupSuccess(true);
+        signupForm.reset();
+      } else {
+        setAuthError(result.error || 'Failed to create account');
       }
-    } else {
-      setAuthError(response.error || 'Failed to process signup');
+    } catch (error) {
+      setAuthError('Network error. Please check your connection and try again.');
     }
   };
 
@@ -125,23 +137,69 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
   const handleLogin = async (data: LoginFormData) => {
     setAuthError(null);
 
-    const loginData: LoginData = {
-      email: data.email,
-      password: data.password,
-    };
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
 
-    const response = await signIn(loginData);
+      const result = await response.json();
 
-    if (response.success) {
-      // Check for redirect
-      const redirect = typeof window !== 'undefined' ? sessionStorage.getItem('authRedirect') : null;
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('authRedirect');
+      if (response.ok && result.success) {
+        // Store token if provided
+        if (result.data?.token && typeof window !== 'undefined') {
+          localStorage.setItem('auth-token', result.data.token);
+        }
+        
+        // Check for redirect
+        const redirect = searchParams.get('redirect') || ROUTES.DASHBOARD;
+        router.push(redirect);
+      } else {
+        setAuthError(result.error || 'Login failed');
+        
+        // Show resend verification option if email not verified
+        if (result.code === 'auth/email-not-verified') {
+          setSignupEmail(data.email);
+        }
       }
+    } catch (error) {
+      setAuthError('Network error. Please check your connection and try again.');
+    }
+  };
+
+  // Handle resend verification
+  const handleResendVerification = async () => {
+    if (!signupEmail) return;
+    
+    setIsResending(true);
+    setAuthError(null);
+    
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: signupEmail }),
+      });
+
+      const result = await response.json();
       
-      router.push(redirect || ROUTES.DASHBOARD);
-    } else {
-      setAuthError(response.error || 'Login failed');
+      if (response.ok && result.success) {
+        setSignupSuccess(true);
+      } else {
+        setAuthError(result.error || 'Failed to resend verification email');
+      }
+    } catch (error) {
+      setAuthError('Network error. Please try again.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -149,27 +207,10 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
   const toggleMode = () => {
     setMode(mode === 'signup' ? 'login' : 'signup');
     setAuthError(null);
+    setSignupSuccess(false);
     signupForm.reset();
     loginForm.reset();
   };
-
-  // Show OTP verification if needed
-  if (showOTP) {
-    return (
-      <div className="w-full max-w-md mx-auto">
-        <OTPVerification
-          email={otpEmail}
-          purpose="signup"
-          expiresAt={otpExpiresAt}
-          onCancel={() => {
-            setShowOTP(false);
-            setSignupSuccess(false);
-            setAuthError(null);
-          }}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -199,9 +240,24 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
 
       {/* Error message */}
       {authError && (
-        <div className="mb-6 p-4 bg-health-danger-bg border-2 border-health-danger rounded-elder flex items-start gap-3">
-          <AlertCircle className="h-6 w-6 text-health-danger flex-shrink-0 mt-1" />
-          <p className="text-elder-base text-health-danger">{authError}</p>
+        <div className="mb-6 p-4 bg-health-danger-bg border-2 border-health-danger rounded-elder flex flex-col gap-3">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-6 w-6 text-health-danger flex-shrink-0 mt-1" />
+            <p className="text-elder-base text-health-danger">{authError}</p>
+          </div>
+          
+          {/* Resend verification option */}
+          {authError.includes('verify') && signupEmail && (
+            <Button
+              variant="secondary"
+              size="medium"
+              onClick={handleResendVerification}
+              loading={isResending}
+              className="self-start"
+            >
+              Resend Verification Email
+            </Button>
+          )}
         </div>
       )}
 
@@ -217,11 +273,26 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
                 <h3 className="text-elder-xl font-semibold text-elder-text mb-2">
                   Check Your Email!
                 </h3>
-                <p className="text-elder-base text-elder-text-secondary">
-                  We've sent a verification link to your email address.
+                <p className="text-elder-base text-elder-text-secondary mb-2">
+                  We've sent a verification link to
                 </p>
-                <p className="text-elder-base text-elder-text-secondary mt-2">
-                  Click the link in the email to complete your registration.
+                <p className="text-elder-lg font-semibold text-elder-text mb-4">
+                  {signupEmail}
+                </p>
+                <div className="bg-primary-50 rounded-elder p-4 mb-6">
+                  <p className="text-elder-base text-primary-900">
+                    Click the link in the email to verify your account and complete registration.
+                  </p>
+                </div>
+                <p className="text-elder-sm text-elder-text-secondary">
+                  Didn't receive the email? Check your spam folder or{' '}
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={isResending}
+                    className="text-primary-600 hover:text-primary-700 hover:underline disabled:opacity-50"
+                  >
+                    {isResending ? 'sending...' : 'resend verification email'}
+                  </button>
                 </p>
               </div>
               <button
@@ -255,6 +326,28 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
                 required
               />
 
+              <Input
+                {...signupForm.register('password')}
+                type="password"
+                label="Password"
+                placeholder="At least 6 characters"
+                icon={<Lock className="h-5 w-5" />}
+                error={signupForm.formState.errors.password?.message}
+                showPasswordToggle
+                required
+              />
+
+              <Input
+                {...signupForm.register('confirmPassword')}
+                type="password"
+                label="Confirm Password"
+                placeholder="Enter password again"
+                icon={<Lock className="h-5 w-5" />}
+                error={signupForm.formState.errors.confirmPassword?.message}
+                showPasswordToggle
+                required
+              />
+
               {/* Progressive phone field */}
               {showPhoneField ? (
                 <Input
@@ -281,12 +374,6 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
                 </button>
               )}
 
-              <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-4">
-                <p className="text-elder-sm text-primary-800">
-                  <strong>No password needed!</strong> We'll send you a secure link to verify your email and complete registration.
-                </p>
-              </div>
-
               <Button
                 type="submit"
                 variant="primary"
@@ -294,7 +381,7 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
                 fullWidth
                 loading={signupForm.formState.isSubmitting}
               >
-                Send Verification Email
+                Create Account
               </Button>
 
               <p className="text-elder-sm text-elder-text-secondary text-center">

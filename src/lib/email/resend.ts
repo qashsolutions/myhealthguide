@@ -264,6 +264,27 @@ export const sendPasswordResetEmail = async (
 
 // Send generic email
 export const sendEmail = async (data: EmailData): Promise<void> => {
+  // Development mode - log instead of sending
+  if (process.env.NODE_ENV === 'development' && !process.env.FORCE_SEND_EMAIL) {
+    console.log('📧 [DEV MODE] Email would be sent:');
+    console.log('To:', data.to);
+    console.log('Subject:', data.subject);
+    console.log('From:', data.from || EMAIL_CONFIG.FROM);
+    
+    // Extract and log verification URL if present
+    const urlMatch = data.html?.match(/href="([^"]*verify[^"]*)"/);
+    if (urlMatch) {
+      console.log('🔗 Verification URL:', urlMatch[1]);
+    }
+    
+    // Show preview of HTML content
+    if (data.html) {
+      console.log('HTML Preview (first 300 chars):', data.html.substring(0, 300) + '...');
+    }
+    
+    return; // Don't actually send in development
+  }
+
   if (!resend) {
     const error = new Error('Email service not configured: RESEND_API_KEY is missing or invalid');
     console.error('[Resend] Error:', error.message);
