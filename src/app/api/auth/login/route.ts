@@ -129,8 +129,8 @@ export async function POST(request: NextRequest) {
         }
         
         // We can't use client SDK on server. Instead, we'll use Firebase REST API to verify password
-        // Get the API key - it should be available even on server side since it's NEXT_PUBLIC
-        const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+        // Use server-specific API key that has no referrer restrictions
+        const apiKey = process.env.FIREBASE_SERVER_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
         if (!apiKey) {
           console.error('[Login] Firebase API key not found in environment');
           throw new Error('Configuration error');
