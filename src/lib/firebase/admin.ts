@@ -12,48 +12,50 @@ export const initializeFirebaseAdmin = () => {
     const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
-    // During build time, environment variables might not be available
-    // This is expected behavior for static generation
-    const isBuildTime = typeof window === 'undefined' && !process.env.FIREBASE_ADMIN_PROJECT_ID;
-    
-    if (isBuildTime) {
-      // Silently skip during build - this is normal
+    // Skip initialization if credentials are not available
+    // This is normal during build time
+    if (!projectId || !clientEmail || !privateKey) {
+      // Only log during actual runtime failures
+      if (process.env.NODE_ENV === 'production' && process.env.VERCEL) {
+        const missingVars = [];
+        if (!projectId) missingVars.push('Project ID');
+        if (!clientEmail) missingVars.push('Client Email');
+        if (!privateKey) missingVars.push('Private Key');
+        
+        console.error('[Firebase Admin] Missing required configuration:', missingVars.join(', '));
+      }
       return;
     }
 
-    if (projectId && clientEmail && privateKey) {
-      try {
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey: privateKey.replace(/\\n/g, '\n'),
-          }),
-        });
-        console.log('[Firebase Admin] Service initialized successfully');
-      } catch (error) {
-        console.error('[Firebase Admin] Initialization failed:', error);
-        // Log additional context for debugging
-        console.error('[Firebase Admin] Project ID present:', !!projectId);
-        console.error('[Firebase Admin] Client email present:', !!clientEmail);
-        console.error('[Firebase Admin] Private key present:', !!privateKey);
-        throw new Error('Firebase Admin initialization failed. Please check server configuration.');
-      }
-    } else {
-      // Production-friendly error message
-      const missingVars = [];
-      if (!projectId) missingVars.push('Project ID');
-      if (!clientEmail) missingVars.push('Client Email');
-      if (!privateKey) missingVars.push('Private Key');
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\\\n/g, '\n'),
+        }),
+      });
+      console.log('[Firebase Admin] Service initialized successfully');
+    } catch (error) {
+      console.error('[Firebase Admin] Initialization failed:', error);
+      // Log additional context for debugging
+      console.error('[Firebase Admin] Project ID present:', !!projectId);
+      console.error('[Firebase Admin] Client email present:', !!clientEmail);
+      console.error('[Firebase Admin] Private key present:', !!privateKey);
+      console.error('[Firebase Admin] Private key length:', privateKey ? privateKey.length : 0);
       
-      console.error('[Firebase Admin] Missing required configuration:', missingVars.join(', '));
-      console.log('[Firebase Admin] This may be normal during build time, but will cause issues at runtime.');
+      // Check if it's a common formatting issue
+      if (privateKey && !privateKey.includes('BEGIN PRIVATE KEY')) {
+        console.error('[Firebase Admin] Private key may be incorrectly formatted');
+      }
+      
+      throw new Error('Firebase Admin initialization failed. Please check server configuration.');
     }
   }
 };
 
-// Initialize on module load
-initializeFirebaseAdmin();
+// Don't initialize on module load - let it happen lazily
+// initializeFirebaseAdmin();
 
 // Export admin instance
 export default admin;
@@ -65,25 +67,49 @@ export const isFirebaseAdminInitialized = (): boolean => {
 
 // Export getters to ensure initialization
 export const adminAuth = () => {
-  initializeFirebaseAdmin();
-  
-  if (!admin.apps.length) {
-    console.error('[Firebase Admin] Cannot access auth service - not initialized');
-    throw new Error('Authentication service is temporarily unavailable. Please try again later.');
+  try {
+    initializeFirebaseAdmin();
+    
+    if (!admin.apps.length) {
+      console.error('[Firebase Admin] Cannot access auth service - not initialized');
+      console.error('[Firebase Admin] Environment check:', {
+        hasProjectId: !!process.env.FIREBASE_ADMIN_PROJECT_ID,
+        hasClientEmail: !!process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+        hasPrivateKey: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY,
+        nodeEnv: process.env.NODE_ENV,
+        isVercel: !!process.env.VERCEL,
+      });
+      throw new Error('Authentication service is temporarily unavailable. Please try again later.');
+    }
+    
+    return admin.auth();
+  } catch (error: any) {
+    console.error('[Firebase Admin] adminAuth() failed:', error.message);
+    throw error;
   }
-  
-  return admin.auth();
 };
 
 export const adminDb = () => {
-  initializeFirebaseAdmin();
-  
-  if (!admin.apps.length) {
-    console.error('[Firebase Admin] Cannot access Firestore service - not initialized');
-    throw new Error('Database service is temporarily unavailable. Please try again later.');
+  try {
+    initializeFirebaseAdmin();
+    
+    if (!admin.apps.length) {
+      console.error('[Firebase Admin] Cannot access Firestore service - not initialized');
+      console.error('[Firebase Admin] Environment check:', {
+        hasProjectId: !!process.env.FIREBASE_ADMIN_PROJECT_ID,
+        hasClientEmail: !!process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+        hasPrivateKey: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY,
+        nodeEnv: process.env.NODE_ENV,
+        isVercel: !!process.env.VERCEL,
+      });
+      throw new Error('Database service is temporarily unavailable. Please try again later.');
+    }
+    
+    return admin.firestore();
+  } catch (error: any) {
+    console.error('[Firebase Admin] adminDb() failed:', error.message);
+    throw error;
   }
-  
-  return admin.firestore();
 };
 
 /**

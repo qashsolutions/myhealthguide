@@ -75,7 +75,19 @@ export async function POST(request: NextRequest) {
       
       try {
         // Check if user already exists
-        const existingUser = await adminAuth().getUserByEmail(email).catch(() => null);
+        let existingUser;
+        try {
+          existingUser = await adminAuth().getUserByEmail(email);
+        } catch (error: any) {
+          // If user not found, that's fine
+          if (error.code === 'auth/user-not-found') {
+            existingUser = null;
+          } else {
+            // Log the actual error for debugging
+            console.error('[Signup] Error checking existing user:', error);
+            throw error;
+          }
+        }
         
         if (existingUser) {
           return NextResponse.json<ApiResponse>(
@@ -179,13 +191,20 @@ export async function POST(request: NextRequest) {
         throw authError;
       }
       
-    } catch (error) {
-      console.error('Signup API error:', error);
+    } catch (error: any) {
+      console.error('[Signup] API error:', error);
+      console.error('[Signup] Error message:', error.message);
+      console.error('[Signup] Error code:', error.code);
+      
+      // Provide more specific error message for debugging
+      const errorMessage = process.env.NODE_ENV === 'production' 
+        ? ERROR_MESSAGES.GENERIC 
+        : `Signup failed: ${error.message || 'Unknown error'}`;
       
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: ERROR_MESSAGES.GENERIC,
+          error: errorMessage,
         },
         { status: 500 }
       );
