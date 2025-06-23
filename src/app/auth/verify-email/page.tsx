@@ -40,6 +40,7 @@ function VerifyEmailContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
+          credentials: 'include', // Important: Include cookies with the request
         });
         
         const data = await response.json();

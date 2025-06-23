@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { createSession } from '@/lib/auth/session';
 import { ApiResponse } from '@/types';
 import { ERROR_MESSAGES } from '@/lib/constants';
 
@@ -108,7 +109,19 @@ export async function POST(request: NextRequest) {
     const userDoc = await adminDb().collection('users').doc(tokenData.userId).get();
     const userData = userDoc.data();
     
-    console.log(`[Email Verification] User ${tokenData.email} verified successfully`);
+    // Create a session for the verified user
+    // This allows them to be automatically logged in after verification
+    console.log(`[Email Verification] Creating session for user ${tokenData.email}`);
+    
+    await createSession({
+      userId: tokenData.userId,
+      email: tokenData.email,
+      emailVerified: true,
+      name: userData?.name || undefined,
+      disclaimerAccepted: userData?.disclaimerAccepted || false,
+    });
+    
+    console.log(`[Email Verification] User ${tokenData.email} verified successfully with session`);
     
     return NextResponse.json<ApiResponse>(
       {
