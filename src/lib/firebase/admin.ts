@@ -5,9 +5,30 @@ import admin from 'firebase-admin';
  * Server-side only functions for authentication and user management
  */
 
+// Track initialization state
+let initializationError: Error | null = null;
+let isInitializing = false;
+
 // Initialize Firebase Admin if needed
 export const initializeFirebaseAdmin = () => {
-  if (!admin.apps.length) {
+  // If already initialized, return
+  if (admin.apps.length > 0) {
+    return;
+  }
+  
+  // If we had an error before, throw it again
+  if (initializationError) {
+    throw initializationError;
+  }
+  
+  // Prevent multiple simultaneous initialization attempts
+  if (isInitializing) {
+    return;
+  }
+  
+  isInitializing = true;
+  
+  try {
     const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
@@ -28,29 +49,46 @@ export const initializeFirebaseAdmin = () => {
     }
 
     try {
+      // Try both single and double backslash replacement for newlines
+      let formattedKey = privateKey;
+      
+      // First try to replace double backslashes
+      if (privateKey.includes('\\\\n')) {
+        formattedKey = privateKey.replace(/\\\\n/g, '\n');
+      } else if (privateKey.includes('\\n')) {
+        // Then try single backslashes
+        formattedKey = privateKey.replace(/\\n/g, '\n');
+      }
+      
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId,
           clientEmail,
-          privateKey: privateKey.replace(/\\\\n/g, '\n'),
+          privateKey: formattedKey,
         }),
       });
       console.log('[Firebase Admin] Service initialized successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Firebase Admin] Initialization failed:', error);
-      // Log additional context for debugging
-      console.error('[Firebase Admin] Project ID present:', !!projectId);
-      console.error('[Firebase Admin] Client email present:', !!clientEmail);
-      console.error('[Firebase Admin] Private key present:', !!privateKey);
-      console.error('[Firebase Admin] Private key length:', privateKey ? privateKey.length : 0);
+      console.error('[Firebase Admin] Error details:', {
+        message: error.message,
+        code: error.code,
+        projectId: !!projectId,
+        clientEmail: !!clientEmail,
+        privateKeyPresent: !!privateKey,
+        privateKeyLength: privateKey ? privateKey.length : 0,
+        privateKeyStart: privateKey ? privateKey.substring(0, 50) : 'N/A',
+        hasBeginMarker: privateKey ? privateKey.includes('BEGIN PRIVATE KEY') : false,
+        hasEndMarker: privateKey ? privateKey.includes('END PRIVATE KEY') : false,
+      });
       
-      // Check if it's a common formatting issue
-      if (privateKey && !privateKey.includes('BEGIN PRIVATE KEY')) {
-        console.error('[Firebase Admin] Private key may be incorrectly formatted');
-      }
-      
-      throw new Error('Firebase Admin initialization failed. Please check server configuration.');
+      initializationError = new Error('Firebase Admin initialization failed. Please check server configuration.');
+      throw initializationError;
+    } finally {
+      isInitializing = false;
     }
+  } finally {
+    isInitializing = false;
   }
 };
 
