@@ -196,10 +196,17 @@ export async function POST(request: NextRequest) {
       console.error('[Signup] Error message:', error.message);
       console.error('[Signup] Error code:', error.code);
       
-      // Provide more specific error message for debugging
-      const errorMessage = process.env.NODE_ENV === 'production' 
-        ? ERROR_MESSAGES.GENERIC 
-        : `Signup failed: ${error.message || 'Unknown error'}`;
+      // In production, log error details for debugging
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[Signup] Full error object:', JSON.stringify({
+          message: error.message,
+          code: error.code,
+          stack: error.stack?.split('\n').slice(0, 3).join('\n'), // First 3 lines of stack
+        }));
+      }
+      
+      // Always use generic message in production for security
+      const errorMessage = ERROR_MESSAGES.GENERIC;
       
       return NextResponse.json<ApiResponse>(
         {
