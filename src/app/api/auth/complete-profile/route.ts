@@ -7,6 +7,7 @@ import { ApiResponse } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES, APP_NAME, APP_URL, DISCLAIMERS } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
 import { verifyAuth, getFirestore } from '@/lib/firebase/admin';
+import { consumeOTP } from '@/lib/auth/otp';
 
 /**
  * POST /api/auth/complete-profile
@@ -16,7 +17,8 @@ import { verifyAuth, getFirestore } from '@/lib/firebase/admin';
  * 1. Verify Firebase ID token
  * 2. Create Firestore user document
  * 3. Send welcome email
- * 4. Return success
+ * 4. Consume OTP (marks registration as complete)
+ * 5. Return success
  */
 
 
@@ -112,6 +114,9 @@ export async function POST(request: NextRequest) {
       sendWelcomeEmail(email, name).catch(error => {
         console.error('Failed to send welcome email:', error);
       });
+      
+      // Consume OTP now that the entire flow is complete
+      consumeOTP(email, 'signup');
       
       // Return success
       return NextResponse.json<ApiResponse>(

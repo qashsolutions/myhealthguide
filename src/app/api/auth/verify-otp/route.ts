@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { verifyOTP, consumeOTP } from '@/lib/auth/otp';
+import { verifyOTP } from '@/lib/auth/otp';
 import { ApiResponse } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
@@ -13,7 +13,7 @@ import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
  * 1. Validate email and OTP
  * 2. Verify OTP using stored data
  * 3. Return success with user metadata
- * 4. Consume OTP after verification
+ * 4. OTP remains valid for retries (consumed in complete-profile)
  */
 
 // Validation schema for OTP verification
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
       // Extract user metadata from OTP (name was stored during generation)
       const { name } = otpResult.metadata || { name: '' };
       
-      // Consume the OTP now that it's verified
-      consumeOTP(email, 'signup');
+      // DO NOT consume OTP here - wait until entire flow completes
+      // consumeOTP will be called in complete-profile after successful user creation
       
       // Return success with user metadata
       // The client will use this to create the Firebase user
