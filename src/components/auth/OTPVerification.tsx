@@ -175,7 +175,9 @@ export function OTPVerification({ email, purpose, expiresAt, onSuccess, onCancel
         }
 
         // Step 2: Create Firebase user client-side
+        console.log('Creating Firebase user for:', email);
         const createResult = await createUser(email, password, verifyData.data?.name);
+        console.log('Create user result:', createResult);
         
         if (!createResult.success) {
           throw new Error(createResult.error || 'Failed to create user account');
@@ -183,6 +185,7 @@ export function OTPVerification({ email, purpose, expiresAt, onSuccess, onCancel
 
         // Step 3: Get ID token
         const idToken = createResult.token;
+        console.log('Got ID token:', idToken ? 'Yes' : 'No');
 
         // Step 4: Complete profile setup server-side
         const profileResponse = await fetch('/api/auth/complete-profile', {
