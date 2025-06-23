@@ -15,6 +15,7 @@ const SESSION_COOKIE_OPTIONS = {
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
   path: '/',
+  domain: process.env.NODE_ENV === 'production' ? 'www.myguide.health' : undefined,
 };
 
 // Email verification token expiry (24 hours)
