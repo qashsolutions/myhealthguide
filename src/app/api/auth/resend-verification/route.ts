@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Get user by email
-      const user = await adminAuth.getUserByEmail(email).catch(() => null);
+      const user = await adminAuth().getUserByEmail(email).catch(() => null);
       
       if (!user) {
         // Don't reveal if user exists for security
@@ -113,18 +113,18 @@ export async function POST(request: NextRequest) {
       }
       
       // Get user profile for name
-      const userDoc = await adminDb.collection('users').doc(user.uid).get();
+      const userDoc = await adminDb().collection('users').doc(user.uid).get();
       const userData = userDoc.data();
       const userName = userData?.name || user.displayName || 'User';
       
       // Invalidate old tokens for this email
-      const oldTokens = await adminDb
+      const oldTokens = await adminDb()
         .collection('emailVerifications')
         .where('email', '==', email)
         .where('used', '==', false)
         .get();
       
-      const batch = adminDb.batch();
+      const batch = adminDb().batch();
       oldTokens.forEach(doc => {
         batch.update(doc.ref, { 
           invalidated: true,
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       expires.setHours(expires.getHours() + 24); // 24 hour expiry
       
       // Store new token in Firestore
-      await adminDb.collection('emailVerifications').doc(verificationToken).set({
+      await adminDb().collection('emailVerifications').doc(verificationToken).set({
         userId: user.uid,
         email,
         expires: expires,

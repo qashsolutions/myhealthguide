@@ -107,7 +107,7 @@ export default function VerifyEmailRequiredPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your.email@example.com"
-                    error={error}
+                    error={error || undefined}
                     disabled={isResending}
                   />
                 </div>

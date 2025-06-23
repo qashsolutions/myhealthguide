@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       
       try {
         // Check if user already exists
-        const existingUser = await adminAuth.getUserByEmail(email).catch(() => null);
+        const existingUser = await adminAuth().getUserByEmail(email).catch(() => null);
         
         if (existingUser) {
           return NextResponse.json<ApiResponse>(
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Create Firebase user (unverified)
-        const userRecord = await adminAuth.createUser({
+        const userRecord = await adminAuth().createUser({
           email,
           password,
           displayName: name,
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         expires.setHours(expires.getHours() + 24); // 24 hour expiry
         
         // Store token in Firestore
-        await adminDb.collection('emailVerifications').doc(verificationToken).set({
+        await adminDb().collection('emailVerifications').doc(verificationToken).set({
           userId: userRecord.uid,
           email,
           expires: expires,
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         });
         
         // Create user profile in Firestore
-        await adminDb.collection('users').doc(userRecord.uid).set({
+        await adminDb().collection('users').doc(userRecord.uid).set({
           email,
           name,
           phoneNumber: phoneNumber || null,

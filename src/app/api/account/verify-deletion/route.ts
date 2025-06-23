@@ -2,19 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import admin from 'firebase-admin';
 import { ApiResponse } from '@/types';
-import { verifyOTP, consumeOTP } from '@/lib/auth/otp';
 import { sendEmail } from '@/lib/email/resend';
 import { APP_NAME, APP_URL, ERROR_MESSAGES } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
+import { adminDb } from '@/lib/firebase/admin';
 
 /**
  * POST /api/account/verify-deletion
- * Verify OTP and complete account deletion
+ * Verify token and complete account deletion
  * 
  * Flow:
- * 1. Verify the OTP code
- * 2. Find user by email
- * 3. Initialize Firebase Admin (only when needed)
+ * 1. Verify the deletion token
+ * 2. Get email from token data
+ * 3. Find user by email
  * 4. Delete user from Firebase Auth
  * 5. Delete user data from Firestore
  * 6. Send confirmation email
@@ -22,13 +22,9 @@ import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
  * This completes the secure deletion process
  */
 
-// Validation schema for OTP verification
+// Validation schema for token verification
 const verifyDeletionSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  otp: z
-    .string()
-    .length(6, 'OTP must be 6 digits')
-    .regex(/^\d{6}$/, 'OTP must contain only numbers'),
+  token: z.string().min(1, 'Token is required'),
 });
 
 /**
@@ -93,24 +89,53 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      const { email, otp } = validationResult.data;
+      const { token } = validationResult.data;
       
-      // Verify the OTP
-      const otpResult = verifyOTP(email, otp, 'delete');
+      // Get token from Firestore
+      const tokenDoc = await adminDb()
+        .collection('accountDeletions')
+        .doc(token)
+        .get();
       
-      if (!otpResult.success) {
+      if (!tokenDoc.exists) {
         return NextResponse.json<ApiResponse>(
           {
             success: false,
-            error: otpResult.error || 'Invalid or expired OTP',
-            code: 'otp/invalid',
+            error: 'Invalid or expired deletion token',
+            code: 'token/invalid',
           },
           { status: 400 }
         );
       }
       
-      // Extract deletion reason from OTP metadata
-      const { reason } = otpResult.metadata || { reason: 'User requested' };
+      const tokenData = tokenDoc.data()!;
+      
+      // Check if already used
+      if (tokenData.used) {
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'This deletion link has already been used',
+            code: 'token/already-used',
+          },
+          { status: 400 }
+        );
+      }
+      
+      // Check if expired
+      if (new Date() > tokenData.expires.toDate()) {
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'This deletion link has expired',
+            code: 'token/expired',
+          },
+          { status: 400 }
+        );
+      }
+      
+      const email = tokenData.email;
+      const reason = tokenData.reason || 'User requested';
       
       try {
         // Initialize Firebase Admin only when needed
@@ -222,8 +247,11 @@ export async function POST(request: NextRequest) {
           console.error('Failed to send deletion confirmation email:', error);
         });
         
-        // Now that everything succeeded, consume the OTP
-        consumeOTP(email, 'delete');
+        // Mark token as used
+        await tokenDoc.ref.update({
+          used: true,
+          usedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
         
         // Return success
         return NextResponse.json<ApiResponse>(

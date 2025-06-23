@@ -123,11 +123,11 @@ export async function POST(request: NextRequest) {
         }
         
         // Get user profile from Firestore
-        const userDoc = await adminDb.collection('users').doc(user.uid).get();
+        const userDoc = await adminDb().collection('users').doc(user.uid).get();
         const userData = userDoc.data();
         
         // Update last login
-        await adminDb.collection('users').doc(user.uid).update({
+        await adminDb().collection('users').doc(user.uid).update({
           lastLoginAt: new Date(),
           updatedAt: new Date(),
         });

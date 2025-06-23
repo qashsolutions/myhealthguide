@@ -1,27 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { ApiResponse } from '@/types';
 import { sendEmail } from '@/lib/email/resend';
-import { storeOTP, hasValidOTP, getOTPRemainingTime } from '@/lib/auth/otp';
 import { APP_NAME, APP_URL, DISCLAIMERS } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
+import { adminDb } from '@/lib/firebase/admin';
 
 /**
  * POST /api/account/request-deletion
- * Request account deletion by sending OTP
+ * Request account deletion by sending verification link
  * 
  * Flow:
  * 1. Validate email address
- * 2. Check for existing OTP (prevent spam)
- * 3. Generate 6-digit OTP
- * 4. Send OTP via email with deletion warning
- * 5. User must verify OTP to complete deletion
+ * 2. Check for existing deletion request (prevent spam)
+ * 3. Generate secure token
+ * 4. Store token in Firestore
+ * 5. Send email with deletion confirmation link
+ * 6. User clicks link to confirm deletion
  * 
  * This two-step process prevents accidental deletions and provides
  * a secure audit trail without requiring password verification
  */
 
-// Validation schema - only email needed for OTP-based deletion
+// Validation schema - only email needed for token-based deletion
 const requestDeletionSchema = z.object({
   email: z.string().email('Invalid email address'),
   reason: z.string().optional(), // Optional reason for deletion
@@ -52,14 +54,22 @@ export async function POST(request: NextRequest) {
       
       const { email, reason } = validationResult.data;
       
-      // Check if user already has a valid OTP to prevent spam
-      if (hasValidOTP(email, 'delete')) {
-        const remainingTime = getOTPRemainingTime(email, 'delete');
+      // Check if user already has a pending deletion request to prevent spam
+      const existingRequests = await adminDb()
+        .collection('accountDeletions')
+        .where('email', '==', email)
+        .where('used', '==', false)
+        .where('expires', '>', new Date())
+        .get();
+      
+      if (!existingRequests.empty) {
+        const existingRequest = existingRequests.docs[0].data();
+        const remainingTime = Math.ceil((existingRequest.expires.toDate().getTime() - new Date().getTime()) / 1000);
         
         return NextResponse.json<ApiResponse>(
           {
             success: false,
-            error: `A deletion code was already sent. Please wait ${remainingTime} seconds before requesting a new one.`,
+            error: `A deletion request was already sent. Please wait ${remainingTime} seconds before requesting a new one.`,
             data: { remainingTime },
           },
           { status: 429 } // Too Many Requests
@@ -67,13 +77,30 @@ export async function POST(request: NextRequest) {
       }
       
       try {
-        // Generate and store OTP with deletion metadata
-        const otpData = storeOTP(email, 'delete', { reason });
+        // Generate secure token
+        const deletionToken = crypto.randomBytes(32).toString('hex');
+        const expires = new Date();
+        expires.setHours(expires.getHours() + 24); // 24 hour expiry
         
-        // Log OTP generation (remove in production for security)
-        console.log(`[Account Deletion] Generated OTP for ${email}: ${otpData.code}`);
+        // Store token in Firestore
+        await adminDb().collection('accountDeletions').doc(deletionToken).set({
+          email,
+          reason: reason || 'User requested',
+          expires,
+          used: false,
+          createdAt: new Date(),
+        });
         
-        // Send deletion OTP email via Resend
+        // Generate deletion confirmation URL
+        const deletionUrl = `${process.env.NEXT_PUBLIC_APP_URL}/account/delete-confirmation?token=${deletionToken}`;
+        
+        // Log token generation in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Account Deletion] Generated token for ${email}`);
+          console.log(`[Account Deletion] Confirmation URL: ${deletionUrl}`);
+        }
+        
+        // Send deletion confirmation email via Resend
         const emailHtml = `
           <!DOCTYPE html>
           <html>
@@ -195,13 +222,14 @@ export async function POST(request: NextRequest) {
                     </ul>
                   </div>
                   
-                  <p>If you want to proceed with account deletion, please enter the verification code below:</p>
+                  <p>If you want to proceed with account deletion, please click the button below:</p>
                   
-                  <!-- OTP Code Display -->
-                  <div class="otp-box">
-                    <p style="margin: 0 0 10px 0; font-size: 16px; color: #4a5568;">Your deletion confirmation code is:</p>
-                    <h1 style="font-size: 48px; letter-spacing: 8px; color: #dc2626; margin: 0; font-family: monospace;">${otpData.code}</h1>
-                    <p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">This code expires in 10 minutes</p>
+                  <!-- Deletion Confirmation Button -->
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${deletionUrl}" style="display: inline-block; padding: 16px 32px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 18px;">
+                      Confirm Account Deletion
+                    </a>
+                    <p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">This link expires in 24 hours</p>
                   </div>
                   
                   <p><strong>Didn't request this?</strong></p>
@@ -245,23 +273,21 @@ export async function POST(request: NextRequest) {
           html: emailHtml,
         });
         
-        // Return success response with server timestamps
+        // Return success response
         return NextResponse.json<ApiResponse>(
           {
             success: true,
-            message: 'Deletion confirmation code sent. Please check your email.',
+            message: 'Deletion confirmation email sent. Please check your email.',
             data: {
               email,
-              expiresIn: 600, // 10 minutes in seconds
-              expiresAt: otpData.expiresAt.toISOString(),
-              createdAt: otpData.createdAt.toISOString(),
+              expiresIn: 86400, // 24 hours in seconds
             },
           },
           { status: 200 }
         );
         
       } catch (emailError: any) {
-        console.error('Failed to send deletion OTP email:', emailError);
+        console.error('Failed to send deletion confirmation email:', emailError);
         
         return NextResponse.json<ApiResponse>(
           {

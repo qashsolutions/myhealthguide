@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
     let deletedUsers = 0;
     
     // 1. Clean up expired email verification tokens
-    const expiredTokens = await adminDb
+    const expiredTokens = await adminDb()
       .collection('emailVerifications')
       .where('expires', '<', now)
       .where('used', '==', false)
       .get();
     
-    const tokenBatch = adminDb.batch();
+    const tokenBatch = adminDb().batch();
     expiredTokens.forEach(doc => {
       tokenBatch.delete(doc.ref);
       deletedTokens++;
@@ -42,13 +42,13 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const oldUsedTokens = await adminDb
+    const oldUsedTokens = await adminDb()
       .collection('emailVerifications')
       .where('used', '==', true)
       .where('usedAt', '<', thirtyDaysAgo)
       .get();
     
-    const oldTokenBatch = adminDb.batch();
+    const oldTokenBatch = adminDb().batch();
     oldUsedTokens.forEach(doc => {
       oldTokenBatch.delete(doc.ref);
       deletedTokens++;
@@ -72,8 +72,8 @@ export async function GET(request: NextRequest) {
         return !user.emailVerified && creationTime < sevenDaysAgo;
       })
       .map(async user => {
-        await adminAuth.deleteUser(user.uid);
-        await adminDb.collection('users').doc(user.uid).delete();
+        await adminAuth().deleteUser(user.uid);
+        await adminDb().collection('users').doc(user.uid).delete();
         deletedUsers++;
       });
     

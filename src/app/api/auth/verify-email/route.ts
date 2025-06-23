@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const { token } = validationResult.data;
     
     // Get token from Firestore
-    const tokenDoc = await adminDb
+    const tokenDoc = await adminDb()
       .collection('emailVerifications')
       .doc(token)
       .get();
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Mark user as verified in Firebase Auth
-    await adminAuth.updateUser(tokenData.userId, {
+    await adminAuth().updateUser(tokenData.userId, {
       emailVerified: true,
     });
     
@@ -98,14 +98,14 @@ export async function POST(request: NextRequest) {
     });
     
     // Update user profile in Firestore
-    await adminDb.collection('users').doc(tokenData.userId).update({
+    await adminDb().collection('users').doc(tokenData.userId).update({
       emailVerified: true,
       emailVerifiedAt: new Date(),
       updatedAt: new Date(),
     });
     
     // Get user data for response
-    const userDoc = await adminDb.collection('users').doc(tokenData.userId).get();
+    const userDoc = await adminDb().collection('users').doc(tokenData.userId).get();
     const userData = userDoc.data();
     
     console.log(`[Email Verification] User ${tokenData.email} verified successfully`);

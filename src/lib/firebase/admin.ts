@@ -35,10 +35,19 @@ export const initializeFirebaseAdmin = () => {
 // Initialize on module load
 initializeFirebaseAdmin();
 
-// Export admin instance and shortcuts
+// Export admin instance
 export default admin;
-export const adminAuth = admin.auth();
-export const adminDb = admin.firestore();
+
+// Export getters to ensure initialization
+export const adminAuth = () => {
+  initializeFirebaseAdmin();
+  return admin.auth();
+};
+
+export const adminDb = () => {
+  initializeFirebaseAdmin();
+  return admin.firestore();
+};
 
 /**
  * Verify Firebase ID token

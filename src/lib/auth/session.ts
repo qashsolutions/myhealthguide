@@ -23,7 +23,7 @@ export interface SessionData {
  */
 export async function createSession(data: SessionData): Promise<void> {
   try {
-    const token = await new SignJWT(data)
+    const token = await new SignJWT({ ...data })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('7d')
