@@ -23,20 +23,12 @@ const VERIFICATION_TOKEN_EXPIRY = 24 * 60 * 60 * 1000;
 
 /**
  * Normalize email address for consistent handling
- * Handles plus-addressing and ensures lowercase
+ * DEPRECATED: No longer normalizing emails per user request
+ * Emails are stored exactly as entered for testing purposes
  */
 export function normalizeEmail(email: string): string {
-  const trimmedEmail = email.trim().toLowerCase();
-  const [localPart, domain] = trimmedEmail.split('@');
-  
-  if (!localPart || !domain) {
-    throw new Error('Invalid email format');
-  }
-  
-  // Remove plus-addressing (e.g., user+tag@gmail.com → user@gmail.com)
-  const cleanLocal = localPart.split('+')[0];
-  
-  return `${cleanLocal}@${domain}`;
+  // No longer normalizing - return email as-is
+  return email.trim();
 }
 
 /**
@@ -130,9 +122,9 @@ export async function generateVerificationToken(email: string): Promise<string> 
   const token = generateRandomToken();
   const expiresAt = Date.now() + VERIFICATION_TOKEN_EXPIRY;
   
-  // Store token in Firestore
+  // Store token in Firestore with exact email
   await adminDb().collection('emailVerifications').doc(token).set({
-    email: normalizeEmail(email),
+    email: email.trim(),
     createdAt: Date.now(),
     expiresAt,
     used: false,
@@ -173,12 +165,12 @@ export async function verifyEmailToken(token: string): Promise<{ email: string; 
  * Create user account with Firebase Auth
  */
 export async function createUserAccount(email: string, password: string, displayName: string) {
-  const normalizedEmail = normalizeEmail(email);
+  const trimmedEmail = email.trim();
   
   try {
-    // Check if user already exists
+    // Check if user already exists with exact email
     try {
-      const existingUser = await adminAuth().getUserByEmail(normalizedEmail);
+      const existingUser = await adminAuth().getUserByEmail(trimmedEmail);
       if (existingUser) {
         throw new Error('An account with this email already exists');
       }
@@ -189,18 +181,18 @@ export async function createUserAccount(email: string, password: string, display
       }
     }
     
-    // Create user in Firebase Auth
+    // Create user in Firebase Auth with exact email
     const userRecord = await adminAuth().createUser({
-      email: normalizedEmail,
+      email: trimmedEmail,
       password,
       displayName,
       emailVerified: false,
     });
     
-    // Create user document in Firestore
+    // Create user document in Firestore with exact email
     await adminDb().collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
-      email: normalizedEmail,
+      email: trimmedEmail,
       displayName,
       emailVerified: false,
       createdAt: Date.now(),
@@ -235,11 +227,11 @@ export async function createUserAccount(email: string, password: string, display
  * Verify user password
  */
 export async function verifyUserPassword(email: string, password: string): Promise<string | null> {
-  const normalizedEmail = normalizeEmail(email);
+  const trimmedEmail = email.trim();
   
   try {
-    // Get user by email
-    const user = await adminAuth().getUserByEmail(normalizedEmail);
+    // Get user by exact email
+    const user = await adminAuth().getUserByEmail(trimmedEmail);
     
     if (!user) {
       return null;
@@ -253,7 +245,7 @@ export async function verifyUserPassword(email: string, password: string): Promi
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: normalizedEmail,
+          email: trimmedEmail,
           password,
           returnSecureToken: true,
         }),

@@ -4,8 +4,7 @@ import { sendEmail } from '@/lib/email/resend';
 import { getVerificationEmailHtml, getVerificationEmailText } from '@/lib/email/templates/verification';
 import { 
   createUserAccount, 
-  generateVerificationToken,
-  normalizeEmail 
+  generateVerificationToken
 } from '@/lib/auth/firebase-auth';
 import { ApiResponse } from '@/types';
 import { 
@@ -73,14 +72,14 @@ export async function POST(request: NextRequest) {
       const { email, password, name } = validationResult.data;
       
       try {
-        // Normalize email to handle plus-addressing
-        const normalizedEmail = normalizeEmail(email);
+        // Use email exactly as entered (no normalization)
+        const originalEmail = email.trim();
         
         // Create user account
-        const userRecord = await createUserAccount(normalizedEmail, password, name);
+        const userRecord = await createUserAccount(originalEmail, password, name);
         
         // Generate verification token
-        const verificationToken = await generateVerificationToken(normalizedEmail);
+        const verificationToken = await generateVerificationToken(originalEmail);
         
         // Create verification URL
         const verificationUrl = `${APP_URL}/auth/verify-email?token=${verificationToken}`;
@@ -94,7 +93,7 @@ export async function POST(request: NextRequest) {
         });
         
         // Log success
-        console.log(`[Signup] Account created for ${normalizedEmail} (${userRecord.uid})`);
+        console.log(`[Signup] Account created for ${originalEmail} (${userRecord.uid})`);
         
         // Return success response (no session created)
         return NextResponse.json<ApiResponse>(
@@ -102,7 +101,7 @@ export async function POST(request: NextRequest) {
             success: true,
             message: 'Account created successfully! Please check your email to verify your account.',
             data: {
-              email: normalizedEmail,
+              email: originalEmail,
               requiresVerification: true,
             },
           },

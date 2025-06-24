@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { 
-  normalizeEmail,
   verifyUserPassword,
   createSessionCookie,
   setSessionCookie,
@@ -67,11 +66,11 @@ export async function POST(request: NextRequest) {
       const { email, password } = validationResult.data;
       
       try {
-        // Normalize email to handle plus-addressing
-        const normalizedEmail = normalizeEmail(email);
+        // Use email exactly as entered (no normalization)
+        const trimmedEmail = email.trim();
         
         // Verify password and get ID token
-        const idToken = await verifyUserPassword(normalizedEmail, password);
+        const idToken = await verifyUserPassword(trimmedEmail, password);
         
         if (!idToken) {
           return NextResponse.json<ApiResponse>(
@@ -108,7 +107,7 @@ export async function POST(request: NextRequest) {
               error: 'Please verify your email before signing in. Check your inbox for the verification link.',
               code: 'auth/email-not-verified',
               data: {
-                email: normalizedEmail,
+                email: trimmedEmail,
                 requiresVerification: true,
               },
             },
@@ -119,18 +118,11 @@ export async function POST(request: NextRequest) {
         // Get user data from Firestore
         const userData = await getUserData(decodedToken.uid);
         
-        // Check if user logged in with different email variant
-        let loginMessage = 'Welcome back!';
-        let originalSignupEmail = null;
-        
-        if (userData && userData.email && normalizeEmail(userData.email) === normalizedEmail && userData.email !== email) {
-          // User logged in with normalized version but signed up with plus-addressed email
-          originalSignupEmail = userData.email;
-          loginMessage = `Welcome back! Note: You originally signed up as ${userData.email}`;
-        }
+        // No need to check for email variants since we're not normalizing
+        const loginMessage = 'Welcome back!';
         
         // Log successful login
-        console.log(`[Login] User ${normalizedEmail} logged in successfully`);
+        console.log(`[Login] User ${trimmedEmail} logged in successfully`);
         
         // Return success response
         return NextResponse.json<ApiResponse>(
@@ -140,12 +132,11 @@ export async function POST(request: NextRequest) {
             data: {
               user: {
                 id: decodedToken.uid,
-                email: normalizedEmail,
+                email: trimmedEmail,
                 name: userData?.displayName || userData?.name || '',
                 emailVerified: true,
                 disclaimerAccepted: userData?.disclaimerAccepted || false,
               },
-              originalSignupEmail, // Include this for client to display if needed
             },
           },
           { status: 200 }

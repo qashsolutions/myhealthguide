@@ -153,27 +153,6 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Check if user logged in with different email variant
-        if (result.data?.originalSignupEmail) {
-          // Show info message about original signup email
-          setAuthError(null);
-          const infoDiv = document.createElement('div');
-          infoDiv.className = 'mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg flex items-start gap-3';
-          infoDiv.innerHTML = `
-            <svg class="h-6 w-6 text-blue-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <div class="text-base">
-              <p class="text-blue-800 font-medium">You originally signed up as: ${result.data.originalSignupEmail}</p>
-              <p class="text-blue-700 mt-1">Both email addresses work for login.</p>
-            </div>
-          `;
-          const form = document.querySelector('form');
-          if (form && form.parentNode) {
-            form.parentNode.insertBefore(infoDiv, form);
-          }
-        }
-        
         // Give the auth context time to update
         setTimeout(() => {
           // Check if user needs to accept disclaimer
