@@ -149,17 +149,17 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
         </div>
       )}
 
-      {/* Conflicts section */}
-      {result.conflicts && result.conflicts.length > 0 && (
+      {/* Interactions section - FIXED: Use interactions instead of conflicts */}
+      {result.interactions && result.interactions.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-elder-lg font-semibold text-elder-text">
-            Potential Conflicts Found ({result.conflicts.length})
+            Potential Interactions Found ({result.interactions.length})
           </h3>
           
-          {result.conflicts.map((conflict, index) => {
-            const conflictLight = getTrafficLight(conflict.severity);
+          {result.interactions.map((interaction, index) => {
+            const conflictLight = getTrafficLight(interaction.severity);
             const ConflictIcon = conflictLight.icon;
-            const isExpanded = expandedConflicts.includes(`conflict-${index}`);
+            const isExpanded = expandedConflicts.includes(`interaction-${index}`);
             
             return (
               <div
@@ -171,7 +171,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                 )}
               >
                 <button
-                  onClick={() => toggleConflict(`conflict-${index}`)}
+                  onClick={() => toggleConflict(`interaction-${index}`)}
                   className="w-full p-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
                   aria-expanded={isExpanded}
                 >
@@ -180,7 +180,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                       <ConflictIcon className={clsx('h-6 w-6', `text-${conflictLight.color}`)} />
                       <div>
                         <p className="text-elder-base font-semibold text-elder-text">
-                          {conflict.medication1} + {conflict.medication2}
+                          {interaction.medication1} + {interaction.medication2}
                         </p>
                         <p className={clsx('text-elder-sm', `text-${conflictLight.color}`)}>
                           {conflictLight.label} Risk
@@ -199,16 +199,16 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t-2 border-elder-border pt-4">
                     <p className="text-elder-base text-elder-text mb-3">
-                      {conflict.description}
+                      {interaction.description}
                     </p>
                     
-                    {conflict.recommendation && (
+                    {interaction.recommendation && (
                       <div className="bg-white bg-opacity-50 rounded-elder p-3">
                         <p className="text-elder-sm font-semibold text-elder-text mb-1">
                           Recommendation:
                         </p>
                         <p className="text-elder-sm text-elder-text-secondary">
-                          {conflict.recommendation}
+                          {interaction.recommendation}
                         </p>
                       </div>
                     )}
@@ -220,15 +220,28 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
         </div>
       )}
 
-      {/* No conflicts message */}
-      {(!result.conflicts || result.conflicts.length === 0) && (
+      {/* No interactions message - FIXED: Use interactions instead of conflicts */}
+      {(!result.interactions || result.interactions.length === 0) && (
         <div className="bg-health-safe-bg border-2 border-health-safe rounded-elder-lg p-6 text-center">
           <CheckCircle className="h-12 w-12 text-health-safe mx-auto mb-3" />
           <p className="text-elder-lg font-semibold text-elder-text">
-            No Conflicts Detected
+            No Interactions Detected
           </p>
           <p className="text-elder-base text-elder-text-secondary mt-2">
             Based on our analysis, we didn't find any major interactions between your medications.
+          </p>
+        </div>
+      )}
+
+      {/* General advice section - Display Claude's advice */}
+      {result.generalAdvice && (
+        <div className="bg-elder-background-alt rounded-elder-lg p-6">
+          <h3 className="text-elder-lg font-semibold mb-3 flex items-center gap-3">
+            <Info className="h-6 w-6 text-primary-600" />
+            General Advice
+          </h3>
+          <p className="text-elder-base text-elder-text-secondary whitespace-pre-wrap">
+            {result.generalAdvice}
           </p>
         </div>
       )}
