@@ -35,10 +35,8 @@ function MedicalDisclaimerContent() {
         sessionStorage.setItem('disclaimerAcceptedAt', new Date().toISOString());
       }
       
-      // Small delay to ensure state updates propagate
-      setTimeout(() => {
-        router.push(redirectTo);
-      }, 100);
+      // Use server-side redirect to ensure proper session state
+      window.location.href = redirectTo;
     } catch (error) {
       console.error('Failed to accept disclaimer:', error);
     } finally {

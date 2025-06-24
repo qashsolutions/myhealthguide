@@ -154,16 +154,14 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Give the auth context time to update
-        setTimeout(() => {
-          // Check if user needs to accept disclaimer
-          if (result.data?.user && !result.data.user.disclaimerAccepted) {
-            router.push(ROUTES.MEDICAL_DISCLAIMER);
-          } else {
-            // Use client-side navigation
-            router.push(searchParams.get('redirect') || ROUTES.DASHBOARD);
-          }
-        }, 100);
+        // Use server-side redirect to ensure proper session state
+        // This avoids race conditions with client-side auth state
+        if (result.data?.user && !result.data.user.disclaimerAccepted) {
+          window.location.href = ROUTES.MEDICAL_DISCLAIMER;
+        } else {
+          // Server-side redirect to destination
+          window.location.href = searchParams.get('redirect') || ROUTES.DASHBOARD;
+        }
       } else {
         setAuthError(result.error || 'Login failed');
         

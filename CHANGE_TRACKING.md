@@ -94,8 +94,24 @@ To rollback all changes:
 8. **CRITICAL FIX**: Updated `middleware.ts` - Fixed cookie name mismatch (was checking 'mhg-auth-session' instead of 'session')
 9. Updated `/src/app/api/auth/session/route.ts` - Auto-clear invalid session cookies
 10. Updated `/src/lib/auth/firebase-auth.ts` - Better error handling for missing users
+11. **CRITICAL FIX**: Updated `/src/components/auth/AuthToggle.tsx` - Replaced client-side navigation (router.push) with server-side redirect (window.location.href) to fix auth state sync issues
+12. Updated `/src/app/medical-disclaimer/page.tsx` - Replaced setTimeout + router.push with window.location.href for consistent server-side redirects
 
 ## Notes
-- All debug logs use `process.env.NEXT_PUBLIC_DEBUG_AUTH` flag
+- All debug logs use `process.env.DEBUG_AUTH` flag (server-side only)
 - No breaking changes to existing functionality
 - Graceful degradation approach
+
+## Auth Flow Fix Explanation
+The client-side navigation (router.push) was causing race conditions where:
+1. User logs in successfully
+2. Client navigates to dashboard before auth state updates
+3. Dashboard's withAuth HOC sees no auth state and redirects to /auth
+4. Middleware sees session cookie and redirects to /dashboard
+5. Creates redirect loop
+
+Using window.location.href ensures:
+- Full page reload with fresh session state
+- No race conditions between client/server state
+- Consistent behavior across all browsers
+- Eliminates need for setTimeout delays
