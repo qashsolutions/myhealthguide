@@ -219,8 +219,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      console.log('[useAuth] Accepting disclaimer for user:', user.id);
-      await acceptDisclaimerInDb(user.id);
+      console.log('[useAuth] Accepting disclaimer');
+      await acceptDisclaimerInDb(); // No userId parameter needed
       
       // Refresh user data from server to ensure state is in sync
       const refreshedUser = await getCurrentUser();

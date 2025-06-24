@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/auth/firebase-auth';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiResponse } from '@/types';
 
@@ -15,10 +15,10 @@ export async function PATCH(request: NextRequest) {
   try {
     console.log('[API Profile] Profile update request received');
     
-    // Get current session
-    const session = await getSession();
+    // Get current user from Firebase session
+    const currentUser = await getCurrentUser();
     
-    if (!session || !session.userId) {
+    if (!currentUser) {
       console.log('[API Profile] No valid session found');
       return NextResponse.json<ApiResponse>({
         success: false,
@@ -28,19 +28,10 @@ export async function PATCH(request: NextRequest) {
     
     // Parse request body
     const body = await request.json();
-    const { userId, updates } = body;
+    const { updates } = body;
     
-    // Verify user is updating their own profile
-    if (userId !== session.userId) {
-      console.error('[API Profile] User attempted to update another profile:', {
-        sessionUser: session.userId,
-        targetUser: userId,
-      });
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Unauthorized to update this profile',
-      }, { status: 403 });
-    }
+    // Use the authenticated user's ID from session
+    const userId = currentUser.uid;
     
     // Validate updates
     const allowedFields = ['name', 'phoneNumber', 'preferences'];

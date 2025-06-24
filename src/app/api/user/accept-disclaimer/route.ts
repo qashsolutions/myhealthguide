@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, updateSession } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/auth/firebase-auth';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiResponse } from '@/types';
 
@@ -15,10 +15,10 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[API Disclaimer] Accept disclaimer request received');
     
-    // Get current session
-    const session = await getSession();
+    // Get current user from Firebase session
+    const currentUser = await getCurrentUser();
     
-    if (!session || !session.userId) {
+    if (!currentUser) {
       console.log('[API Disclaimer] No valid session found');
       return NextResponse.json<ApiResponse>({
         success: false,
@@ -26,23 +26,11 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
     
-    // Parse request body
-    const body = await request.json();
-    const { userId } = body;
-    
-    // Verify user is accepting for their own account
-    if (userId !== session.userId) {
-      console.error('[API Disclaimer] User attempted to accept for another account:', {
-        sessionUser: session.userId,
-        targetUser: userId,
-      });
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Unauthorized',
-      }, { status: 403 });
-    }
+    // We no longer need to verify userId from body - trust the session
+    // The session is the source of truth for the authenticated user
     
     const now = new Date();
+    const userId = currentUser.uid;
     
     console.log('[API Disclaimer] Accepting disclaimer for user:', userId);
     
@@ -56,10 +44,8 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
       });
     
-    // Update session to reflect disclaimer acceptance
-    await updateSession({
-      disclaimerAccepted: true,
-    });
+    // Note: Session will be updated on next request since Firebase 
+    // session cookies are managed by Firebase Admin SDK
     
     console.log('[API Disclaimer] Disclaimer accepted successfully');
     

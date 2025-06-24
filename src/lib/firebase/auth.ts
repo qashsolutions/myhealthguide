@@ -187,15 +187,14 @@ export const resetPassword = async (email: string): Promise<AuthResponse> => {
 
 // Update user profile via API
 export const updateUserProfile = async (
-  userId: string,
   updates: Partial<User>
 ): Promise<void> => {
-  console.log('[Auth] Updating profile for user:', userId);
+  console.log('[Auth] Updating profile for authenticated user');
   
   try {
     const response = await authFetch('/api/user/profile', {
       method: 'PATCH',
-      body: JSON.stringify({ userId, updates }),
+      body: JSON.stringify({ updates }), // No userId needed - uses session
     });
     
     if (!response.ok) {
@@ -212,13 +211,13 @@ export const updateUserProfile = async (
 };
 
 // Accept medical disclaimer via API
-export const acceptDisclaimer = async (userId: string): Promise<void> => {
-  console.log('[Auth] Accepting disclaimer for user:', userId);
+export const acceptDisclaimer = async (): Promise<void> => {
+  console.log('[Auth] Accepting disclaimer for authenticated user');
   
   try {
     const response = await authFetch('/api/user/accept-disclaimer', {
       method: 'POST',
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({}), // No userId needed - uses session
     });
     
     if (!response.ok) {
