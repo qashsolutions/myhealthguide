@@ -119,8 +119,17 @@ export async function verifySessionCookie(sessionCookie: string): Promise<Decode
     // Verify the session cookie
     const decodedClaims = await adminAuth().verifySessionCookie(sessionCookie, true);
     return decodedClaims;
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Auth] Session verification failed:', error);
+    
+    // If user doesn't exist, the cookie is invalid
+    if (error.code === 'auth/user-not-found' || 
+        error.message?.includes('no user record corresponding')) {
+      if (DEBUG_AUTH) {
+        console.log('[Auth Debug] User not found for session, cookie is invalid');
+      }
+    }
+    
     return null;
   }
 }

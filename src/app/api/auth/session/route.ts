@@ -36,6 +36,11 @@ export async function GET(request: NextRequest) {
       if (DEBUG_AUTH) {
         console.log('[Auth Debug] No valid session found');
       }
+      
+      // Clear any invalid session cookie
+      const { clearSessionCookie } = await import('@/lib/auth/firebase-auth');
+      await clearSessionCookie();
+      
       return NextResponse.json<ApiResponse>({
         success: false,
         error: 'No active session',
