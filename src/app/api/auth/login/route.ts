@@ -15,6 +15,9 @@ import {
 } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
 
+// Debug flag
+const DEBUG_AUTH = process.env.DEBUG_AUTH === 'true';
+
 /**
  * POST /api/auth/login
  * Authenticate user with Firebase Auth
@@ -124,8 +127,17 @@ export async function POST(request: NextRequest) {
         // Log successful login
         console.log(`[Login] User ${trimmedEmail} logged in successfully`);
         
+        if (DEBUG_AUTH) {
+          console.log('[Auth Debug] Login successful:', {
+            userId: decodedToken.uid,
+            email: trimmedEmail,
+            emailVerified: emailVerified,
+            disclaimerAccepted: userData?.disclaimerAccepted,
+          });
+        }
+        
         // Return success response
-        return NextResponse.json<ApiResponse>(
+        const response = NextResponse.json<ApiResponse>(
           {
             success: true,
             message: loginMessage,
@@ -141,6 +153,14 @@ export async function POST(request: NextRequest) {
           },
           { status: 200 }
         );
+        
+        if (DEBUG_AUTH) {
+          console.log('[Auth Debug] Response headers:', {
+            'Set-Cookie': response.headers.get('Set-Cookie')?.substring(0, 100) + '...',
+          });
+        }
+        
+        return response;
         
       } catch (error: any) {
         console.error('[Login] Authentication error:', error);

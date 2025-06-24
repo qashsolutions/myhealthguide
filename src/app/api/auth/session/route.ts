@@ -5,6 +5,9 @@ import { ApiResponse } from '@/types';
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
+// Debug flag
+const DEBUG_AUTH = process.env.DEBUG_AUTH === 'true';
+
 /**
  * GET /api/auth/session
  * Get current user session from Firebase session cookie
@@ -17,10 +20,22 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    if (DEBUG_AUTH) {
+      const cookieHeader = request.headers.get('cookie');
+      console.log('[Auth Debug] Session check request:', {
+        hasCookieHeader: !!cookieHeader,
+        cookies: cookieHeader?.substring(0, 100) + '...',
+        userAgent: request.headers.get('user-agent'),
+      });
+    }
+    
     // Get current user from Firebase session cookie
     const decodedToken = await getCurrentUser();
     
     if (!decodedToken) {
+      if (DEBUG_AUTH) {
+        console.log('[Auth Debug] No valid session found');
+      }
       return NextResponse.json<ApiResponse>({
         success: false,
         error: 'No active session',
@@ -28,6 +43,14 @@ export async function GET(request: NextRequest) {
     }
     
     console.log('[Session] Valid session found for user:', decodedToken.email);
+    
+    if (DEBUG_AUTH) {
+      console.log('[Auth Debug] Session validated:', {
+        userId: decodedToken.uid,
+        email: decodedToken.email,
+        emailVerified: decodedToken.email_verified,
+      });
+    }
     
     // Get user data from Firestore
     const userData = await getUserData(decodedToken.uid);

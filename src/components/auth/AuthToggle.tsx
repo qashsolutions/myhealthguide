@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { IncognitoWarning } from '../ui/IncognitoWarning';
 import { SignupData, LoginData } from '@/types';
 import { VALIDATION_MESSAGES, SUCCESS_MESSAGES, ROUTES } from '@/lib/constants';
 
@@ -217,6 +218,9 @@ export function AuthToggle({ defaultMode = 'signup' }: AuthToggleProps): JSX.Ele
 
   return (
     <div className="w-full max-w-md mx-auto">
+      {/* Incognito Warning */}
+      <IncognitoWarning className="mb-6" dismissible={true} />
+      
       {/* Mode toggle */}
       <div className="bg-elder-background-alt rounded-elder-lg p-2 mb-8 flex gap-2">
         <button

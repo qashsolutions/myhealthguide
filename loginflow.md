@@ -45,12 +45,7 @@ This document details the complete authentication flow for MyHealth Guide, inclu
 ### Vercel Environment Variables (✅ Already Configured)
 ```bash
 # Firebase Client SDK (NEXT_PUBLIC_* for client-side access)
-NEXT_PUBLIC_FIREBASE_API_KEY=AIza...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=mango-ca9be.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=mango-ca9be
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=mango-ca9be.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=940295349030
-NEXT_PUBLIC_FIREBASE_APP_ID=1:940295349030:web:8d8af3477b36226fab97e7
+<<
 
 # Firebase Admin SDK (Server-side only)
 FIREBASE_ADMIN_PROJECT_ID=mango-ca9be

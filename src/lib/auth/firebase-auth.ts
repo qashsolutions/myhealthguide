@@ -7,6 +7,9 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
  * Pure server-side implementation for healthcare app
  */
 
+// Debug flag from environment
+const DEBUG_AUTH = process.env.DEBUG_AUTH === 'true';
+
 // Session cookie configuration
 const SESSION_COOKIE_NAME = 'session';
 const SESSION_COOKIE_OPTIONS = {
@@ -39,9 +42,17 @@ export async function createSessionCookie(idToken: string): Promise<string> {
     // Verify the ID token
     const decodedToken = await adminAuth().verifyIdToken(idToken);
     
+    if (DEBUG_AUTH) {
+      console.log('[Auth Debug] Creating session cookie for user:', decodedToken.uid);
+    }
+    
     // Create session cookie with 14-day expiration
     const expiresIn = 60 * 60 * 24 * 14 * 1000; // 14 days
     const sessionCookie = await adminAuth().createSessionCookie(idToken, { expiresIn });
+    
+    if (DEBUG_AUTH) {
+      console.log('[Auth Debug] Session cookie created successfully');
+    }
     
     return sessionCookie;
   } catch (error) {
@@ -54,8 +65,24 @@ export async function createSessionCookie(idToken: string): Promise<string> {
  * Set session cookie in response
  */
 export async function setSessionCookie(sessionCookie: string): Promise<void> {
+  if (DEBUG_AUTH) {
+    console.log('[Auth Debug] Setting session cookie with options:', {
+      name: SESSION_COOKIE_NAME,
+      domain: SESSION_COOKIE_OPTIONS.domain,
+      sameSite: SESSION_COOKIE_OPTIONS.sameSite,
+      secure: SESSION_COOKIE_OPTIONS.secure,
+      httpOnly: SESSION_COOKIE_OPTIONS.httpOnly,
+      path: SESSION_COOKIE_OPTIONS.path,
+      maxAge: SESSION_COOKIE_OPTIONS.maxAge,
+    });
+  }
+  
   const cookieStore = cookies();
   cookieStore.set(SESSION_COOKIE_NAME, sessionCookie, SESSION_COOKIE_OPTIONS);
+  
+  if (DEBUG_AUTH) {
+    console.log('[Auth Debug] Session cookie set successfully');
+  }
 }
 
 /**
@@ -64,6 +91,15 @@ export async function setSessionCookie(sessionCookie: string): Promise<void> {
 export async function getSessionCookie(): Promise<string | null> {
   const cookieStore = cookies();
   const cookie = cookieStore.get(SESSION_COOKIE_NAME);
+  
+  if (DEBUG_AUTH) {
+    console.log('[Auth Debug] Getting session cookie:', {
+      cookieName: SESSION_COOKIE_NAME,
+      cookieExists: !!cookie,
+      cookieLength: cookie?.value?.length || 0,
+    });
+  }
+  
   return cookie?.value || null;
 }
 
@@ -96,10 +132,27 @@ export async function getCurrentUser(): Promise<DecodedIdToken | null> {
   const sessionCookie = await getSessionCookie();
   
   if (!sessionCookie) {
+    if (DEBUG_AUTH) {
+      console.log('[Auth Debug] No session cookie found in getCurrentUser');
+    }
     return null;
   }
   
-  return verifySessionCookie(sessionCookie);
+  if (DEBUG_AUTH) {
+    console.log('[Auth Debug] Session cookie found, verifying...');
+  }
+  
+  const user = await verifySessionCookie(sessionCookie);
+  
+  if (DEBUG_AUTH) {
+    console.log('[Auth Debug] getCurrentUser result:', {
+      userFound: !!user,
+      userId: user?.uid || null,
+      email: user?.email || null,
+    });
+  }
+  
+  return user;
 }
 
 /**
