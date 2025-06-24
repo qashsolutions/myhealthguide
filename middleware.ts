@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
   if (isProtectedRoute || isAuthRoute) {
     // Note: getSession function needs to be adapted for edge runtime
     // For now, we'll check for the session cookie
-    const sessionCookie = request.cookies.get('mhg-auth-session');
+    const sessionCookie = request.cookies.get('session');
     
     // Debug logging for cookie checks (only in development)
     if (process.env.NODE_ENV === 'development') {

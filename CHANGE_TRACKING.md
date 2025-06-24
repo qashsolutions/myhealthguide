@@ -91,6 +91,7 @@ To rollback all changes:
 5. Updated `/src/app/api/auth/session/route.ts` - Added debug logging
 6. Updated `/src/app/api/auth/login/route.ts` - Added debug logging  
 7. Updated `/src/components/auth/AuthToggle.tsx` - Added IncognitoWarning component
+8. **CRITICAL FIX**: Updated `middleware.ts` - Fixed cookie name mismatch (was checking 'mhg-auth-session' instead of 'session')
 
 ## Notes
 - All debug logs use `process.env.NEXT_PUBLIC_DEBUG_AUTH` flag
