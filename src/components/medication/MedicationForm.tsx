@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Plus, Pill } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { VoiceInput } from './VoiceInput';
+import { MedicationAutocomplete } from './MedicationAutocomplete';
 import { Medication } from '@/types';
 import { VALIDATION_MESSAGES } from '@/lib/constants';
 
@@ -37,6 +37,7 @@ export function MedicationForm({ onAddMedication }: MedicationFormProps): JSX.El
     handleSubmit,
     setValue,
     reset,
+    watch,
     formState: { errors },
   } = useForm<MedicationFormData>({
     resolver: zodResolver(medicationSchema),
@@ -61,10 +62,6 @@ export function MedicationForm({ onAddMedication }: MedicationFormProps): JSX.El
     setShowOptionalFields(false);
   };
 
-  // Handle voice input result
-  const handleVoiceResult = (text: string) => {
-    setValue('name', text, { shouldValidate: true });
-  };
 
   return (
     <div className="bg-white rounded-elder-lg border-2 border-elder-border p-6">
@@ -75,30 +72,19 @@ export function MedicationForm({ onAddMedication }: MedicationFormProps): JSX.El
         <div>
           <h2 className="text-elder-lg font-semibold">Add a Medication</h2>
           <p className="text-elder-sm text-elder-text-secondary">
-            Enter medication name or use voice input
+            Start typing to see medication suggestions
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Medication name with voice input */}
-        <div className="relative">
-          <Input
-            {...register('name')}
-            label="Medication Name"
-            placeholder="e.g., Lisinopril"
-            error={errors.name?.message}
-            required
-          />
-          
-          {/* Voice input button - centered in input field */}
-          <div className="absolute right-3 top-[52px] -translate-y-1/2">
-            <VoiceInput
-              onResult={handleVoiceResult}
-              placeholder="Say medication name"
-            />
-          </div>
-        </div>
+        {/* Medication name with autocomplete */}
+        <MedicationAutocomplete
+          value={watch('name') || ''}
+          onChange={(value) => setValue('name', value, { shouldValidate: true })}
+          error={errors.name?.message}
+          required
+        />
 
         {/* Optional fields */}
         {showOptionalFields ? (

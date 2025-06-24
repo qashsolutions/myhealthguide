@@ -23,6 +23,24 @@ function MedicationCheckPage() {
 
   // Add medication to list
   const handleAddMedication = (medication: Medication) => {
+    // Check if already at max (3 medications)
+    if (medications.length >= 3) {
+      setError('Maximum 3 medications can be compared at once. Please remove one to add another.');
+      return;
+    }
+
+    // Check for duplicates (case-insensitive)
+    const normalizedName = medication.name.toLowerCase().trim();
+    const isDuplicate = medications.some(med => 
+      med.name.toLowerCase().trim() === normalizedName
+    );
+
+    if (isDuplicate) {
+      setError(`${medication.name} is already in your list. Please remove the duplicate or add a different medication.`);
+      return;
+    }
+
+    setError(null);
     setMedications([...medications, { ...medication, id: Date.now().toString() }]);
   };
 
@@ -175,19 +193,19 @@ function MedicationCheckPage() {
           <li className="flex items-start gap-3">
             <span className="text-primary-600">•</span>
             <p className="text-elder-base text-elder-text-secondary">
-              Include all medications, vitamins, and supplements you take regularly
+              You can check up to 3 medications at a time
+            </p>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="text-primary-600">•</span>
+            <p className="text-elder-base text-elder-text-secondary">
+              Include vitamins and supplements - they can interact with medications
             </p>
           </li>
           <li className="flex items-start gap-3">
             <span className="text-primary-600">•</span>
             <p className="text-elder-base text-elder-text-secondary">
               Add dosage information when possible for more accurate results
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Use the microphone button to speak medication names
             </p>
           </li>
         </ul>
