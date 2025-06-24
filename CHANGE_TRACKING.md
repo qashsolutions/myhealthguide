@@ -84,6 +84,16 @@ To rollback all changes:
 - [ ] Test in regular Chrome
 
 ## Changes Made:
+
+### Latest Changes (Medication Check Fix):
+19. Updated `/src/app/api/medication/check/route.ts`:
+    - Replaced Bearer token auth with session cookie auth
+    - Uses `getCurrentUser()` instead of verifying Authorization header
+    - Removed duplicate Firebase Admin initialization
+    - Fixed imports to use adminDb from firebase/admin
+    - Added debug logging for medication check requests
+
+## Previous Changes:
 1. Added `DEBUG_AUTH=false` to .env.example
 2. Created `/src/lib/utils/browser-detection.ts` - Detects incognito mode
 3. Created `/src/components/ui/IncognitoWarning.tsx` - Shows warning banner

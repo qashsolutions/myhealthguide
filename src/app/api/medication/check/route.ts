@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { z } from 'zod';
-import admin from 'firebase-admin';
+import { getCurrentUser } from '@/lib/auth/firebase-auth';
 import { checkMedications } from '@/lib/vertex-ai/medgemma';
 import { ApiResponse, MedicationCheckRequest, MedicationCheckResult } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
+import { adminDb } from '@/lib/firebase/admin';
 
 /**
  * POST /api/medication/check
@@ -13,32 +13,6 @@ import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
  * Requires authentication
  */
 
-// Initialize Firebase Admin SDK
-const initializeFirebaseAdmin = () => {
-  if (!admin.apps.length) {
-    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
-
-    if (projectId && clientEmail && privateKey) {
-      try {
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey: privateKey.replace(/\\n/g, '\n'),
-          }),
-        });
-      } catch (error) {
-        console.error('Firebase admin initialization error:', error);
-      }
-    } else {
-      console.warn('Firebase Admin SDK not initialized: Missing credentials');
-    }
-  }
-};
-
-initializeFirebaseAdmin();
 
 // Validation schema
 const medicationSchema = z.object({
@@ -59,47 +33,25 @@ const checkRequestSchema = z.object({
   checkType: z.enum(['quick', 'detailed']).optional().default('quick'),
 });
 
-// Verify Firebase auth token
-const verifyAuthToken = async (authHeader: string | null): Promise<string | null> => {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-
-  // Skip token verification if Firebase Admin is not initialized
-  if (!admin.apps.length) {
-    console.warn('Firebase Admin not initialized, skipping token verification');
-    return 'development-user'; // Return a dummy user ID for development
-  }
-
-  const token = authHeader.split('Bearer ')[1];
-  
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    return decodedToken.uid;
-  } catch (error) {
-    console.error('Token verification error:', error);
-    return null;
-  }
-};
 
 export async function POST(request: NextRequest) {
   return withRateLimit(request, async () => {
     try {
-      // Verify authentication
-      const headersList = headers();
-      const authHeader = headersList.get('authorization');
-      const userId = await verifyAuthToken(authHeader);
-    
-    if (!userId) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Authentication required',
-          code: 'auth/unauthenticated',
-        },
-        { status: 401 }
-      );
-    }
+      // Verify authentication using session
+      const currentUser = await getCurrentUser();
+      
+      if (!currentUser) {
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Authentication required',
+            code: 'auth/unauthenticated',
+          },
+          { status: 401 }
+        );
+      }
+      
+      const userId = currentUser.uid;
     
     // Parse request body
     const body = await request.json();
@@ -126,7 +78,7 @@ export async function POST(request: NextRequest) {
     const checkRequest: MedicationCheckRequest = validationResult.data;
     
     // Check if user has accepted medical disclaimer
-    const userDoc = await admin.firestore()
+    const userDoc = await adminDb()
       .collection('users')
       .doc(userId)
       .get();
@@ -143,19 +95,31 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Log the request for debugging
+    console.log('[Medication Check] Request:', {
+      userId,
+      medications: checkRequest.medications.length,
+      checkType: checkRequest.checkType,
+    });
+
     // Call MedGemma to check medications
     const result = await checkMedications(checkRequest);
     
+    console.log('[Medication Check] Result received:', {
+      hasInteractions: result.interactions.length > 0,
+      severity: result.overallRisk,
+    });
+    
     // Store check history (optional)
     try {
-      await admin.firestore()
+      await adminDb()
         .collection('users')
         .doc(userId)
         .collection('medicationChecks')
         .add({
           ...result,
           medications: checkRequest.medications,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: new Date(),
         });
     } catch (error) {
       console.error('Failed to store check history:', error);
