@@ -114,9 +114,18 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
 
     // Handle errors
     recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event);
+      console.error('Speech recognition error:', event.error, event);
       
       let errorMessage = 'Speech recognition error';
+      
+      // Add more detailed error logging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Speech Recognition Error Details:', {
+          error: event.error,
+          message: event.message,
+          type: event.type
+        });
+      }
       
       switch (event.error) {
         case 'no-speech':
@@ -159,11 +168,21 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
     setInterimTranscript('');
 
     try {
-      recognitionRef.current.start();
+      // Set listening state first for immediate visual feedback
       setIsListening(true);
-    } catch (err) {
+      recognitionRef.current.start();
+    } catch (err: any) {
       console.error('Failed to start recognition:', err);
-      setError('Failed to start voice recognition');
+      setIsListening(false); // Reset state
+      
+      // Provide more specific error messages
+      if (err.message?.includes('not-allowed')) {
+        setError('Microphone access denied. Please check your browser settings.');
+      } else if (err.message?.includes('no-speech')) {
+        setError('No speech detected. Please try speaking louder.');
+      } else {
+        setError('Voice input not available. Please try typing instead.');
+      }
     }
   }, [isListening]);
 

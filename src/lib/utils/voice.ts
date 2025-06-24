@@ -9,6 +9,14 @@ import { ELDERCARE_CONFIG, VOICE_COMMANDS } from '@/lib/constants';
 export const isSpeechRecognitionSupported = (): boolean => {
   if (typeof window === 'undefined') return false;
   
+  // Check for Mac Safari specifically
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  
+  if (isSafari && isMac) {
+    console.warn('Speech Recognition may have limited support on Safari/Mac');
+  }
+  
   return !!(
     (window as any).SpeechRecognition || 
     (window as any).webkitSpeechRecognition ||
@@ -49,6 +57,19 @@ export const createSpeechRecognition = () => {
   recognition.lang = 'en-US';
   
   return recognition;
+};
+
+// Check microphone permission status
+export const checkMicrophonePermission = async (): Promise<PermissionState | null> => {
+  if (!navigator.permissions) return null;
+  
+  try {
+    const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+    return result.state;
+  } catch (err) {
+    console.warn('Cannot check microphone permission:', err);
+    return null;
+  }
 };
 
 // Text to speech with eldercare settings

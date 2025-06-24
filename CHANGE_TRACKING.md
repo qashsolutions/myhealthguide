@@ -96,6 +96,8 @@ To rollback all changes:
 10. Updated `/src/lib/auth/firebase-auth.ts` - Better error handling for missing users
 11. **CRITICAL FIX**: Updated `/src/components/auth/AuthToggle.tsx` - Replaced client-side navigation (router.push) with server-side redirect (window.location.href) to fix auth state sync issues
 12. Updated `/src/app/medical-disclaimer/page.tsx` - Replaced setTimeout + router.push with window.location.href for consistent server-side redirects
+13. Updated `/src/hooks/useVoice.ts` - Added better error logging and visual feedback for speech recognition
+14. Updated `/src/lib/utils/voice.ts` - Added Safari/Mac warning and microphone permission check
 
 ## Notes
 - All debug logs use `process.env.DEBUG_AUTH` flag (server-side only)
