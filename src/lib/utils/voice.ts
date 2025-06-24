@@ -51,7 +51,7 @@ export const createSpeechRecognition = () => {
   const recognition = new SpeechRecognition();
   
   // Configure for eldercare use
-  recognition.continuous = false; // Stop after single utterance
+  recognition.continuous = true; // Keep listening until manually stopped
   recognition.interimResults = true; // Show results while speaking
   recognition.maxAlternatives = 3; // Multiple alternatives for better accuracy
   recognition.lang = 'en-US';

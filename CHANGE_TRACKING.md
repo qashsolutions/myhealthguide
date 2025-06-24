@@ -105,6 +105,13 @@ To rollback all changes:
     - Added blue ring and green recording dot when active
     - Added animated dots for "Listening..." indicator
     - Simple tap/click activation (no holding required)
+17. **Voice Input Improvements**:
+    - Updated `/src/components/medication/MedicationForm.tsx` - Better centered voice button position
+    - Updated `/src/components/medication/VoiceInput.tsx` - Added 45-second timer with countdown
+    - Updated `/src/lib/utils/voice.ts` - Changed to continuous mode (doesn't stop after first word)
+    - Made green recording dot larger with white border for visibility
+    - Added z-index to ensure "Listening" popup is visible
+    - Disabled auto-stop so it keeps listening until user stops or timeout
 
 ## Notes
 - All debug logs use `process.env.DEBUG_AUTH` flag (server-side only)

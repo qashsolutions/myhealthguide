@@ -91,8 +91,8 @@ export function MedicationForm({ onAddMedication }: MedicationFormProps): JSX.El
             required
           />
           
-          {/* Voice input button */}
-          <div className="absolute right-2 top-[42px]">
+          {/* Voice input button - centered in input field */}
+          <div className="absolute right-3 top-[52px] -translate-y-1/2">
             <VoiceInput
               onResult={handleVoiceResult}
               placeholder="Say medication name"
