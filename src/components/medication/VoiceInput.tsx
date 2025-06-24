@@ -104,12 +104,12 @@ export function VoiceInput({
 
   // Handle touch events for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault(); // Prevent context menu on long press
+    // Don't preventDefault here - causes passive event listener warning
     handleMouseDown();
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    e.preventDefault();
+    // Don't preventDefault here either
     handleMouseUp();
   };
 
