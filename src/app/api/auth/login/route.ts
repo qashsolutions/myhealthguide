@@ -119,6 +119,16 @@ export async function POST(request: NextRequest) {
         // Get user data from Firestore
         const userData = await getUserData(decodedToken.uid);
         
+        // Check if user logged in with different email variant
+        let loginMessage = 'Welcome back!';
+        let originalSignupEmail = null;
+        
+        if (userData && userData.email && normalizeEmail(userData.email) === normalizedEmail && userData.email !== email) {
+          // User logged in with normalized version but signed up with plus-addressed email
+          originalSignupEmail = userData.email;
+          loginMessage = `Welcome back! Note: You originally signed up as ${userData.email}`;
+        }
+        
         // Log successful login
         console.log(`[Login] User ${normalizedEmail} logged in successfully`);
         
@@ -126,7 +136,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json<ApiResponse>(
           {
             success: true,
-            message: 'Welcome back!',
+            message: loginMessage,
             data: {
               user: {
                 id: decodedToken.uid,
@@ -135,6 +145,7 @@ export async function POST(request: NextRequest) {
                 emailVerified: true,
                 disclaimerAccepted: userData?.disclaimerAccepted || false,
               },
+              originalSignupEmail, // Include this for client to display if needed
             },
           },
           { status: 200 }

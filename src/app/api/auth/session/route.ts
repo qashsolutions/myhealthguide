@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, getUserData } from '@/lib/auth/firebase-auth';
+import { getCurrentUser, getUserData, normalizeEmail } from '@/lib/auth/firebase-auth';
 import { ApiResponse } from '@/types';
 
 // Force dynamic rendering for this route
@@ -39,12 +39,15 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
     
+    // Always return normalized email for consistency
+    const normalizedEmail = decodedToken.email || normalizeEmail(userData.email);
+    
     return NextResponse.json<ApiResponse>({
       success: true,
       data: {
         user: {
           id: decodedToken.uid,
-          email: decodedToken.email || userData.email,
+          email: normalizedEmail,
           name: userData.displayName || userData.name || '',
           emailVerified: decodedToken.email_verified !== false,
           disclaimerAccepted: userData.disclaimerAccepted || false,
