@@ -65,8 +65,13 @@ export function VoiceInput({
     }
   };
 
-  // Don't render if not supported
-  if (!isSupported) {
+  // Check if Safari on Mac
+  const isSafariMac = typeof window !== 'undefined' && 
+    /^((?!chrome|android).)*safari/i.test(navigator.userAgent) && 
+    /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
+  // Don't render if not supported or Safari on Mac
+  if (!isSupported || isSafariMac) {
     return <></>;
   }
 

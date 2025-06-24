@@ -98,6 +98,7 @@ To rollback all changes:
 12. Updated `/src/app/medical-disclaimer/page.tsx` - Replaced setTimeout + router.push with window.location.href for consistent server-side redirects
 13. Updated `/src/hooks/useVoice.ts` - Added better error logging and visual feedback for speech recognition
 14. Updated `/src/lib/utils/voice.ts` - Added Safari/Mac warning and microphone permission check
+15. Updated `/src/components/medication/VoiceInput.tsx` - Hide voice input for Safari/Mac users (not supported)
 
 ## Notes
 - All debug logs use `process.env.DEBUG_AUTH` flag (server-side only)
