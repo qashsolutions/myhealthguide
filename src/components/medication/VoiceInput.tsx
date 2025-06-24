@@ -52,8 +52,8 @@ export function VoiceInput({
   // Handle listening state changes
   useEffect(() => {
     if (isListening) {
-      // Start 45-second timer
-      setTimeRemaining(45);
+      // Start 30-second timer
+      setTimeRemaining(30);
       
       // Update countdown every second
       countdownRef.current = setInterval(() => {
@@ -66,10 +66,10 @@ export function VoiceInput({
         });
       }, 1000);
       
-      // Auto-stop after 45 seconds
+      // Auto-stop after 30 seconds
       timerRef.current = setTimeout(() => {
         stopListening();
-      }, 45000);
+      }, 30000);
     } else {
       // Clear timers when stopped
       if (timerRef.current) {
@@ -89,22 +89,42 @@ export function VoiceInput({
     };
   }, [isListening, stopListening]);
 
-  // Handle click
-  const handleClick = () => {
+  // Handle press and hold
+  const handleMouseDown = () => {
     if (disabled || !isSupported) return;
-    
+    startListening();
+  };
+
+  const handleMouseUp = () => {
+    if (disabled || !isSupported) return;
     if (isListening) {
       stopListening();
-    } else {
-      startListening();
     }
   };
 
-  // Handle keyboard activation
+  // Handle touch events for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent context menu on long press
+    handleMouseDown();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleMouseUp();
+  };
+
+  // Handle keyboard activation (spacebar = hold to record)
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === ' ' && !e.repeat) { // Space key, not repeating
       e.preventDefault();
-      handleClick();
+      handleMouseDown();
+    }
+  };
+
+  const handleKeyUp = (e: React.KeyboardEvent) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      handleMouseUp();
     }
   };
 
@@ -122,28 +142,33 @@ export function VoiceInput({
     <div className="relative">
       <button
         type="button"
-        onClick={handleClick}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp} // Stop if mouse leaves button
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
         onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
         onFocus={() => setShowTooltip(true)}
         onBlur={() => setShowTooltip(false)}
         disabled={disabled}
-        aria-label={isListening ? 'Stop recording' : 'Start voice input'}
+        aria-label={isListening ? 'Recording - release to stop' : 'Press and hold to record'}
         className={clsx(
-          'relative p-2.5 rounded-full transition-all duration-200',
+          'relative p-3 rounded-full transition-all duration-200',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+          'touch-none select-none', // Prevent text selection on press
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
           isListening ? [
             'bg-primary-600 text-white ring-4 ring-primary-200',
-            'hover:bg-primary-700'
+            'scale-110' // Make bigger when recording
           ] : [
             'bg-elder-background hover:bg-elder-background-alt',
             'text-elder-text hover:text-primary-600'
           ]
         )}
       >
-        <Mic className="h-5 w-5" />
+        <Mic className="h-6 w-6" />
         
         {/* Active listening indicators */}
         {isListening && (
@@ -159,24 +184,27 @@ export function VoiceInput({
       {/* Tooltip */}
       {showTooltip && !isListening && (
         <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-elder-text text-white text-elder-sm rounded-elder whitespace-nowrap shadow-elder">
-          {placeholder}
+          Press and hold to speak
           <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-elder-text" />
         </div>
       )}
 
       {/* Listening feedback with timer */}
       {isListening && (
-        <div className="absolute top-full right-0 mt-3 px-4 py-3 bg-primary-600 text-white rounded-elder shadow-lg min-w-[140px] z-50">
+        <div className="absolute top-full right-0 mt-3 px-4 py-3 bg-green-600 text-white rounded-elder shadow-lg min-w-[180px] z-50">
           <div className="flex items-center gap-3">
             <div className="flex gap-1">
-              <span className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="h-2 w-2 bg-white rounded-full animate-pulse" />
+              <span className="h-2 w-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
+              <span className="h-2 w-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
             </div>
-            <span className="text-elder-sm font-medium">Listening</span>
+            <span className="text-elder-base font-semibold">Speak now!</span>
           </div>
-          {timeRemaining !== null && (
-            <div className="text-xs mt-1 text-primary-100">
+          <div className="text-sm mt-2 text-green-100">
+            Release button to stop
+          </div>
+          {timeRemaining !== null && timeRemaining < 10 && (
+            <div className="text-xs mt-1 text-green-200">
               {timeRemaining}s remaining
             </div>
           )}

@@ -112,6 +112,15 @@ To rollback all changes:
     - Made green recording dot larger with white border for visibility
     - Added z-index to ensure "Listening" popup is visible
     - Disabled auto-stop so it keeps listening until user stops or timeout
+18. **Voice Input UX Overhaul** - Changed to press-and-hold pattern:
+    - Updated `/src/components/medication/VoiceInput.tsx`:
+      - Changed from tap-to-toggle to press-and-hold
+      - Hold microphone button = recording, Release = stop
+      - Reduced timer to 30 seconds
+      - Green "Speak now!" message when recording
+      - Shows "Release button to stop" instruction
+      - Larger microphone icon (h-6 w-6)
+      - Works with mouse, touch, and keyboard (spacebar)
 
 ## Notes
 - All debug logs use `process.env.DEBUG_AUTH` flag (server-side only)
