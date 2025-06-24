@@ -9,7 +9,7 @@ import { adminDb } from '@/lib/firebase/admin';
 
 /**
  * POST /api/medication/check
- * Check medications for conflicts using MedGemma AI
+ * Check medications for conflicts using Claude AI
  * Requires authentication
  */
 

@@ -18,10 +18,22 @@ const makeClaudeRequest = async (
   prompt: string,
   maxTokens: number = 1500
 ): Promise<string> => {
+  // DEBUG: Check if API key exists
+  console.log('[makeClaudeRequest] Starting request...');
+  console.log('[makeClaudeRequest] Environment check:', {
+    hasApiKey: !!process.env.CLAUDE_API_KEY,
+    apiKeyPrefix: process.env.CLAUDE_API_KEY?.substring(0, 10),
+    maxTokens,
+    promptLength: prompt.length
+  });
+  
   // Validate Claude API key exists
   if (!process.env.CLAUDE_API_KEY) {
+    console.error('[makeClaudeRequest] CLAUDE_API_KEY not found in environment variables');
     throw new Error('CLAUDE_API_KEY environment variable is required');
   }
+
+  console.log('[makeClaudeRequest] Making fetch request to Claude API...');
 
   // Call Claude API instead of Vertex AI
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -29,7 +41,7 @@ const makeClaudeRequest = async (
     headers: {
       'x-api-key': process.env.CLAUDE_API_KEY,
       'Content-Type': 'application/json',
-      'anthropic-version': '2025-05-14'
+      'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514', // Using Claude Sonnet 4 for superior medical analysis
@@ -41,13 +53,23 @@ const makeClaudeRequest = async (
     }),
   });
 
+  console.log('[makeClaudeRequest] Response received:', {
+    status: response.status,
+    ok: response.ok
+  });
+
   if (!response.ok) {
     const error = await response.text();
-    console.error('Claude API error:', error);
+    console.error('[makeClaudeRequest] Claude API error:', error);
     throw new Error(`Claude request failed: ${response.status}`);
   }
 
   const data = await response.json();
+  console.log('[makeClaudeRequest] Response data:', {
+    hasContent: !!data.content,
+    contentLength: data.content?.[0]?.text?.length || 0,
+    stopReason: data.stop_reason
+  });
   
   // Handle potential 'refusal' stop reason from Claude 4
   if (!data.content?.[0]?.text) {
@@ -58,6 +80,7 @@ const makeClaudeRequest = async (
     throw new Error('Invalid response from Claude API');
   }
 
+  console.log('[makeClaudeRequest] Success! Returning response.');
   return data.content[0].text;
 };
 
@@ -351,19 +374,17 @@ export const answerHealthQuestion = async (
   question: HealthQuestion
 ): Promise<HealthAnswer> => {
   try {
-    const prompt = `As a medical AI assistant, answer this health question for the user (health caregiver, elder over 65 years). Please provide accurate, conservative medical advice.
+    const prompt = `As a medical AI assistant, answer this health question for an elderly user (65+ years).
 
 Question: ${question.question}
 ${question.context ? `Context: ${question.context}` : ''}
 
-Please provide:
-1. A clear, simple answer in language suitable for elderly patients
-2. Avoid medical jargon where possible
-3. Include relevant safety information
-4. Always recommend consulting healthcare providers for medical decisions
-5. Be conservative and emphasize professional medical consultation
+Format your response EXACTLY as follows:
+1. FIRST LINE: One sentence summary of the answer
+2. SECOND PARAGRAPH: Additional details in 50 words or less, using simple language
+3. FOOTER: "DISCLAIMER: This information is NOT to be used as a substitute for a qualified and licensed physician or a healthcare provider. ALWAYS check with one and do not use this information for any treatment(s)."
 
-Keep the answer concise (under 100 words) and helpful. Focus on safety and accuracy.`;
+Be conservative and focus on safety.`;
 
     // Make API request to Claude (replaces Vertex AI call)
     const aiResponse = await makeClaudeRequest(prompt, 800);

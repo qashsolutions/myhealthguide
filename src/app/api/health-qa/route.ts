@@ -9,7 +9,7 @@ import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
 
 /**
  * POST /api/health-qa
- * Answer health questions using MedGemma AI
+ * Answer health questions using Claude API (via updated medgemma.ts)
  * Requires authentication
  */
 
@@ -94,6 +94,13 @@ const logQuestion = async (userId: string, question: string, category?: string) 
 export async function POST(request: NextRequest) {
   return withRateLimit(request, async () => {
     try {
+      // DEBUG: Check environment variables
+      console.log('[Health QA API] Environment check:', {
+        hasClaudeKey: !!process.env.CLAUDE_API_KEY,
+        claudeKeyPrefix: process.env.CLAUDE_API_KEY?.substring(0, 10),
+        nodeEnv: process.env.NODE_ENV
+      });
+      
       // Verify authentication
       const headersList = headers();
       const authHeader = headersList.get('authorization');
@@ -112,6 +119,11 @@ export async function POST(request: NextRequest) {
       
       // Parse request body
       const body = await request.json();
+      
+      console.log('[Health QA API] Request received:', {
+        userId: userId.substring(0, 8) + '***',
+        questionLength: body.question?.length || 0
+      });
       
       // Validate input
       const validationResult = healthQuestionSchema.safeParse(body);
@@ -137,9 +149,15 @@ export async function POST(request: NextRequest) {
       // Log the question (anonymized)
       await logQuestion(userId, questionData.question, questionData.category);
       
-      // Get answer from MedGemma
+      // Get answer from Claude API (via medgemma.ts)
       try {
+        console.log('[Health QA API] Calling answerHealthQuestion...');
         const answer = await answerHealthQuestion(questionData);
+        console.log('[Health QA API] Answer received:', {
+          hasAnswer: !!answer.answer,
+          answerLength: answer.answer?.length || 0,
+          confidence: answer.confidence
+        });
         
         return NextResponse.json<ApiResponse<HealthAnswer>>(
           {
@@ -149,14 +167,19 @@ export async function POST(request: NextRequest) {
           { status: 200 }
         );
       } catch (aiError: any) {
-        console.error('MedGemma error:', aiError);
+        console.error('[Health QA API] Claude API error:', {
+          error: aiError.message,
+          stack: aiError.stack
+        });
         
         // Check if it's a configuration error
-        if (aiError.message?.includes('configuration') || aiError.message?.includes('credentials')) {
+        if (aiError.message?.includes('configuration') || 
+            aiError.message?.includes('credentials') ||
+            aiError.message?.includes('CLAUDE_API_KEY')) {
           return NextResponse.json<ApiResponse>(
             {
               success: false,
-              error: 'AI service is not configured. Please try again later.',
+              error: 'Claude AI service is not configured. Please try again later.',
               code: 'ai/not-configured',
             },
             { status: 503 }
@@ -175,7 +198,7 @@ export async function POST(request: NextRequest) {
       }
       
     } catch (error) {
-      console.error('Health Q&A API error:', error);
+      console.error('[Health QA API] General error:', error);
       
       return NextResponse.json<ApiResponse>(
         {
