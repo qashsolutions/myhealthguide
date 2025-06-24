@@ -27,9 +27,9 @@ const makeClaudeRequest = async (
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.CLAUDE_API_KEY}`,
+      'x-api-key': process.env.CLAUDE_API_KEY,
       'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01'
+      'anthropic-version': '2025-05-14'
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514', // Using Claude Sonnet 4 for superior medical analysis
