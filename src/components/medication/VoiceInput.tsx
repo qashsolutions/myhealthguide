@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Mic, MicOff, Loader2 } from 'lucide-react';
+import { Mic } from 'lucide-react';
 import { useVoice } from '@/hooks/useVoice';
 import { clsx } from 'clsx';
 
@@ -92,23 +92,28 @@ export function VoiceInput({
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
           isListening ? [
-            'bg-health-danger text-white',
-            'hover:bg-red-600',
-            'animate-pulse'
+            'bg-primary-600 text-white ring-4 ring-primary-200',
+            'hover:bg-primary-700',
+            'scale-110'
           ] : [
             'bg-elder-background hover:bg-elder-background-alt',
             'text-elder-text hover:text-primary-600'
           ]
         )}
       >
-        {isListening ? (
+        <Mic className={clsx(
+          'h-6 w-6 transition-transform',
+          isListening && 'scale-110'
+        )} />
+        
+        {/* Active listening indicators */}
+        {isListening && (
           <>
-            <MicOff className="h-6 w-6" />
-            {/* Recording indicator */}
-            <span className="absolute top-0 right-0 h-3 w-3 bg-white rounded-full animate-pulse" />
+            {/* Pulsing ring effect */}
+            <span className="absolute inset-0 rounded-elder bg-primary-600 animate-ping opacity-20" />
+            {/* Recording dot */}
+            <span className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse" />
           </>
-        ) : (
-          <Mic className="h-6 w-6" />
         )}
       </button>
 
@@ -122,9 +127,13 @@ export function VoiceInput({
 
       {/* Listening feedback */}
       {isListening && (
-        <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-elder-text text-white rounded-elder shadow-elder flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-elder-sm">Listening...</span>
+        <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-primary-600 text-white rounded-elder shadow-elder flex items-center gap-2">
+          <div className="flex gap-1">
+            <span className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="h-2 w-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <span className="text-elder-sm font-medium">Listening...</span>
         </div>
       )}
 

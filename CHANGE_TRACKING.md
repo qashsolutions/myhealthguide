@@ -99,6 +99,12 @@ To rollback all changes:
 13. Updated `/src/hooks/useVoice.ts` - Added better error logging and visual feedback for speech recognition
 14. Updated `/src/lib/utils/voice.ts` - Added Safari/Mac warning and microphone permission check
 15. Updated `/src/components/medication/VoiceInput.tsx` - Hide voice input for Safari/Mac users (not supported)
+16. **UX FIX**: Updated `/src/components/medication/VoiceInput.tsx` - Improved voice input visual feedback:
+    - Changed from red/danger color to blue/primary when active
+    - Removed confusing MicOff icon (kept regular Mic icon)
+    - Added blue ring and green recording dot when active
+    - Added animated dots for "Listening..." indicator
+    - Simple tap/click activation (no holding required)
 
 ## Notes
 - All debug logs use `process.env.DEBUG_AUTH` flag (server-side only)
