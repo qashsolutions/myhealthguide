@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { z } from 'zod';
 import admin from 'firebase-admin';
 import { answerHealthQuestion } from '@/lib/vertex-ai/medgemma';
 import { ApiResponse, HealthQuestion, HealthAnswer } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
+// UPDATED: Import getCurrentUser to use session cookie authentication instead of Bearer tokens
+import { getCurrentUser } from '@/lib/auth/firebase-auth';
 
 /**
  * POST /api/health-qa
@@ -50,28 +51,9 @@ const healthQuestionSchema = z.object({
   category: z.string().optional(),
 });
 
-// Verify auth token
-const verifyAuthToken = async (authHeader: string | null): Promise<string | null> => {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-
-  // Skip token verification if Firebase Admin is not initialized
-  if (!admin.apps.length) {
-    console.warn('Firebase Admin not initialized, skipping token verification');
-    return 'development-user'; // Return a dummy user ID for development
-  }
-
-  const token = authHeader.split('Bearer ')[1];
-  
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    return decodedToken.uid;
-  } catch (error) {
-    console.error('Token verification error:', error);
-    return null;
-  }
-};
+// REMOVED: verifyAuthToken function - replaced with session cookie authentication
+// This ensures consistency across all API routes and fixes the authentication issue
+// where Bearer tokens were expected but the frontend only sends session cookies
 
 // Log question for analytics (anonymized)
 const logQuestion = async (userId: string, question: string, category?: string) => {
@@ -101,28 +83,60 @@ export async function POST(request: NextRequest) {
         nodeEnv: process.env.NODE_ENV
       });
       
-      // Verify authentication
-      const headersList = headers();
-      const authHeader = headersList.get('authorization');
-      const userId = await verifyAuthToken(authHeader);
+      // UPDATED: Use session cookie authentication instead of Bearer token
+      // This matches the authentication method used in other routes like /api/auth/session
+      const decodedToken = await getCurrentUser();
       
-      if (!userId) {
+      // Check if user is authenticated via session cookie
+      if (!decodedToken) {
+        console.log('[Health QA API] No valid session found - user needs to sign in');
+        
         return NextResponse.json<ApiResponse>(
           {
             success: false,
-            error: 'Authentication required',
+            error: 'Please sign in to ask health questions. Your session may have expired.',
             code: 'auth/unauthenticated',
+            // Add helpful information for the frontend
+            data: {
+              requiresAuth: true,
+              message: 'For your security, please sign in again to continue.'
+            }
           },
           { status: 401 }
+        );
+      }
+      
+      // Extract userId from the decoded session token
+      const userId = decodedToken.uid;
+      const userEmail = decodedToken.email;
+      
+      // Additional security check: ensure email is verified
+      if (!decodedToken.email_verified) {
+        console.log('[Health QA API] User email not verified:', userEmail);
+        
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Please verify your email address before asking health questions.',
+            code: 'auth/email-not-verified',
+            data: {
+              email: userEmail,
+              requiresVerification: true
+            }
+          },
+          { status: 403 }
         );
       }
       
       // Parse request body
       const body = await request.json();
       
+      // UPDATED: Enhanced logging with user email for better debugging
       console.log('[Health QA API] Request received:', {
         userId: userId.substring(0, 8) + '***',
-        questionLength: body.question?.length || 0
+        userEmail: userEmail || 'unknown',
+        questionLength: body.question?.length || 0,
+        hasContext: !!body.context
       });
       
       // Validate input
@@ -134,11 +148,15 @@ export async function POST(request: NextRequest) {
           message: issue.message,
         }));
         
+        // UPDATED: More user-friendly validation error messages
         return NextResponse.json<ApiResponse>(
           {
             success: false,
-            error: 'Validation failed',
+            error: 'Please check your question and try again.',
             errors,
+            data: {
+              hint: 'Questions should be between 5 and 500 characters long.'
+            }
           },
           { status: 400 }
         );
@@ -151,6 +169,8 @@ export async function POST(request: NextRequest) {
       
       // Get answer from Claude API (via medgemma.ts)
       try {
+        // UPDATED: Log successful authentication via session cookie
+        console.log('[Health QA API] User authenticated successfully via session cookie:', userEmail);
         console.log('[Health QA API] Calling answerHealthQuestion...');
         const answer = await answerHealthQuestion(questionData);
         console.log('[Health QA API] Answer received:', {
@@ -176,22 +196,32 @@ export async function POST(request: NextRequest) {
         if (aiError.message?.includes('configuration') || 
             aiError.message?.includes('credentials') ||
             aiError.message?.includes('CLAUDE_API_KEY')) {
+          // UPDATED: More helpful error message for service unavailability
           return NextResponse.json<ApiResponse>(
             {
               success: false,
-              error: 'Claude AI service is not configured. Please try again later.',
+              error: 'Our health assistant is temporarily unavailable.',
               code: 'ai/not-configured',
+              data: {
+                message: 'Please try again in a few moments, or contact support if the issue persists.',
+                supportEmail: 'support@myguide.health'
+              }
             },
             { status: 503 }
           );
         }
         
+        // UPDATED: More empathetic error message for processing failures
         return NextResponse.json<ApiResponse>(
           {
             success: false,
-            error: 'Failed to process your question. Please try again.',
+            error: 'We couldn\'t process your health question at this time.',
             code: 'ai/processing-error',
             message: process.env.NODE_ENV === 'development' ? aiError.message : undefined,
+            data: {
+              suggestion: 'Please try rephrasing your question or ask something else.',
+              alternativeAction: 'For urgent health concerns, please consult your healthcare provider directly.'
+            }
           },
           { status: 500 }
         );
