@@ -13,10 +13,58 @@ import { adminDb } from '@/lib/firebase/admin';
  * Requires authentication
  */
 
+// ADDED: Validation helpers for medication names
+const containsProfanity = (text: string): boolean => {
+  const lowerText = text.toLowerCase();
+  
+  // Common profanity patterns
+  const profanityPatterns = [
+    /\bf+u+c+k+/i,
+    /\bs+h+i+t+/i,
+    /\ba+s+s+h+o+l+e+/i,
+    /\bb+i+t+c+h+/i,
+    /\bd+a+m+n+/i,
+    /\bh+e+l+l+/i,
+    /\bs+e+x+/i,
+    /\bp+o+r+n+/i,
+  ];
+  
+  return profanityPatterns.some(pattern => pattern.test(lowerText));
+};
+
+// ADDED: Check if text looks like a medication name
+const isValidMedicationName = (name: string): boolean => {
+  const cleaned = name.trim().toLowerCase();
+  
+  // Check for profanity first
+  if (containsProfanity(cleaned)) {
+    return false;
+  }
+  
+  // Check if it's too short or just numbers
+  if (cleaned.length < 2 || /^\d+$/.test(cleaned)) {
+    return false;
+  }
+  
+  // Common invalid patterns
+  const invalidPatterns = [
+    /^test$/i,
+    /^asdf/i,
+    /^xxx/i,
+    /^abc$/i,
+    /^123/i,
+  ];
+  
+  return !invalidPatterns.some(pattern => pattern.test(cleaned));
+};
 
 // Validation schema
 const medicationSchema = z.object({
-  name: z.string().min(1, VALIDATION_MESSAGES.MEDICATION_NAME),
+  name: z.string()
+    .min(1, VALIDATION_MESSAGES.MEDICATION_NAME)
+    .refine(isValidMedicationName, {
+      message: 'Please enter a valid medication name',
+    }),
   dosage: z.string().optional(),
   frequency: z.string().optional(),
   prescribedFor: z.string().optional(),
@@ -64,6 +112,30 @@ export async function POST(request: NextRequest) {
         field: issue.path.join('.'),
         message: issue.message,
       }));
+      
+      // ADDED: Check if any errors are about invalid medication names
+      const hasInvalidMedicationName = errors.some(
+        error => error.message === 'Please enter a valid medication name'
+      );
+      
+      if (hasInvalidMedicationName) {
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Invalid medication name detected',
+            code: 'validation/invalid-medication',
+            data: {
+              message: 'Please enter valid medication names only',
+              examples: [
+                'Common medications: Aspirin, Ibuprofen, Acetaminophen',
+                'Prescription drugs: Lisinopril, Metformin, Atorvastatin',
+                'Supplements: Vitamin D, Calcium, Fish Oil'
+              ]
+            }
+          },
+          { status: 400 }
+        );
+      }
       
       return NextResponse.json<ApiResponse>(
         {

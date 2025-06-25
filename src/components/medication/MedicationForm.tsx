@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Pill } from 'lucide-react';
+import { Plus, Pill, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { MedicationAutocomplete } from './MedicationAutocomplete';
@@ -16,8 +16,57 @@ import { VALIDATION_MESSAGES } from '@/lib/constants';
  * Progressive form with optional fields
  */
 
+// ADDED: Validation helpers for medication names
+const containsProfanity = (text: string): boolean => {
+  const lowerText = text.toLowerCase();
+  
+  // Common profanity patterns
+  const profanityPatterns = [
+    /\bf+u+c+k+/i,
+    /\bs+h+i+t+/i,
+    /\ba+s+s+h+o+l+e+/i,
+    /\bb+i+t+c+h+/i,
+    /\bd+a+m+n+/i,
+    /\bh+e+l+l+/i,
+    /\bs+e+x+/i,
+    /\bp+o+r+n+/i,
+  ];
+  
+  return profanityPatterns.some(pattern => pattern.test(lowerText));
+};
+
+// ADDED: Check if text looks like a medication name
+const isValidMedicationName = (name: string): boolean => {
+  const cleaned = name.trim().toLowerCase();
+  
+  // Check for profanity first
+  if (containsProfanity(cleaned)) {
+    return false;
+  }
+  
+  // Check if it's too short or just numbers
+  if (cleaned.length < 2 || /^\d+$/.test(cleaned)) {
+    return false;
+  }
+  
+  // Common invalid patterns
+  const invalidPatterns = [
+    /^test$/i,
+    /^asdf/i,
+    /^xxx/i,
+    /^abc$/i,
+    /^123/i,
+  ];
+  
+  return !invalidPatterns.some(pattern => pattern.test(cleaned));
+};
+
 const medicationSchema = z.object({
-  name: z.string().min(1, VALIDATION_MESSAGES.MEDICATION_NAME),
+  name: z.string()
+    .min(1, VALIDATION_MESSAGES.MEDICATION_NAME)
+    .refine(isValidMedicationName, {
+      message: 'Please enter a valid medication name',
+    }),
   dosage: z.string().optional(),
   frequency: z.string().optional(),
   prescribedFor: z.string().optional(),
@@ -115,6 +164,37 @@ export function MedicationForm({
             error={errors.name?.message}
             required
           />
+
+          {/* ADDED: Enhanced error message for invalid medication names */}
+          {errors.name?.message === 'Please enter a valid medication name' && (
+            <div className="bg-health-warning-bg border-2 border-health-warning rounded-elder p-4 mt-2">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-6 w-6 text-health-warning flex-shrink-0 mt-1" />
+                <div className="flex-1">
+                  <p className="text-elder-base font-semibold text-elder-text mb-2">
+                    Please enter a valid medication name
+                  </p>
+                  <p className="text-elder-sm text-elder-text-secondary mb-3">
+                    Examples of valid medications:
+                  </p>
+                  <ul className="text-elder-sm text-elder-text-secondary space-y-1">
+                    <li className="flex items-center gap-2">
+                      <Pill className="h-4 w-4 text-primary-600" />
+                      <span>Aspirin, Ibuprofen, Acetaminophen</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Pill className="h-4 w-4 text-primary-600" />
+                      <span>Lisinopril, Metformin, Atorvastatin</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Pill className="h-4 w-4 text-primary-600" />
+                      <span>Vitamin D, Calcium, Fish Oil</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Optional fields */}
           {showOptionalFields ? (

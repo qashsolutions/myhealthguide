@@ -82,6 +82,12 @@ function MedicationCheckPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // ADDED: Handle specific error codes for better UX
+        if (data.code === 'validation/invalid-medication') {
+          setError(data.error || 'Invalid medication name detected');
+          // Don't throw - let user fix the issue
+          return;
+        }
         throw new Error(data.error || 'Failed to check medications');
       }
 

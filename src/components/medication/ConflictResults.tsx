@@ -97,12 +97,12 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
           
           <div className="flex-1">
             {/* UPDATED: Increased font size for better elder accessibility */}
-            <h2 className="text-2xl lg:text-3xl font-bold text-elder-text mb-2">
+            <h2 className="text-elder-xl elder-tablet:text-elder-2xl font-bold text-elder-text mb-2">
               Overall Assessment: {overallLight.label}
             </h2>
             
             {/* UPDATED: Use consistent elder-friendly font sizing */}
-            <p className="text-elder-base text-elder-text-secondary">
+            <p className="text-elder-lg text-elder-text-secondary">
               {result.summary}
             </p>
           </div>
@@ -113,7 +113,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
       {medications.length > 0 && (
         <div className="bg-white border-2 border-elder-border rounded-elder-lg p-6">
           {/* UPDATED: Larger font for section headers */}
-          <h3 className="text-xl lg:text-2xl font-semibold mb-4 flex items-center gap-3">
+          <h3 className="text-elder-lg elder-tablet:text-elder-xl font-semibold mb-4 flex items-center gap-3">
             <Pill className="h-6 w-6 text-primary-600" />
             Medications Checked
           </h3>
@@ -121,7 +121,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
           <ul className="space-y-2">
             {medications.map((med, index) => (
               /* UPDATED: Larger text for medication list */
-              <li key={med.id || index} className="flex items-center gap-3 text-lg lg:text-xl">
+              <li key={med.id || index} className="flex items-center gap-3 text-elder-base elder-tablet:text-elder-lg">
                 <span className="text-primary-600">•</span>
                 <span className="font-medium">{med.name}</span>
                 {med.dosage && (
@@ -137,7 +137,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
       {result.interactions && result.interactions.length > 0 && (
         <div className="space-y-4">
           {/* UPDATED: Larger font for section headers */}
-          <h3 className="text-xl lg:text-2xl font-semibold text-elder-text">
+          <h3 className="text-elder-lg elder-tablet:text-elder-xl font-semibold text-elder-text">
             Potential Interactions Found ({result.interactions.length})
           </h3>
           
@@ -165,10 +165,10 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                       <ConflictIcon className={clsx('h-6 w-6', `text-${conflictLight.color}`)} />
                       <div>
                         {/* UPDATED: Larger font for medication interaction names */}
-                        <p className="text-lg lg:text-xl font-semibold text-elder-text">
+                        <p className="text-elder-base elder-tablet:text-elder-lg font-semibold text-elder-text">
                           {interaction.medication1} + {interaction.medication2}
                         </p>
-                        <p className={clsx('text-base lg:text-lg', `text-${conflictLight.color}`)}>
+                        <p className={clsx('text-elder-base', `text-${conflictLight.color}`)}>
                           {conflictLight.label} Risk
                         </p>
                       </div>
@@ -185,17 +185,17 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t-2 border-elder-border pt-4">
                     {/* UPDATED: Larger font for interaction description */}
-                    <p className="text-lg lg:text-xl text-elder-text mb-3">
+                    <p className="text-elder-base elder-tablet:text-elder-lg text-elder-text mb-3">
                       {interaction.description}
                     </p>
                     
                     {interaction.recommendation && (
                       <div className="bg-white bg-opacity-50 rounded-elder p-3">
                         {/* UPDATED: Larger font for recommendation */}
-                        <p className="text-base lg:text-lg font-semibold text-elder-text mb-1">
+                        <p className="text-elder-base font-semibold text-elder-text mb-1">
                           Recommendation:
                         </p>
-                        <p className="text-base lg:text-lg text-elder-text-secondary">
+                        <p className="text-elder-base text-elder-text-secondary">
                           {interaction.recommendation}
                         </p>
                       </div>
@@ -214,11 +214,11 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
         <div className="bg-health-safe-bg border-2 border-health-safe rounded-elder-lg p-6 text-center">
           <CheckCircle className="h-12 w-12 text-health-safe mx-auto mb-3" />
           {/* UPDATED: Larger font for headers */}
-          <p className="text-xl lg:text-2xl font-semibold text-elder-text">
+          <p className="text-elder-lg elder-tablet:text-elder-xl font-semibold text-elder-text">
             No Interactions Detected
           </p>
           {/* UPDATED: Larger font for better readability */}
-          <p className="text-lg lg:text-xl text-elder-text-secondary mt-2">
+          <p className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary mt-2">
             Based on our analysis, we didn't find any major interactions between your medications.
           </p>
         </div>
@@ -229,13 +229,13 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
       {result.generalAdvice && (
         <div className="bg-elder-background-alt rounded-elder-lg p-6">
           {/* UPDATED: Larger font for section headers */}
-          <h3 className="text-xl lg:text-2xl font-semibold mb-3 flex items-center gap-3">
+          <h3 className="text-elder-lg elder-tablet:text-elder-xl font-semibold mb-3 flex items-center gap-3">
             <Info className="h-6 w-6 text-primary-600" />
             General Advice
           </h3>
           {/* IMPORTANT: Clean the advice text to remove any JSON artifacts */}
           {/* UPDATED: Larger font for better readability */}
-          <p className="text-lg lg:text-xl text-elder-text-secondary">
+          <p className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary">
             {(() => {
               // Clean any potential JSON string artifacts
               let advice = result.generalAdvice;
@@ -265,13 +265,13 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
       {result.additionalInfo && (
         <div className="bg-elder-background-alt rounded-elder-lg p-6">
           {/* UPDATED: Larger font for section headers */}
-          <h3 className="text-xl lg:text-2xl font-semibold mb-3 flex items-center gap-3">
+          <h3 className="text-elder-lg elder-tablet:text-elder-xl font-semibold mb-3 flex items-center gap-3">
             <Info className="h-6 w-6 text-primary-600" />
             Additional Information
           </h3>
           {/* IMPORTANT: Format as bullet points for elder-friendly reading */}
           {/* UPDATED: Larger font for better readability */}
-          <div className="text-lg lg:text-xl text-elder-text-secondary space-y-3">
+          <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary space-y-3">
             {(() => {
               // Split by newlines to get individual bullet points
               const bulletPoints = result.additionalInfo
