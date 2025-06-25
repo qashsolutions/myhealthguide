@@ -236,26 +236,49 @@ function HealthQAPage() {
                 
                 <div className="prose prose-lg max-w-none">
                   {/* Parse and render the answer with proper formatting */}
-                  {answer.answer.split('\n').map((paragraph, idx) => {
-                    // Check if it's a heading (starts with ##)
-                    if (paragraph.startsWith('## ')) {
+                  {(() => {
+                    // First check if the answer looks like raw JSON
+                    if (answer.answer.trim().startsWith('{') || answer.answer.includes('```')) {
                       return (
-                        <h3 key={idx} className="text-elder-lg font-semibold text-elder-text mt-4 mb-2">
-                          {paragraph.replace('## ', '')}
-                        </h3>
+                        <p className="text-elder-base text-elder-text leading-elder">
+                          I have information about this topic, but I'm having trouble formatting it properly. 
+                          Please try asking your question again or consult your healthcare provider.
+                        </p>
                       );
                     }
-                    // Skip empty lines
-                    if (paragraph.trim() === '') {
-                      return null;
-                    }
-                    // Regular paragraph
-                    return (
-                      <p key={idx} className="text-elder-base text-elder-text leading-elder mb-3">
-                        {paragraph}
-                      </p>
-                    );
-                  })}
+                    
+                    // Otherwise render normally
+                    return answer.answer.split('\n').map((paragraph, idx) => {
+                      // Check if it's a heading (starts with ##)
+                      if (paragraph.startsWith('## ')) {
+                        const heading = paragraph.replace('## ', '');
+                        // Summary gets larger font
+                        if (heading === 'Summary') {
+                          return (
+                            <h3 key={idx} className="text-elder-xl font-bold text-elder-text mt-4 mb-3">
+                              {heading}
+                            </h3>
+                          );
+                        }
+                        // Other headings
+                        return (
+                          <h3 key={idx} className="text-elder-lg font-semibold text-elder-text mt-4 mb-2">
+                            {heading}
+                          </h3>
+                        );
+                      }
+                      // Skip empty lines
+                      if (paragraph.trim() === '') {
+                        return null;
+                      }
+                      // Regular paragraph
+                      return (
+                        <p key={idx} className="text-elder-base text-elder-text leading-elder mb-3">
+                          {paragraph}
+                        </p>
+                      );
+                    });
+                  })()}
                 </div>
                 
                 {answer.medicationDetails && (
@@ -266,8 +289,8 @@ function HealthQAPage() {
                     <div className="space-y-3 bg-elder-background-alt p-4 rounded-elder">
                     {answer.medicationDetails.brandNames && answer.medicationDetails.brandNames.length > 0 && (
                       <div>
-                        <span className="text-elder-sm font-semibold text-elder-text">Common Brand Name(s): </span>
-                        <span className="text-elder-sm text-elder-text-secondary">
+                        <span className="text-elder-base font-semibold text-elder-text">Brand Names: </span>
+                        <span className="text-elder-base text-elder-text-secondary">
                           {answer.medicationDetails.brandNames.join(', ')}
                         </span>
                       </div>
@@ -275,8 +298,8 @@ function HealthQAPage() {
                     
                     {answer.medicationDetails.genericName && (
                       <div>
-                        <span className="text-elder-sm font-semibold text-elder-text">Generic Name: </span>
-                        <span className="text-elder-sm text-elder-text-secondary">
+                        <span className="text-elder-base font-semibold text-elder-text">Generic Name: </span>
+                        <span className="text-elder-base text-elder-text-secondary">
                           {answer.medicationDetails.genericName}
                         </span>
                       </div>
@@ -284,8 +307,8 @@ function HealthQAPage() {
                     
                     {answer.medicationDetails.pronunciation && (
                       <div>
-                        <span className="text-elder-sm font-semibold text-elder-text">Pronunciation: </span>
-                        <span className="text-elder-sm text-elder-text-secondary">
+                        <span className="text-elder-base font-semibold text-elder-text">Pronunciation: </span>
+                        <span className="text-elder-base text-elder-text-secondary">
                           {answer.medicationDetails.pronunciation}
                         </span>
                       </div>
@@ -293,8 +316,8 @@ function HealthQAPage() {
                     
                     {answer.medicationDetails.drugClasses && answer.medicationDetails.drugClasses.length > 0 && (
                       <div>
-                        <span className="text-elder-sm font-semibold text-elder-text">Drug Classes: </span>
-                        <span className="text-elder-sm text-elder-text-secondary">
+                        <span className="text-elder-base font-semibold text-elder-text">Drug Classes: </span>
+                        <span className="text-elder-base text-elder-text-secondary">
                           {answer.medicationDetails.drugClasses.join(', ')}
                         </span>
                       </div>
@@ -302,8 +325,8 @@ function HealthQAPage() {
                     
                     {answer.medicationDetails.availability && (
                       <div>
-                        <span className="text-elder-sm font-semibold text-elder-text">Availability: </span>
-                        <span className="text-elder-sm text-elder-text-secondary">
+                        <span className="text-elder-base font-semibold text-elder-text">Availability: </span>
+                        <span className="text-elder-base text-elder-text-secondary">
                           {answer.medicationDetails.availability}
                         </span>
                       </div>
@@ -311,8 +334,8 @@ function HealthQAPage() {
                     
                     {answer.medicationDetails.howUsed && (
                       <div>
-                        <span className="text-elder-sm font-semibold text-elder-text">How is it used? </span>
-                        <span className="text-elder-sm text-elder-text-secondary">
+                        <span className="text-elder-base font-semibold text-elder-text">How is it used? </span>
+                        <span className="text-elder-base text-elder-text-secondary">
                           {answer.medicationDetails.howUsed}
                         </span>
                       </div>

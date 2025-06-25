@@ -517,10 +517,16 @@ Be conservative and focus on safety.`;
         // Handle case where Claude might wrap JSON in markdown blocks or add extra text
         let cleanedResponse = aiResponse.trim();
         
-        // Remove markdown code blocks
-        if (cleanedResponse.includes('```')) {
-          cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```/g, '');
+        // Check if response starts with markdown code block
+        if (cleanedResponse.startsWith('```')) {
+          // Remove the opening ```json or ```
+          cleanedResponse = cleanedResponse.replace(/^```json\s*\n?/i, '').replace(/^```\s*\n?/, '');
+          // Remove the closing ```
+          cleanedResponse = cleanedResponse.replace(/\n?```\s*$/i, '');
         }
+        
+        // Also handle inline markdown blocks
+        cleanedResponse = cleanedResponse.replace(/```json\s*/gi, '').replace(/```/g, '');
         
         // Extract JSON from response (find first { and last })
         const jsonStart = cleanedResponse.indexOf('{');
@@ -530,11 +536,11 @@ Be conservative and focus on safety.`;
           cleanedResponse = cleanedResponse.substring(jsonStart, jsonEnd + 1);
         }
         
-        console.log('[answerHealthQuestion] Attempting to parse JSON:', cleanedResponse);
+        console.log('[answerHealthQuestion] Attempting to parse JSON:', cleanedResponse.substring(0, 100) + '...');
         jsonResponse = JSON.parse(cleanedResponse);
         
-        // Format the answer with proper sections
-        answer = `## What is it used for?\n${jsonResponse.summary}\n\n## Side Effects & Precautions\n${jsonResponse.details}`;
+        // Format the answer with proper sections and headings
+        answer = `## Summary\n${jsonResponse.summary}\n\n## Side Effects & Precautions\n${jsonResponse.details}`;
         medicationDetails = jsonResponse.medicationDetails;
       } catch (e) {
         console.error('Failed to parse medication JSON:', e);
