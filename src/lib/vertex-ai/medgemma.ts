@@ -474,7 +474,7 @@ export const answerHealthQuestion = async (
       
       prompt = `As a medical AI assistant, provide information about ${medicationName} for an elderly user (65+ years).
 
-Return a JSON response with the following structure:
+You MUST return ONLY a valid JSON response (no markdown, no explanation) with this exact structure:
 {
   "summary": "One sentence describing what the medication is used for",
   "details": "Additional details about side effects and precautions in simple language (50 words max)",
@@ -488,7 +488,7 @@ Return a JSON response with the following structure:
   }
 }
 
-Focus on safety and use simple language appropriate for elderly users.`;
+Important: Return ONLY the JSON object, no other text.`;
     } else {
       prompt = `As a medical AI assistant, answer this health question for an elderly user (65+ years).
 
@@ -511,12 +511,43 @@ Be conservative and focus on safety.`;
     if (isMedicationQuestion) {
       try {
         // Try to parse JSON response for medication questions
-        const jsonResponse = JSON.parse(aiResponse);
-        answer = `${jsonResponse.summary}\n\n${jsonResponse.details}`;
+        let jsonResponse;
+        
+        // Handle case where Claude might wrap JSON in markdown blocks or add extra text
+        let cleanedResponse = aiResponse.trim();
+        
+        // Remove markdown code blocks
+        if (cleanedResponse.includes('```')) {
+          cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```/g, '');
+        }
+        
+        // Extract JSON from response (find first { and last })
+        const jsonStart = cleanedResponse.indexOf('{');
+        const jsonEnd = cleanedResponse.lastIndexOf('}');
+        
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          cleanedResponse = cleanedResponse.substring(jsonStart, jsonEnd + 1);
+        }
+        
+        console.log('[answerHealthQuestion] Attempting to parse JSON:', cleanedResponse);
+        jsonResponse = JSON.parse(cleanedResponse);
+        
+        // Format the answer with proper sections
+        answer = `## What is it used for?\n${jsonResponse.summary}\n\n## Side Effects & Precautions\n${jsonResponse.details}`;
         medicationDetails = jsonResponse.medicationDetails;
       } catch (e) {
-        // Fallback if JSON parsing fails
-        answer = aiResponse;
+        console.error('Failed to parse medication JSON:', e);
+        console.error('Raw response was:', aiResponse);
+        
+        // If JSON parsing fails, never show raw JSON to user
+        // Try to extract useful information from the response
+        if (aiResponse.includes('{') && aiResponse.includes('}')) {
+          // Response contains JSON but we couldn't parse it
+          answer = `I have information about ${medicationName}, but I'm having trouble formatting it properly. Please try asking your question again or consult your healthcare provider for detailed information about this medication.`;
+        } else {
+          // Use the raw response if it's not JSON
+          answer = aiResponse;
+        }
       }
     } else {
       answer = aiResponse;

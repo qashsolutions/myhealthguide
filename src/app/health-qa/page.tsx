@@ -235,13 +235,35 @@ function HealthQAPage() {
                 </div>
                 
                 <div className="prose prose-lg max-w-none">
-                  <p className="text-elder-base text-elder-text leading-elder">
-                    {answer.answer}
-                  </p>
+                  {/* Parse and render the answer with proper formatting */}
+                  {answer.answer.split('\n').map((paragraph, idx) => {
+                    // Check if it's a heading (starts with ##)
+                    if (paragraph.startsWith('## ')) {
+                      return (
+                        <h3 key={idx} className="text-elder-lg font-semibold text-elder-text mt-4 mb-2">
+                          {paragraph.replace('## ', '')}
+                        </h3>
+                      );
+                    }
+                    // Skip empty lines
+                    if (paragraph.trim() === '') {
+                      return null;
+                    }
+                    // Regular paragraph
+                    return (
+                      <p key={idx} className="text-elder-base text-elder-text leading-elder mb-3">
+                        {paragraph}
+                      </p>
+                    );
+                  })}
                 </div>
                 
                 {answer.medicationDetails && (
-                  <div className="mt-4 space-y-3 border-t pt-4">
+                  <div className="mt-6">
+                    <h3 className="text-elder-lg font-semibold text-elder-text mb-4">
+                      Medication Details
+                    </h3>
+                    <div className="space-y-3 bg-elder-background-alt p-4 rounded-elder">
                     {answer.medicationDetails.brandNames && answer.medicationDetails.brandNames.length > 0 && (
                       <div>
                         <span className="text-elder-sm font-semibold text-elder-text">Common Brand Name(s): </span>
@@ -295,6 +317,7 @@ function HealthQAPage() {
                         </span>
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
                 
