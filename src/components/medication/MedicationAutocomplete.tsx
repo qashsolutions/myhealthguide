@@ -142,6 +142,7 @@ export function MedicationAutocomplete({
         required={required}
         label="Medication Name"
         autoComplete="off"
+        maxLength={50}
       />
       
       {showSuggestions && (

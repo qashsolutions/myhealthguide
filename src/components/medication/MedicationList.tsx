@@ -90,6 +90,7 @@ export function MedicationList({
                     onChange={(e) => handleEditChange('name', e.target.value)}
                     placeholder="Medication name"
                     aria-label="Edit medication name"
+                    maxLength={50}
                   />
                   
                   <div className="grid elder-tablet:grid-cols-3 gap-3">
@@ -136,8 +137,8 @@ export function MedicationList({
               ) : (
                 // Display mode
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-elder-base font-semibold text-elder-text">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-elder-base font-semibold text-elder-text truncate" title={medication.name}>
                       {medication.name}
                     </h3>
                     

@@ -49,13 +49,41 @@ const isValidMedicationName = (name: string): boolean => {
     return false;
   }
   
+  // Check for excessive length (medications rarely exceed 30 characters)
+  if (name.trim().length > 50) {
+    return false;
+  }
+  
+  // Check for repeated gibberish patterns (like "sdfsdf")
+  const hasRepeatedGibberish = /(.{2,})\1{2,}/i.test(cleaned); // Detects patterns repeated 3+ times
+  if (hasRepeatedGibberish) {
+    return false;
+  }
+  
+  // Check for keyboard mashing patterns
+  const keyboardPatterns = [
+    /asdf/i,
+    /qwer/i,
+    /zxcv/i,
+    /sdfg/i,
+    /dfgh/i,
+    /fghj/i,
+  ];
+  
+  // Check if more than 40% of the string contains keyboard patterns
+  const patternMatches = keyboardPatterns.filter(pattern => pattern.test(cleaned)).length;
+  if (patternMatches >= 2 || (patternMatches === 1 && cleaned.length < 10)) {
+    return false;
+  }
+  
   // Common invalid patterns
   const invalidPatterns = [
     /^test$/i,
-    /^asdf/i,
     /^xxx/i,
     /^abc$/i,
     /^123/i,
+    /^aaa+$/i,
+    /^bbb+$/i,
   ];
   
   return !invalidPatterns.some(pattern => pattern.test(cleaned));
