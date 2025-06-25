@@ -237,13 +237,20 @@ function HealthQAPage() {
                 <div className="prose prose-lg max-w-none">
                   {/* Parse and render the answer with proper formatting */}
                   {(() => {
-                    // First check if the answer looks like raw JSON
-                    if (answer.answer.trim().startsWith('{') || answer.answer.includes('```')) {
+                    // First check if the answer looks like raw JSON (but only if it's clearly broken)
+                    const trimmedAnswer = answer.answer.trim();
+                    if (trimmedAnswer.startsWith('```json') || (trimmedAnswer.startsWith('{') && !trimmedAnswer.includes('##'))) {
+                      // This is definitely raw JSON that shouldn't be shown
                       return (
-                        <p className="text-elder-base text-elder-text leading-elder">
-                          I have information about this topic, but I'm having trouble formatting it properly. 
-                          Please try asking your question again or consult your healthcare provider.
-                        </p>
+                        <div>
+                          <h3 className="text-elder-lg font-semibold text-elder-text mb-2">
+                            Information Available
+                          </h3>
+                          <p className="text-elder-base text-elder-text leading-elder">
+                            We're experiencing a temporary issue displaying this information. 
+                            Please try refreshing the page or asking your question again.
+                          </p>
+                        </div>
                       );
                     }
                     

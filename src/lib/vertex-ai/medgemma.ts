@@ -506,6 +506,9 @@ Be conservative and focus on safety.`;
     // Make API request to Claude
     const aiResponse = await makeClaudeRequest(prompt, 1000);
     
+    // Log the raw response for debugging
+    console.log('[answerHealthQuestion] Raw Claude response:', aiResponse.substring(0, 200) + '...');
+    
     let answer: string;
     let medicationDetails: any = undefined;
     
@@ -546,14 +549,38 @@ Be conservative and focus on safety.`;
         console.error('Failed to parse medication JSON:', e);
         console.error('Raw response was:', aiResponse);
         
-        // If JSON parsing fails, never show raw JSON to user
-        // Try to extract useful information from the response
-        if (aiResponse.includes('{') && aiResponse.includes('}')) {
-          // Response contains JSON but we couldn't parse it
-          answer = `I have information about ${medicationName}, but I'm having trouble formatting it properly. Please try asking your question again or consult your healthcare provider for detailed information about this medication.`;
+        // If JSON parsing fails, try alternative approaches
+        console.log('Attempting fallback parsing for medication info');
+        
+        // Try to extract key information using regex patterns
+        const summaryMatch = aiResponse.match(/"summary"\s*:\s*"([^"]+)"/);
+        const detailsMatch = aiResponse.match(/"details"\s*:\s*"([^"]+)"/);
+        
+        if (summaryMatch && detailsMatch) {
+          // We found the content, just couldn't parse the full JSON
+          answer = `## Summary\n${summaryMatch[1]}\n\n## Side Effects & Precautions\n${detailsMatch[1]}`;
+          
+          // Try to extract medication details
+          const brandMatch = aiResponse.match(/"brandNames"\s*:\s*\[([^\]]+)\]/);
+          const genericMatch = aiResponse.match(/"genericName"\s*:\s*"([^"]+)"/);
+          const pronunciationMatch = aiResponse.match(/"pronunciation"\s*:\s*"([^"]+)"/);
+          const classMatch = aiResponse.match(/"drugClasses"\s*:\s*\[([^\]]+)\]/);
+          const availMatch = aiResponse.match(/"availability"\s*:\s*"([^"]+)"/);
+          const howMatch = aiResponse.match(/"howUsed"\s*:\s*"([^"]+)"/);
+          
+          if (brandMatch || genericMatch) {
+            medicationDetails = {
+              brandNames: brandMatch ? brandMatch[1].replace(/['"]/g, '').split(',').map(s => s.trim()) : undefined,
+              genericName: genericMatch ? genericMatch[1] : undefined,
+              pronunciation: pronunciationMatch ? pronunciationMatch[1] : undefined,
+              drugClasses: classMatch ? classMatch[1].replace(/['"]/g, '').split(',').map(s => s.trim()) : undefined,
+              availability: availMatch ? availMatch[1] : undefined,
+              howUsed: howMatch ? howMatch[1] : undefined,
+            };
+          }
         } else {
-          // Use the raw response if it's not JSON
-          answer = aiResponse;
+          // Last resort - create a structured response from what we know
+          answer = `## Summary\n${medicationName} is a medication. Please consult your healthcare provider for detailed information.\n\n## Side Effects & Precautions\nFor complete information about side effects and precautions, please consult your pharmacist or healthcare provider.`;
         }
       }
     } else {
