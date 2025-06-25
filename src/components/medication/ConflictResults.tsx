@@ -253,7 +253,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
               }
               
               // UPDATED: Increased to max 20 words for better context
-              const words = advice.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
+              const words = advice.split(/\s+/).filter((w: string) => w.length > 0).slice(0, 20);
               return words.join(' ') + (words.length >= 20 && !advice.endsWith('.') ? '.' : '');
             })()}
           </p>
@@ -284,7 +284,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                 let cleanPoint = point.replace(/^[•\-*]\s*/, ''); // Remove existing bullets
                 
                 // UPDATED: Increased to max 20 words per bullet
-                const words = cleanPoint.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
+                const words = cleanPoint.split(/\s+/).filter((w: string) => w.length > 0).slice(0, 20);
                 cleanPoint = words.join(' ');
                 
                 return (

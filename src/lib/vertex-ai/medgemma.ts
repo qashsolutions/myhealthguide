@@ -169,7 +169,7 @@ const parseCheckResponse = (
             advice = advice.replace(/[{}"\[\]]/g, '').replace(/\\/g, '');
             
             // Limit to first 20 words for better context
-            const words = advice.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
+            const words = advice.split(/\s+/).filter((w: string) => w.length > 0).slice(0, 20);
             result.generalAdvice = words.join(' ') + (words.length >= 20 ? '.' : '');
           }
           
@@ -282,7 +282,7 @@ const parseCheckResponse = (
     // UPDATED: Clean and limit general advice to 20 words
     if (response.length > 50) {
       const cleanedAdvice = cleanupAdvice(response);
-      const words = cleanedAdvice.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
+      const words = cleanedAdvice.split(/\s+/).filter((w: string) => w.length > 0).slice(0, 20);
       result.generalAdvice = words.join(' ') + (words.length >= 20 ? '.' : '');
     }
 
@@ -369,7 +369,7 @@ const formatAdditionalInfo = (jsonResponse: any): string => {
     // Add interaction summaries (max 20 words each)
     jsonResponse.interactions.forEach((interaction: any, index: number) => {
       if (index < 3 && interaction.description) { // Max 3 bullet points
-        const words = interaction.description.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
+        const words = interaction.description.split(/\s+/).filter((w: string) => w.length > 0).slice(0, 20);
         bulletPoints.push(`• ${words.join(' ')}`);
       }
     });
@@ -410,7 +410,7 @@ Please analyze these medications for:
 4. General safety recommendations
 
 IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks.
-Do NOT wrap the response in ```json``` or any other markers.
+Do NOT wrap the response in json code blocks or any other markers.
 Structure your response exactly as this format:
 {
   "overallRisk": "safe" | "warning" | "danger",
