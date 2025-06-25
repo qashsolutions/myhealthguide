@@ -50,11 +50,6 @@ export default function HomePage() {
       description: 'Advanced AI checks for medication conflicts instantly',
     },
     {
-      icon: <Mic className="h-8 w-8 text-primary-600" />,
-      title: 'Voice Enabled',
-      description: 'Speak your medications instead of typing',
-    },
-    {
       icon: <AlertTriangle className="h-8 w-8 text-health-warning" />,
       title: 'Clear Warnings',
       description: 'Simple traffic light system shows safety levels',
@@ -142,12 +137,9 @@ export default function HomePage() {
           <h2 className="text-elder-2xl font-bold mb-4">
             Your Health Information is Safe
           </h2>
-          <p className="text-elder-lg text-elder-text-secondary mb-6">
+          <p className="text-elder-lg text-elder-text-secondary">
             We use industry-standard security to protect your information. 
             No medication data is permanently stored.
-          </p>
-          <p className="text-elder-base text-elder-text-secondary italic">
-            {DISCLAIMERS.GENERAL}
           </p>
         </div>
       </section>
@@ -173,10 +165,6 @@ export default function HomePage() {
               <li className="flex items-start gap-3">
                 <CheckCircle className="h-6 w-6 text-health-safe flex-shrink-0 mt-1" />
                 <span>Get personalized health insights</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="h-6 w-6 text-health-safe flex-shrink-0 mt-1" />
-                <span>Access voice-enabled features</span>
               </li>
             </ul>
           </div>

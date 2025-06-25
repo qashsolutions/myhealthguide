@@ -102,7 +102,7 @@ export function DisclaimerContent(): JSX.Element {
           <h3 className="text-elder-lg font-semibold mb-2">10. Contact Information</h3>
           <p className="text-elder-text-secondary">
             If you have any questions about this Medical Disclaimer, please contact us at 
-            legal@myhealthguide.com.
+            admin@myguide.health.
           </p>
         </section>
       </div>

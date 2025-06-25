@@ -33,13 +33,21 @@ export function MobileMenu({
 }: MobileMenuProps): JSX.Element | null {
   const pathname = usePathname();
 
+  // Debug logging
+  console.log('MobileMenu render - isOpen:', isOpen);
+  console.log('MobileMenu render - navItems:', navItems);
+
   // Close menu on route change
   useEffect(() => {
-    onClose();
-  }, [pathname, onClose]);
+    // Only close if menu is actually open
+    if (isOpen) {
+      onClose();
+    }
+  }, [pathname]); // Remove onClose from dependencies to prevent infinite loop
 
   // Prevent body scroll when menu is open
   useEffect(() => {
+    console.log('MobileMenu useEffect - isOpen changed to:', isOpen);
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -51,7 +59,10 @@ export function MobileMenu({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log('MobileMenu returning null because isOpen is false');
+    return null;
+  }
 
   const isActiveRoute = (href: string) => pathname === href;
 
@@ -60,7 +71,10 @@ export function MobileMenu({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/20 z-20 elder-tablet:hidden"
-        onClick={onClose}
+        onClick={(event) => {
+          event.stopPropagation(); // Add this
+          onClose();
+        }}
         aria-hidden="true"
       />
 

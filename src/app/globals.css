@@ -192,6 +192,38 @@
       transition-duration: 0.01ms !important;
     }
   }
+  
+  /* Add these animation classes */
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out forwards;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Optional: Add slide up animation for closing */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out forwards;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+  }
 }
 
 /* Mobile-specific adjustments */

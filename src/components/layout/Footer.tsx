@@ -89,7 +89,7 @@ export function Footer(): JSX.Element {
                     Privacy Policy
                   </Link>
                 </li>
-                <li>
+                {/* <li>
                   <Link
                     href={ROUTES.UNSUBSCRIBE}
                     className="text-elder-base text-elder-text-secondary hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded flex items-center gap-2"
@@ -97,7 +97,7 @@ export function Footer(): JSX.Element {
                     <Mail className="h-5 w-5" aria-hidden="true" />
                     Unsubscribe
                   </Link>
-                </li>
+                </li> */}
               </ul>
             </nav>
           </div>
@@ -107,12 +107,12 @@ export function Footer(): JSX.Element {
         <div className="mt-8 pt-8 border-t border-elder-border">
           <div className="flex flex-col elder-tablet:flex-row justify-between items-center gap-4">
             <p className="text-elder-sm text-elder-text-secondary text-center elder-tablet:text-left">
-              © 2025 <a href="https://www.myguide.health" className="hover:text-primary-600">https://www.myguide.health</a> - A unit of QaSH Solutions Inc.
+              © 2025 <a href="https://www.myguide.health" className="hover:text-primary-600">https://www.myguide.health</a> - A unit of Qash Solutions Inc.
               <br />
               D-U-N-S® Number: 119536275
             </p>
             <p className="text-elder-sm text-elder-text-secondary text-center elder-tablet:text-right">
-              Made with care for seniors managing their health
+              Made with care for seniors and caregivers
             </p>
           </div>
         </div>

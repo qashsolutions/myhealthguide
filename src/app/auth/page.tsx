@@ -64,14 +64,14 @@ function AuthPageContent() {
             </div>
 
             {/* Testimonial */}
-            <div className="mt-12 p-6 bg-primary-50 rounded-elder-lg border-2 border-primary-200">
+            {/* <div className="mt-12 p-6 bg-primary-50 rounded-elder-lg border-2 border-primary-200">
               <p className="text-elder-base text-primary-900 italic mb-4">
                 "MyHealth Guide helped me discover a dangerous interaction between my medications. It may have saved my life!"
               </p>
               <p className="text-elder-sm text-primary-700 font-semibold">
                 — Margaret, age 72
               </p>
-            </div>
+            </div> */}
           </div>
 
           {/* Right side - Auth form */}
@@ -84,12 +84,6 @@ function AuthPageContent() {
             <div className="mt-6 text-center">
               <p className="text-elder-base text-elder-text-secondary">
                 Need help signing up?
-              </p>
-              <p className="text-elder-base text-primary-600">
-                Call us at{' '}
-                <a href="tel:1-800-MYHEALTH" className="font-semibold hover:underline">
-                  1-800-MYHEALTH
-                </a>
               </p>
             </div>
           </div>

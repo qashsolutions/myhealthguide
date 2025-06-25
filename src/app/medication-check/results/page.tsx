@@ -148,7 +148,7 @@ function MedicationCheckResultsPage() {
               1
             </span>
             <p className="text-elder-base text-elder-text-secondary">
-              Save or print these results to share with your healthcare provider
+              Take a screenshot of these results to share with your healthcare provider
             </p>
           </li>
           <li className="flex items-start gap-3">
