@@ -34,13 +34,14 @@ export default function HomePage() {
       color: 'text-health-safe',
       bgColor: 'bg-health-safe-bg',
     },
-    {
-      id: 'account',
-      ...FEATURES_DESCRIPTION.MY_ACCOUNT,
-      icon: <Shield className="h-12 w-12" />,
-      color: 'text-elder-text-secondary',
-      bgColor: 'bg-elder-background-alt',
-    },
+    // Disabled for now - My Account page not yet implemented
+    // {
+    //   id: 'account',
+    //   ...FEATURES_DESCRIPTION.MY_ACCOUNT,
+    //   icon: <Shield className="h-12 w-12" />,
+    //   color: 'text-elder-text-secondary',
+    //   bgColor: 'bg-elder-background-alt',
+    // },
   ];
 
   const benefits = [

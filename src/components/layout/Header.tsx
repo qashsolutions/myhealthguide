@@ -65,7 +65,8 @@ export function Header(): JSX.Element {
   const navItems = [
     { href: ROUTES.MEDICATION_CHECK, label: 'Check Medications' },
     { href: ROUTES.HEALTH_QA, label: 'Health Questions' },
-    ...(user ? [{ href: ROUTES.ACCOUNT, label: 'My Account' }] : []),
+    // Disabled for now - My Account page not yet implemented
+    // ...(user ? [{ href: ROUTES.ACCOUNT, label: 'My Account' }] : []),
   ];
 
   const isActiveRoute = (href: string) => pathname === href;

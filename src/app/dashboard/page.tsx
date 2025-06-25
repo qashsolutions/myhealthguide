@@ -30,7 +30,9 @@ function DashboardPage() {
         router.push(ROUTES.HEALTH_QA);
         break;
       case 'account':
-        router.push(ROUTES.ACCOUNT);
+        // Disabled for now - My Account page not yet implemented
+        // router.push(ROUTES.ACCOUNT);
+        alert('My Account feature coming soon!');
         break;
       default:
         break;

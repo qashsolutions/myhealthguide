@@ -27,13 +27,14 @@ export function DashboardGrid({ onFeatureClick }: DashboardGridProps): JSX.Eleme
       color: 'success',
       isMain: false,
     },
-    {
-      id: 'account',
-      ...FEATURES_DESCRIPTION.MY_ACCOUNT,
-      icon: <User className="h-12 w-12" />,
-      color: 'secondary',
-      isMain: false,
-    },
+    // Disabled for now - My Account page not yet implemented
+    // {
+    //   id: 'account',
+    //   ...FEATURES_DESCRIPTION.MY_ACCOUNT,
+    //   icon: <User className="h-12 w-12" />,
+    //   color: 'secondary',
+    //   isMain: false,
+    // },
   ] as const;
 
   return (
