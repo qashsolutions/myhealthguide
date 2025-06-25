@@ -466,11 +466,12 @@ export const answerHealthQuestion = async (
                                 question.question.toLowerCase().includes('used for');
     
     let prompt: string;
+    let medicationName = ''; // Declare at function scope
     
     if (isMedicationQuestion) {
       // Extract medication name from question
       const medNameMatch = question.question.match(/what is (\w+)/i);
-      const medicationName = medNameMatch ? medNameMatch[1] : '';
+      medicationName = medNameMatch ? medNameMatch[1] : '';
       
       prompt = `As a medical AI assistant, provide information about ${medicationName} for an elderly user (65+ years).
 
