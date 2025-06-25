@@ -1,11 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Mic, 
-  MicOff, 
-  Volume2, 
   Send, 
   AlertCircle, 
   ArrowLeft,
@@ -17,12 +14,6 @@ import { Button } from '@/components/ui/Button';
 import { useAuth, withAuth } from '@/hooks/useAuth';
 import { HealthQuestion, HealthAnswer } from '@/types';
 import { ROUTES, DISCLAIMERS } from '@/lib/constants';
-import { 
-  isSpeechRecognitionSupported, 
-  createSpeechRecognition,
-  speak,
-  getPreferredVoice
-} from '@/lib/utils/voice';
 
 /**
  * Health Q&A page with voice input/output
@@ -33,17 +24,9 @@ function HealthQAPage() {
   const { user } = useAuth();
   const [question, setQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recentAnswers, setRecentAnswers] = useState<HealthAnswer[]>([]);
-  const [showVoiceHint, setShowVoiceHint] = useState(true);
-  
-  const recognitionRef = useRef<any>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Check for voice support
-  const voiceSupported = isSpeechRecognitionSupported();
 
   // Load recent answers from session storage
   useEffect(() => {
@@ -68,69 +51,6 @@ function HealthQAPage() {
     }
   };
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if (voiceSupported && !recognitionRef.current) {
-      const recognition = createSpeechRecognition();
-      if (recognition) {
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setQuestion(prev => prev + ' ' + transcript);
-          setIsListening(false);
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
-          setError('Could not understand. Please try again or type your question.');
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
-      }
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, [voiceSupported]);
-
-  // Toggle voice input
-  const toggleVoiceInput = () => {
-    if (!recognitionRef.current) return;
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      setError(null);
-      setShowVoiceHint(false);
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  };
-
-  // Read answer aloud
-  const speakAnswer = async (text: string) => {
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
-    }
-
-    setIsSpeaking(true);
-    const voice = await getPreferredVoice();
-    
-    speak(text, {
-      voice: voice || undefined,
-      onEnd: () => setIsSpeaking(false),
-    });
-  };
 
   // Submit question
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -174,11 +94,6 @@ function HealthQAPage() {
       
       // Clear question
       setQuestion('');
-      
-      // Auto-speak answer if voice was used for question
-      if (!showVoiceHint && voiceSupported) {
-        setTimeout(() => speakAnswer(data.data.answer), 500);
-      }
     } catch (err) {
       console.error('Health Q&A error:', err);
       setError(err instanceof Error ? err.message : 'Failed to get answer');
@@ -243,42 +158,16 @@ function HealthQAPage() {
           
           <div className="relative">
             <textarea
-              ref={textareaRef}
               id="question"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Type your question here or use the microphone..."
-              className="w-full px-4 py-3 pr-14 border-2 border-elder-border rounded-elder text-elder-base leading-elder resize-none focus:outline-none focus:ring-4 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Type your question here..."
+              className="w-full px-4 py-3 border-2 border-elder-border rounded-elder text-elder-base leading-elder resize-none focus:outline-none focus:ring-4 focus:ring-primary-500 focus:border-primary-500"
               rows={3}
-              disabled={isAsking || isListening}
+              disabled={isAsking}
             />
-            
-            {voiceSupported && (
-              <button
-                type="button"
-                onClick={toggleVoiceInput}
-                className={`absolute right-3 top-3 p-2 rounded-full transition-colors ${
-                  isListening 
-                    ? 'bg-red-100 text-red-600' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-                aria-label={isListening ? 'Stop recording' : 'Start voice input'}
-              >
-                {isListening ? (
-                  <MicOff className="h-6 w-6" />
-                ) : (
-                  <Mic className="h-6 w-6" />
-                )}
-              </button>
-            )}
           </div>
 
-          {/* Voice hint */}
-          {voiceSupported && showVoiceHint && (
-            <p className="mt-2 text-elder-sm text-elder-text-secondary">
-              💡 Tip: Click the microphone to ask your question by voice
-            </p>
-          )}
 
           {/* Error message */}
           {error && (
@@ -294,7 +183,7 @@ function HealthQAPage() {
               variant="primary"
               size="large"
               loading={isAsking}
-              disabled={!question.trim() || isListening}
+              disabled={!question.trim()}
               icon={<Send className="h-5 w-5" />}
               className="w-full elder-tablet:w-auto"
             >
@@ -336,22 +225,13 @@ function HealthQAPage() {
                 key={answer.id}
                 className="bg-white rounded-elder-lg shadow-sm p-6"
               >
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-elder-base font-semibold text-elder-text mb-2">
-                      {answer.question}
-                    </h3>
-                    <p className="text-elder-sm text-elder-text-secondary">
-                      Asked {new Date(answer.answeredAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => speakAnswer(answer.answer)}
-                    className="p-2 rounded-full bg-primary-100 text-primary-600 hover:bg-primary-200 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500"
-                    aria-label={isSpeaking ? 'Stop reading' : 'Read answer aloud'}
-                  >
-                    <Volume2 className={`h-6 w-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
-                  </button>
+                <div className="mb-4">
+                  <h3 className="text-elder-base font-semibold text-elder-text mb-2">
+                    {answer.question}
+                  </h3>
+                  <p className="text-elder-sm text-elder-text-secondary">
+                    Asked {new Date(answer.answeredAt).toLocaleString()}
+                  </p>
                 </div>
                 
                 <div className="prose prose-lg max-w-none">

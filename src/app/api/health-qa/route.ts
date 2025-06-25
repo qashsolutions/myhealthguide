@@ -55,10 +55,40 @@ const healthQuestionSchema = z.object({
 // This ensures consistency across all API routes and fixes the authentication issue
 // where Bearer tokens were expected but the frontend only sends session cookies
 
+// ADDED: Check if text looks like a medication name
+const looksLikeMedicationName = (text: string): boolean => {
+  const cleaned = text.trim().toLowerCase();
+  
+  // Single word or hyphenated compound (e.g., "aspirin", "co-codamol")
+  if (/^[a-z]+(-[a-z]+)?$/.test(cleaned) && cleaned.length >= 4) {
+    // Common medication suffixes
+    const medSuffixes = ['pril', 'olol', 'azole', 'statin', 'prazole', 'mycin', 'cillin', 'pam', 'zepam', 'formin'];
+    if (medSuffixes.some(suffix => cleaned.endsWith(suffix))) {
+      return true;
+    }
+    
+    // Common medication prefixes
+    const medPrefixes = ['anti', 'hydro', 'chloro', 'dexa', 'pred'];
+    if (medPrefixes.some(prefix => cleaned.startsWith(prefix))) {
+      return true;
+    }
+    
+    // If it's a single word 4+ chars, possibly a medication
+    return true;
+  }
+  
+  return false;
+};
+
 // ADDED: Health-related question validation
 // Ensures users only ask about health, medications, or supplements
 const isHealthRelatedQuestion = (question: string): boolean => {
-  const lowerQuestion = question.toLowerCase();
+  const lowerQuestion = question.toLowerCase().trim();
+  
+  // Check if it's just a medication name (e.g., "lisinopril")
+  if (looksLikeMedicationName(lowerQuestion)) {
+    return true;
+  }
   
   // Health-related keywords that indicate a valid question
   const healthKeywords = [
@@ -252,15 +282,29 @@ export async function POST(request: NextRequest) {
         );
       }
       
+      // ADDED: Transform single medication names into proper questions
+      let finalQuestion = questionData.question;
+      if (looksLikeMedicationName(questionData.question.trim())) {
+        // Convert "lisinopril" to "What is lisinopril used for?"
+        finalQuestion = `What is ${questionData.question.trim()} used for? What are its common side effects and precautions?`;
+        console.log('[Health QA API] Transformed medication name to question:', finalQuestion);
+      }
+      
       // Log the question (anonymized)
-      await logQuestion(userId, questionData.question, questionData.category);
+      await logQuestion(userId, finalQuestion, questionData.category);
       
       // Get answer from Claude API (via medgemma.ts)
       try {
         // UPDATED: Log successful authentication via session cookie
         console.log('[Health QA API] User authenticated successfully via session cookie:', userEmail);
         console.log('[Health QA API] Calling answerHealthQuestion...');
-        const answer = await answerHealthQuestion(questionData);
+        
+        // Use the transformed question
+        const answer = await answerHealthQuestion({
+          ...questionData,
+          question: finalQuestion
+        });
+        
         console.log('[Health QA API] Answer received:', {
           hasAnswer: !!answer.answer,
           answerLength: answer.answer?.length || 0,
