@@ -125,10 +125,19 @@ const parseCheckResponse = (
   };
 
   try {
+    // UPDATED: Handle Claude's markdown-wrapped JSON responses
+    // Claude sometimes wraps JSON in ```json blocks
+    let cleanedResponse = response.trim();
+    
+    // Remove markdown code block wrappers if present
+    if (cleanedResponse.includes('```json')) {
+      cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```/g, '');
+    }
+    
     // Try to parse JSON response first (Claude is good at structured responses)
-    if (response.trim().startsWith('{')) {
+    if (cleanedResponse.startsWith('{')) {
       try {
-        const jsonResponse = JSON.parse(response);
+        const jsonResponse = JSON.parse(cleanedResponse);
         
         // UPDATED: Extract and clean the response data properly
         if (jsonResponse) {
@@ -149,16 +158,19 @@ const parseCheckResponse = (
             result.summary = jsonResponse.summary || 'Potential interactions found.';
           }
           
-          // UPDATED: Clean and format general advice - max 10 words
+          // UPDATED: Clean and format general advice - max 20 words
           if (jsonResponse.advice) {
             // Remove any JSON formatting if accidentally included
             let advice = jsonResponse.advice;
             if (typeof advice === 'object') {
               advice = JSON.stringify(advice);
             }
-            // Limit to first 10 words for elder-friendly display
-            const words = advice.split(' ').slice(0, 10);
-            result.generalAdvice = words.join(' ') + (words.length >= 10 ? '.' : '');
+            // Clean any remaining JSON artifacts
+            advice = advice.replace(/[{}"\[\]]/g, '').replace(/\\/g, '');
+            
+            // Limit to first 20 words for better context
+            const words = advice.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
+            result.generalAdvice = words.join(' ') + (words.length >= 20 ? '.' : '');
           }
           
           // UPDATED: Format additional info as bullet points
@@ -267,11 +279,11 @@ const parseCheckResponse = (
       interactions: result.interactions 
     });
     
-    // UPDATED: Clean and limit general advice to 10 words
+    // UPDATED: Clean and limit general advice to 20 words
     if (response.length > 50) {
       const cleanedAdvice = cleanupAdvice(response);
-      const words = cleanedAdvice.split(' ').slice(0, 10);
-      result.generalAdvice = words.join(' ') + (words.length >= 10 ? '.' : '');
+      const words = cleanedAdvice.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
+      result.generalAdvice = words.join(' ') + (words.length >= 20 ? '.' : '');
     }
 
   } catch (error) {
@@ -354,20 +366,20 @@ const formatAdditionalInfo = (jsonResponse: any): string => {
   
   // Extract medication-specific warnings
   if (jsonResponse.interactions && jsonResponse.interactions.length > 0) {
-    // Add interaction summaries (max 8 words each)
+    // Add interaction summaries (max 20 words each)
     jsonResponse.interactions.forEach((interaction: any, index: number) => {
       if (index < 3 && interaction.description) { // Max 3 bullet points
-        const words = interaction.description.split(' ').slice(0, 8);
+        const words = interaction.description.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
         bulletPoints.push(`• ${words.join(' ')}`);
       }
     });
   }
   
-  // Add general safety reminders if no interactions
+  // Add general safety reminders if no interactions (each up to 20 words)
   if (bulletPoints.length === 0) {
-    bulletPoints.push('• Monitor how you feel daily');
-    bulletPoints.push('• Take medications as prescribed always');
-    bulletPoints.push('• Contact doctor with any concerns');
+    bulletPoints.push('• Monitor how you feel daily and report any unusual symptoms to your healthcare provider');
+    bulletPoints.push('• Take medications exactly as prescribed by your doctor and never skip or double doses');
+    bulletPoints.push('• Contact your doctor immediately if you experience any concerning side effects or reactions');
   }
   
   // Format as bullet points with proper spacing
@@ -397,7 +409,9 @@ Please analyze these medications for:
 3. Condition-specific warnings
 4. General safety recommendations
 
-IMPORTANT: Structure your response as JSON in this format:
+IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks.
+Do NOT wrap the response in ```json``` or any other markers.
+Structure your response exactly as this format:
 {
   "overallRisk": "safe" | "warning" | "danger",
   "summary": "Brief overall assessment",

@@ -8,12 +8,9 @@ import {
   ChevronDown, 
   ChevronUp,
   Pill,
-  Info,
-  Volume2
+  Info
 } from 'lucide-react';
 import { MedicationCheckResult, Medication } from '@/types';
-import { Button } from '../ui/Button';
-import { useVoice } from '@/hooks/useVoice';
 import { clsx } from 'clsx';
 
 /**
@@ -28,7 +25,7 @@ interface ConflictResultsProps {
 
 export function ConflictResults({ result, medications }: ConflictResultsProps): JSX.Element {
   const [expandedConflicts, setExpandedConflicts] = useState<string[]>([]);
-  const { speak, isSpeaking, stopSpeaking } = useVoice();
+  // REMOVED: Audio features as requested
 
   // UPDATED: Get traffic light color and icon with consistent labeling
   // Ensures "Warning" label only appears for actual warning/danger states
@@ -78,15 +75,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
     );
   };
 
-  // Read results aloud
-  const handleReadAloud = () => {
-    if (isSpeaking) {
-      stopSpeaking();
-    } else {
-      const summary = `Medication check results. Overall risk level: ${result.overallRisk}. ${result.summary}`;
-      speak(summary);
-    }
-  };
+  // REMOVED: Read aloud functionality as requested
 
   const overallLight = getTrafficLight(result.overallRisk);
   const OverallIcon = overallLight.icon;
@@ -107,20 +96,10 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
           </div>
           
           <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-elder-xl font-bold text-elder-text">
-                Overall Assessment: {overallLight.label}
-              </h2>
-              
-              <Button
-                variant="secondary"
-                size="small"
-                onClick={handleReadAloud}
-                icon={<Volume2 className="h-5 w-5" />}
-              >
-                {isSpeaking ? 'Stop' : 'Read Aloud'}
-              </Button>
-            </div>
+            {/* UPDATED: Increased font size for better elder accessibility */}
+            <h2 className="text-2xl lg:text-3xl font-bold text-elder-text mb-2">
+              Overall Assessment: {overallLight.label}
+            </h2>
             
             {/* UPDATED: Use consistent elder-friendly font sizing */}
             <p className="text-elder-base text-elder-text-secondary">
@@ -133,14 +112,16 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
       {/* Medication list with individual assessments */}
       {medications.length > 0 && (
         <div className="bg-white border-2 border-elder-border rounded-elder-lg p-6">
-          <h3 className="text-elder-lg font-semibold mb-4 flex items-center gap-3">
+          {/* UPDATED: Larger font for section headers */}
+          <h3 className="text-xl lg:text-2xl font-semibold mb-4 flex items-center gap-3">
             <Pill className="h-6 w-6 text-primary-600" />
             Medications Checked
           </h3>
           
           <ul className="space-y-2">
             {medications.map((med, index) => (
-              <li key={med.id || index} className="flex items-center gap-3 text-elder-base">
+              /* UPDATED: Larger text for medication list */
+              <li key={med.id || index} className="flex items-center gap-3 text-lg lg:text-xl">
                 <span className="text-primary-600">•</span>
                 <span className="font-medium">{med.name}</span>
                 {med.dosage && (
@@ -155,7 +136,8 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
       {/* Interactions section - FIXED: Use interactions instead of conflicts */}
       {result.interactions && result.interactions.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-elder-lg font-semibold text-elder-text">
+          {/* UPDATED: Larger font for section headers */}
+          <h3 className="text-xl lg:text-2xl font-semibold text-elder-text">
             Potential Interactions Found ({result.interactions.length})
           </h3>
           
@@ -182,10 +164,11 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                     <div className="flex items-center gap-3">
                       <ConflictIcon className={clsx('h-6 w-6', `text-${conflictLight.color}`)} />
                       <div>
-                        <p className="text-elder-base font-semibold text-elder-text">
+                        {/* UPDATED: Larger font for medication interaction names */}
+                        <p className="text-lg lg:text-xl font-semibold text-elder-text">
                           {interaction.medication1} + {interaction.medication2}
                         </p>
-                        <p className={clsx('text-elder-sm', `text-${conflictLight.color}`)}>
+                        <p className={clsx('text-base lg:text-lg', `text-${conflictLight.color}`)}>
                           {conflictLight.label} Risk
                         </p>
                       </div>
@@ -201,16 +184,18 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                 
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t-2 border-elder-border pt-4">
-                    <p className="text-elder-base text-elder-text mb-3">
+                    {/* UPDATED: Larger font for interaction description */}
+                    <p className="text-lg lg:text-xl text-elder-text mb-3">
                       {interaction.description}
                     </p>
                     
                     {interaction.recommendation && (
                       <div className="bg-white bg-opacity-50 rounded-elder p-3">
-                        <p className="text-elder-sm font-semibold text-elder-text mb-1">
+                        {/* UPDATED: Larger font for recommendation */}
+                        <p className="text-base lg:text-lg font-semibold text-elder-text mb-1">
                           Recommendation:
                         </p>
-                        <p className="text-elder-sm text-elder-text-secondary">
+                        <p className="text-base lg:text-lg text-elder-text-secondary">
                           {interaction.recommendation}
                         </p>
                       </div>
@@ -228,25 +213,29 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
       {(!result.interactions || result.interactions.length === 0) && result.overallRisk === 'safe' && (
         <div className="bg-health-safe-bg border-2 border-health-safe rounded-elder-lg p-6 text-center">
           <CheckCircle className="h-12 w-12 text-health-safe mx-auto mb-3" />
-          <p className="text-elder-lg font-semibold text-elder-text">
+          {/* UPDATED: Larger font for headers */}
+          <p className="text-xl lg:text-2xl font-semibold text-elder-text">
             No Interactions Detected
           </p>
-          <p className="text-elder-base text-elder-text-secondary mt-2">
+          {/* UPDATED: Larger font for better readability */}
+          <p className="text-lg lg:text-xl text-elder-text-secondary mt-2">
             Based on our analysis, we didn't find any major interactions between your medications.
           </p>
         </div>
       )}
 
       {/* UPDATED: General advice section with proper formatting */}
-      {/* Displays a single concise sentence (max 10 words) */}
+      {/* Displays a single concise sentence (max 20 words) */}
       {result.generalAdvice && (
         <div className="bg-elder-background-alt rounded-elder-lg p-6">
-          <h3 className="text-elder-lg font-semibold mb-3 flex items-center gap-3">
+          {/* UPDATED: Larger font for section headers */}
+          <h3 className="text-xl lg:text-2xl font-semibold mb-3 flex items-center gap-3">
             <Info className="h-6 w-6 text-primary-600" />
             General Advice
           </h3>
           {/* IMPORTANT: Clean the advice text to remove any JSON artifacts */}
-          <p className="text-elder-base text-elder-text-secondary">
+          {/* UPDATED: Larger font for better readability */}
+          <p className="text-lg lg:text-xl text-elder-text-secondary">
             {(() => {
               // Clean any potential JSON string artifacts
               let advice = result.generalAdvice;
@@ -263,24 +252,26 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                 }
               }
               
-              // Ensure max 10 words for elder-friendly display
-              const words = advice.split(' ').slice(0, 10);
-              return words.join(' ') + (words.length >= 10 && !advice.endsWith('.') ? '.' : '');
+              // UPDATED: Increased to max 20 words for better context
+              const words = advice.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
+              return words.join(' ') + (words.length >= 20 && !advice.endsWith('.') ? '.' : '');
             })()}
           </p>
         </div>
       )}
 
       {/* UPDATED: Additional information with proper bullet point formatting */}
-      {/* Displays up to 3 bullet points, each max 8 words */}
+      {/* Displays up to 3 bullet points, each max 20 words */}
       {result.additionalInfo && (
         <div className="bg-elder-background-alt rounded-elder-lg p-6">
-          <h3 className="text-elder-lg font-semibold mb-3 flex items-center gap-3">
+          {/* UPDATED: Larger font for section headers */}
+          <h3 className="text-xl lg:text-2xl font-semibold mb-3 flex items-center gap-3">
             <Info className="h-6 w-6 text-primary-600" />
             Additional Information
           </h3>
           {/* IMPORTANT: Format as bullet points for elder-friendly reading */}
-          <div className="text-elder-base text-elder-text-secondary space-y-2">
+          {/* UPDATED: Larger font for better readability */}
+          <div className="text-lg lg:text-xl text-elder-text-secondary space-y-3">
             {(() => {
               // Split by newlines to get individual bullet points
               const bulletPoints = result.additionalInfo
@@ -292,8 +283,8 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                 // Clean the bullet point text
                 let cleanPoint = point.replace(/^[•\-*]\s*/, ''); // Remove existing bullets
                 
-                // Ensure max 8 words per bullet
-                const words = cleanPoint.split(' ').slice(0, 8);
+                // UPDATED: Increased to max 20 words per bullet
+                const words = cleanPoint.split(/\s+/).filter(w => w.length > 0).slice(0, 20);
                 cleanPoint = words.join(' ');
                 
                 return (

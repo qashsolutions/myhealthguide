@@ -55,6 +55,58 @@ const healthQuestionSchema = z.object({
 // This ensures consistency across all API routes and fixes the authentication issue
 // where Bearer tokens were expected but the frontend only sends session cookies
 
+// ADDED: Health-related question validation
+// Ensures users only ask about health, medications, or supplements
+const isHealthRelatedQuestion = (question: string): boolean => {
+  const lowerQuestion = question.toLowerCase();
+  
+  // Health-related keywords that indicate a valid question
+  const healthKeywords = [
+    // Medical conditions
+    'health', 'medical', 'doctor', 'symptom', 'disease', 'illness', 'condition',
+    'pain', 'ache', 'fever', 'cold', 'flu', 'covid', 'diabetes', 'pressure',
+    'heart', 'lung', 'kidney', 'liver', 'cancer', 'infection', 'allergy',
+    
+    // Medications
+    'medication', 'medicine', 'drug', 'pill', 'tablet', 'dose', 'prescription',
+    'aspirin', 'ibuprofen', 'acetaminophen', 'antibiotic', 'insulin', 'inhaler',
+    
+    // Supplements
+    'supplement', 'vitamin', 'mineral', 'herb', 'omega', 'probiotic', 'calcium',
+    'magnesium', 'zinc', 'iron', 'b12', 'd3', 'multivitamin',
+    
+    // Treatment
+    'treatment', 'therapy', 'cure', 'remedy', 'relief', 'help', 'manage',
+    
+    // Body parts
+    'head', 'chest', 'stomach', 'back', 'joint', 'muscle', 'bone', 'skin',
+    
+    // Symptoms
+    'nausea', 'dizzy', 'tired', 'fatigue', 'sleep', 'appetite', 'weight'
+  ];
+  
+  // Check if question contains health-related keywords
+  return healthKeywords.some(keyword => lowerQuestion.includes(keyword));
+};
+
+// ADDED: Profanity filter
+// Blocks inappropriate content to maintain professional healthcare environment
+const containsProfanity = (text: string): boolean => {
+  const lowerText = text.toLowerCase();
+  
+  // Common profanity patterns (keeping list minimal for professional context)
+  const profanityPatterns = [
+    /\bf+u+c+k+/i,
+    /\bs+h+i+t+/i,
+    /\ba+s+s+h+o+l+e+/i,
+    /\bb+i+t+c+h+/i,
+    /\bd+a+m+n+/i,
+    /\bh+e+l+l+/i,
+  ];
+  
+  return profanityPatterns.some(pattern => pattern.test(lowerText));
+};
+
 // Log question for analytics (anonymized)
 const logQuestion = async (userId: string, question: string, category?: string) => {
   try {
@@ -163,6 +215,42 @@ export async function POST(request: NextRequest) {
       }
       
       const questionData: HealthQuestion = validationResult.data;
+      
+      // ADDED: Validate question is health-related
+      if (!isHealthRelatedQuestion(questionData.question)) {
+        console.log('[Health QA API] Non-health question blocked:', questionData.question);
+        
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Please ask questions about health, medications, or supplements only.',
+            code: 'validation/non-health-topic',
+            data: {
+              message: 'I can help with health, medication, and supplement questions.',
+              examples: [
+                'What are the side effects of aspirin?',
+                'Can I take vitamin D with calcium?',
+                'What helps with high blood pressure?'
+              ]
+            }
+          },
+          { status: 400 }
+        );
+      }
+      
+      // ADDED: Profanity check
+      if (containsProfanity(questionData.question)) {
+        console.log('[Health QA API] Profanity detected in question');
+        
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Please keep your questions respectful and appropriate.',
+            code: 'validation/inappropriate-content'
+          },
+          { status: 400 }
+        );
+      }
       
       // Log the question (anonymized)
       await logQuestion(userId, questionData.question, questionData.category);

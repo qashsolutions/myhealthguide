@@ -16,12 +16,15 @@ interface MedicationListProps {
   medications: Medication[];
   onRemove: (id: string) => void;
   onEdit: (id: string, updated: Medication) => void;
+  // ADDED: Show medication limit
+  maxMedications?: number;
 }
 
 export function MedicationList({
   medications,
   onRemove,
   onEdit,
+  maxMedications = 3,  // ADDED: Default limit
 }: MedicationListProps): JSX.Element {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Medication | null>(null);
@@ -54,10 +57,19 @@ export function MedicationList({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-elder-lg font-semibold text-elder-text flex items-center gap-3">
-        <Pill className="h-6 w-6 text-primary-600" />
-        Your Medications ({medications.length})
-      </h2>
+      {/* UPDATED: Show medication count with limit */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-elder-lg font-semibold text-elder-text flex items-center gap-3">
+          <Pill className="h-6 w-6 text-primary-600" />
+          Your Medications ({medications.length}/{maxMedications})
+        </h2>
+        {/* ADDED: Visual indicator for limit */}
+        {medications.length === maxMedications && (
+          <span className="text-elder-sm text-health-warning bg-health-warning-bg px-3 py-1 rounded-elder">
+            Limit Reached
+          </span>
+        )}
+      </div>
 
       {medications.length === 0 ? (
         <p className="text-elder-base text-elder-text-secondary py-8 text-center">

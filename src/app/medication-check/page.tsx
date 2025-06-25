@@ -146,17 +146,24 @@ function MedicationCheckPage() {
       )}
 
       {/* Medication form */}
+      {/* UPDATED: Pass current medication count and max limit */}
       <div className="mb-8">
-        <MedicationForm onAddMedication={handleAddMedication} />
+        <MedicationForm 
+          onAddMedication={handleAddMedication}
+          currentMedicationCount={medications.length}
+          maxMedications={3}
+        />
       </div>
 
       {/* Medication list */}
       {medications.length > 0 && (
         <>
+          {/* UPDATED: Pass maxMedications to show limit in list */}
           <MedicationList
             medications={medications}
             onRemove={handleRemoveMedication}
             onEdit={handleEditMedication}
+            maxMedications={3}
           />
 
           {/* Action buttons */}
@@ -190,10 +197,17 @@ function MedicationCheckPage() {
           Tips for Best Results
         </h2>
         <ul className="space-y-2">
+          {/* UPDATED: Emphasize 3-medication limit and why */}
           <li className="flex items-start gap-3">
             <span className="text-primary-600">•</span>
             <p className="text-elder-base text-elder-text-secondary">
-              You can check up to 3 medications at a time
+              <strong>Maximum 3 medications per check</strong> - This ensures accurate analysis and clear results
+            </p>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="text-primary-600">•</span>
+            <p className="text-elder-base text-elder-text-secondary">
+              For more than 3 medications, consult your pharmacist for comprehensive review
             </p>
           </li>
           <li className="flex items-start gap-3">

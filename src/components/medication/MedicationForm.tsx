@@ -27,10 +27,20 @@ type MedicationFormData = z.infer<typeof medicationSchema>;
 
 interface MedicationFormProps {
   onAddMedication: (medication: Medication) => void;
+  // ADDED: Props to handle medication limit
+  currentMedicationCount?: number;
+  maxMedications?: number;
 }
 
-export function MedicationForm({ onAddMedication }: MedicationFormProps): JSX.Element {
+export function MedicationForm({ 
+  onAddMedication,
+  currentMedicationCount = 0,
+  maxMedications = 3  // ADDED: Default limit of 3 medications
+}: MedicationFormProps): JSX.Element {
   const [showOptionalFields, setShowOptionalFields] = useState(false);
+  
+  // ADDED: Check if we've reached the medication limit
+  const isAtLimit = currentMedicationCount >= maxMedications;
 
   const {
     register,
@@ -69,76 +79,97 @@ export function MedicationForm({ onAddMedication }: MedicationFormProps): JSX.El
         <div className="p-3 bg-primary-50 rounded-elder">
           <Pill className="h-8 w-8 text-primary-600" />
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="text-elder-lg font-semibold">Add a Medication</h2>
           <p className="text-elder-sm text-elder-text-secondary">
-            Start typing to see medication suggestions
+            {/* UPDATED: Show medication limit status */}
+            {isAtLimit 
+              ? `Maximum ${maxMedications} medications reached. Remove one to add another.`
+              : `Start typing to see suggestions (${currentMedicationCount}/${maxMedications} added)`
+            }
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Medication name with autocomplete */}
-        <MedicationAutocomplete
-          value={watch('name') || ''}
-          onChange={(value) => setValue('name', value, { shouldValidate: true })}
-          error={errors.name?.message}
-          required
-        />
+      {/* UPDATED: Show limit message when at capacity */}
+      {isAtLimit ? (
+        <div className="bg-health-warning-bg border-2 border-health-warning rounded-elder-lg p-6 text-center">
+          <p className="text-elder-lg font-semibold text-elder-text mb-2">
+            Medication Limit Reached
+          </p>
+          <p className="text-elder-base text-elder-text-secondary">
+            You can check up to {maxMedications} medications at once for accurate results.
+            Please remove a medication to add another.
+          </p>
+          <p className="text-elder-sm text-elder-text-secondary mt-4">
+            For complex medication regimens with more than {maxMedications} medications, 
+            please consult your pharmacist or healthcare provider.
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Medication name with autocomplete */}
+          <MedicationAutocomplete
+            value={watch('name') || ''}
+            onChange={(value) => setValue('name', value, { shouldValidate: true })}
+            error={errors.name?.message}
+            required
+          />
 
-        {/* Optional fields */}
-        {showOptionalFields ? (
-          <>
-            <Input
-              {...register('dosage')}
-              label="Dosage (Optional)"
-              placeholder="e.g., 10mg"
-              error={errors.dosage?.message}
-              helpText="Include strength and units if known"
-            />
+          {/* Optional fields */}
+          {showOptionalFields ? (
+            <>
+              <Input
+                {...register('dosage')}
+                label="Dosage (Optional)"
+                placeholder="e.g., 10mg"
+                error={errors.dosage?.message}
+                helpText="Include strength and units if known"
+              />
 
-            <Input
-              {...register('frequency')}
-              label="Frequency (Optional)"
-              placeholder="e.g., Once daily"
-              error={errors.frequency?.message}
-              helpText="How often you take this medication"
-            />
+              <Input
+                {...register('frequency')}
+                label="Frequency (Optional)"
+                placeholder="e.g., Once daily"
+                error={errors.frequency?.message}
+                helpText="How often you take this medication"
+              />
 
-            <Input
-              {...register('prescribedFor')}
-              label="Prescribed For (Optional)"
-              placeholder="e.g., High blood pressure"
-              error={errors.prescribedFor?.message}
-              helpText="Condition this medication treats"
-            />
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowOptionalFields(true)}
-            className="w-full text-left p-4 border-2 border-dashed border-elder-border rounded-elder hover:border-primary-500 transition-colors"
+              <Input
+                {...register('prescribedFor')}
+                label="Prescribed For (Optional)"
+                placeholder="e.g., High blood pressure"
+                error={errors.prescribedFor?.message}
+                helpText="Condition this medication treats"
+              />
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowOptionalFields(true)}
+              className="w-full text-left p-4 border-2 border-dashed border-elder-border rounded-elder hover:border-primary-500 transition-colors"
+            >
+              <p className="text-elder-base text-elder-text-secondary">
+                + Add more details (optional)
+              </p>
+              <p className="text-elder-sm text-elder-text-secondary mt-1">
+                Dosage, frequency, condition
+              </p>
+            </button>
+          )}
+
+          {/* Submit button */}
+          <Button
+            type="submit"
+            variant="primary"
+            size="large"
+            fullWidth
+            icon={<Plus className="h-6 w-6" />}
           >
-            <p className="text-elder-base text-elder-text-secondary">
-              + Add more details (optional)
-            </p>
-            <p className="text-elder-sm text-elder-text-secondary mt-1">
-              Dosage, frequency, condition
-            </p>
-          </button>
-        )}
-
-        {/* Submit button */}
-        <Button
-          type="submit"
-          variant="primary"
-          size="large"
-          fullWidth
-          icon={<Plus className="h-6 w-6" />}
-        >
-          Add Medication
-        </Button>
-      </form>
+            Add Medication
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
