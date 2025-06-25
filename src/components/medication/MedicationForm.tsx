@@ -39,6 +39,13 @@ const containsProfanity = (text: string): boolean => {
 const isValidMedicationName = (name: string): boolean => {
   const cleaned = name.trim().toLowerCase();
   
+  // IMPORTANT: Check for multiple medications in one entry
+  // Count potential separators (commas, semicolons, "and", "+")
+  const separatorCount = (cleaned.match(/[,;]|\band\b|\bor\b|\+|\//g) || []).length;
+  if (separatorCount > 0) {
+    return false; // Reject entries with multiple medications
+  }
+  
   // Check for profanity first
   if (containsProfanity(cleaned)) {
     return false;
@@ -46,6 +53,12 @@ const isValidMedicationName = (name: string): boolean => {
   
   // Check if it's too short or just numbers
   if (cleaned.length < 2 || /^\d+$/.test(cleaned)) {
+    return false;
+  }
+  
+  // Check if it's exactly a common invalid pattern (not as part of a word)
+  const exactInvalidPatterns = ['abc', 'xyz', 'test', 'asdf', 'qwerty', 'aaa', 'bbb'];
+  if (exactInvalidPatterns.includes(cleaned)) {
     return false;
   }
   
@@ -60,40 +73,43 @@ const isValidMedicationName = (name: string): boolean => {
     return false;
   }
   
-  // Check for keyboard mashing patterns
-  const keyboardPatterns = [
-    /asdf/i,
-    /qwer/i,
-    /zxcv/i,
-    /sdfg/i,
-    /dfgh/i,
-    /fghj/i,
-  ];
-  
-  // Check if more than 40% of the string contains keyboard patterns
-  const patternMatches = keyboardPatterns.filter(pattern => pattern.test(cleaned)).length;
-  if (patternMatches >= 2 || (patternMatches === 1 && cleaned.length < 10)) {
+  // Check for excessive consonants in a row (indicates keyboard mashing)
+  const tooManyConsonants = /[bcdfghjklmnpqrstvwxyz]{5,}/i.test(cleaned);
+  if (tooManyConsonants) {
     return false;
   }
   
-  // Common invalid patterns
-  const invalidPatterns = [
-    /^test$/i,
-    /^xxx/i,
-    /^abc$/i,
-    /^123/i,
-    /^aaa+$/i,
-    /^bbb+$/i,
+  // Check for random character patterns (like "wfewrwer")
+  // If more than 60% of the string is consonants, likely keyboard mashing
+  const consonantCount = (cleaned.match(/[bcdfghjklmnpqrstvwxyz]/gi) || []).length;
+  const consonantRatio = consonantCount / cleaned.length;
+  if (consonantRatio > 0.75 && cleaned.length > 4) {
+    return false;
+  }
+  
+  // Check for keyboard patterns anywhere in the string
+  const keyboardPatterns = [
+    /qwer/i,
+    /asdf/i,
+    /zxcv/i,
+    /qaz/i,
+    /wsx/i,
+    /edc/i,
   ];
   
-  return !invalidPatterns.some(pattern => pattern.test(cleaned));
+  const hasKeyboardPattern = keyboardPatterns.some(pattern => pattern.test(cleaned));
+  if (hasKeyboardPattern) {
+    return false;
+  }
+  
+  return true;
 };
 
 const medicationSchema = z.object({
   name: z.string()
     .min(1, VALIDATION_MESSAGES.MEDICATION_NAME)
     .refine(isValidMedicationName, {
-      message: 'Please enter a valid medication name',
+      message: 'Please enter a single valid medication name. Do not include multiple medications separated by commas.',
     }),
   dosage: z.string().optional(),
   frequency: z.string().optional(),
@@ -194,31 +210,41 @@ export function MedicationForm({
           />
 
           {/* ADDED: Enhanced error message for invalid medication names */}
-          {errors.name?.message === 'Please enter a valid medication name' && (
+          {errors.name?.message && (
             <div className="bg-health-warning-bg border-2 border-health-warning rounded-elder p-4 mt-2">
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-6 w-6 text-health-warning flex-shrink-0 mt-1" />
                 <div className="flex-1">
                   <p className="text-elder-base font-semibold text-elder-text mb-2">
-                    Please enter a valid medication name
+                    {errors.name.message.includes('multiple medications') 
+                      ? 'Please add one medication at a time' 
+                      : 'Please enter a valid medication name'}
                   </p>
-                  <p className="text-elder-sm text-elder-text-secondary mb-3">
-                    Examples of valid medications:
-                  </p>
-                  <ul className="text-elder-sm text-elder-text-secondary space-y-1">
-                    <li className="flex items-center gap-2">
-                      <Pill className="h-4 w-4 text-primary-600" />
-                      <span>Aspirin, Ibuprofen, Acetaminophen</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Pill className="h-4 w-4 text-primary-600" />
-                      <span>Lisinopril, Metformin, Atorvastatin</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Pill className="h-4 w-4 text-primary-600" />
-                      <span>Vitamin D, Calcium, Fish Oil</span>
-                    </li>
-                  </ul>
+                  {errors.name.message.includes('multiple medications') ? (
+                    <p className="text-elder-sm text-elder-text-secondary">
+                      Add each medication separately using the form. You can add up to 3 medications total.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-elder-sm text-elder-text-secondary mb-3">
+                        Examples of valid medications:
+                      </p>
+                      <ul className="text-elder-sm text-elder-text-secondary space-y-1">
+                        <li className="flex items-center gap-2">
+                          <Pill className="h-4 w-4 text-primary-600" />
+                          <span>Aspirin, Ibuprofen, Acetaminophen</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Pill className="h-4 w-4 text-primary-600" />
+                          <span>Lisinopril, Metformin, Atorvastatin</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Pill className="h-4 w-4 text-primary-600" />
+                          <span>Vitamin D, Calcium, Fish Oil</span>
+                        </li>
+                      </ul>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

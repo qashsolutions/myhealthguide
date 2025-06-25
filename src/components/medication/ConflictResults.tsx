@@ -25,6 +25,7 @@ interface ConflictResultsProps {
 
 export function ConflictResults({ result, medications }: ConflictResultsProps): JSX.Element {
   const [expandedConflicts, setExpandedConflicts] = useState<string[]>([]);
+  const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
   // REMOVED: Audio features as requested
 
   // UPDATED: Get traffic light color and icon with consistent labeling
@@ -235,7 +236,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
           </h3>
           {/* IMPORTANT: Clean the advice text to remove any JSON artifacts */}
           {/* UPDATED: Larger font for better readability */}
-          <p className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary">
+          <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary">
             {(() => {
               // Clean any potential JSON string artifacts
               let advice = result.generalAdvice;
@@ -252,11 +253,34 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
                 }
               }
               
-              // UPDATED: Increased to max 20 words for better context
-              const words = advice.split(/\s+/).filter((w: string) => w.length > 0).slice(0, 20);
-              return words.join(' ') + (words.length >= 20 && !advice.endsWith('.') ? '.' : '');
+              const words = advice.split(/\s+/).filter((w: string) => w.length > 0);
+              const isLongText = words.length > 20;
+              const isExpanded = expandedSections['generalAdvice'];
+              
+              if (!isLongText) {
+                return <p>{advice}</p>;
+              }
+              
+              return (
+                <>
+                  <p>
+                    {isExpanded 
+                      ? advice 
+                      : words.slice(0, 20).join(' ') + '...'}
+                  </p>
+                  <button
+                    onClick={() => setExpandedSections(prev => ({
+                      ...prev,
+                      generalAdvice: !prev.generalAdvice
+                    }))}
+                    className="mt-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                  >
+                    {isExpanded ? 'Show less' : 'Read more'}
+                  </button>
+                </>
+              );
             })()}
-          </p>
+          </div>
         </div>
       )}
 
@@ -276,24 +300,72 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
               // Split by newlines to get individual bullet points
               const bulletPoints = result.additionalInfo
                 .split('\n')
-                .filter(line => line.trim().length > 0)
-                .slice(0, 3); // Max 3 bullet points
+                .filter(line => line.trim().length > 0);
+              
+              const isExpanded = expandedSections['additionalInfo'];
               
               return bulletPoints.map((point, index) => {
+                // Only show first 3 bullets if not expanded
+                if (!isExpanded && index >= 3) return null;
+                
                 // Clean the bullet point text
                 let cleanPoint = point.replace(/^[•\-*]\s*/, ''); // Remove existing bullets
+                const words = cleanPoint.split(/\s+/).filter((w: string) => w.length > 0);
+                const isLongBullet = words.length > 20;
                 
-                // UPDATED: Increased to max 20 words per bullet
-                const words = cleanPoint.split(/\s+/).filter((w: string) => w.length > 0).slice(0, 20);
-                cleanPoint = words.join(' ');
+                // Check if this specific bullet is expanded
+                const bulletExpanded = expandedSections[`bullet-${index}`];
+                
+                if (!isLongBullet) {
+                  return (
+                    <div key={index} className="flex items-start gap-2">
+                      <span className="text-primary-600 mt-1">•</span>
+                      <span>{cleanPoint}</span>
+                    </div>
+                  );
+                }
                 
                 return (
                   <div key={index} className="flex items-start gap-2">
                     <span className="text-primary-600 mt-1">•</span>
-                    <span>{cleanPoint}</span>
+                    <div className="flex-1">
+                      <span>
+                        {bulletExpanded 
+                          ? cleanPoint 
+                          : words.slice(0, 20).join(' ') + '...'}
+                      </span>
+                      <button
+                        onClick={() => setExpandedSections(prev => ({
+                          ...prev,
+                          [`bullet-${index}`]: !prev[`bullet-${index}`]
+                        }))}
+                        className="ml-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                      >
+                        {bulletExpanded ? 'Show less' : 'Read more'}
+                      </button>
+                    </div>
                   </div>
                 );
-              });
+              }).filter(Boolean);
+            })()}
+            {(() => {
+              const totalBullets = result.additionalInfo.split('\n').filter(line => line.trim().length > 0).length;
+              const isExpanded = expandedSections['additionalInfo'];
+              
+              if (totalBullets > 3) {
+                return (
+                  <button
+                    onClick={() => setExpandedSections(prev => ({
+                      ...prev,
+                      additionalInfo: !prev.additionalInfo
+                    }))}
+                    className="mt-3 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                  >
+                    {isExpanded ? 'Show less' : `Show ${totalBullets - 3} more`}
+                  </button>
+                );
+              }
+              return null;
             })()}
           </div>
         </div>
