@@ -103,10 +103,18 @@ export interface HealthAnswer {
   id: string;
   question: string;
   answer: string;
-  confidence: number;
   sources?: string[];
   disclaimer: string;
   answeredAt: Date;
+  // ADDED: Medication-specific details (when applicable)
+  medicationDetails?: {
+    brandNames?: string[];
+    genericName?: string;
+    pronunciation?: string;
+    drugClasses?: string[];
+    availability?: string;
+    howUsed?: string;
+  };
 }
 
 // Vertex AI types

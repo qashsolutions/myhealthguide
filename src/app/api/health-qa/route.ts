@@ -307,8 +307,7 @@ export async function POST(request: NextRequest) {
         
         console.log('[Health QA API] Answer received:', {
           hasAnswer: !!answer.answer,
-          answerLength: answer.answer?.length || 0,
-          confidence: answer.confidence
+          answerLength: answer.answer?.length || 0
         });
         
         return NextResponse.json<ApiResponse<HealthAnswer>>(

@@ -461,28 +461,74 @@ export const answerHealthQuestion = async (
   question: HealthQuestion
 ): Promise<HealthAnswer> => {
   try {
-    const prompt = `As a medical AI assistant, answer this health question for an elderly user (65+ years).
+    // Check if this is a medication-specific question
+    const isMedicationQuestion = question.question.toLowerCase().includes('what is') && 
+                                question.question.toLowerCase().includes('used for');
+    
+    let prompt: string;
+    
+    if (isMedicationQuestion) {
+      // Extract medication name from question
+      const medNameMatch = question.question.match(/what is (\w+)/i);
+      const medicationName = medNameMatch ? medNameMatch[1] : '';
+      
+      prompt = `As a medical AI assistant, provide information about ${medicationName} for an elderly user (65+ years).
+
+Return a JSON response with the following structure:
+{
+  "summary": "One sentence describing what the medication is used for",
+  "details": "Additional details about side effects and precautions in simple language (50 words max)",
+  "medicationDetails": {
+    "brandNames": ["list of common brand names"],
+    "genericName": "generic name",
+    "pronunciation": "how to pronounce it",
+    "drugClasses": ["drug classification"],
+    "availability": "prescription only or OTC",
+    "howUsed": "tablet, capsule, liquid, etc"
+  }
+}
+
+Focus on safety and use simple language appropriate for elderly users.`;
+    } else {
+      prompt = `As a medical AI assistant, answer this health question for an elderly user (65+ years).
 
 Question: ${question.question}
 ${question.context ? `Context: ${question.context}` : ''}
 
-Format your response EXACTLY as follows:
-1. FIRST LINE: One sentence summary of the answer
-2. SECOND PARAGRAPH: Additional details in 50 words or less, using simple language
-3. FOOTER: "DISCLAIMER: This information is NOT to be used as a substitute for a qualified and licensed physician or a healthcare provider. ALWAYS check with one and do not use this information for any treatment(s)."
+Provide a clear, concise answer in simple language:
+1. One sentence summary
+2. Additional helpful details (50 words or less)
 
 Be conservative and focus on safety.`;
+    }
 
-    // Make API request to Claude (replaces Vertex AI call)
-    const aiResponse = await makeClaudeRequest(prompt, 800);
+    // Make API request to Claude
+    const aiResponse = await makeClaudeRequest(prompt, 1000);
+    
+    let answer: string;
+    let medicationDetails: any = undefined;
+    
+    if (isMedicationQuestion) {
+      try {
+        // Try to parse JSON response for medication questions
+        const jsonResponse = JSON.parse(aiResponse);
+        answer = `${jsonResponse.summary}\n\n${jsonResponse.details}`;
+        medicationDetails = jsonResponse.medicationDetails;
+      } catch (e) {
+        // Fallback if JSON parsing fails
+        answer = aiResponse;
+      }
+    } else {
+      answer = aiResponse;
+    }
 
     return {
       id: `answer-${Date.now()}`,
       question: question.question,
-      answer: aiResponse,
-      confidence: 0.95, // Claude Sonnet 4 typically provides higher confidence responses
+      answer: answer,
       disclaimer: DISCLAIMERS.GENERAL,
       answeredAt: new Date(),
+      medicationDetails: medicationDetails,
     };
   } catch (error) {
     console.error('Health Q&A error (Claude API):', error);
@@ -491,7 +537,6 @@ Be conservative and focus on safety.`;
       id: `answer-error-${Date.now()}`,
       question: question.question,
       answer: 'I apologize, but I encountered an error processing your question. Please try again or consult your healthcare provider directly.',
-      confidence: 0,
       disclaimer: DISCLAIMERS.GENERAL,
       answeredAt: new Date(),
     };

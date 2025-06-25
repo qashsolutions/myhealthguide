@@ -240,17 +240,61 @@ function HealthQAPage() {
                   </p>
                 </div>
                 
-                {answer.confidence && (
-                  <div className="mt-4 flex items-center gap-2">
-                    <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-primary-600 h-2 rounded-full"
-                        style={{ width: `${answer.confidence * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-elder-sm text-elder-text-secondary">
-                      {Math.round(answer.confidence * 100)}% confident
-                    </span>
+                {answer.medicationDetails && (
+                  <div className="mt-4 space-y-3 border-t pt-4">
+                    {answer.medicationDetails.brandNames && answer.medicationDetails.brandNames.length > 0 && (
+                      <div>
+                        <span className="text-elder-sm font-semibold text-elder-text">Common Brand Name(s): </span>
+                        <span className="text-elder-sm text-elder-text-secondary">
+                          {answer.medicationDetails.brandNames.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {answer.medicationDetails.genericName && (
+                      <div>
+                        <span className="text-elder-sm font-semibold text-elder-text">Generic Name: </span>
+                        <span className="text-elder-sm text-elder-text-secondary">
+                          {answer.medicationDetails.genericName}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {answer.medicationDetails.pronunciation && (
+                      <div>
+                        <span className="text-elder-sm font-semibold text-elder-text">Pronunciation: </span>
+                        <span className="text-elder-sm text-elder-text-secondary">
+                          {answer.medicationDetails.pronunciation}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {answer.medicationDetails.drugClasses && answer.medicationDetails.drugClasses.length > 0 && (
+                      <div>
+                        <span className="text-elder-sm font-semibold text-elder-text">Drug Classes: </span>
+                        <span className="text-elder-sm text-elder-text-secondary">
+                          {answer.medicationDetails.drugClasses.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {answer.medicationDetails.availability && (
+                      <div>
+                        <span className="text-elder-sm font-semibold text-elder-text">Availability: </span>
+                        <span className="text-elder-sm text-elder-text-secondary">
+                          {answer.medicationDetails.availability}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {answer.medicationDetails.howUsed && (
+                      <div>
+                        <span className="text-elder-sm font-semibold text-elder-text">How is it used? </span>
+                        <span className="text-elder-sm text-elder-text-secondary">
+                          {answer.medicationDetails.howUsed}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
                 
