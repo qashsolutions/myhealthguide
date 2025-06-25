@@ -21,8 +21,8 @@ export default function PrivacyPolicyPage() {
           <h1 className="text-3xl font-bold text-[#2c3e50] border-b-2 border-[#3498db] pb-2.5 mb-4">
             Privacy Policy
           </h1>
-          <p className="italic text-[#666] mb-1">Effective Date: December 19, 2024</p>
-          <p className="italic text-[#666] mb-4">Last Updated: December 19, 2024</p>
+          <p className="italic text-[#666] mb-1">Effective Date: June 25, 2025</p>
+          <p className="italic text-[#666] mb-4">Last Updated: June 25, 2025</p>
           
           <p className="mb-4 text-[#333] leading-[1.6]">
             This Privacy Policy describes how <span className="font-bold">Qash Solutions Inc.</span> (D-U-N-S® Number: 119536275), 
@@ -52,10 +52,6 @@ export default function PrivacyPolicyPage() {
             <li className="mb-2 text-[#333] leading-[1.6]">
               <strong>Health Information:</strong> We collect information about your medications, supplements, 
               dietary restrictions, medical conditions, and healthcare providers that you choose to enter into the App.
-            </li>
-            <li className="mb-2 text-[#333] leading-[1.6]">
-              <strong>Voice Data:</strong> When you use our voice input features, we process your voice commands 
-              locally on your device to convert speech to text. We do not store voice recordings.
             </li>
             <li className="mb-2 text-[#333] leading-[1.6]">
               <strong>Caregiver Information:</strong> If you invite caregivers or family members, we collect their 
@@ -241,31 +237,14 @@ export default function PrivacyPolicyPage() {
             You can access and update your personal information directly within the App settings.
           </p>
           
-          <h3 className="text-xl font-semibold text-[#2c3e50] mt-5 mb-3">5.2 Data Portability</h3>
-          <p className="mb-4 text-[#333] leading-[1.6]">
-            You can export your medication list and health data in PDF or CSV format through the App.
-          </p>
           
-          <h3 className="text-xl font-semibold text-[#2c3e50] mt-5 mb-3">5.3 Deletion</h3>
-          <p className="mb-4 text-[#333] leading-[1.6]">
-            You can request deletion of your account and associated data by{' '}
-            <Link href="/account/delete" className="text-blue-600 hover:underline">
-              clicking here
-            </Link>
-            . Note that we may retain certain information as required by law or for legitimate business purposes.
-          </p>
-          
-          <h3 className="text-xl font-semibold text-[#2c3e50] mt-5 mb-3">5.4 Push Notifications</h3>
+          <h3 className="text-xl font-semibold text-[#2c3e50] mt-5 mb-3">5.2 Push Notifications</h3>
           <p className="mb-4 text-[#333] leading-[1.6]">
             You can control push notifications through your device settings or within the App.
           </p>
           
-          <h3 className="text-xl font-semibold text-[#2c3e50] mt-5 mb-3">5.5 Voice Features</h3>
-          <p className="mb-4 text-[#333] leading-[1.6]">
-            Voice input is optional. You can always use text input instead of voice commands.
-          </p>
           
-          <h3 className="text-xl font-semibold text-[#2c3e50] mt-5 mb-3">5.6 Analytics</h3>
+          <h3 className="text-xl font-semibold text-[#2c3e50] mt-5 mb-3">5.3 Analytics</h3>
           <p className="text-[#333] leading-[1.6]">
             You can opt out of analytics collection in the App settings.
           </p>
@@ -307,9 +286,9 @@ export default function PrivacyPolicyPage() {
           </h2>
           
           <p className="text-[#333] leading-[1.6]">
-            Our Services are not intended for children under 13 years of age. We do not knowingly collect 
-            personal information from children under 13. If we become aware that we have collected information 
-            from a child under 13, we will take steps to delete such information.
+            Our Services are not intended for children under 18 years of age. We do not knowingly collect 
+            personal information from children under 18. If we become aware that we have collected information 
+            from a child under 18, we will take steps to delete such information.
           </p>
         </div>
 
@@ -320,9 +299,9 @@ export default function PrivacyPolicyPage() {
           </h2>
           
           <p className="text-[#333] leading-[1.6]">
-            Your information may be transferred to and processed in the United States where our servers and 
-            service providers are located. By using our Services, you consent to such transfers. We ensure 
-            appropriate safeguards are in place to protect your information in accordance with this Privacy Policy.
+            Our information is stored only in servers in the United States and never transferred out. 
+            All data processing occurs within the United States. We ensure appropriate safeguards are in 
+            place to protect your information in accordance with this Privacy Policy.
           </p>
         </div>
 
@@ -398,7 +377,7 @@ export default function PrivacyPolicyPage() {
               <strong>Qash Solutions Inc.</strong><br />
               Operating as: MyGuide Health<br />
               D-U-N-S® Number: 119536275<br />
-              Email: <a href="mailto:privacy@myguide.health" className="text-blue-600 hover:underline">privacy@myguide.health</a><br />
+              Email: <a href="mailto:admin@myguide.health" className="text-blue-600 hover:underline">admin@myguide.health</a><br />
               Website: <a href="https://myguide.health" className="text-blue-600 hover:underline">https://myguide.health</a>
             </p>
             

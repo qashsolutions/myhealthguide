@@ -254,28 +254,52 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
               }
               
               const words = advice.split(/\s+/).filter((w: string) => w.length > 0);
-              const isLongText = words.length > 20;
+              const isLongText = words.length > 25;
               const isExpanded = expandedSections['generalAdvice'];
               
               if (!isLongText) {
                 return <p>{advice}</p>;
               }
               
+              // Find a better truncation point - end of sentence or after 25 words
+              let truncatedText = advice;
+              if (!isExpanded) {
+                const first25Words = words.slice(0, 25).join(' ');
+                
+                // Try to find the last complete sentence within the first 25 words
+                const sentences = first25Words.match(/[^.!?]+[.!?]/g);
+                if (sentences && sentences.length > 0) {
+                  truncatedText = sentences.join('').trim();
+                } else {
+                  // If no complete sentence, at least try to avoid cutting mid-word
+                  truncatedText = first25Words;
+                  // Add the rest of the current word if we cut it off
+                  const remainingText = advice.substring(first25Words.length);
+                  const nextWordMatch = remainingText.match(/^[^\s]+/);
+                  if (nextWordMatch) {
+                    truncatedText += nextWordMatch[0];
+                  }
+                }
+                truncatedText += '...';
+              }
+              
               return (
                 <>
                   <p>
-                    {isExpanded 
-                      ? advice 
-                      : words.slice(0, 20).join(' ') + '...'}
+                    {isExpanded ? advice : truncatedText}
                   </p>
                   <button
                     onClick={() => setExpandedSections(prev => ({
                       ...prev,
                       generalAdvice: !prev.generalAdvice
                     }))}
-                    className="mt-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                    className="mt-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded inline-flex items-center gap-1"
                   >
-                    {isExpanded ? 'Show less' : 'Read more'}
+                    {isExpanded ? (
+                      <>Show less <ChevronUp className="h-4 w-4" /></>
+                    ) : (
+                      <>Read more <ChevronDown className="h-4 w-4" /></>
+                    )}
                   </button>
                 </>
               );
