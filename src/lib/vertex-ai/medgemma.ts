@@ -129,15 +129,46 @@ const parseCheckResponse = (
     if (response.trim().startsWith('{')) {
       try {
         const jsonResponse = JSON.parse(response);
-        if (jsonResponse.interactions) {
-          result.interactions = jsonResponse.interactions;
-          result.status = jsonResponse.overallRisk || 'safe';
-          result.summary = jsonResponse.summary || result.summary;
-          result.generalAdvice = jsonResponse.advice || result.generalAdvice;
+        
+        // UPDATED: Extract and clean the response data properly
+        if (jsonResponse) {
+          // Set interactions array - ensure it's always an array
+          result.interactions = Array.isArray(jsonResponse.interactions) 
+            ? jsonResponse.interactions 
+            : [];
+          
+          // IMPORTANT: Fix contradictory status - if no interactions, risk should be 'safe'
+          if (result.interactions.length === 0) {
+            result.status = 'safe';
+            result.overallRisk = 'safe';
+            result.summary = 'No medication interactions detected.';
+          } else {
+            // If interactions exist, use the provided risk level
+            result.status = jsonResponse.overallRisk || 'warning';
+            result.overallRisk = jsonResponse.overallRisk || 'warning';
+            result.summary = jsonResponse.summary || 'Potential interactions found.';
+          }
+          
+          // UPDATED: Clean and format general advice - max 10 words
+          if (jsonResponse.advice) {
+            // Remove any JSON formatting if accidentally included
+            let advice = jsonResponse.advice;
+            if (typeof advice === 'object') {
+              advice = JSON.stringify(advice);
+            }
+            // Limit to first 10 words for elder-friendly display
+            const words = advice.split(' ').slice(0, 10);
+            result.generalAdvice = words.join(' ') + (words.length >= 10 ? '.' : '');
+          }
+          
+          // UPDATED: Format additional info as bullet points
+          result.additionalInfo = formatAdditionalInfo(jsonResponse);
+          
           result.consultDoctorRecommended = jsonResponse.consultDoctor || false;
           return result;
         }
       } catch (jsonError) {
+        console.log('JSON parsing failed, falling back to text parsing');
         // Continue with text parsing if JSON parsing fails
       }
     }
@@ -218,14 +249,29 @@ const parseCheckResponse = (
       }
     }
     
-    result.interactions = interactions;
+    // UPDATED: Ensure consistent status based on interactions found
+    if (interactions.length === 0) {
+      // No interactions found - ensure status is safe
+      result.status = 'safe';
+      result.overallRisk = 'safe';
+      result.summary = 'No medication interactions detected.';
+      result.interactions = [];
+    } else {
+      // Interactions found - set appropriate risk level
+      result.interactions = interactions;
+      // Status was already set based on severity detection above
+    }
 
-    // Extract additional information
-    result.additionalInfo = extractAdditionalInfo(response);
+    // UPDATED: Format additional info properly
+    result.additionalInfo = formatAdditionalInfo({ 
+      interactions: result.interactions 
+    });
     
-    // Use cleaned AI response as general advice (Claude provides cleaner responses)
+    // UPDATED: Clean and limit general advice to 10 words
     if (response.length > 50) {
-      result.generalAdvice = cleanupAdvice(response);
+      const cleanedAdvice = cleanupAdvice(response);
+      const words = cleanedAdvice.split(' ').slice(0, 10);
+      result.generalAdvice = words.join(' ') + (words.length >= 10 ? '.' : '');
     }
 
   } catch (error) {
@@ -299,6 +345,33 @@ const cleanupAdvice = (text: string): string => {
     .replace(/\n+/g, ' ')
     .trim()
     .substring(0, 500);
+};
+
+// ADDED: Helper function to format additional info as bullet points
+// Extracts key safety information and formats it for elder-friendly display
+const formatAdditionalInfo = (jsonResponse: any): string => {
+  const bulletPoints: string[] = [];
+  
+  // Extract medication-specific warnings
+  if (jsonResponse.interactions && jsonResponse.interactions.length > 0) {
+    // Add interaction summaries (max 8 words each)
+    jsonResponse.interactions.forEach((interaction: any, index: number) => {
+      if (index < 3 && interaction.description) { // Max 3 bullet points
+        const words = interaction.description.split(' ').slice(0, 8);
+        bulletPoints.push(`• ${words.join(' ')}`);
+      }
+    });
+  }
+  
+  // Add general safety reminders if no interactions
+  if (bulletPoints.length === 0) {
+    bulletPoints.push('• Monitor how you feel daily');
+    bulletPoints.push('• Take medications as prescribed always');
+    bulletPoints.push('• Contact doctor with any concerns');
+  }
+  
+  // Format as bullet points with proper spacing
+  return bulletPoints.join('\n');
 };
 
 // Check medications for conflicts using Claude API (updated)

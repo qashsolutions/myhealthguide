@@ -30,7 +30,8 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
   const [expandedConflicts, setExpandedConflicts] = useState<string[]>([]);
   const { speak, isSpeaking, stopSpeaking } = useVoice();
 
-  // Get traffic light color and icon
+  // UPDATED: Get traffic light color and icon with consistent labeling
+  // Ensures "Warning" label only appears for actual warning/danger states
   const getTrafficLight = (riskLevel: string) => {
     switch (riskLevel.toLowerCase()) {
       case 'safe':
@@ -39,7 +40,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
           color: 'health-safe',
           bgColor: 'health-safe-bg',
           icon: CheckCircle,
-          label: 'Safe',
+          label: 'Safe', // Clear "Safe" label for safe status
         };
       case 'warning':
       case 'moderate':
@@ -47,22 +48,23 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
           color: 'health-warning',
           bgColor: 'health-warning-bg',
           icon: AlertTriangle,
-          label: 'Caution',
+          label: 'Caution', // "Caution" for moderate warnings
         };
       case 'danger':
       case 'high':
+      case 'major':
         return {
           color: 'health-danger',
           bgColor: 'health-danger-bg',
           icon: XCircle,
-          label: 'Warning',
+          label: 'Warning', // "Warning" only for high-risk situations
         };
       default:
         return {
           color: 'elder-text-secondary',
           bgColor: 'elder-background',
           icon: Info,
-          label: 'Unknown',
+          label: 'Review Needed',
         };
     }
   };
@@ -120,6 +122,7 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
               </Button>
             </div>
             
+            {/* UPDATED: Use consistent elder-friendly font sizing */}
             <p className="text-elder-base text-elder-text-secondary">
               {result.summary}
             </p>
@@ -220,8 +223,9 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
         </div>
       )}
 
-      {/* No interactions message - FIXED: Use interactions instead of conflicts */}
-      {(!result.interactions || result.interactions.length === 0) && (
+      {/* UPDATED: Show "No Interactions" only when status is safe */}
+      {/* This prevents contradictory messages */}
+      {(!result.interactions || result.interactions.length === 0) && result.overallRisk === 'safe' && (
         <div className="bg-health-safe-bg border-2 border-health-safe rounded-elder-lg p-6 text-center">
           <CheckCircle className="h-12 w-12 text-health-safe mx-auto mb-3" />
           <p className="text-elder-lg font-semibold text-elder-text">
@@ -233,29 +237,74 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
         </div>
       )}
 
-      {/* General advice section - Display Claude's advice */}
+      {/* UPDATED: General advice section with proper formatting */}
+      {/* Displays a single concise sentence (max 10 words) */}
       {result.generalAdvice && (
         <div className="bg-elder-background-alt rounded-elder-lg p-6">
           <h3 className="text-elder-lg font-semibold mb-3 flex items-center gap-3">
             <Info className="h-6 w-6 text-primary-600" />
             General Advice
           </h3>
-          <p className="text-elder-base text-elder-text-secondary whitespace-pre-wrap">
-            {result.generalAdvice}
+          {/* IMPORTANT: Clean the advice text to remove any JSON artifacts */}
+          <p className="text-elder-base text-elder-text-secondary">
+            {(() => {
+              // Clean any potential JSON string artifacts
+              let advice = result.generalAdvice;
+              
+              // Remove JSON formatting if present
+              if (advice.includes('{') || advice.includes('"overallRisk"')) {
+                // Extract just the advice portion if JSON is present
+                const match = advice.match(/"advice":\s*"([^"]+)"/);
+                if (match) {
+                  advice = match[1];
+                } else {
+                  // Fallback: take first sentence
+                  advice = advice.split('.')[0] + '.';
+                }
+              }
+              
+              // Ensure max 10 words for elder-friendly display
+              const words = advice.split(' ').slice(0, 10);
+              return words.join(' ') + (words.length >= 10 && !advice.endsWith('.') ? '.' : '');
+            })()}
           </p>
         </div>
       )}
 
-      {/* Additional information */}
+      {/* UPDATED: Additional information with proper bullet point formatting */}
+      {/* Displays up to 3 bullet points, each max 8 words */}
       {result.additionalInfo && (
         <div className="bg-elder-background-alt rounded-elder-lg p-6">
           <h3 className="text-elder-lg font-semibold mb-3 flex items-center gap-3">
             <Info className="h-6 w-6 text-primary-600" />
             Additional Information
           </h3>
-          <p className="text-elder-base text-elder-text-secondary whitespace-pre-wrap">
-            {result.additionalInfo}
-          </p>
+          {/* IMPORTANT: Format as bullet points for elder-friendly reading */}
+          <div className="text-elder-base text-elder-text-secondary space-y-2">
+            {(() => {
+              // Split by newlines to get individual bullet points
+              const bulletPoints = result.additionalInfo
+                .split('\n')
+                .filter(line => line.trim().length > 0)
+                .slice(0, 3); // Max 3 bullet points
+              
+              return bulletPoints.map((point, index) => {
+                // Clean the bullet point text
+                let cleanPoint = point.replace(/^[•\-*]\s*/, ''); // Remove existing bullets
+                
+                // Ensure max 8 words per bullet
+                const words = cleanPoint.split(' ').slice(0, 8);
+                cleanPoint = words.join(' ');
+                
+                return (
+                  <div key={index} className="flex items-start gap-2">
+                    <span className="text-primary-600 mt-1">•</span>
+                    <span>{cleanPoint}</span>
+                  </div>
+                );
+              });
+            })()}
+          </div>
         </div>
       )}
     </div>
