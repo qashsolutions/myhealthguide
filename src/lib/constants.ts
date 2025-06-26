@@ -133,6 +133,7 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   MEDICATION_CHECK: '/medication-check',
   HEALTH_QA: '/health-qa',
+  PRESCRIPTION_PRICES: '/prescription-prices',
   ACCOUNT: '/account',
   ACCOUNT_DELETE: '/account/delete',
   PRIVACY: '/privacy',
