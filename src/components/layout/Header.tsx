@@ -144,7 +144,7 @@ export function Header(): JSX.Element {
         onClose={() => setIsMobileMenuOpen(false)}
         navItems={navItems}
         isAuthenticated={false}
-        userName={null}
+        userName={undefined}
         onSignOut={handleSignOut}
         onSignIn={() => router.push(ROUTES.AUTH)}
       />
