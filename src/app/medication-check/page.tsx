@@ -94,7 +94,7 @@ export default function MedicationCheckPage() {
     <div className="max-w-4xl mx-auto py-8">
       {/* Back button */}
       <Button
-        variant="ghost"
+        variant="secondary"
         size="small"
         icon={<ArrowLeft className="h-5 w-5" />}
         onClick={() => router.push(ROUTES.DASHBOARD)}
