@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Search, DollarSign, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -10,7 +10,7 @@ import { ROUTES } from '@/lib/constants';
  * Drug price search page using Cost Plus Drugs API
  * No authentication required
  */
-export default function DrugPricesPage() {
+function DrugPricesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
@@ -236,5 +236,19 @@ export default function DrugPricesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function DrugPricesPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-4xl mx-auto py-8">
+        <div className="text-center">
+          <p className="text-elder-base text-elder-text-secondary">Loading...</p>
+        </div>
+      </div>
+    }>
+      <DrugPricesContent />
+    </Suspense>
   );
 }
