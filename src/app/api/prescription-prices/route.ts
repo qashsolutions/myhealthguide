@@ -6,6 +6,23 @@ const COST_PLUS_API_URL = 'https://us-central1-costplusdrugs-publicapi.cloudfunc
  * API route for Cost Plus Drugs medication price search
  * Proxies requests to the Cost Plus Drugs API
  */
+
+// Helper function to parse medication name and strength
+function parseMedicationSearch(searchTerm: string): { name: string; strength?: string } {
+  // Common strength patterns: 10mg, 10 mg, 100mcg, 5ml, etc.
+  const strengthPattern = /\b(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|%|unit|units)\b/i;
+  const match = searchTerm.match(strengthPattern);
+  
+  if (match) {
+    // Remove the strength from the search term to get the medication name
+    const name = searchTerm.replace(match[0], '').trim();
+    const strength = match[1] + match[2].toLowerCase();
+    return { name, strength };
+  }
+  
+  return { name: searchTerm.trim() };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -18,44 +35,90 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try searching by brand name first with generic equivalents
-    const brandSearchUrl = new URL(COST_PLUS_API_URL);
-    brandSearchUrl.searchParams.append('brand_name', searchTerm);
-    brandSearchUrl.searchParams.append('generic_equivalent_ok', 'true');
-    brandSearchUrl.searchParams.append('quantity_units', quantity.toString());
+    // Parse the search term for medication name and strength
+    const { name: medicationName, strength } = parseMedicationSearch(searchTerm);
+    console.log('Parsed search:', { medicationName, strength, quantity });
 
-    console.log('Searching Cost Plus Drugs API:', brandSearchUrl.toString());
+    let allResults: any[] = [];
+    let lastError: string | null = null;
 
-    let response = await fetch(brandSearchUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+    // Strategy 1: Try with medication name AND strength (if strength provided)
+    if (strength) {
+      try {
+        const url = new URL(COST_PLUS_API_URL);
+        url.searchParams.append('medication_name', medicationName);
+        url.searchParams.append('strength', strength);
+        url.searchParams.append('quantity_units', quantity.toString());
 
-    let data = await response.json();
-
-    // If no results from brand search, try medication name search
-    if (!data.results || data.results.length === 0) {
-      const medicationSearchUrl = new URL(COST_PLUS_API_URL);
-      medicationSearchUrl.searchParams.append('medication_name', searchTerm);
-      medicationSearchUrl.searchParams.append('quantity_units', quantity.toString());
-
-      console.log('Trying medication name search:', medicationSearchUrl.toString());
-
-      response = await fetch(medicationSearchUrl.toString(), {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-
-      data = await response.json();
+        console.log('Strategy 1 - Name + Strength:', url.toString());
+        
+        const response = await fetch(url.toString());
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          allResults = [...allResults, ...data.results];
+        }
+      } catch (error) {
+        console.error('Strategy 1 failed:', error);
+        lastError = 'Failed to search with medication name and strength';
+      }
     }
 
+    // Strategy 2: Try brand name search with generic equivalents
+    if (allResults.length === 0) {
+      try {
+        const brandSearchUrl = new URL(COST_PLUS_API_URL);
+        brandSearchUrl.searchParams.append('brand_name', searchTerm.trim());
+        brandSearchUrl.searchParams.append('generic_equivalent_ok', 'true');
+        brandSearchUrl.searchParams.append('quantity_units', quantity.toString());
+
+        console.log('Strategy 2 - Brand name search:', brandSearchUrl.toString());
+
+        const response = await fetch(brandSearchUrl.toString());
+        const data = await response.json();
+
+        if (data.results && data.results.length > 0) {
+          allResults = [...allResults, ...data.results];
+        }
+      } catch (error) {
+        console.error('Strategy 2 failed:', error);
+        lastError = 'Failed to search by brand name';
+      }
+    }
+
+    // Strategy 3: Try medication name only (without strength)
+    if (allResults.length === 0) {
+      try {
+        const medicationSearchUrl = new URL(COST_PLUS_API_URL);
+        medicationSearchUrl.searchParams.append('medication_name', medicationName);
+        medicationSearchUrl.searchParams.append('quantity_units', quantity.toString());
+
+        console.log('Strategy 3 - Medication name only:', medicationSearchUrl.toString());
+
+        const response = await fetch(medicationSearchUrl.toString());
+        const data = await response.json();
+
+        if (data.results && data.results.length > 0) {
+          allResults = [...allResults, ...data.results];
+        }
+      } catch (error) {
+        console.error('Strategy 3 failed:', error);
+        lastError = 'Failed to search by medication name';
+      }
+    }
+
+    // Remove duplicates based on medication name + strength
+    const uniqueResults = allResults.reduce((acc: any[], current) => {
+      const key = `${current.medication_name}_${current.strength}`;
+      if (!acc.find(item => `${item.medication_name}_${item.strength}` === key)) {
+        acc.push(current);
+      }
+      return acc;
+    }, []);
+
     // Sort results by strength if available
-    if (data.results && data.results.length > 0) {
-      data.results.sort((a: any, b: any) => {
+    if (uniqueResults.length > 0) {
+      uniqueResults.sort((a: any, b: any) => {
         // Extract numeric values from strength for sorting
         const getNumericStrength = (strength: string) => {
           const match = strength.match(/(\d+(?:\.\d+)?)/);
@@ -66,16 +129,37 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Format results for the frontend
+    const formattedResults = uniqueResults.map(item => ({
+      medication_name: item.medication_name || item.brand_name || 'Unknown',
+      strength: item.strength || '',
+      form: item.form || '',
+      manufacturer: item.manufacturer || '',
+      price: item.price || 0,
+      price_per_unit: item.price_per_unit || 0,
+      quantity: quantity,
+    }));
+
+    console.log(`Found ${formattedResults.length} results for "${searchTerm}"`);
+
     return NextResponse.json({
-      results: data.results || [],
+      results: formattedResults,
       searchTerm,
       quantity,
     });
 
   } catch (error) {
     console.error('Cost Plus Drugs API error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to search medication prices' },
+      { 
+        error: 'Unable to search medication prices. Please try again later.',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

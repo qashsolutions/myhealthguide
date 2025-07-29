@@ -60,9 +60,10 @@ function DrugPricesContent() {
       if (response.ok && data.results) {
         setResults(data.results);
         if (data.results.length === 0) {
-          setError('No results found. Try searching with a different name or check the spelling.');
+          setError(`No results found for "${searchValue}". Try searching with:\n• Generic name (e.g., "metformin" instead of "Glucophage")\n• Different spelling or partial name\n• Including strength (e.g., "metformin 500mg")`);
         }
       } else {
+        console.error('API Error:', data);
         setError(data.error || 'Unable to search prices. Please try again.');
       }
     } catch (error) {
