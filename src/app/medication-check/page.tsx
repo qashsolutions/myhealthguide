@@ -137,7 +137,7 @@ export default function MedicationCheckPage() {
 
       {/* Medication form */}
       <div className="mb-8">
-        <MedicationForm onSubmit={handleAddMedication} />
+        <MedicationForm onAddMedication={handleAddMedication} />
       </div>
 
       {/* Medications list */}
