@@ -9,11 +9,11 @@ import { DISCLAIMERS, HEALTH_STATUS } from '@/lib/constants';
 
 /**
  * Medical AI integration for medication conflict detection
- * Now uses Claude Sonnet 4 API instead of MedGemma/Vertex AI for superior medical analysis
+ * Uses Claude Sonnet 4 API for medical analysis
  * Model: claude-sonnet-4-20250514 with enhanced reasoning capabilities
  */
 
-// Make API request to Claude API (replaces Vertex AI/MedGemma)
+// Make API request to Claude API
 const makeClaudeRequest = async (
   prompt: string,
   maxTokens: number = 1500
@@ -35,7 +35,7 @@ const makeClaudeRequest = async (
 
   console.log('[makeClaudeRequest] Making fetch request to Claude API...');
 
-  // Call Claude API instead of Vertex AI
+  // Call Claude API
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -431,7 +431,7 @@ Structure your response exactly as this format:
 If no interactions are found, return overallRisk as "safe" with empty interactions array.
 Important: This is for educational purposes only. Always recommend consulting healthcare providers for medical decisions.`;
 
-    // Make API request to Claude (replaces Vertex AI call)
+    // Make API request to Claude
     const aiResponse = await makeClaudeRequest(prompt, 1500);
 
     // Parse and structure the response (Claude typically provides better structured responses)

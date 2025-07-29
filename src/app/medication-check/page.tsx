@@ -5,18 +5,16 @@ import { useRouter } from 'next/navigation';
 import { MedicationForm } from '@/components/medication/MedicationForm';
 import { MedicationList } from '@/components/medication/MedicationList';
 import { Button } from '@/components/ui/Button';
-import { withAuth, useAuth } from '@/hooks/useAuth';
 import { Medication } from '@/types';
 import { ROUTES, DISCLAIMERS } from '@/lib/constants';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 
 /**
- * Medication check page with voice input
- * Step-by-step medication entry with AI conflict detection
+ * Public medication check page
+ * No authentication required
  */
-function MedicationCheckPage() {
+export default function MedicationCheckPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,24 +45,18 @@ function MedicationCheckPage() {
   // Remove medication from list
   const handleRemoveMedication = (id: string) => {
     setMedications(medications.filter(med => med.id !== id));
-  };
-
-  // Edit medication
-  const handleEditMedication = (id: string, updated: Medication) => {
-    setMedications(medications.map(med => 
-      med.id === id ? { ...updated, id } : med
-    ));
+    setError(null); // Clear error when removing
   };
 
   // Check medications for conflicts
   const handleCheckMedications = async () => {
     if (medications.length === 0) {
-      setError('Please add at least one medication to check');
+      setError('Please add at least one medication to check.');
       return;
     }
 
-    setError(null);
     setIsChecking(true);
+    setError(null);
 
     try {
       const response = await fetch('/api/medication/check', {
@@ -72,75 +64,67 @@ function MedicationCheckPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
-          medications,
+          medications: medications.map(({ id, ...med }) => med),
           checkType: 'detailed',
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (!response.ok) {
-        // ADDED: Handle specific error codes for better UX
-        if (data.code === 'validation/invalid-medication') {
-          setError(data.error || 'Invalid medication name detected');
-          // Don't throw - let user fix the issue
-          return;
-        }
-        throw new Error(data.error || 'Failed to check medications');
+      if (response.ok && result.success) {
+        // Store result in session storage for results page
+        sessionStorage.setItem('medicationCheckResult', JSON.stringify(result.data));
+        sessionStorage.setItem('medicationsList', JSON.stringify(medications));
+        
+        // Navigate to results
+        router.push('/medication-check/results');
+      } else {
+        setError(result.error || 'Unable to check medications. Please try again.');
       }
-
-      // Store results in session storage
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('medicationCheckResult', JSON.stringify(data.data));
-        sessionStorage.setItem('checkedMedications', JSON.stringify(medications));
-      }
-      
-      // Navigate to results page
-      router.push(`${ROUTES.MEDICATION_CHECK}/results`);
-    } catch (err) {
-      console.error('Medication check error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to check medications');
+    } catch (error) {
+      console.error('Medication check error:', error);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setIsChecking(false);
     }
   };
 
-  // Clear all medications
-  const handleClearAll = () => {
-    setMedications([]);
-    setError(null);
-  };
-
   return (
     <div className="max-w-4xl mx-auto py-8">
       {/* Back button */}
-      <button
+      <Button
+        variant="ghost"
+        size="small"
+        icon={<ArrowLeft className="h-5 w-5" />}
         onClick={() => router.push(ROUTES.DASHBOARD)}
-        className="inline-flex items-center gap-2 text-elder-base text-primary-600 hover:text-primary-700 mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+        className="mb-6"
       >
-        <ArrowLeft className="h-5 w-5" />
         Back to Dashboard
-      </button>
+      </Button>
 
       {/* Page header */}
       <div className="mb-8">
         <h1 className="text-elder-2xl elder-tablet:text-elder-3xl font-bold text-elder-text mb-3">
-          Check Your Medications
+          Check Medication Interactions
         </h1>
         <p className="text-elder-lg text-elder-text-secondary">
-          Add your medications below, then we'll check for potential conflicts
+          Add up to 3 medications to check for potential conflicts using AI analysis.
         </p>
       </div>
 
-      {/* Disclaimer banner */}
-      <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-4 mb-8">
-        <div className="flex items-start gap-3">
+      {/* Medical disclaimer */}
+      <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-6 mb-8">
+        <div className="flex gap-4">
           <AlertCircle className="h-6 w-6 text-primary-600 flex-shrink-0 mt-1" />
-          <p className="text-elder-base text-primary-800">
-            {DISCLAIMERS.AI_LIMITATIONS}
-          </p>
+          <div>
+            <h2 className="text-elder-lg font-semibold text-primary-900 mb-2">
+              Important Information
+            </h2>
+            <p className="text-elder-base text-primary-800">
+              {DISCLAIMERS.GENERAL}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -152,86 +136,46 @@ function MedicationCheckPage() {
       )}
 
       {/* Medication form */}
-      {/* UPDATED: Pass current medication count and max limit */}
       <div className="mb-8">
-        <MedicationForm 
-          onAddMedication={handleAddMedication}
-          currentMedicationCount={medications.length}
-          maxMedications={3}
-        />
+        <MedicationForm onSubmit={handleAddMedication} />
       </div>
 
-      {/* Medication list */}
+      {/* Medications list */}
       {medications.length > 0 && (
-        <>
-          {/* UPDATED: Pass maxMedications to show limit in list */}
+        <div className="mb-8">
           <MedicationList
             medications={medications}
             onRemove={handleRemoveMedication}
-            onEdit={handleEditMedication}
-            maxMedications={3}
           />
-
-          {/* Action buttons */}
-          <div className="mt-8 flex flex-col elder-tablet:flex-row gap-4">
-            <Button
-              variant="primary"
-              size="large"
-              onClick={handleCheckMedications}
-              loading={isChecking}
-              disabled={medications.length === 0}
-              className="elder-tablet:flex-1"
-            >
-              Check for Conflicts ({medications.length} medication{medications.length !== 1 ? 's' : ''})
-            </Button>
-            
-            <Button
-              variant="secondary"
-              size="large"
-              onClick={handleClearAll}
-              disabled={isChecking}
-            >
-              Clear All
-            </Button>
-          </div>
-        </>
+        </div>
       )}
 
-      {/* Help text */}
-      <div className="mt-12 p-6 bg-elder-background-alt rounded-elder-lg">
-        <h2 className="text-elder-lg font-semibold mb-3">
-          Tips for Best Results
-        </h2>
-        <ul className="space-y-2">
-          {/* UPDATED: Emphasize 3-medication limit and why */}
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              <strong>Maximum 3 medications per check</strong> - This ensures accurate analysis and clear results
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              For more than 3 medications, consult your pharmacist for comprehensive review
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Include vitamins and supplements - they can interact with medications
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Add dosage information when possible for more accurate results
-            </p>
-          </li>
-        </ul>
-      </div>
+      {/* Check button */}
+      {medications.length > 0 && (
+        <div className="flex justify-center">
+          <Button
+            variant="primary"
+            size="large"
+            onClick={handleCheckMedications}
+            loading={isChecking}
+            disabled={isChecking}
+          >
+            {isChecking ? 'Checking Medications...' : 'Check for Interactions'}
+          </Button>
+        </div>
+      )}
+
+      {/* Instructions */}
+      {medications.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-elder-lg text-elder-text-secondary mb-4">
+            Start by adding your first medication above.
+          </p>
+          <p className="text-elder-base text-elder-text-secondary">
+            You can add up to 3 medications to check for interactions.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
-
-export default withAuth(MedicationCheckPage, { requireDisclaimer: true });

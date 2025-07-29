@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import admin from 'firebase-admin';
-import { answerHealthQuestion } from '@/lib/vertex-ai/medgemma';
+import { answerHealthQuestion } from '@/lib/claude-ai/claude';
 import { ApiResponse, HealthQuestion, HealthAnswer } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
@@ -10,8 +10,8 @@ import { getCurrentUser } from '@/lib/auth/firebase-auth';
 
 /**
  * POST /api/health-qa
- * Answer health questions using Claude API (via updated medgemma.ts)
- * Requires authentication
+ * Answer health questions using Claude API
+ * Authentication optional - works for both authenticated and public users
  */
 
 // Initialize Firebase Admin if needed
@@ -165,50 +165,10 @@ export async function POST(request: NextRequest) {
         nodeEnv: process.env.NODE_ENV
       });
       
-      // UPDATED: Use session cookie authentication instead of Bearer token
-      // This matches the authentication method used in other routes like /api/auth/session
+      // Check for authenticated user (optional)
       const decodedToken = await getCurrentUser();
-      
-      // Check if user is authenticated via session cookie
-      if (!decodedToken) {
-        console.log('[Health QA API] No valid session found - user needs to sign in');
-        
-        return NextResponse.json<ApiResponse>(
-          {
-            success: false,
-            error: 'Please sign in to ask health questions. Your session may have expired.',
-            code: 'auth/unauthenticated',
-            // Add helpful information for the frontend
-            data: {
-              requiresAuth: true,
-              message: 'For your security, please sign in again to continue.'
-            }
-          },
-          { status: 401 }
-        );
-      }
-      
-      // Extract userId from the decoded session token
-      const userId = decodedToken.uid;
-      const userEmail = decodedToken.email;
-      
-      // Additional security check: ensure email is verified
-      if (!decodedToken.email_verified) {
-        console.log('[Health QA API] User email not verified:', userEmail);
-        
-        return NextResponse.json<ApiResponse>(
-          {
-            success: false,
-            error: 'Please verify your email address before asking health questions.',
-            code: 'auth/email-not-verified',
-            data: {
-              email: userEmail,
-              requiresVerification: true
-            }
-          },
-          { status: 403 }
-        );
-      }
+      const userId = decodedToken?.uid || 'anonymous';
+      const userEmail = decodedToken?.email || 'anonymous';
       
       // Parse request body
       const body = await request.json();
@@ -290,13 +250,15 @@ export async function POST(request: NextRequest) {
         console.log('[Health QA API] Transformed medication name to question:', finalQuestion);
       }
       
-      // Log the question (anonymized)
-      await logQuestion(userId, finalQuestion, questionData.category);
+      // Log the question only for authenticated users
+      if (decodedToken) {
+        await logQuestion(userId, finalQuestion, questionData.category);
+      }
       
       // Get answer from Claude API (via medgemma.ts)
       try {
-        // UPDATED: Log successful authentication via session cookie
-        console.log('[Health QA API] User authenticated successfully via session cookie:', userEmail);
+        // Log user type
+        console.log('[Health QA API] Processing question for user:', decodedToken ? 'authenticated' : 'anonymous');
         console.log('[Health QA API] Calling answerHealthQuestion...');
         
         // Use the transformed question

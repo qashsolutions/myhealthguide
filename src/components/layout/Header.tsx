@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, Pill, User } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { clsx } from 'clsx';
 import { MobileMenu } from './MobileMenu';
 import { Button } from '../ui/Button';
@@ -65,7 +65,7 @@ export function Header(): JSX.Element {
   const navItems = [
     { href: ROUTES.MEDICATION_CHECK, label: 'Check Medications' },
     { href: ROUTES.HEALTH_QA, label: 'Health Questions' },
-    { href: ROUTES.PRESCRIPTION_PRICES, label: 'Drug Price Check' },
+    { href: ROUTES.DRUG_PRICES, label: 'Drug Price Check' },
   ];
 
   const isActiveRoute = (href: string) => pathname === href;
@@ -73,7 +73,7 @@ export function Header(): JSX.Element {
   return (
     <>
       <header 
-        className="sticky top-0 z-30 bg-white border-b border-elder-border shadow-sm"
+        className="sticky top-0 z-30 bg-gray-50 border-b border-elder-border shadow-sm"
         role="banner"
       >
         <nav 
@@ -84,10 +84,9 @@ export function Header(): JSX.Element {
             {/* Logo */}
             <Link 
               href={ROUTES.HOME}
-              className="flex items-center gap-3 text-elder-lg font-bold text-primary-700 hover:text-primary-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500 rounded-elder"
+              className="text-elder-lg font-bold text-blue-900 hover:text-blue-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500 rounded-elder"
             >
-              <Pill className="h-8 w-8" aria-hidden="true" />
-              <span>{APP_NAME}</span>
+              {APP_NAME}
             </Link>
 
             {/* Desktop Navigation */}
@@ -113,32 +112,7 @@ export function Header(): JSX.Element {
                 ))}
               </ul>
 
-              {/* Auth Button / User Info */}
-              {loading ? (
-                <div className="w-24 h-10 bg-elder-background rounded-elder animate-pulse" />
-              ) : user ? (
-                <div className="flex items-center gap-4">
-                  <span className="text-elder-base text-elder-text-secondary">
-                    Welcome, {user.name || 'User'}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    icon={<User className="h-5 w-5" />}
-                    onClick={handleSignOut}
-                  >
-                    Sign Out
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="medium"
-                  onClick={() => router.push(ROUTES.AUTH)}
-                >
-                  Sign In
-                </Button>
-              )}
+              {/* Removed auth buttons for public access */}
             </div>
 
             {/* Mobile Menu Button */}
@@ -169,8 +143,8 @@ export function Header(): JSX.Element {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         navItems={navItems}
-        isAuthenticated={!!user}
-        userName={user?.name}
+        isAuthenticated={false}
+        userName={null}
         onSignOut={handleSignOut}
         onSignIn={() => router.push(ROUTES.AUTH)}
       />

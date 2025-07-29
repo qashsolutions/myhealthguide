@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     'senior health',
     'medication safety',
     'AI health assistant',
-    'MedGemma',
+    'Claude AI',
   ],
   authors: [{ name: APP_NAME }],
   creator: APP_NAME,

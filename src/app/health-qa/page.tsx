@@ -11,22 +11,19 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useAuth, withAuth } from '@/hooks/useAuth';
 import { HealthQuestion, HealthAnswer } from '@/types';
 import { ROUTES, DISCLAIMERS } from '@/lib/constants';
 
 /**
- * Health Q&A page with voice input/output
- * AI-powered health questions for elderly users
+ * Public Health Q&A page
+ * No authentication required
  */
-function HealthQAPage() {
+export default function HealthQAPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const [question, setQuestion] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recentAnswers, setRecentAnswers] = useState<HealthAnswer[]>([]);
-
 
   // Load recent answers from session storage
   useEffect(() => {
@@ -51,24 +48,17 @@ function HealthQAPage() {
     }
   };
 
-
-  // Submit question
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  // Handle question submission
+  const handleAskQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const trimmedQuestion = question.trim();
-    if (!trimmedQuestion) {
+    if (!question.trim()) {
       setError('Please enter a question');
       return;
     }
 
-    if (trimmedQuestion.length < 5) {
-      setError('Please enter a more detailed question');
-      return;
-    }
-
-    setError(null);
     setIsAsking(true);
+    setError(null);
 
     try {
       const response = await fetch('/api/health-qa', {
@@ -76,327 +66,192 @@ function HealthQAPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
-          question: trimmedQuestion,
-          context: `User is ${user?.name || 'an elderly person'}`,
+          question: question.trim(),
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get answer');
+      if (response.ok && result.success) {
+        saveToHistory(result.data);
+        setQuestion('');
+      } else {
+        setError(result.error || 'Unable to get answer. Please try again.');
       }
-
-      // Save to history
-      saveToHistory(data.data);
-      
-      // Clear question
-      setQuestion('');
-    } catch (err) {
-      console.error('Health Q&A error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to get answer');
+    } catch (error) {
+      console.error('Health Q&A error:', error);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setIsAsking(false);
     }
   };
 
-  // Common health topics for quick access
-  const commonTopics = [
-    "Side effects of blood pressure medication",
-    "Safe pain relief for arthritis",
-    "Foods to avoid with diabetes",
-    "How to improve sleep quality",
-    "Managing medication schedules",
+  // Example questions
+  const exampleQuestions = [
+    "What are the side effects of aspirin?",
+    "Can I take vitamin D with calcium?",
+    "What helps with high blood pressure?",
+    "Is it safe to take ibuprofen daily?",
   ];
 
   return (
     <div className="max-w-4xl mx-auto py-8">
       {/* Back button */}
-      <button
+      <Button
+        variant="ghost"
+        size="small"
+        icon={<ArrowLeft className="h-5 w-5" />}
         onClick={() => router.push(ROUTES.DASHBOARD)}
-        className="inline-flex items-center gap-2 text-elder-base text-primary-600 hover:text-primary-700 mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+        className="mb-6"
       >
-        <ArrowLeft className="h-5 w-5" />
         Back to Dashboard
-      </button>
+      </Button>
 
       {/* Page header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-primary-100 rounded-full">
-            <MessageCircle className="h-8 w-8 text-primary-600" />
-          </div>
+        <h1 className="text-elder-2xl elder-tablet:text-elder-3xl font-bold text-elder-text mb-3">
+          Ask Health Questions
+        </h1>
+        <p className="text-elder-lg text-elder-text-secondary">
+          Get answers to your health and medication questions from our AI assistant.
+        </p>
+      </div>
+
+      {/* Medical disclaimer */}
+      <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-6 mb-8">
+        <div className="flex gap-4">
+          <AlertCircle className="h-6 w-6 text-primary-600 flex-shrink-0 mt-1" />
           <div>
-            <h1 className="text-elder-2xl elder-tablet:text-elder-3xl font-bold text-elder-text">
-              Health Questions
-            </h1>
-            <p className="text-elder-lg text-elder-text-secondary">
-              Ask any health question and get clear, simple answers
+            <h2 className="text-elder-lg font-semibold text-primary-900 mb-2">
+              Important Information
+            </h2>
+            <p className="text-elder-base text-primary-800">
+              {DISCLAIMERS.GENERAL}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Disclaimer */}
-      <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-4 mb-8">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="h-6 w-6 text-primary-600 flex-shrink-0 mt-1" />
-          <p className="text-elder-base text-primary-800">
-            {DISCLAIMERS.AI_LIMITATIONS}
-          </p>
-        </div>
-      </div>
-
-      {/* Question Input */}
-      <form onSubmit={handleSubmit} className="mb-8">
-        <div className="bg-white rounded-elder-lg shadow-sm p-6">
-          <label htmlFor="question" className="block text-elder-lg font-medium text-elder-text mb-4">
-            What's your health question?
+      {/* Question form */}
+      <form onSubmit={handleAskQuestion} className="mb-8">
+        <div className="bg-white rounded-elder-lg shadow-elder border border-elder-border p-6">
+          <label htmlFor="question" className="block text-elder-lg font-semibold mb-4">
+            Your Question
           </label>
           
-          <div className="relative">
+          <div className="space-y-4">
             <textarea
               id="question"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Type your question here..."
-              className="w-full px-4 py-3 border-2 border-elder-border rounded-elder text-elder-base leading-elder resize-none focus:outline-none focus:ring-4 focus:ring-primary-500 focus:border-primary-500"
-              rows={3}
+              placeholder="Type your health or medication question here..."
+              className="w-full px-4 py-3 text-elder-base border-2 border-elder-border rounded-elder 
+                       focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20
+                       resize-none"
+              rows={4}
               disabled={isAsking}
             />
-          </div>
 
+            {error && (
+              <div className="p-4 bg-health-danger-bg border-2 border-health-danger rounded-elder">
+                <p className="text-elder-base text-health-danger">{error}</p>
+              </div>
+            )}
 
-          {/* Error message */}
-          {error && (
-            <div className="mt-4 p-4 bg-health-danger-bg border-2 border-health-danger rounded-elder">
-              <p className="text-elder-base text-health-danger">{error}</p>
-            </div>
-          )}
-
-          {/* Submit button */}
-          <div className="mt-6">
             <Button
               type="submit"
               variant="primary"
               size="large"
-              loading={isAsking}
-              disabled={!question.trim()}
               icon={<Send className="h-5 w-5" />}
-              className="w-full elder-tablet:w-auto"
+              loading={isAsking}
+              disabled={isAsking || !question.trim()}
+              fullWidth
             >
-              Get Answer
+              {isAsking ? 'Getting Answer...' : 'Ask Question'}
             </Button>
           </div>
         </div>
       </form>
 
-      {/* Common Topics */}
+      {/* Example questions */}
       {recentAnswers.length === 0 && (
         <div className="mb-8">
-          <h2 className="text-elder-lg font-semibold text-elder-text mb-4">
-            Common Health Topics
-          </h2>
-          <div className="grid gap-3">
-            {commonTopics.map((topic, index) => (
+          <h3 className="text-elder-lg font-semibold mb-4">
+            Example Questions:
+          </h3>
+          <div className="grid grid-cols-1 elder-tablet:grid-cols-2 gap-3">
+            {exampleQuestions.map((example, index) => (
               <button
                 key={index}
-                onClick={() => setQuestion(topic)}
-                className="text-left p-4 bg-white hover:bg-gray-50 rounded-elder border-2 border-elder-border hover:border-primary-300 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500"
+                onClick={() => setQuestion(example)}
+                className="text-left p-4 bg-elder-background-alt rounded-elder border-2 border-transparent
+                         hover:border-primary-300 hover:bg-primary-50 transition-colors"
               >
-                <p className="text-elder-base text-elder-text">{topic}</p>
+                <p className="text-elder-base text-elder-text">{example}</p>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Recent Answers */}
+      {/* Recent answers */}
       {recentAnswers.length > 0 && (
         <div>
-          <h2 className="text-elder-lg font-semibold text-elder-text mb-4">
+          <h3 className="text-elder-lg font-semibold mb-4 flex items-center gap-2">
+            <MessageCircle className="h-6 w-6" />
             Recent Questions
-          </h2>
+          </h3>
           <div className="space-y-4">
-            {recentAnswers.map((answer) => (
+            {recentAnswers.map((item) => (
               <div
-                key={answer.id}
-                className="bg-white rounded-elder-lg shadow-sm p-6"
+                key={item.id}
+                className="bg-white rounded-elder-lg shadow-sm border border-elder-border p-6"
               >
-                <div className="mb-4">
-                  <h3 className="text-elder-base font-semibold text-elder-text mb-2">
-                    {answer.question}
-                  </h3>
-                  <p className="text-elder-sm text-elder-text-secondary">
-                    Asked {new Date(answer.answeredAt).toLocaleString()}
-                  </p>
+                <h4 className="text-elder-base font-semibold mb-3 text-primary-700">
+                  Q: {item.question}
+                </h4>
+                <div className="prose prose-elder max-w-none">
+                  <div className="text-elder-base text-elder-text whitespace-pre-wrap">
+                    {item.answer}
+                  </div>
                 </div>
                 
-                <div className="prose prose-lg max-w-none">
-                  {/* Parse and render the answer with proper formatting */}
-                  {(() => {
-                    // First check if the answer looks like raw JSON (but only if it's clearly broken)
-                    const trimmedAnswer = answer.answer.trim();
-                    if (trimmedAnswer.startsWith('```json') || (trimmedAnswer.startsWith('{') && !trimmedAnswer.includes('##'))) {
-                      // This is definitely raw JSON that shouldn't be shown
-                      return (
+                {/* Medication details if available */}
+                {item.medicationDetails && (
+                  <div className="mt-4 p-4 bg-elder-background-alt rounded-elder">
+                    <h5 className="text-elder-sm font-semibold mb-2">Medication Information:</h5>
+                    <dl className="space-y-1 text-elder-sm">
+                      {item.medicationDetails.genericName && (
                         <div>
-                          <h3 className="text-elder-lg font-semibold text-elder-text mb-2">
-                            Information Available
-                          </h3>
-                          <p className="text-elder-base text-elder-text leading-elder">
-                            We're experiencing a temporary issue displaying this information. 
-                            Please try refreshing the page or asking your question again.
-                          </p>
+                          <dt className="inline font-medium">Generic Name:</dt>
+                          <dd className="inline ml-2">{item.medicationDetails.genericName}</dd>
                         </div>
-                      );
-                    }
-                    
-                    // Otherwise render normally
-                    return answer.answer.split('\n').map((paragraph, idx) => {
-                      // Check if it's a heading (starts with ##)
-                      if (paragraph.startsWith('## ')) {
-                        const heading = paragraph.replace('## ', '');
-                        // Summary gets larger font
-                        if (heading === 'Summary') {
-                          return (
-                            <h3 key={idx} className="text-elder-xl font-bold text-elder-text mt-4 mb-3">
-                              {heading}
-                            </h3>
-                          );
-                        }
-                        // Other headings
-                        return (
-                          <h3 key={idx} className="text-elder-lg font-semibold text-elder-text mt-4 mb-2">
-                            {heading}
-                          </h3>
-                        );
-                      }
-                      // Skip empty lines
-                      if (paragraph.trim() === '') {
-                        return null;
-                      }
-                      // Regular paragraph
-                      return (
-                        <p key={idx} className="text-elder-base text-elder-text leading-elder mb-3">
-                          {paragraph}
-                        </p>
-                      );
-                    });
-                  })()}
-                </div>
-                
-                {answer.medicationDetails && (
-                  <div className="mt-6">
-                    <h3 className="text-elder-lg font-semibold text-elder-text mb-4">
-                      Medication Details
-                    </h3>
-                    <div className="space-y-3 bg-elder-background-alt p-4 rounded-elder">
-                    {answer.medicationDetails.brandNames && answer.medicationDetails.brandNames.length > 0 && (
-                      <div>
-                        <span className="text-elder-base font-semibold text-elder-text">Brand Names: </span>
-                        <span className="text-elder-base text-elder-text-secondary">
-                          {answer.medicationDetails.brandNames.join(', ')}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {answer.medicationDetails.genericName && (
-                      <div>
-                        <span className="text-elder-base font-semibold text-elder-text">Generic Name: </span>
-                        <span className="text-elder-base text-elder-text-secondary">
-                          {answer.medicationDetails.genericName}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {answer.medicationDetails.pronunciation && (
-                      <div>
-                        <span className="text-elder-base font-semibold text-elder-text">Pronunciation: </span>
-                        <span className="text-elder-base text-elder-text-secondary">
-                          {answer.medicationDetails.pronunciation}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {answer.medicationDetails.drugClasses && answer.medicationDetails.drugClasses.length > 0 && (
-                      <div>
-                        <span className="text-elder-base font-semibold text-elder-text">Drug Classes: </span>
-                        <span className="text-elder-base text-elder-text-secondary">
-                          {answer.medicationDetails.drugClasses.join(', ')}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {answer.medicationDetails.availability && (
-                      <div>
-                        <span className="text-elder-base font-semibold text-elder-text">Availability: </span>
-                        <span className="text-elder-base text-elder-text-secondary">
-                          {answer.medicationDetails.availability}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {answer.medicationDetails.howUsed && (
-                      <div>
-                        <span className="text-elder-base font-semibold text-elder-text">How is it used? </span>
-                        <span className="text-elder-base text-elder-text-secondary">
-                          {answer.medicationDetails.howUsed}
-                        </span>
-                      </div>
-                    )}
-                    </div>
+                      )}
+                      {item.medicationDetails.brandNames && item.medicationDetails.brandNames.length > 0 && (
+                        <div>
+                          <dt className="inline font-medium">Brand Names:</dt>
+                          <dd className="inline ml-2">{item.medicationDetails.brandNames.join(', ')}</dd>
+                        </div>
+                      )}
+                      {item.medicationDetails.pronunciation && (
+                        <div>
+                          <dt className="inline font-medium">Pronunciation:</dt>
+                          <dd className="inline ml-2">{item.medicationDetails.pronunciation}</dd>
+                        </div>
+                      )}
+                    </dl>
                   </div>
                 )}
                 
-                <p className="mt-4 text-elder-sm text-elder-text-secondary italic">
-                  {answer.disclaimer}
+                <p className="text-elder-sm text-elder-text-secondary mt-4">
+                  {new Date(item.answeredAt).toLocaleString()}
                 </p>
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {/* Help Section */}
-      <div className="mt-12 p-6 bg-elder-background-alt rounded-elder-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <Heart className="h-6 w-6 text-health-danger" />
-          <h2 className="text-elder-lg font-semibold">
-            Getting the Most from Health Q&A
-          </h2>
-        </div>
-        <ul className="space-y-2">
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Be specific about your symptoms or concerns
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Include relevant details like age or existing conditions
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Always verify AI answers with your healthcare provider
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="text-primary-600">•</span>
-            <p className="text-elder-base text-elder-text-secondary">
-              For emergencies, call 911 immediately
-            </p>
-          </li>
-        </ul>
-      </div>
     </div>
   );
 }
-
-export default withAuth(HealthQAPage, { requireDisclaimer: true });

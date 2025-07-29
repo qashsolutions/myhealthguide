@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth/firebase-auth';
-import { checkMedications } from '@/lib/vertex-ai/medgemma';
+import { checkMedications } from '@/lib/claude-ai/claude';
 import { ApiResponse, MedicationCheckRequest, MedicationCheckResult } from '@/types';
 import { VALIDATION_MESSAGES, ERROR_MESSAGES } from '@/lib/constants';
 import { withRateLimit, rateLimiters } from '@/lib/middleware/rate-limit';
@@ -10,7 +10,7 @@ import { adminDb } from '@/lib/firebase/admin';
 /**
  * POST /api/medication/check
  * Check medications for conflicts using Claude AI
- * Requires authentication
+ * Authentication optional - works for both authenticated and public users
  */
 
 // ADDED: Validation helpers for medication names
@@ -129,21 +129,9 @@ const checkRequestSchema = z.object({
 export async function POST(request: NextRequest) {
   return withRateLimit(request, async () => {
     try {
-      // Verify authentication using session
+      // Check for authenticated user (optional)
       const currentUser = await getCurrentUser();
-      
-      if (!currentUser) {
-        return NextResponse.json<ApiResponse>(
-          {
-            success: false,
-            error: 'Authentication required',
-            code: 'auth/unauthenticated',
-          },
-          { status: 401 }
-        );
-      }
-      
-      const userId = currentUser.uid;
+      const userId = currentUser?.uid || null;
     
     // Parse request body
     const body = await request.json();
@@ -193,22 +181,25 @@ export async function POST(request: NextRequest) {
     
     const checkRequest: MedicationCheckRequest = validationResult.data;
     
-    // Check if user has accepted medical disclaimer
-    const userDoc = await adminDb()
-      .collection('users')
-      .doc(userId)
-      .get();
-    
-    const userData = userDoc.data();
-    if (!userData?.disclaimerAccepted) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: 'Please accept the medical disclaimer before using this feature',
-          code: 'disclaimer/not-accepted',
-        },
-        { status: 403 }
-      );
+    // Only check disclaimer for authenticated users
+    if (userId) {
+      const userDoc = await adminDb()
+        .collection('users')
+        .doc(userId)
+        .get();
+      
+      const userData = userDoc.data();
+      if (!userData?.disclaimerAccepted) {
+        // For authenticated users, still require disclaimer
+        return NextResponse.json<ApiResponse>(
+          {
+            success: false,
+            error: 'Please accept the medical disclaimer before using this feature',
+            code: 'disclaimer/not-accepted',
+          },
+          { status: 403 }
+        );
+      }
     }
     
     // Log the request for debugging
@@ -226,20 +217,22 @@ export async function POST(request: NextRequest) {
       severity: result.overallRisk,
     });
     
-    // Store check history (optional)
-    try {
-      await adminDb()
-        .collection('users')
-        .doc(userId)
-        .collection('medicationChecks')
-        .add({
-          ...result,
-          medications: checkRequest.medications,
-          createdAt: new Date(),
-        });
-    } catch (error) {
-      console.error('Failed to store check history:', error);
-      // Don't fail the request if history storage fails
+    // Store check history only for authenticated users
+    if (userId) {
+      try {
+        await adminDb()
+          .collection('users')
+          .doc(userId)
+          .collection('medicationChecks')
+          .add({
+            ...result,
+            medications: checkRequest.medications,
+            createdAt: new Date(),
+          });
+      } catch (error) {
+        console.error('Failed to store check history:', error);
+        // Don't fail the request if history storage fails
+      }
     }
     
     // Return result

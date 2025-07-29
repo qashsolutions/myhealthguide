@@ -21,7 +21,6 @@
     "postinstall": "node scripts/postinstall.js || true"
   },
   "dependencies": {
-    "@google-cloud/aiplatform": "^3.25.0",
     "@hookform/resolvers": "^3.6.0",
     "clsx": "^2.1.1",
     "crypto-browserify": "^3.12.1",

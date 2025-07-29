@@ -117,36 +117,27 @@ export interface HealthAnswer {
   };
 }
 
-// Vertex AI types
-export interface VertexAIRequest {
+// Claude AI types
+export interface ClaudeRequest {
   prompt: string;
-  parameters?: {
-    temperature?: number;
-    maxOutputTokens?: number;
-    topK?: number;
-    topP?: number;
-  };
-  safety_settings?: SafetySetting[];
+  maxTokens?: number;
+  temperature?: number;
 }
 
-export interface VertexAIResponse {
-  predictions: Array<{
-    content: string;
-    safetyAttributes?: {
-      blocked: boolean;
-      categories: string[];
-      scores: number[];
-    };
+export interface ClaudeResponse {
+  content: Array<{
+    type: 'text';
+    text: string;
   }>;
-  metadata?: {
-    model: string;
-    billableCharacterCount: number;
+  id: string;
+  model: string;
+  role: string;
+  stop_reason: string;
+  stop_sequence: string | null;
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
   };
-}
-
-export interface SafetySetting {
-  category: string;
-  threshold: 'BLOCK_LOW_AND_ABOVE' | 'BLOCK_MEDIUM_AND_ABOVE' | 'BLOCK_HIGH_AND_ABOVE' | 'BLOCK_NONE';
 }
 
 // Email types

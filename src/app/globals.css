@@ -293,3 +293,11 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Glassmorphic styles */
+.glassmorphic {
+  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-lg;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
