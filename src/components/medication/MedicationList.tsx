@@ -15,7 +15,7 @@ import { clsx } from 'clsx';
 interface MedicationListProps {
   medications: Medication[];
   onRemove: (id: string) => void;
-  onEdit: (id: string, updated: Medication) => void;
+  onEdit?: (id: string, updated: Medication) => void;  // Made optional to disable edit feature
   // ADDED: Show medication limit
   maxMedications?: number;
 }
@@ -43,7 +43,7 @@ export function MedicationList({
 
   // Save edit
   const saveEdit = () => {
-    if (!editForm || !editingId) return;
+    if (!editForm || !editingId || !onEdit) return;
     onEdit(editingId, editForm);
     setEditingId(null);
     setEditForm(null);
@@ -163,17 +163,20 @@ export function MedicationList({
                   
                   {/* Action buttons */}
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => startEdit(medication)}
-                      className={clsx(
-                        'p-2 rounded-elder text-primary-600 hover:bg-primary-50',
-                        'transition-colors focus:outline-none focus-visible:ring-2',
-                        'focus-visible:ring-primary-500'
-                      )}
-                      aria-label={`Edit ${medication.name}`}
-                    >
-                      <Edit2 className="h-5 w-5" />
-                    </button>
+                    {/* Only show edit button if onEdit is provided */}
+                    {onEdit && (
+                      <button
+                        onClick={() => startEdit(medication)}
+                        className={clsx(
+                          'p-2 rounded-elder text-primary-600 hover:bg-primary-50',
+                          'transition-colors focus:outline-none focus-visible:ring-2',
+                          'focus-visible:ring-primary-500'
+                        )}
+                        aria-label={`Edit ${medication.name}`}
+                      >
+                        <Edit2 className="h-5 w-5" />
+                      </button>
+                    )}
                     
                     <button
                       onClick={() => onRemove(medication.id!)}
