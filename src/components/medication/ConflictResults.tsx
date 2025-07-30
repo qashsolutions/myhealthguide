@@ -38,7 +38,6 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
   const getTrafficLight = (riskLevel: string) => {
     switch (riskLevel.toLowerCase()) {
       case 'safe':
-      case 'low':
         return {
           color: 'health-safe',
           bgColor: 'health-safe-bg',
@@ -46,7 +45,6 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
           label: 'Safe', // Clear "Safe" label for safe status
         };
       case 'warning':
-      case 'moderate':
         return {
           color: 'health-warning',
           bgColor: 'health-warning-bg',
@@ -54,8 +52,6 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
           label: 'Caution', // "Caution" for moderate warnings
         };
       case 'danger':
-      case 'high':
-      case 'major':
         return {
           color: 'health-danger',
           bgColor: 'health-danger-bg',
@@ -90,19 +86,22 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
     <div className="space-y-6">
       {/* Overall assessment with Important reminder */}
       <div className={clsx(
-        'border-2 rounded-elder-lg p-6',
-        `bg-${overallLight.bgColor} border-${overallLight.color}`
+        'border-4 rounded-elder-lg p-6',
+        overallLight.color === 'health-safe' ? 'border-green-700' :
+        overallLight.color === 'health-warning' ? 'border-health-warning' :
+        overallLight.color === 'health-danger' ? 'border-health-danger' :
+        'border-elder-border'
       )}>
         {/* Important reminder at top of card */}
         {importantReminder && (
-          <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-4 mb-6">
+          <div className="bg-orange-50 border-2 border-orange-200 rounded-elder p-4 mb-6">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-6 w-6 text-primary-600 flex-shrink-0 mt-1" />
+              <AlertCircle className="h-6 w-6 text-orange-600 flex-shrink-0 mt-1" />
               <div>
-                <p className="text-elder-base text-primary-800 font-semibold mb-1">
+                <p className="text-elder-base text-gray-600 font-semibold mb-1">
                   {importantReminder.title}
                 </p>
-                <p className="text-elder-sm text-primary-700">
+                <p className="text-elder-sm text-gray-500">
                   {importantReminder.message}
                 </p>
               </div>
@@ -112,11 +111,14 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
         
         {/* Overall assessment content */}
         <div className="flex items-start gap-4">
-          <div className={clsx(
-            'p-3 rounded-elder',
-            `bg-${overallLight.color} bg-opacity-20`
-          )}>
-            <OverallIcon className={clsx('h-8 w-8', `text-${overallLight.color}`)} />
+          <div className="p-3 rounded-elder">
+            <OverallIcon className={clsx(
+              'h-8 w-8',
+              overallLight.color === 'health-safe' ? 'text-green-700' :
+              overallLight.color === 'health-warning' ? 'text-health-warning' :
+              overallLight.color === 'health-danger' ? 'text-health-danger' :
+              'text-elder-text-secondary'
+            )} />
           </div>
           
           <div className="flex-1">
@@ -165,7 +167,10 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
           </h3>
           
           {result.interactions.map((interaction, index) => {
-            const conflictLight = getTrafficLight(interaction.severity);
+            // Map severity to traffic light (minor->safe, moderate->warning, major->danger)
+            const severityToRisk = interaction.severity === 'minor' ? 'safe' : 
+                                  interaction.severity === 'moderate' ? 'warning' : 'danger';
+            const conflictLight = getTrafficLight(severityToRisk);
             const ConflictIcon = conflictLight.icon;
             const isExpanded = expandedConflicts.includes(`interaction-${index}`);
             
@@ -234,8 +239,8 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
       {/* UPDATED: Show "No Interactions" only when status is safe */}
       {/* This prevents contradictory messages */}
       {(!result.interactions || result.interactions.length === 0) && result.overallRisk === 'safe' && (
-        <div className="bg-health-safe-bg border-2 border-health-safe rounded-elder-lg p-6 text-center">
-          <CheckCircle className="h-12 w-12 text-health-safe mx-auto mb-3" />
+        <div className="border-4 border-green-700 rounded-elder-lg p-6 text-center">
+          <CheckCircle className="h-12 w-12 text-green-700 mx-auto mb-3" />
           {/* UPDATED: Larger font for headers */}
           <p className="text-elder-lg elder-tablet:text-elder-xl font-semibold text-elder-text">
             No Interactions Detected

@@ -85,8 +85,13 @@ function MedicationCheckResultsPage() {
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-elder-2xl elder-tablet:text-elder-3xl font-bold text-elder-text">
-          Your Medication Check Results - AI analysis of {medications.length} medication{medications.length !== 1 ? 's' : ''}
+        <h1 className="text-elder-lg elder-tablet:text-elder-xl font-bold text-elder-text">
+          Your Medication Check Results - Overall assessment: {
+            result.overallRisk === 'safe' ? 'Safe' :
+            result.overallRisk === 'warning' ? 'Caution' :
+            result.overallRisk === 'danger' ? 'Warning' :
+            'Review Needed'
+          }
         </h1>
       </div>
 
