@@ -36,7 +36,7 @@ export function Footer(): JSX.Element {
             </div>
             {/* Copyright */}
             <p className="text-sm text-gray-500">
-              © {currentYear} Qash Solutions Inc. | DUNS: 119536275
+              © {currentYear} Qash Solutions Inc. | D‑U‑N‑S® 119536275
             </p>
           </div>
 
