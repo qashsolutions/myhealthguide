@@ -8,7 +8,8 @@ import {
   ChevronDown, 
   ChevronUp,
   Pill,
-  Info
+  Info,
+  AlertCircle
 } from 'lucide-react';
 import { MedicationCheckResult, Medication } from '@/types';
 import { clsx } from 'clsx';
@@ -21,9 +22,13 @@ import { clsx } from 'clsx';
 interface ConflictResultsProps {
   result: MedicationCheckResult;
   medications: Medication[];
+  importantReminder?: {
+    title: string;
+    message: string;
+  };
 }
 
-export function ConflictResults({ result, medications }: ConflictResultsProps): JSX.Element {
+export function ConflictResults({ result, medications, importantReminder }: ConflictResultsProps): JSX.Element {
   const [expandedConflicts, setExpandedConflicts] = useState<string[]>([]);
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
   // REMOVED: Audio features as requested
@@ -83,11 +88,29 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
 
   return (
     <div className="space-y-6">
-      {/* Overall assessment */}
+      {/* Overall assessment with Important reminder */}
       <div className={clsx(
         'border-2 rounded-elder-lg p-6',
         `bg-${overallLight.bgColor} border-${overallLight.color}`
       )}>
+        {/* Important reminder at top of card */}
+        {importantReminder && (
+          <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-6 w-6 text-primary-600 flex-shrink-0 mt-1" />
+              <div>
+                <p className="text-elder-base text-primary-800 font-semibold mb-1">
+                  {importantReminder.title}
+                </p>
+                <p className="text-elder-sm text-primary-700">
+                  {importantReminder.message}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Overall assessment content */}
         <div className="flex items-start gap-4">
           <div className={clsx(
             'p-3 rounded-elder',
@@ -108,31 +131,30 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
             </p>
           </div>
         </div>
+        
+        {/* Medications checked list - moved here */}
+        {medications.length > 0 && (
+          <div className="mt-6 pt-6 border-t-2 border-elder-border">
+            <h3 className="text-elder-lg font-semibold mb-3 flex items-center gap-3">
+              <Pill className="h-6 w-6 text-primary-600" />
+              Medications Checked
+            </h3>
+            
+            <ul className="space-y-2">
+              {medications.map((med, index) => (
+                <li key={med.id || index} className="flex items-center gap-3 text-elder-base">
+                  <span className="text-primary-600">•</span>
+                  <span className="font-medium">{med.name}</span>
+                  {med.dosage && (
+                    <span className="text-elder-text-secondary">({med.dosage})</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
-      {/* Medication list with individual assessments */}
-      {medications.length > 0 && (
-        <div className="bg-white border-2 border-elder-border rounded-elder-lg p-6">
-          {/* UPDATED: Larger font for section headers */}
-          <h3 className="text-elder-lg elder-tablet:text-elder-xl font-semibold mb-4 flex items-center gap-3">
-            <Pill className="h-6 w-6 text-primary-600" />
-            Medications Checked
-          </h3>
-          
-          <ul className="space-y-2">
-            {medications.map((med, index) => (
-              /* UPDATED: Larger text for medication list */
-              <li key={med.id || index} className="flex items-center gap-3 text-elder-base elder-tablet:text-elder-lg">
-                <span className="text-primary-600">•</span>
-                <span className="font-medium">{med.name}</span>
-                {med.dosage && (
-                  <span className="text-elder-text-secondary">({med.dosage})</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {/* Interactions section - FIXED: Use interactions instead of conflicts */}
       {result.interactions && result.interactions.length > 0 && (
@@ -225,172 +247,165 @@ export function ConflictResults({ result, medications }: ConflictResultsProps): 
         </div>
       )}
 
-      {/* UPDATED: General advice section with proper formatting */}
-      {/* Displays a single concise sentence (max 20 words) */}
-      {result.generalAdvice && (
-        <div className="bg-elder-background-alt rounded-elder-lg p-6">
-          {/* UPDATED: Larger font for section headers */}
-          <h3 className="text-elder-lg elder-tablet:text-elder-xl font-semibold mb-3 flex items-center gap-3">
-            <Info className="h-6 w-6 text-primary-600" />
-            General Advice
-          </h3>
-          {/* IMPORTANT: Clean the advice text to remove any JSON artifacts */}
-          {/* UPDATED: Larger font for better readability */}
-          <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary">
-            {(() => {
-              // Clean any potential JSON string artifacts
-              let advice = result.generalAdvice;
-              
-              // Remove JSON formatting if present
-              if (advice.includes('{') || advice.includes('"overallRisk"')) {
-                // Extract just the advice portion if JSON is present
-                const match = advice.match(/"advice":\s*"([^"]+)"/);
-                if (match) {
-                  advice = match[1];
-                } else {
-                  // Fallback: take first sentence
-                  advice = advice.split('.')[0] + '.';
-                }
-              }
-              
-              const words = advice.split(/\s+/).filter((w: string) => w.length > 0);
-              const isLongText = words.length > 25;
-              const isExpanded = expandedSections['generalAdvice'];
-              
-              if (!isLongText) {
-                return <p>{advice}</p>;
-              }
-              
-              // Find a better truncation point - end of sentence or after 25 words
-              let truncatedText = advice;
-              if (!isExpanded) {
-                const first25Words = words.slice(0, 25).join(' ');
-                
-                // Try to find the last complete sentence within the first 25 words
-                const sentences = first25Words.match(/[^.!?]+[.!?]/g);
-                if (sentences && sentences.length > 0) {
-                  truncatedText = sentences.join('').trim();
-                } else {
-                  // If no complete sentence, at least try to avoid cutting mid-word
-                  truncatedText = first25Words;
-                  // Add the rest of the current word if we cut it off
-                  const remainingText = advice.substring(first25Words.length);
-                  const nextWordMatch = remainingText.match(/^[^\s]+/);
-                  if (nextWordMatch) {
-                    truncatedText += nextWordMatch[0];
-                  }
-                }
-                truncatedText += '...';
-              }
-              
-              return (
-                <>
-                  <p>
-                    {isExpanded ? advice : truncatedText}
-                  </p>
-                  <button
-                    onClick={() => setExpandedSections(prev => ({
-                      ...prev,
-                      generalAdvice: !prev.generalAdvice
-                    }))}
-                    className="mt-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded inline-flex items-center gap-1"
-                  >
-                    {isExpanded ? (
-                      <>Show less <ChevronUp className="h-4 w-4" /></>
-                    ) : (
-                      <>Read more <ChevronDown className="h-4 w-4" /></>
-                    )}
-                  </button>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* UPDATED: Additional information with proper bullet point formatting */}
-      {/* Displays up to 3 bullet points, each max 20 words */}
-      {result.additionalInfo && (
+      {/* Combined Additional Information section */}
+      {(result.generalAdvice || result.additionalInfo) && (
         <div className="bg-elder-background-alt rounded-elder-lg p-6">
           {/* UPDATED: Larger font for section headers */}
           <h3 className="text-elder-lg elder-tablet:text-elder-xl font-semibold mb-3 flex items-center gap-3">
             <Info className="h-6 w-6 text-primary-600" />
             Additional Information
           </h3>
-          {/* IMPORTANT: Format as bullet points for elder-friendly reading */}
-          {/* UPDATED: Larger font for better readability */}
-          <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary space-y-3">
-            {(() => {
-              // Split by newlines to get individual bullet points
-              const bulletPoints = result.additionalInfo
-                .split('\n')
-                .filter(line => line.trim().length > 0);
-              
-              const isExpanded = expandedSections['additionalInfo'];
-              
-              return bulletPoints.map((point, index) => {
-                // Only show first 3 bullets if not expanded
-                if (!isExpanded && index >= 3) return null;
-                
-                // Clean the bullet point text
-                let cleanPoint = point.replace(/^[•\-*]\s*/, ''); // Remove existing bullets
-                const words = cleanPoint.split(/\s+/).filter((w: string) => w.length > 0);
-                const isLongBullet = words.length > 20;
-                
-                // Check if this specific bullet is expanded
-                const bulletExpanded = expandedSections[`bullet-${index}`];
-                
-                if (!isLongBullet) {
+          
+          <div className="space-y-4">
+            {/* General advice section */}
+            {result.generalAdvice && (
+              <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary">
+                {(() => {
+                  // Clean any potential JSON string artifacts
+                  let advice = result.generalAdvice;
+                  
+                  // Remove JSON formatting if present
+                  if (advice.includes('{') || advice.includes('"overallRisk"')) {
+                    // Extract just the advice portion if JSON is present
+                    const match = advice.match(/"advice":\s*"([^"]+)"/);
+                    if (match) {
+                      advice = match[1];
+                    } else {
+                      // Fallback: take first sentence
+                      advice = advice.split('.')[0] + '.';
+                    }
+                  }
+                  
+                  const words = advice.split(/\s+/).filter((w: string) => w.length > 0);
+                  const isLongText = words.length > 25;
+                  const isExpanded = expandedSections['generalAdvice'];
+                  
+                  if (!isLongText) {
+                    return <p>{advice}</p>;
+                  }
+                  
+                  // Find a better truncation point - end of sentence or after 25 words
+                  let truncatedText = advice;
+                  if (!isExpanded) {
+                    const first25Words = words.slice(0, 25).join(' ');
+                    
+                    // Try to find the last complete sentence within the first 25 words
+                    const sentences = first25Words.match(/[^.!?]+[.!?]/g);
+                    if (sentences && sentences.length > 0) {
+                      truncatedText = sentences.join('').trim();
+                    } else {
+                      // If no complete sentence, at least try to avoid cutting mid-word
+                      truncatedText = first25Words;
+                      // Add the rest of the current word if we cut it off
+                      const remainingText = advice.substring(first25Words.length);
+                      const nextWordMatch = remainingText.match(/^[^\s]+/);
+                      if (nextWordMatch) {
+                        truncatedText += nextWordMatch[0];
+                      }
+                    }
+                    truncatedText += '...';
+                  }
+                  
                   return (
-                    <div key={index} className="flex items-start gap-2">
-                      <span className="text-primary-600 mt-1">•</span>
-                      <span>{cleanPoint}</span>
-                    </div>
-                  );
-                }
-                
-                return (
-                  <div key={index} className="flex items-start gap-2">
-                    <span className="text-primary-600 mt-1">•</span>
-                    <div className="flex-1">
-                      <span>
-                        {bulletExpanded 
-                          ? cleanPoint 
-                          : words.slice(0, 20).join(' ') + '...'}
-                      </span>
+                    <>
+                      <p>
+                        {isExpanded ? advice : truncatedText}
+                      </p>
                       <button
                         onClick={() => setExpandedSections(prev => ({
                           ...prev,
-                          [`bullet-${index}`]: !prev[`bullet-${index}`]
+                          generalAdvice: !prev.generalAdvice
                         }))}
-                        className="ml-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                        className="mt-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded inline-flex items-center gap-1"
                       >
-                        {bulletExpanded ? 'Show less' : 'Read more'}
+                        {isExpanded ? (
+                          <>Show less <ChevronUp className="h-4 w-4" /></>
+                        ) : (
+                          <>Read more <ChevronDown className="h-4 w-4" /></>
+                        )}
                       </button>
-                    </div>
-                  </div>
-                );
-              }).filter(Boolean);
-            })()}
-            {(() => {
-              const totalBullets = result.additionalInfo.split('\n').filter(line => line.trim().length > 0).length;
-              const isExpanded = expandedSections['additionalInfo'];
-              
-              if (totalBullets > 3) {
-                return (
-                  <button
-                    onClick={() => setExpandedSections(prev => ({
-                      ...prev,
-                      additionalInfo: !prev.additionalInfo
-                    }))}
-                    className="mt-3 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
-                  >
-                    {isExpanded ? 'Show less' : `Show ${totalBullets - 3} more`}
-                  </button>
-                );
-              }
-              return null;
-            })()}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+            
+            {/* Additional info bullet points */}
+            {result.additionalInfo && (
+              <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary space-y-3">
+                {(() => {
+                  // Split by newlines to get individual bullet points
+                  const bulletPoints = result.additionalInfo
+                    .split('\n')
+                    .filter(line => line.trim().length > 0);
+                  
+                  const isExpanded = expandedSections['additionalInfo'];
+                  
+                  return bulletPoints.map((point, index) => {
+                    // Only show first 3 bullets if not expanded
+                    if (!isExpanded && index >= 3) return null;
+                    
+                    // Clean the bullet point text
+                    let cleanPoint = point.replace(/^[•\-*]\s*/, ''); // Remove existing bullets
+                    const words = cleanPoint.split(/\s+/).filter((w: string) => w.length > 0);
+                    const isLongBullet = words.length > 20;
+                    
+                    // Check if this specific bullet is expanded
+                    const bulletExpanded = expandedSections[`bullet-${index}`];
+                    
+                    if (!isLongBullet) {
+                      return (
+                        <div key={index} className="flex items-start gap-2">
+                          <span className="text-primary-600 mt-1">•</span>
+                          <span>{cleanPoint}</span>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div key={index} className="flex items-start gap-2">
+                        <span className="text-primary-600 mt-1">•</span>
+                        <div className="flex-1">
+                          <span>
+                            {bulletExpanded 
+                              ? cleanPoint 
+                              : words.slice(0, 20).join(' ') + '...'}
+                          </span>
+                          <button
+                            onClick={() => setExpandedSections(prev => ({
+                              ...prev,
+                              [`bullet-${index}`]: !prev[`bullet-${index}`]
+                            }))}
+                            className="ml-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                          >
+                            {bulletExpanded ? 'Show less' : 'Read more'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }).filter(Boolean);
+                })()}
+                {(() => {
+                  const totalBullets = result.additionalInfo.split('\n').filter(line => line.trim().length > 0).length;
+                  const isExpanded = expandedSections['additionalInfo'];
+                  
+                  if (totalBullets > 3) {
+                    return (
+                      <button
+                        onClick={() => setExpandedSections(prev => ({
+                          ...prev,
+                          additionalInfo: !prev.additionalInfo
+                        }))}
+                        className="mt-3 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                      >
+                        {isExpanded ? 'Show less' : `Show ${totalBullets - 3} more`}
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
           </div>
         </div>
       )}

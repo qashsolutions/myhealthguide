@@ -85,60 +85,23 @@ function MedicationCheckResultsPage() {
 
       {/* Page header */}
       <div className="mb-8">
-        <h1 className="text-elder-2xl elder-tablet:text-elder-3xl font-bold text-elder-text mb-3">
-          Your Medication Check Results
+        <h1 className="text-elder-2xl elder-tablet:text-elder-3xl font-bold text-elder-text">
+          Your Medication Check Results - AI analysis of {medications.length} medication{medications.length !== 1 ? 's' : ''}
         </h1>
-        <p className="text-elder-lg text-elder-text-secondary">
-          AI analysis of {medications.length} medication{medications.length !== 1 ? 's' : ''}
-        </p>
       </div>
 
-      {/* Important reminder */}
-      <div className="bg-primary-50 border-2 border-primary-200 rounded-elder p-4 mb-8">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="h-6 w-6 text-primary-600 flex-shrink-0 mt-1" />
-          <div>
-            <p className="text-elder-base text-primary-800 font-semibold mb-1">
-              Important: Always consult your healthcare provider
-            </p>
-            <p className="text-elder-sm text-primary-700">
-              These results are AI-generated and should not replace professional medical advice. 
-              Share these results with your doctor or pharmacist for personalized guidance.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Results display */}
+      {/* Results display with Important reminder integrated */}
       <ConflictResults 
         result={result} 
         medications={medications}
+        importantReminder={{
+          title: "Important: Always consult your healthcare provider",
+          message: "These results are AI-generated and should not replace professional medical advice. Share these results with your doctor or pharmacist for personalized guidance."
+        }}
       />
 
-      {/* Action buttons */}
-      <div className="mt-8 flex flex-col elder-tablet:flex-row gap-4">
-        <Button
-          variant="primary"
-          size="large"
-          onClick={handleNewCheck}
-          icon={<Plus className="h-6 w-6" />}
-          className="elder-tablet:flex-1"
-        >
-          Start New Check
-        </Button>
-        
-        <Button
-          variant="secondary"
-          size="large"
-          onClick={() => router.push(ROUTES.DASHBOARD)}
-          className="elder-tablet:flex-1"
-        >
-          Back to Dashboard
-        </Button>
-      </div>
-
-      {/* Next steps */}
-      <div className="mt-12 p-6 bg-elder-background-alt rounded-elder-lg">
+      {/* Combined Additional Information and What to Do Next */}
+      <div className="mt-8 p-6 bg-elder-background-alt rounded-elder-lg">
         <h2 className="text-elder-lg font-semibold mb-3">
           What to Do Next
         </h2>
@@ -168,6 +131,28 @@ function MedicationCheckResultsPage() {
             </p>
           </li>
         </ol>
+      </div>
+
+      {/* Action buttons - moved to bottom */}
+      <div className="mt-8 flex flex-col elder-tablet:flex-row gap-4">
+        <Button
+          variant="primary"
+          size="large"
+          onClick={handleNewCheck}
+          icon={<Plus className="h-6 w-6" />}
+          className="elder-tablet:flex-1"
+        >
+          Start New Check
+        </Button>
+        
+        <Button
+          variant="secondary"
+          size="large"
+          onClick={() => router.push(ROUTES.DASHBOARD)}
+          className="elder-tablet:flex-1"
+        >
+          Back to Dashboard
+        </Button>
       </div>
     </div>
   );
