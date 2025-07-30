@@ -48,12 +48,19 @@ export async function POST(request: NextRequest) {
         const url = new URL(COST_PLUS_API_URL);
         url.searchParams.append('medication_name', medicationName);
         url.searchParams.append('strength', strength);
-        url.searchParams.append('quantity_units', quantity.toString());
+        // Temporarily remove quantity_units to test
+        // url.searchParams.append('quantity_units', quantity.toString());
 
         console.log('Strategy 1 - Name + Strength:', url.toString());
         
         const response = await fetch(url.toString());
         const data = await response.json();
+        
+        console.log('Strategy 1 response:', { 
+          status: response.status, 
+          resultsCount: data.results?.length || 0,
+          data: data 
+        });
         
         if (data.results && data.results.length > 0) {
           allResults = [...allResults, ...data.results];
@@ -70,12 +77,18 @@ export async function POST(request: NextRequest) {
         const brandSearchUrl = new URL(COST_PLUS_API_URL);
         brandSearchUrl.searchParams.append('brand_name', searchTerm.trim());
         brandSearchUrl.searchParams.append('generic_equivalent_ok', 'true');
-        brandSearchUrl.searchParams.append('quantity_units', quantity.toString());
+        // Temporarily remove quantity_units to test
+        // brandSearchUrl.searchParams.append('quantity_units', quantity.toString());
 
         console.log('Strategy 2 - Brand name search:', brandSearchUrl.toString());
 
         const response = await fetch(brandSearchUrl.toString());
         const data = await response.json();
+
+        console.log('Strategy 2 response:', { 
+          status: response.status, 
+          resultsCount: data.results?.length || 0 
+        });
 
         if (data.results && data.results.length > 0) {
           allResults = [...allResults, ...data.results];
@@ -91,12 +104,18 @@ export async function POST(request: NextRequest) {
       try {
         const medicationSearchUrl = new URL(COST_PLUS_API_URL);
         medicationSearchUrl.searchParams.append('medication_name', medicationName);
-        medicationSearchUrl.searchParams.append('quantity_units', quantity.toString());
+        // Temporarily remove quantity_units to test
+        // medicationSearchUrl.searchParams.append('quantity_units', quantity.toString());
 
         console.log('Strategy 3 - Medication name only:', medicationSearchUrl.toString());
 
         const response = await fetch(medicationSearchUrl.toString());
         const data = await response.json();
+
+        console.log('Strategy 3 response:', { 
+          status: response.status, 
+          resultsCount: data.results?.length || 0 
+        });
 
         if (data.results && data.results.length > 0) {
           allResults = [...allResults, ...data.results];
@@ -130,23 +149,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Format results for the frontend
-    // Filter to only show results for the requested quantity
-    const formattedResults = uniqueResults
-      .filter(item => {
-        // If we requested a specific quantity via quantity_units, the API should return the requested_quote
-        // Otherwise, keep all results
-        return !item.requested_quote_units || item.requested_quote_units === quantity;
-      })
-      .map(item => ({
-        medication_name: item.medication_name || item.brand_name || 'Unknown',
-        strength: item.strength || '',
-        form: item.form || '',
-        manufacturer: item.manufacturer || '',
-        price: item.requested_quote || item.price || 0,
-        price_per_unit: item.price_per_unit || 0,
-        quantity: item.requested_quote_units || quantity,
-        url: item.url || '',  // Add the Cost Plus Drugs website URL
-      }));
+    const formattedResults = uniqueResults.map(item => ({
+      medication_name: item.medication_name || item.brand_name || 'Unknown',
+      strength: item.strength || '',
+      form: item.form || '',
+      manufacturer: item.manufacturer || '',
+      // Use requested_quote if available (when we query with quantity_units), otherwise use price
+      price: item.requested_quote || item.price || 0,
+      price_per_unit: item.price_per_unit || 0,
+      quantity: quantity, // Always use the requested quantity
+      url: item.url || '',  // Add the Cost Plus Drugs website URL
+    }));
 
     console.log(`Found ${formattedResults.length} results for "${searchTerm}"`);
 

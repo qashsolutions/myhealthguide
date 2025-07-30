@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { withAuth } from '@/hooks/useAuth';
+// import { withAuth } from '@/hooks/useAuth'; // Removed for public access
 import { ConflictResults } from '@/components/medication/ConflictResults';
 import { Button } from '@/components/ui/Button';
 import { MedicationCheckResult } from '@/types';
@@ -23,7 +23,7 @@ function MedicationCheckResultsPage() {
     // Retrieve results from session storage
     if (typeof window !== 'undefined') {
       const storedResult = sessionStorage.getItem('medicationCheckResult');
-      const storedMedications = sessionStorage.getItem('checkedMedications');
+      const storedMedications = sessionStorage.getItem('medicationsList');
       
       if (storedResult && storedMedications) {
         try {
@@ -173,4 +173,4 @@ function MedicationCheckResultsPage() {
   );
 }
 
-export default withAuth(MedicationCheckResultsPage, { requireDisclaimer: true });
+export default MedicationCheckResultsPage;
