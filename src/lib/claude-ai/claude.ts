@@ -359,31 +359,17 @@ const cleanupAdvice = (text: string): string => {
     .substring(0, 500);
 };
 
-// ADDED: Helper function to format additional info as bullet points
-// Extracts key safety information and formats it for elder-friendly display
+// ADDED: Helper function to format additional info as a single sentence
+// Returns a single concise sentence for elder-friendly display
 const formatAdditionalInfo = (jsonResponse: any): string => {
-  const bulletPoints: string[] = [];
-  
-  // Extract medication-specific warnings
+  // Return a single sentence based on the result
   if (jsonResponse.interactions && jsonResponse.interactions.length > 0) {
-    // Add interaction summaries (max 20 words each)
-    jsonResponse.interactions.forEach((interaction: any, index: number) => {
-      if (index < 3 && interaction.description) { // Max 3 bullet points
-        const words = interaction.description.split(/\s+/).filter((w: string) => w.length > 0).slice(0, 20);
-        bulletPoints.push(`• ${words.join(' ')}`);
-      }
-    });
+    // If there are interactions, provide a reminder about monitoring
+    return "Monitor for any unusual symptoms and keep a list of all your medications to share with healthcare providers.";
+  } else {
+    // If no interactions, provide a general safety reminder
+    return "Continue taking your medications as prescribed and maintain regular check-ups with your healthcare provider.";
   }
-  
-  // Add general safety reminders if no interactions (each up to 20 words)
-  if (bulletPoints.length === 0) {
-    bulletPoints.push('• Monitor how you feel daily and report any unusual symptoms to your healthcare provider');
-    bulletPoints.push('• Take medications exactly as prescribed by your doctor and never skip or double doses');
-    bulletPoints.push('• Contact your doctor immediately if you experience any concerning side effects or reactions');
-  }
-  
-  // Format as bullet points with proper spacing
-  return bulletPoints.join('\n');
 };
 
 // Check medications for conflicts using Claude API (updated)

@@ -234,80 +234,10 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
                 </div>
               )}
               
-              {/* Additional info bullet points */}
+              {/* Additional info - single sentence */}
               {result.additionalInfo && (
-                <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary space-y-3">
-                  {(() => {
-                    // Split by newlines to get individual bullet points
-                    const bulletPoints = result.additionalInfo
-                      .split('\n')
-                      .filter(line => line.trim().length > 0);
-                    
-                    const isExpanded = expandedSections['additionalInfo'];
-                    
-                    return bulletPoints.map((point, index) => {
-                      // Only show first 3 bullets if not expanded
-                      if (!isExpanded && index >= 3) return null;
-                      
-                      // Clean the bullet point text
-                      let cleanPoint = point.replace(/^[•\-*]\s*/, ''); // Remove existing bullets
-                      const words = cleanPoint.split(/\s+/).filter((w: string) => w.length > 0);
-                      const isLongBullet = words.length > 20;
-                      
-                      // Check if this specific bullet is expanded
-                      const bulletExpanded = expandedSections[`bullet-${index}`];
-                      
-                      if (!isLongBullet) {
-                        return (
-                          <div key={index} className="flex items-start gap-2">
-                            <span className="text-primary-600 mt-1">•</span>
-                            <span>{cleanPoint}</span>
-                          </div>
-                        );
-                      }
-                      
-                      return (
-                        <div key={index} className="flex items-start gap-2">
-                          <span className="text-primary-600 mt-1">•</span>
-                          <div className="flex-1">
-                            <span>
-                              {bulletExpanded 
-                                ? cleanPoint 
-                                : words.slice(0, 20).join(' ') + '...'}
-                            </span>
-                            <button
-                              onClick={() => setExpandedSections(prev => ({
-                                ...prev,
-                                [`bullet-${index}`]: !prev[`bullet-${index}`]
-                              }))}
-                              className="ml-2 text-primary-600 hover:text-primary-700 font-semibold text-elder-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
-                            >
-                              {bulletExpanded ? 'Show less' : 'Read more'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    }).filter(Boolean);
-                  })()}
-                  {(() => {
-                    const totalBullets = result.additionalInfo.split('\n').filter(line => line.trim().length > 0).length;
-                    const isExpanded = expandedSections['additionalInfo'];
-                    
-                    if (totalBullets > 3) {
-                      return (
-                        <button
-                          onClick={() => setExpandedSections(prev => ({
-                            ...prev,
-                            additionalInfo: !prev.additionalInfo
-                          }))}
-                          className="mt-3 text-primary-600 hover:text-primary-700 font-semibold text-elder-base focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
-                        >
-                          {isExpanded ? 'Show less' : `Show ${totalBullets - 3} more`}
-                        </button>
-                      );
-                    }
-                    return null;
-                  })()}
+                <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary">
+                  <p>{result.additionalInfo}</p>
                 </div>
               )}
             </div>
@@ -394,21 +324,6 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
         </div>
       )}
 
-      {/* UPDATED: Show "No Interactions" only when status is safe */}
-      {/* This prevents contradictory messages */}
-      {(!result.interactions || result.interactions.length === 0) && result.overallRisk === 'safe' && (
-        <div className="border-4 border-green-700 rounded-elder-lg p-6 text-center">
-          <CheckCircle className="h-12 w-12 text-green-700 mx-auto mb-3" />
-          {/* UPDATED: Larger font for headers */}
-          <p className="text-elder-lg elder-tablet:text-elder-xl font-semibold text-elder-text">
-            No Interactions Detected
-          </p>
-          {/* UPDATED: Larger font for better readability */}
-          <p className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary mt-2">
-            Based on our analysis, we didn't find any major interactions between your medications.
-          </p>
-        </div>
-      )}
 
     </div>
   );
