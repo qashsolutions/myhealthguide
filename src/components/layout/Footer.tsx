@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { Heart, Shield } from 'lucide-react';
-import { APP_NAME, ROUTES, DISCLAIMERS } from '@/lib/constants';
+import { Heart } from 'lucide-react';
+import { APP_NAME, ROUTES } from '@/lib/constants';
 
 /**
  * Footer component with privacy links and medical disclaimer
@@ -15,16 +15,6 @@ export function Footer(): JSX.Element {
       className="bg-gray-50 border-t border-elder-border mt-auto"
       role="contentinfo"
     >
-      {/* Medical Disclaimer Banner */}
-      <div className="bg-primary-50 border-b border-primary-200">
-        <div className="container mx-auto px-4 py-2">
-          <p className="text-sm text-gray-500 text-center leading-tight">
-            <Shield className="inline-block h-4 w-4 mr-1 mb-0.5 text-health-warning" aria-hidden="true" />
-            <strong>Important:</strong> {DISCLAIMERS.GENERAL}
-          </p>
-        </div>
-      </div>
-
       {/* Main Footer Content */}
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col elder-tablet:flex-row justify-between items-end gap-4">

@@ -18,7 +18,8 @@
       "Bash(find:*)",
       "Bash(rm:*)",
       "Bash(npm run build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebFetch(domain:www.healthcare.gov)"
     ],
     "deny": []
   }

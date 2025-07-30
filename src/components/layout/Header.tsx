@@ -66,6 +66,7 @@ export function Header(): JSX.Element {
     { href: ROUTES.MEDICATION_CHECK, label: 'Check Medications' },
     { href: ROUTES.HEALTH_QA, label: 'Health Questions' },
     { href: ROUTES.DRUG_PRICES, label: 'Drug Price Check' },
+    { href: '/eldercare', label: 'Care Info' },
   ];
 
   const isActiveRoute = (href: string) => pathname === href;
