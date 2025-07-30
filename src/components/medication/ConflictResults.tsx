@@ -163,7 +163,7 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
             <div className="space-y-4">
               {/* General advice section */}
               {result.generalAdvice && (
-                <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary">
+                <div className="text-sm text-gray-500">
                   {(() => {
                     // Clean any potential JSON string artifacts
                     let advice = result.generalAdvice;
@@ -236,7 +236,7 @@ export function ConflictResults({ result, medications, importantReminder }: Conf
               
               {/* Additional info - single sentence */}
               {result.additionalInfo && (
-                <div className="text-elder-base elder-tablet:text-elder-lg text-elder-text-secondary">
+                <div className="text-sm text-gray-500">
                   <p>{result.additionalInfo}</p>
                 </div>
               )}

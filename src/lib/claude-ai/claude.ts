@@ -173,7 +173,8 @@ const parseCheckResponse = (
             result.generalAdvice = words.join(' ') + (words.length >= 20 ? '.' : '');
           }
           
-          // UPDATED: Format additional info as bullet points
+          // UPDATED: Format additional info as a single sentence
+          // Override any existing additionalInfo from the API response
           result.additionalInfo = formatAdditionalInfo(jsonResponse);
           
           result.consultDoctorRecommended = jsonResponse.consultDoctor || false;
