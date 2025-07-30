@@ -86,7 +86,7 @@ function MedicationCheckResultsPage() {
       {/* Page header */}
       <div className="mb-8">
         <h1 className="text-elder-lg elder-tablet:text-elder-xl font-bold text-elder-text">
-          Your Medication Check Results - Overall assessment: {
+          Overall assessment: {
             result.overallRisk === 'safe' ? 'Safe' :
             result.overallRisk === 'warning' ? 'Caution' :
             result.overallRisk === 'danger' ? 'Warning' :
@@ -105,38 +105,6 @@ function MedicationCheckResultsPage() {
         }}
       />
 
-      {/* Combined Additional Information and What to Do Next */}
-      <div className="mt-8 p-6 bg-elder-background-alt rounded-elder-lg">
-        <h2 className="text-elder-lg font-semibold mb-3">
-          What to Do Next
-        </h2>
-        <ol className="space-y-3">
-          <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-elder-sm font-semibold">
-              1
-            </span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Take a screenshot of these results to share with your healthcare provider
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-elder-sm font-semibold">
-              2
-            </span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Schedule an appointment if any serious conflicts were found
-            </p>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-elder-sm font-semibold">
-              3
-            </span>
-            <p className="text-elder-base text-elder-text-secondary">
-              Keep your medication list updated for future checks
-            </p>
-          </li>
-        </ol>
-      </div>
 
       {/* Action buttons - moved to bottom */}
       <div className="mt-8 flex flex-col elder-tablet:flex-row gap-4">
