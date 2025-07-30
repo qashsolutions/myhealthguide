@@ -130,15 +130,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Format results for the frontend
-    const formattedResults = uniqueResults.map(item => ({
-      medication_name: item.medication_name || item.brand_name || 'Unknown',
-      strength: item.strength || '',
-      form: item.form || '',
-      manufacturer: item.manufacturer || '',
-      price: item.price || 0,
-      price_per_unit: item.price_per_unit || 0,
-      quantity: quantity,
-    }));
+    // Filter to only show results for the requested quantity
+    const formattedResults = uniqueResults
+      .filter(item => {
+        // If we requested a specific quantity via quantity_units, the API should return the requested_quote
+        // Otherwise, keep all results
+        return !item.requested_quote_units || item.requested_quote_units === quantity;
+      })
+      .map(item => ({
+        medication_name: item.medication_name || item.brand_name || 'Unknown',
+        strength: item.strength || '',
+        form: item.form || '',
+        manufacturer: item.manufacturer || '',
+        price: item.requested_quote || item.price || 0,
+        price_per_unit: item.price_per_unit || 0,
+        quantity: item.requested_quote_units || quantity,
+        url: item.url || '',  // Add the Cost Plus Drugs website URL
+      }));
 
     console.log(`Found ${formattedResults.length} results for "${searchTerm}"`);
 

@@ -215,14 +215,29 @@ function DrugPricesContent() {
                   </div>
                 </div>
 
-                {/* Additional price breakdown */}
-                {medication.price_per_unit && (
-                  <div className="mt-4 pt-4 border-t border-elder-border">
+                {/* Additional price breakdown and link */}
+                <div className="mt-4 pt-4 border-t border-elder-border space-y-2">
+                  {medication.price_per_unit && (
                     <p className="text-elder-sm text-elder-text-secondary">
                       Price per {medication.form.toLowerCase()}: ${medication.price_per_unit.toFixed(2)}
                     </p>
-                  </div>
-                )}
+                  )}
+                  
+                  {/* Link to Cost Plus Drugs website */}
+                  {medication.url && (
+                    <a
+                      href={medication.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 text-elder-base font-medium"
+                    >
+                      View on Cost Plus Drugs
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
               </div>
             ))}
           </div>
