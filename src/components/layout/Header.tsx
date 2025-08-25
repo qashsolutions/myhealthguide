@@ -3,12 +3,21 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Menu, X, User } from 'lucide-react';
 import { clsx } from 'clsx';
-import { MobileMenu } from './MobileMenu';
 import { Button } from '../ui/Button';
 import { APP_NAME, ROUTES, ARIA_LABELS } from '@/lib/constants';
 import { useAuth } from '@/hooks/useAuth';
+
+// Dynamic import for MobileMenu - only loaded when needed
+const MobileMenu = dynamic(
+  () => import('./MobileMenu').then(mod => ({ default: mod.MobileMenu })),
+  {
+    loading: () => null,
+    ssr: false
+  }
+);
 
 /**
  * Responsive header with eldercare-optimized navigation

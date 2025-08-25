@@ -2,9 +2,28 @@
 
 import React, { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Shield, Heart, CheckCircle } from 'lucide-react';
-import { AuthToggle } from '@/components/auth/AuthToggle';
 import { APP_NAME } from '@/lib/constants';
+
+// Dynamic import for AuthToggle component
+const AuthToggle = dynamic(
+  () => import('@/components/auth/AuthToggle').then(mod => ({ default: mod.AuthToggle })),
+  {
+    loading: () => (
+      <div className="bg-white rounded-elder-lg shadow-elder p-8 animate-pulse">
+        <div className="h-10 bg-gray-200 rounded w-3/4 mx-auto mb-6"></div>
+        <div className="space-y-4">
+          <div className="h-12 bg-gray-200 rounded"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+        <div className="h-12 bg-primary-200 rounded mt-6"></div>
+      </div>
+    ),
+    ssr: false
+  }
+);
 
 /**
  * Authentication page content component

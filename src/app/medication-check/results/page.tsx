@@ -2,12 +2,37 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 // import { withAuth } from '@/hooks/useAuth'; // Removed for public access
-import { ConflictResults } from '@/components/medication/ConflictResults';
 import { Button } from '@/components/ui/Button';
 import { MedicationCheckResult } from '@/types';
 import { ROUTES } from '@/lib/constants';
 import { ArrowLeft, Plus, AlertCircle } from 'lucide-react';
+
+// Dynamic import for heavy ConflictResults component
+const ConflictResults = dynamic(
+  () => import('@/components/medication/ConflictResults').then(mod => ({ default: mod.ConflictResults })),
+  {
+    loading: () => (
+      <div className="space-y-4">
+        <div className="bg-white rounded-elder-lg shadow-elder p-6 border border-elder-border animate-pulse">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+            <div className="flex-1">
+              <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+          </div>
+        </div>
+      </div>
+    ),
+    ssr: false
+  }
+);
 
 /**
  * Medication check results page

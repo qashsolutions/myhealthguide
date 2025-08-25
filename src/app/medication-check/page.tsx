@@ -2,12 +2,41 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MedicationForm } from '@/components/medication/MedicationForm';
-import { MedicationList } from '@/components/medication/MedicationList';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/Button';
 import { Medication } from '@/types';
 import { ROUTES, DISCLAIMERS } from '@/lib/constants';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
+
+// Dynamic imports with loading states
+const MedicationForm = dynamic(
+  () => import('@/components/medication/MedicationForm').then(mod => ({ default: mod.MedicationForm })),
+  {
+    loading: () => (
+      <div className="bg-white rounded-elder-lg shadow-elder p-6 border border-elder-border animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div className="h-12 bg-gray-200 rounded mb-4"></div>
+        <div className="h-12 bg-gray-200 rounded"></div>
+      </div>
+    ),
+    ssr: false
+  }
+);
+
+const MedicationList = dynamic(
+  () => import('@/components/medication/MedicationList').then(mod => ({ default: mod.MedicationList })),
+  {
+    loading: () => (
+      <div className="bg-white rounded-elder-lg shadow-elder p-6 border border-elder-border animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+        <div className="space-y-3">
+          <div className="h-16 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    ),
+    ssr: false
+  }
+);
 
 /**
  * Public medication check page

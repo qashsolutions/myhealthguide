@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Beaker, HelpCircle, DollarSign } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 
