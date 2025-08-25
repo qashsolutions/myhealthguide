@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Menu, X, User } from 'lucide-react';
@@ -94,9 +95,17 @@ export function Header(): JSX.Element {
             {/* Logo */}
             <Link 
               href={ROUTES.HOME}
-              className="text-elder-lg font-bold text-blue-900 hover:text-blue-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500 rounded-elder"
+              className="flex items-center gap-2 text-elder-lg font-bold text-blue-900 hover:text-blue-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500 rounded-elder"
             >
-              {APP_NAME}
+              <Image
+                src="/logo.png"
+                alt="Careguide Logo"
+                width={32}
+                height={32}
+                className="w-8 h-8"
+                priority
+              />
+              <span>{APP_NAME}</span>
             </Link>
 
             {/* Desktop Navigation */}

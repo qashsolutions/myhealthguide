@@ -85,7 +85,7 @@ function AuthPageContent() {
             {/* Testimonial */}
             {/* <div className="mt-12 p-6 bg-primary-50 rounded-elder-lg border-2 border-primary-200">
               <p className="text-elder-base text-primary-900 italic mb-4">
-                "MyHealth Guide helped me discover a dangerous interaction between my medications. It may have saved my life!"
+                "Careguide helped me discover a dangerous interaction between my medications. It may have saved my life!"
               </p>
               <p className="text-elder-sm text-primary-700 font-semibold">
                 — Margaret, age 72

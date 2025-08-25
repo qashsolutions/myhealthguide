@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 
@@ -21,8 +22,15 @@ export function Footer(): JSX.Element {
           {/* Left side - Logo and Copyright */}
           <div className="text-center elder-tablet:text-left">
             {/* Logo and Brand */}
-            <div className="text-elder-lg font-bold text-blue-900 mb-2">
-              {APP_NAME}
+            <div className="flex items-center gap-2 text-elder-lg font-bold text-blue-900 mb-2 justify-center elder-tablet:justify-start">
+              <Image
+                src="/logo.png"
+                alt="Careguide Logo"
+                width={24}
+                height={24}
+                className="w-6 h-6"
+              />
+              <span>{APP_NAME}</span>
             </div>
             {/* Copyright */}
             <p className="text-sm text-gray-500">

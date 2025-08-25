@@ -90,7 +90,7 @@ function MedicalDisclaimerContent() {
                 Medical Disclaimer
               </h1>
               <p className="text-elder-lg text-elder-text-secondary">
-                Important information about using MyHealth Guide
+                Important information about using Careguide
               </p>
             </div>
           </div>
@@ -160,7 +160,7 @@ function MedicalDisclaimerContent() {
             health information service. Your safety and informed consent are our top priorities.
           </p>
           <p className="text-elder-base text-elder-text-secondary">
-            By accepting, you acknowledge that MyHealth Guide provides informational support 
+            By accepting, you acknowledge that Careguide provides informational support 
             only and does not replace professional medical advice, diagnosis, or treatment.
           </p>
         </div>

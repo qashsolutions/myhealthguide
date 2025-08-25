@@ -1,10 +1,10 @@
 /**
- * Application constants for MyHealth Guide
+ * Application constants for Careguide
  * Eldercare-focused health platform
  */
 
 // App metadata
-export const APP_NAME = 'MyHealth Guide';
+export const APP_NAME = 'Careguide';
 export const APP_DESCRIPTION = 'AI-powered medication safety checker for seniors';
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://myguide.health';
 
@@ -105,7 +105,7 @@ export const ERROR_MESSAGES = {
 
 // Success messages
 export const SUCCESS_MESSAGES = {
-  SIGNUP: 'Welcome to MyHealth Guide! Check your email for confirmation.',
+  SIGNUP: 'Welcome to Careguide! Check your email for confirmation.',
   LOGIN: 'Welcome back! You\'re now signed in.',
   MEDICATION_ADDED: 'Medication added to your list.',
   CHECK_COMPLETE: 'Medication check complete. See your results below.',
@@ -189,10 +189,10 @@ export const FEATURES_DESCRIPTION = {
 
 // Email templates config
 export const EMAIL_CONFIG = {
-  FROM: 'MyHealth Guide <admin@myguide.health>',
+  FROM: 'Careguide <admin@myguide.health>',
   REPLY_TO: 'support@myguide.health',
   SUBJECTS: {
-    WELCOME: 'Welcome to MyHealth Guide',
+    WELCOME: 'Welcome to Careguide',
     PASSWORD_RESET: 'Reset Your Password',
     MEDICATION_REMINDER: 'Medication Safety Reminder',
   },
