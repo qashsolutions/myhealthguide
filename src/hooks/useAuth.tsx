@@ -95,45 +95,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Check server-side session on mount and set up periodic checks
-  // FIXED: Reduced polling frequency from 30 seconds to 5 minutes to reduce server load
+  // DISABLED: Authentication checks are disabled - all routes are public
   useEffect(() => {
-    // Skip session checks during server-side rendering
-    if (typeof window === 'undefined') {
-      console.log('[useAuth] Skipping session check during SSR');
-      setLoading(false);
-      return;
+    // Skip all authentication checks
+    console.log('[useAuth] Authentication disabled - all routes are public');
+    setLoading(false);
+    setUser(null);
+    
+    // Clear any stored authentication data
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.DISCLAIMER_ACCEPTED);
     }
-    
-    console.log('[useAuth] Initializing auth state');
-    setLoading(true);
-    
-    // Initial session check
-    checkServerSession().finally(() => {
-      setLoading(false);
-    });
-    
-    // FIXED: Reduced periodic session checks from every 30 seconds to every 5 minutes
-    // This reduces server load while still catching session changes
-    const interval = setInterval(() => {
-      console.log('[useAuth] Periodic session check (5 min interval)');
-      checkServerSession();
-    }, 300000); // 5 minutes instead of 30 seconds
-    
-    // Also check session when window regains focus (keep this for better UX)
-    const handleFocus = () => {
-      console.log('[useAuth] Window focused, checking session');
-      checkServerSession();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    
-    // Cleanup
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [checkServerSession]);
+  }, []);
 
   // Login function
   // FIXED: Removed unnecessary session re-check after login that was causing immediate failures
@@ -294,44 +268,13 @@ export function useAuth() {
 
 // HOC for protected routes
 // FIXED: Added better loading handling and clearer redirect logic
+// DISABLED: Authentication HOC is disabled - all routes are public
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>,
   options?: { requireDisclaimer?: boolean }
 ) {
   return function AuthenticatedComponent(props: P) {
-    const { isAuthenticated, disclaimerAccepted, loading } = useAuth();
-    const router = useRouter();
-
-    useEffect(() => {
-      // Wait for loading to complete before making redirect decisions
-      if (!loading) {
-        if (!isAuthenticated) {
-          // User is not authenticated, redirect to auth page with return URL
-          console.log('[withAuth] User not authenticated, redirecting to auth');
-          router.push(`${ROUTES.AUTH}?redirect=${encodeURIComponent(window.location.pathname)}`);
-        } else if (options?.requireDisclaimer && !disclaimerAccepted) {
-          // User is authenticated but hasn't accepted disclaimer
-          console.log('[withAuth] User needs to accept disclaimer, redirecting');
-          router.push(ROUTES.MEDICAL_DISCLAIMER);
-        }
-      }
-    }, [isAuthenticated, disclaimerAccepted, loading, router]);
-
-    // Show loading spinner while determining auth state
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="spinner" />
-        </div>
-      );
-    }
-
-    // Don't render component if user doesn't meet requirements
-    if (!isAuthenticated || (options?.requireDisclaimer && !disclaimerAccepted)) {
-      return null;
-    }
-
-    // All checks passed, render the protected component
+    // Authentication disabled - render component directly
     return <Component {...props} />;
   };
 }

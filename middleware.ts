@@ -16,22 +16,25 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || [
 ];
 
 // Routes that require authentication
-const PROTECTED_ROUTES = [
-  '/dashboard',
-  '/medication-check',
-  '/health-qa',
-  '/account',
+// DISABLED - All routes are now public
+const PROTECTED_ROUTES: string[] = [
+  // '/dashboard',
+  // '/medication-check',
+  // '/health-qa',
+  // '/account',
 ];
 
 // Routes that require email verification
-const VERIFIED_ROUTES = [
-  '/medication-check',
-  '/health-qa',
+// DISABLED - Email verification no longer required
+const VERIFIED_ROUTES: string[] = [
+  // '/medication-check',
+  // '/health-qa',
 ];
 
 // Routes that should redirect to dashboard if already authenticated
-const AUTH_ROUTES = [
-  '/auth',
+// DISABLED - Authentication pages are no longer used
+const AUTH_ROUTES: string[] = [
+  // '/auth',
 ];
 
 export async function middleware(request: NextRequest) {
@@ -84,11 +87,13 @@ export async function middleware(request: NextRequest) {
   }
   
   // 4. Route protection for authenticated pages
+  // DISABLED - All routes are now public
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
   const needsVerification = VERIFIED_ROUTES.some(route => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
   
-  if (isProtectedRoute || isAuthRoute) {
+  // Skip authentication checks - all routes are public
+  if (false && (isProtectedRoute || isAuthRoute)) {
     // Note: getSession function needs to be adapted for edge runtime
     // For now, we'll check for the session cookie
     const sessionCookie = request.cookies.get('session');
