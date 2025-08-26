@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Menu, X, User } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../ui/Button';
 import { APP_NAME, ROUTES, ARIA_LABELS } from '@/lib/constants';
@@ -26,7 +26,9 @@ const MobileMenu = dynamic(
  */
 export function Header(): JSX.Element {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [testCounter, setTestCounter] = useState(0); // Test state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLLIElement>(null);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout>();
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useAuth();
@@ -40,25 +42,17 @@ export function Header(): JSX.Element {
     };
   }, []);
   
-  // Log when component re-renders
+  // Cleanup timeout on unmount
   React.useEffect(() => {
-    console.log('Header re-rendered, isMobileMenuOpen:', isMobileMenuOpen, 'testCounter:', testCounter);
-  });
+    return () => {
+      if (dropdownTimeoutRef.current) {
+        clearTimeout(dropdownTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleMobileMenu = () => {
-    try {
-      console.log('toggleMobileMenu called, current state:', isMobileMenuOpen);
-      const newState = !isMobileMenuOpen;
-      setIsMobileMenuOpen(newState);
-      setTestCounter(prev => prev + 1); // Test if ANY state update works
-      console.log('State should now be:', newState);
-      // Force a re-render check
-      setTimeout(() => {
-        console.log('After timeout, state is:', newState);
-      }, 100);
-    } catch (error) {
-      console.error('Error in toggleMobileMenu:', error);
-    }
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   // Handle sign out
@@ -71,13 +65,33 @@ export function Header(): JSX.Element {
     }
   };
 
-  // Navigation items
+  // Navigation items with nested structure
   const navItems = [
-    { href: ROUTES.MEDICATION_CHECK, label: 'Check Medications' },
-    { href: ROUTES.HEALTH_QA, label: 'Health Questions' },
-    { href: ROUTES.DRUG_PRICES, label: 'Drug Price Check' },
+    { 
+      href: ROUTES.HEALTH_QA, 
+      label: 'Health Questions',
+      children: [
+        { href: ROUTES.HEALTH_QA, label: 'Ask Health Questions' },
+        { href: ROUTES.MEDICATION_CHECK, label: 'Check Medications' },
+        { href: ROUTES.DRUG_PRICES, label: 'Drug Price Check' },
+      ]
+    },
     { href: '/eldercare', label: 'Care Info' },
   ];
+
+  // Handle dropdown hover
+  const handleDropdownMouseEnter = () => {
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+    }
+    setIsDropdownOpen(true);
+  };
+
+  const handleDropdownMouseLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setIsDropdownOpen(false);
+    }, 200); // Small delay to prevent accidental closing
+  };
 
   const isActiveRoute = (href: string) => pathname === href;
 
@@ -113,20 +127,69 @@ export function Header(): JSX.Element {
               {/* Nav Links */}
               <ul className="flex items-center gap-6">
                 {navItems.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={clsx(
-                        'text-elder-base font-medium px-4 py-2 rounded-elder transition-colors',
-                        'hover:bg-primary-50 hover:text-primary-700',
-                        'focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500',
-                        isActiveRoute(item.href)
-                          ? 'text-primary-700 bg-primary-50'
-                          : 'text-elder-text'
-                      )}
-                    >
-                      {item.label}
-                    </Link>
+                  <li 
+                    key={item.href}
+                    className="relative"
+                    onMouseEnter={item.children ? handleDropdownMouseEnter : undefined}
+                    onMouseLeave={item.children ? handleDropdownMouseLeave : undefined}
+                    ref={item.children ? dropdownRef : undefined}
+                  >
+                    {item.children ? (
+                      <>
+                        <button
+                          className={clsx(
+                            'flex items-center gap-1 text-elder-base font-medium px-4 py-2 rounded-elder transition-colors',
+                            'hover:bg-primary-50 hover:text-primary-700',
+                            'focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500',
+                            (isActiveRoute(item.href) || item.children.some(child => isActiveRoute(child.href)))
+                              ? 'text-primary-700 bg-primary-50'
+                              : 'text-elder-text'
+                          )}
+                          onClick={() => router.push(item.href)}
+                        >
+                          {item.label}
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                        
+                        {/* Dropdown Menu */}
+                        {isDropdownOpen && (
+                          <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-elder shadow-lg border border-elder-border z-50">
+                            <ul className="py-2">
+                              {item.children.map((child) => (
+                                <li key={child.href}>
+                                  <Link
+                                    href={child.href}
+                                    className={clsx(
+                                      'block px-4 py-3 text-elder-base hover:bg-primary-50 hover:text-primary-700 transition-colors',
+                                      isActiveRoute(child.href)
+                                        ? 'bg-primary-50 text-primary-700 font-medium'
+                                        : 'text-elder-text'
+                                    )}
+                                    onClick={() => setIsDropdownOpen(false)}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className={clsx(
+                          'text-elder-base font-medium px-4 py-2 rounded-elder transition-colors block',
+                          'hover:bg-primary-50 hover:text-primary-700',
+                          'focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500',
+                          isActiveRoute(item.href)
+                            ? 'text-primary-700 bg-primary-50'
+                            : 'text-elder-text'
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

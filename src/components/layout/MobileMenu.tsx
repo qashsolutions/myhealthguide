@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { ROUTES } from '@/lib/constants';
 
@@ -12,10 +12,16 @@ import { ROUTES } from '@/lib/constants';
  * Mobile menu component with eldercare-optimized touch targets
  * Slides down from header on mobile devices
  */
+interface NavItem {
+  href: string;
+  label: string;
+  children?: Array<{ href: string; label: string }>;
+}
+
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  navItems: Array<{ href: string; label: string }>;
+  navItems: Array<NavItem>;
   isAuthenticated?: boolean;
   userName?: string;
   onSignOut?: () => void;
@@ -32,6 +38,7 @@ export function MobileMenu({
   onSignIn,
 }: MobileMenuProps): JSX.Element | null {
   const pathname = usePathname();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   // Debug logging
   console.log('MobileMenu render - isOpen:', isOpen);
@@ -65,6 +72,14 @@ export function MobileMenu({
   }
 
   const isActiveRoute = (href: string) => pathname === href;
+  
+  const toggleExpanded = (href: string) => {
+    setExpandedItems(prev => 
+      prev.includes(href) 
+        ? prev.filter(item => item !== href)
+        : [...prev, href]
+    );
+  };
 
   return (
     <>
@@ -86,84 +101,76 @@ export function MobileMenu({
         aria-label="Mobile navigation"
       >
         <div className="px-4 py-6 space-y-4">
-          {/* User Info */}
-          {isAuthenticated && (
-            <div className="pb-4 border-b border-elder-border">
-              <div className="flex items-center gap-3 text-elder-base">
-                <User className="h-6 w-6 text-elder-text-secondary" aria-hidden="true" />
-                <span className="font-medium text-elder-text">
-                  {userName || 'User'}
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Navigation Links */}
           <nav>
             <ul className="space-y-2">
               {navItems.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={onClose}
-                    className={clsx(
-                      'block w-full px-4 py-4 text-elder-lg font-medium rounded-elder transition-colors',
-                      'hover:bg-primary-50 hover:text-primary-700',
-                      'focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500',
-                      isActiveRoute(item.href)
-                        ? 'bg-primary-50 text-primary-700'
-                        : 'text-elder-text'
-                    )}
-                  >
-                    {item.label}
-                  </Link>
+                  {item.children ? (
+                    <div>
+                      <button
+                        onClick={() => toggleExpanded(item.href)}
+                        className={clsx(
+                          'flex items-center justify-between w-full px-4 py-4 text-elder-lg font-medium rounded-elder transition-colors',
+                          'hover:bg-primary-50 hover:text-primary-700',
+                          'focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500',
+                          (isActiveRoute(item.href) || item.children.some(child => isActiveRoute(child.href)))
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-elder-text'
+                        )}
+                      >
+                        {item.label}
+                        {expandedItems.includes(item.href) ? (
+                          <ChevronDown className="h-5 w-5" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5" />
+                        )}
+                      </button>
+                      {expandedItems.includes(item.href) && (
+                        <ul className="mt-2 ml-4 space-y-1">
+                          {item.children.map((child) => (
+                            <li key={child.href}>
+                              <Link
+                                href={child.href}
+                                onClick={onClose}
+                                className={clsx(
+                                  'block px-4 py-3 text-elder-base font-medium rounded-elder transition-colors',
+                                  'hover:bg-primary-50 hover:text-primary-700',
+                                  'focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500',
+                                  isActiveRoute(child.href)
+                                    ? 'bg-primary-50 text-primary-700'
+                                    : 'text-elder-text-secondary'
+                                )}
+                              >
+                                {child.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      className={clsx(
+                        'block w-full px-4 py-4 text-elder-lg font-medium rounded-elder transition-colors',
+                        'hover:bg-primary-50 hover:text-primary-700',
+                        'focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-500',
+                        isActiveRoute(item.href)
+                          ? 'bg-primary-50 text-primary-700'
+                          : 'text-elder-text'
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
           </nav>
 
-          {/* Auth Actions */}
-          <div className="pt-4 border-t border-elder-border">
-            {isAuthenticated ? (
-              <Button
-                variant="secondary"
-                size="large"
-                fullWidth
-                icon={<LogOut className="h-6 w-6" />}
-                onClick={() => {
-                  onSignOut?.();
-                  onClose();
-                }}
-              >
-                Sign Out
-              </Button>
-            ) : (
-              <div className="space-y-3">
-                <Button 
-                  variant="primary" 
-                  size="large" 
-                  fullWidth
-                  onClick={() => {
-                    onSignIn?.();
-                    onClose();
-                  }}
-                >
-                  Sign In
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  size="large" 
-                  fullWidth
-                  onClick={() => {
-                    onSignIn?.();
-                    onClose();
-                  }}
-                >
-                  Create Account
-                </Button>
-              </div>
-            )}
-          </div>
 
           {/* Quick Links */}
           <div className="pt-4 border-t border-elder-border">
@@ -174,13 +181,6 @@ export function MobileMenu({
                 className="block px-4 py-3 text-elder-base text-elder-text-secondary hover:text-elder-text"
               >
                 Privacy Policy
-              </Link>
-              <Link
-                href={ROUTES.MEDICAL_DISCLAIMER}
-                onClick={onClose}
-                className="block px-4 py-3 text-elder-base text-elder-text-secondary hover:text-elder-text"
-              >
-                Medical Disclaimer
               </Link>
             </div>
           </div>
