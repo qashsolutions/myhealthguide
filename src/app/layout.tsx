@@ -16,7 +16,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: `${APP_NAME} - AI-Powered Medication Safety for Seniors`,
+    default: `${APP_NAME} - AI-Powered Caregiver and Patient Matchmaking Platform`,
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
@@ -36,6 +36,14 @@ export const metadata: Metadata = {
     ],
   },
   keywords: [
+    'caregiver matchmaking',
+    'patient care matching',
+    'eldercare platform',
+    'senior care services',
+    'AI matchmaking',
+    'healthcare matching',
+    'caregiver finder',
+    'patient care coordinator',
     'medication checker',
     'drug interactions',
     'eldercare',

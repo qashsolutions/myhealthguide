@@ -1,7 +1,7 @@
 {
-  "name": "myhealthguide",
+  "name": "careguide",
   "version": "1.0.0",
-  "description": "Eldercare-focused health platform with AI-powered medication conflict detection",
+  "description": "AI-powered caregiver and patient matchmaking platform with health management tools",
   "private": true,
   "scripts": {
     "dev": "next dev",

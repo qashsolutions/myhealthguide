@@ -1,11 +1,11 @@
 /**
  * Application constants for Careguide
- * Eldercare-focused health platform
+ * AI-powered caregiver and patient matchmaking platform
  */
 
 // App metadata
 export const APP_NAME = 'Careguide';
-export const APP_DESCRIPTION = 'AI-powered medication safety checker for seniors';
+export const APP_DESCRIPTION = 'AI-powered caregiver and patient matchmaking platform';
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://myguide.health';
 
 // Feature flags
