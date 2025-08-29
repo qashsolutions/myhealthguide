@@ -473,34 +473,152 @@ export default function BeehiveLandingPage() {
         </div>
       </section>
 
-      {/* Emergency Protocol */}
+
+      {/* Pricing Section */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              When Something Goes Wrong: Our 5-Minute Protocol
+              Transparent Pricing, No Hidden Fees
             </h2>
+            <p className="text-xl text-gray-600">
+              Simple, fair pricing for everyone
+            </p>
           </div>
 
-          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8">
-            <div className="space-y-6">
-              {[
-                { time: "0-1 min", action: "Emergency button triggers immediate GPS location + audio recording", icon: <Phone className="w-6 h-6" /> },
-                { time: "1-2 min", action: "Our crisis team calls you + dispatches supervisor if nearby", icon: <AlertCircle className="w-6 h-6" /> },
-                { time: "2-3 min", action: "911 dispatch if needed + caregiver immediately suspended", icon: <Shield className="w-6 h-6" /> },
-                { time: "3-4 min", action: "Backup caregiver activated from pre-screened pool", icon: <RefreshCw className="w-6 h-6" /> },
-                { time: "4-5 min", action: "Full incident report + permanent record on caregiver profile", icon: <FileText className="w-6 h-6" /> }
-              ].map((step, index) => (
-                <div key={index} className="flex items-start space-x-4">
-                  <div className="bg-red-600 text-white rounded-full p-3 flex-shrink-0">
-                    {step.icon}
-                  </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Caregivers Pricing */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 border-2 border-blue-200">
+              <div className="flex items-center mb-6">
+                <div className="bg-blue-600 rounded-full p-3 mr-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">For Caregivers</h3>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="font-bold text-red-900">{step.time}:</span>
-                    <span className="ml-2 text-gray-800">{step.action}</span>
+                    <p className="font-semibold text-gray-900">Keep 100% of Your Revenue</p>
+                    <p className="text-sm text-gray-600">No commission fees, ever</p>
                   </div>
                 </div>
-              ))}
+                
+                <div className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Only Pay for Background Checks</p>
+                    <p className="text-sm text-gray-600">One-time fee when you join</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Optional Premium Listing</p>
+                    <p className="text-sm text-gray-600">Stand out with priority placement</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-3xl font-bold text-gray-900">$0</span>
+                  <span className="text-gray-500">/month base fee</span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Background check: $75 one-time<br/>
+                  Premium listing: $29/month (optional)
+                </p>
+              </div>
+            </div>
+
+            {/* Care Seekers Pricing */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-8 border-2 border-purple-200">
+              <div className="flex items-center mb-6">
+                <div className="bg-purple-600 rounded-full p-3 mr-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">For Care Seekers</h3>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900">One Flat Fee Per Month</p>
+                    <p className="text-sm text-gray-600">Unlimited caregiver connections</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Quarterly Background Checks</p>
+                    <p className="text-sm text-gray-600">All caregivers re-verified every 3 months</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Full Platform Access</p>
+                    <p className="text-sm text-gray-600">Messaging, scheduling, monitoring included</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-3xl font-bold text-gray-900">$25</span>
+                  <span className="text-gray-500">/month</span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Cancel anytime<br/>
+                  No setup fees
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Why This Model Works */}
+          <div className="mt-12 bg-gray-50 rounded-2xl p-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Why Our Pricing Model Works</h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="bg-green-100 rounded-full p-3 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold mb-2">No Middleman Fees</h4>
+                <p className="text-sm text-gray-600">Caregivers keep their full earnings, making quality care more affordable</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-blue-100 rounded-full p-3 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold mb-2">Continuous Safety</h4>
+                <p className="text-sm text-gray-600">Quarterly checks ensure ongoing safety without hidden costs</p>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-purple-100 rounded-full p-3 w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold mb-2">Sustainable Quality</h4>
+                <p className="text-sm text-gray-600">Fair pricing attracts and retains the best caregivers</p>
+              </div>
             </div>
           </div>
         </div>
