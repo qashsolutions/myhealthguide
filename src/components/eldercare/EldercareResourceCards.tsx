@@ -25,39 +25,6 @@ const resourceCards: ResourceCard[] = [
     moreText: 'Connect Medicare Account',
     bgColor: 'bg-blue-50',
     iconColor: 'text-blue-600'
-  },
-  {
-    id: 'local-help',
-    icon: <MapPin className="w-8 h-8" />,
-    headline: 'Nearby Services',
-    summary: 'Locate eldercare resources and support in your area',
-    description: 'Search for local Area Agencies on Aging, senior centers, meal programs, transportation services, and caregiver support groups. Filter by zip code and service type.',
-    moreLink: '/eldercare/local-services',
-    moreText: 'Search Services',
-    bgColor: 'bg-green-50',
-    iconColor: 'text-green-600'
-  },
-  {
-    id: 'health-guides',
-    icon: <BookOpen className="w-8 h-8" />,
-    headline: 'Health Guides',
-    summary: 'Educational articles about Medicare and preventive care',
-    description: 'Browse helpful guides on Medicare enrollment, preventive services, managing chronic conditions, and understanding your benefits. Updated content from Healthcare.gov.',
-    moreLink: '/eldercare/health-guides',
-    moreText: 'Browse Articles',
-    bgColor: 'bg-purple-50',
-    iconColor: 'text-purple-600'
-  },
-  {
-    id: 'care-providers',
-    icon: <Building2 className="w-8 h-8" />,
-    headline: 'Quality Providers',
-    summary: 'Compare hospitals, nursing homes, and home health',
-    description: 'Research Medicare-certified providers with quality ratings, patient reviews, and safety scores. Find hospitals, nursing homes, and home health agencies near you.',
-    moreLink: '/eldercare/provider-search',
-    moreText: 'Compare Providers',
-    bgColor: 'bg-orange-50',
-    iconColor: 'text-orange-600'
   }
 ];
 
@@ -65,11 +32,11 @@ export function EldercareResourceCards(): JSX.Element {
   return (
     <div className="w-full px-4 py-8">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex justify-center">
           {resourceCards.map((card) => (
             <div
               key={card.id}
-              className={`${card.bgColor} rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-200`}
+              className={`${card.bgColor} rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-200 max-w-2xl w-full`}
             >
               {/* Icon */}
               <div className={`${card.iconColor} mb-4`}>
