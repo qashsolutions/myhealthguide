@@ -74,9 +74,10 @@ export function Header(): JSX.Element {
         { href: ROUTES.HEALTH_QA, label: 'Ask Health Questions' },
         { href: ROUTES.MEDICATION_CHECK, label: 'Check Medications' },
         { href: ROUTES.DRUG_PRICES, label: 'Drug Price Check' },
+        { href: '/eldercare', label: 'Medicare Resources' },
       ]
     },
-    { href: '/eldercare', label: 'Care Info' },
+    { href: '#', label: 'Care Info' }, // Placeholder for future Beehive link
   ];
 
   // Handle dropdown hover
@@ -175,6 +176,18 @@ export function Header(): JSX.Element {
                           </div>
                         )}
                       </>
+                    ) : item.href === '#' ? (
+                      // Placeholder link - doesn't navigate
+                      <button
+                        className={clsx(
+                          'text-elder-base font-medium px-4 py-2 rounded-elder transition-colors block cursor-not-allowed opacity-50',
+                          'text-elder-text'
+                        )}
+                        disabled
+                        title="Coming Soon"
+                      >
+                        {item.label}
+                      </button>
                     ) : (
                       <Link
                         href={item.href}
