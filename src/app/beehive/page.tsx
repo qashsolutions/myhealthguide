@@ -370,7 +370,10 @@ export default function BeehiveLandingPage() {
               The Questions That Reveal True Character
             </h2>
             <p className="text-xl text-gray-600">
-              Real scenarios from our psychometric assessment
+              Dynamic AI-powered assessment - no two caregivers see the same questions
+            </p>
+            <p className="text-lg text-gray-500 mt-2">
+              Our system generates unique scenarios based on each caregiver's responses, making it impossible to prepare or cheat
             </p>
           </div>
 
@@ -530,8 +533,8 @@ export default function BeehiveLandingPage() {
                   <span className="text-gray-500">/month base fee</span>
                 </div>
                 <p className="text-sm text-gray-600">
-                  Background check: $75 one-time<br/>
-                  Premium listing: $29/month (optional)
+                  Pay only for verification services<br/>
+                  Optional premium features available
                 </p>
               </div>
             </div>
@@ -667,7 +670,7 @@ export default function BeehiveLandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { label: "FBI-Compliant Checks", icon: <Shield className="w-8 h-8" /> },
+              { label: "Mandated Compliant Background Checks", icon: <Shield className="w-8 h-8" /> },
               { label: "HIPAA Certified", icon: <Lock className="w-8 h-8" /> },
               { label: "24/7 Monitoring", icon: <Eye className="w-8 h-8" /> },
               { label: "Insured & Bonded", icon: <CheckCircle className="w-8 h-8" /> }
@@ -685,7 +688,7 @@ export default function BeehiveLandingPage() {
       <section className="py-16 px-4 bg-gradient-to-b from-gray-900 to-gray-800 text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Your Parent Deserves Better Than "Good Enough"
+            It's Our Turn to Care for Our Parents in the Best Way!
           </h2>
           <p className="text-xl text-gray-300 mb-8">
             70% rejection rate. 3-level screening. Continuous monitoring. 
