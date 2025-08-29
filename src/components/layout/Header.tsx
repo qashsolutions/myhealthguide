@@ -77,7 +77,7 @@ export function Header(): JSX.Element {
         { href: '/eldercare', label: 'Medicare Resources' },
       ]
     },
-    { href: '#', label: 'Care Info' }, // Placeholder for future Beehive link
+    { href: '/beehive', label: 'Beehive' },
   ];
 
   // Handle dropdown hover
@@ -176,18 +176,6 @@ export function Header(): JSX.Element {
                           </div>
                         )}
                       </>
-                    ) : item.href === '#' ? (
-                      // Placeholder link - doesn't navigate
-                      <button
-                        className={clsx(
-                          'text-elder-base font-medium px-4 py-2 rounded-elder transition-colors block cursor-not-allowed opacity-50',
-                          'text-elder-text'
-                        )}
-                        disabled
-                        title="Coming Soon"
-                      >
-                        {item.label}
-                      </button>
                     ) : (
                       <Link
                         href={item.href}

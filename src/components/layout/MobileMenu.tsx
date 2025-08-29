@@ -150,18 +150,6 @@ export function MobileMenu({
                         </ul>
                       )}
                     </div>
-                  ) : item.href === '#' ? (
-                    // Placeholder link - doesn't navigate
-                    <button
-                      className={clsx(
-                        'block w-full px-4 py-4 text-elder-lg font-medium rounded-elder transition-colors text-left cursor-not-allowed opacity-50',
-                        'text-elder-text'
-                      )}
-                      disabled
-                      title="Coming Soon"
-                    >
-                      {item.label}
-                    </button>
                   ) : (
                     <Link
                       href={item.href}
