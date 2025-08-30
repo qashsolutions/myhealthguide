@@ -673,32 +673,6 @@ export default function BeehiveLandingPage() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-16 px-4 bg-gradient-to-b from-gray-900 to-gray-800 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            It's Our Turn to Care for Our Parents in the Best Way!
-          </h2>
-          <p className="text-xl text-gray-300 mb-8">
-            70% rejection rate. 3-level screening. Continuous monitoring. 
-            This is what real protection looks like.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button 
-              className="px-8 py-4 bg-yellow-400 text-gray-900 rounded-lg font-semibold text-lg hover:bg-yellow-300 transition-colors cursor-not-allowed opacity-75"
-              disabled
-            >
-              Start Finding Safe Caregivers
-            </button>
-            <button 
-              className="px-8 py-4 bg-gray-700 text-white rounded-lg font-semibold text-lg hover:bg-gray-600 transition-colors border border-gray-600 cursor-not-allowed opacity-75"
-              disabled
-            >
-              Apply to Be a Caregiver
-            </button>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
