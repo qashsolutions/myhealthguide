@@ -505,7 +505,7 @@ export default function BeehiveLandingPage() {
 
       {/* Pricing Section */}
       <section className="py-16 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto border-2 border-gray-200 rounded-2xl p-8 bg-gray-50">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Transparent Pricing, No Hidden Fees
@@ -654,24 +654,6 @@ export default function BeehiveLandingPage() {
       </section>
 
 
-      {/* Trust Badges */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { label: "Mandated Compliant Background Checks", icon: <Shield className="w-8 h-8" /> },
-              { label: "HIPAA Certified", icon: <Lock className="w-8 h-8" /> },
-              { label: "24/7 Monitoring", icon: <Eye className="w-8 h-8" /> },
-              { label: "Insured & Bonded", icon: <CheckCircle className="w-8 h-8" /> }
-            ].map((badge, index) => (
-              <div key={index} className="flex flex-col items-center text-center p-6 bg-gray-50 rounded-lg">
-                <div className="text-blue-600 mb-3">{badge.icon}</div>
-                <span className="text-sm font-semibold text-gray-700">{badge.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
     </div>
   );
