@@ -28,7 +28,7 @@ export default function BeehiveLandingPage() {
     {
       id: 1,
       title: "What if they have a violent past?",
-      icon: <AlertTriangle className="w-6 h-6 text-red-600" />,
+      icon: <AlertTriangle className="w-10 h-10 text-red-600" />,
       description: "You Google their name and find nothing. But what if they've hurt someone before? What if they lose their temper with your confused father who keeps asking the same question?",
       stat: "70% of caregivers rejected in our screening",
       color: "border-red-200 bg-red-50"
@@ -36,7 +36,7 @@ export default function BeehiveLandingPage() {
     {
       id: 2,
       title: "What if they're a criminal?",
-      icon: <UserX className="w-6 h-6 text-red-600" />,
+      icon: <UserX className="w-10 h-10 text-red-600" />,
       description: "Background checks miss things. Name changes. Sealed records. Crimes in other states. What if they've done time for assault, theft, or worse?",
       stat: "Standard checks only cover 7 years in 1 state",
       color: "border-red-200 bg-red-50"
@@ -44,7 +44,7 @@ export default function BeehiveLandingPage() {
     {
       id: 3,
       title: "What if they snap under pressure?",
-      icon: <Brain className="w-6 h-6 text-orange-600" />,
+      icon: <Brain className="w-10 h-10 text-orange-600" />,
       description: "Your mom with dementia might scream, hit, say terrible things. What if the caregiver can't handle it? What if they push back, restrain too hard, or retaliate?",
       stat: "Caregiver violence often triggered by care recipient aggression",
       color: "border-orange-200 bg-orange-50"
@@ -52,7 +52,7 @@ export default function BeehiveLandingPage() {
     {
       id: 4,
       title: "What if they're using drugs?",
-      icon: <AlertCircle className="w-6 h-6 text-red-600" />,
+      icon: <AlertCircle className="w-10 h-10 text-red-600" />,
       description: "Prescription pills go missing. They seem drowsy, agitated, or 'off.' What if they're stealing medications? What if they're high while caring for your parent?",
       stat: "15% of healthcare workers have substance abuse issues",
       color: "border-red-200 bg-red-50"
@@ -60,7 +60,7 @@ export default function BeehiveLandingPage() {
     {
       id: 5,
       title: "What if they're stealing?",
-      icon: <Lock className="w-6 h-6 text-yellow-600" />,
+      icon: <Lock className="w-10 h-10 text-yellow-600" />,
       description: "Jewelry disappears. Cash goes missing. Credit cards get mysterious charges. Your parent with dementia can't tell you what happened.",
       stat: "$36 billion stolen from seniors annually",
       color: "border-yellow-200 bg-yellow-50"
