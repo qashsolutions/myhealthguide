@@ -320,8 +320,19 @@ export default function BeehiveLandingPage() {
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  <div className="text-lg font-semibold">Level {level.level}</div>
-                  <div className="text-sm text-gray-600">{level.title}</div>
+                  <div className="flex flex-col items-center">
+                    <div className="mb-2">
+                      {level.level === 1 ? (
+                        <XCircle className="w-10 h-10 text-red-500" />
+                      ) : level.level === 2 ? (
+                        <AlertCircle className="w-10 h-10 text-yellow-500" />
+                      ) : (
+                        <CheckCircle className="w-10 h-10 text-green-500" />
+                      )}
+                    </div>
+                    <div className="text-lg font-semibold">Level {level.level}</div>
+                    <div className="text-sm text-gray-600">{level.title}</div>
+                  </div>
                 </button>
               ))}
             </div>
