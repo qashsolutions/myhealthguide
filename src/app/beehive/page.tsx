@@ -483,9 +483,6 @@ export default function BeehiveLandingPage() {
               <div className="text-sm mt-2">Drug Test</div>
             </div>
           </div>
-          <p className="text-xl mt-8 text-white/90">
-            Other platforms accept almost everyone. We don't.
-          </p>
         </div>
       </section>
 
@@ -583,11 +580,11 @@ export default function BeehiveLandingPage() {
               
               <div className="bg-white rounded-lg p-4">
                 <div className="flex items-baseline justify-between mb-2">
-                  <span className="text-3xl font-bold text-gray-900">$0</span>
-                  <span className="text-gray-500">/month base fee</span>
+                  <span className="text-3xl font-bold text-gray-900">$25</span>
+                  <span className="text-gray-500">/month</span>
                 </div>
                 <p className="text-sm text-gray-600">
-                  Pay only for verification services<br/>
+                  Includes continuous background verification<br/>
                   Optional premium features available
                 </p>
               </div>
