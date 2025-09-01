@@ -579,13 +579,8 @@ export default function BeehiveLandingPage() {
               </div>
               
               <div className="bg-white rounded-lg p-4">
-                <div className="flex items-baseline justify-between mb-2">
-                  <span className="text-3xl font-bold text-gray-900">$25</span>
-                  <span className="text-gray-500">/month</span>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Includes continuous background verification<br/>
-                  Optional premium features available
+                <p className="text-lg font-semibold text-gray-900">
+                  Only pay for premium listing
                 </p>
               </div>
             </div>
@@ -628,13 +623,8 @@ export default function BeehiveLandingPage() {
               </div>
               
               <div className="bg-white rounded-lg p-4">
-                <div className="flex items-baseline justify-between mb-2">
-                  <span className="text-3xl font-bold text-gray-900">$25</span>
-                  <span className="text-gray-500">/month</span>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Cancel anytime<br/>
-                  No setup fees
+                <p className="text-lg font-semibold text-gray-900">
+                  $7.99 month-to-month, $50 per annum
                 </p>
               </div>
             </div>
