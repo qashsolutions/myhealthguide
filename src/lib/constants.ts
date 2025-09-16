@@ -131,6 +131,7 @@ export const ROUTES = {
   HOME: '/',
   AUTH: '/auth',
   DASHBOARD: '/dashboard',
+  BEEHIVE: '/beehive',
   MEDICATION_CHECK: '/medication-check',
   HEALTH_QA: '/health-qa',
   PRESCRIPTION_PRICES: '/prescription-prices',

@@ -209,17 +209,18 @@ export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<void> =>
       replyTo: EMAIL_CONFIG.REPLY_TO,
     };
 
-    const result = await resend.emails.send({
-      from: emailData.from!,
-      to: emailData.to,
-      subject: emailData.subject,
-      html: emailData.html,
-      reply_to: emailData.replyTo,
-    });
+    // Commented out - resend.ts not currently used
+    // const result = await resend.emails.send({
+    //   from: emailData.from!,
+    //   to: emailData.to,
+    //   subject: emailData.subject,
+    //   html: emailData.html,
+    //   reply_to: emailData.replyTo,
+    // });
 
-    if (result.error) {
-      throw new Error(result.error.message);
-    }
+    // if (result.error) {
+    //   throw new Error(result.error.message);
+    // }
   } catch (error) {
     console.error('Send welcome email error:', error);
     throw error;
@@ -245,17 +246,18 @@ export const sendPasswordResetEmail = async (
       replyTo: EMAIL_CONFIG.REPLY_TO,
     };
 
-    const result = await resend.emails.send({
-      from: emailData.from!,
-      to: emailData.to,
-      subject: emailData.subject,
-      html: emailData.html,
-      reply_to: emailData.replyTo,
-    });
+    // Commented out - resend.ts not currently used
+    // const result = await resend.emails.send({
+    //   from: emailData.from!,
+    //   to: emailData.to,
+    //   subject: emailData.subject,
+    //   html: emailData.html,
+    //   reply_to: emailData.replyTo,
+    // });
 
-    if (result.error) {
-      throw new Error(result.error.message);
-    }
+    // if (result.error) {
+    //   throw new Error(result.error.message);
+    // }
   } catch (error) {
     console.error('Send password reset email error:', error);
     throw error;
