@@ -82,8 +82,7 @@ export function Header(): JSX.Element {
       label: 'Beehive',
       children: [
         { href: '/beehive', label: 'About Beehive' },
-        { href: '/beehive/signup', label: 'Sign Up' },
-        { href: '/beehive/signin', label: 'Sign In' },
+        { href: '/beehive/auth', label: 'Sign Up / Sign In' },
         { href: '/beehive/refer', label: 'Refer a Caregiver' },
       ]
     },

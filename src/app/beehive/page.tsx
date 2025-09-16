@@ -232,18 +232,18 @@ export default function BeehiveLandingPage() {
                 </div>
               </div>
               <div className="mt-8 flex gap-4">
-                <button 
-                  className="flex-1 px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-300 transition-colors cursor-not-allowed opacity-75"
-                  disabled
+                <a
+                  href="/beehive/auth"
+                  className="flex-1 px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-300 transition-colors text-center block"
                 >
                   Find Safe Caregivers
-                </button>
-                <button 
-                  className="flex-1 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors border border-gray-600 cursor-not-allowed opacity-75"
-                  disabled
+                </a>
+                <a
+                  href="/beehive/refer"
+                  className="flex-1 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors border border-gray-600 text-center block"
                 >
                   Apply as Caregiver
-                </button>
+                </a>
               </div>
             </div>
           </div>
