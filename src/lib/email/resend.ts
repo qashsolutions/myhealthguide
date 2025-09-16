@@ -306,7 +306,7 @@ export const sendEmail = async (data: EmailData): Promise<void> => {
       subject: data.subject,
       html: data.html,
       text: data.text,
-      reply_to: data.replyTo || EMAIL_CONFIG.REPLY_TO,
+      replyTo: data.replyTo || EMAIL_CONFIG.REPLY_TO,
     });
 
     if (result.error) {

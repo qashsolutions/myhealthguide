@@ -67,8 +67,8 @@ export function Header(): JSX.Element {
 
   // Navigation items with nested structure
   const navItems = [
-    { 
-      href: ROUTES.HEALTH_QA, 
+    {
+      href: ROUTES.HEALTH_QA,
       label: 'Health Questions',
       children: [
         { href: ROUTES.HEALTH_QA, label: 'Ask Health Questions' },
@@ -77,7 +77,16 @@ export function Header(): JSX.Element {
         { href: '/eldercare', label: 'Medicare Resources' },
       ]
     },
-    { href: '/beehive', label: 'Beehive' },
+    {
+      href: '/beehive',
+      label: 'Beehive',
+      children: [
+        { href: '/beehive', label: 'About Beehive' },
+        { href: '/beehive/signup', label: 'Sign Up' },
+        { href: '/beehive/signin', label: 'Sign In' },
+        { href: '/beehive/refer', label: 'Refer a Caregiver' },
+      ]
+    },
   ];
 
   // Handle dropdown hover
