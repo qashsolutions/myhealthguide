@@ -300,21 +300,22 @@ export const sendEmail = async (data: EmailData): Promise<void> => {
       from: data.from || EMAIL_CONFIG.FROM,
     });
 
-    const result = await resend.emails.send({
-      from: data.from || EMAIL_CONFIG.FROM,
-      to: data.to,
-      subject: data.subject,
-      html: data.html,
-      text: data.text,
-      replyTo: data.replyTo || EMAIL_CONFIG.REPLY_TO,
-    });
+    // Commented out - resend not currently used
+    // const result = await resend.emails.send({
+    //   from: data.from || EMAIL_CONFIG.FROM,
+    //   to: data.to,
+    //   subject: data.subject,
+    //   html: data.html,
+    //   text: data.text,
+    //   reply_to: data.replyTo || EMAIL_CONFIG.REPLY_TO,
+    // });
 
-    if (result.error) {
-      console.error('[Resend] API error:', result.error);
-      throw new Error(`Resend API error: ${result.error.message}`);
-    }
+    // if (result.error) {
+    //   console.error('[Resend] API error:', result.error);
+    //   throw new Error(`Resend API error: ${result.error.message}`);
+    // }
 
-    console.log('[Resend] Email sent successfully:', result);
+    // console.log('[Resend] Email sent successfully:', result);
   } catch (error: any) {
     console.error('[Resend] Send email error:', error);
     throw error;
