@@ -384,7 +384,6 @@ export default function BeehiveAuthPage() {
                   {currentStep === 1 ? (
                     // Step 1: Role Selection
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">I am a...</h3>
                       <div className="grid gap-4">
                         {roleCards.map(role => (
                           <label
