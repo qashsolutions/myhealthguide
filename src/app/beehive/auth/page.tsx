@@ -177,9 +177,9 @@ export default function BeehiveAuthPage() {
   const renderRoleSpecificFields = () => {
     if (formData.role === 'care_seeker') {
       return (
-        <>
-          <div className="space-y-4">
-            <div className="border-b border-elder-border pb-2">
+        <div className="space-y-6">
+          <div className="space-y-4 bg-gray-50 p-6 rounded-elder">
+            <div className="border-b border-gray-200 pb-2">
               <h3 className="text-elder-lg font-semibold text-elder-text">
                 Caregiver Gender Preference
               </h3>
@@ -211,8 +211,8 @@ export default function BeehiveAuthPage() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="border-b border-elder-border pb-2">
+          <div className="space-y-4 bg-blue-50 p-6 rounded-elder">
+            <div className="border-b border-blue-100 pb-2">
               <h3 className="text-elder-lg font-semibold text-elder-text">
                 Services Needed
               </h3>
@@ -243,8 +243,8 @@ export default function BeehiveAuthPage() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="border-b border-elder-border pb-2">
+          <div className="space-y-4 bg-green-50 p-6 rounded-elder">
+            <div className="border-b border-green-100 pb-2">
               <h3 className="text-elder-lg font-semibold text-elder-text">
                 Budget Range
               </h3>
@@ -280,80 +280,105 @@ export default function BeehiveAuthPage() {
               ))}
             </div>
           </div>
-        </>
+        </div>
       );
     }
 
     if (formData.role === 'caregiver') {
       return (
-        <>
-          <input
-            type="text"
-            name="zipCode"
-            placeholder="ZIP Code * (Service Area)"
-            value={formData.zipCode}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            pattern="[0-9]{5}"
-            maxLength={5}
-            required
-          />
+        <div className="space-y-6">
+          {/* Professional Information Section */}
+          <div className="space-y-4 bg-purple-50 p-6 rounded-elder">
+            <div className="border-b border-purple-100 pb-2">
+              <h3 className="text-elder-lg font-semibold text-elder-text">
+                Professional Information
+              </h3>
+            </div>
+            <div className="space-y-4">
+              <input
+                type="text"
+                name="zipCode"
+                placeholder="ZIP Code * (Service Area)"
+                value={formData.zipCode}
+                onChange={handleInputChange}
+                className="input-base"
+                pattern="[0-9]{5}"
+                maxLength={5}
+                required
+              />
+              <select
+                name="yearsOfExperience"
+                value={formData.yearsOfExperience}
+                onChange={handleInputChange}
+                className="input-base"
+                required
+              >
+                <option value="">Years of Experience *</option>
+                <option value="0-1">Less than 1 year</option>
+                <option value="1-3">1-3 years</option>
+                <option value="3-5">3-5 years</option>
+                <option value="5-10">5-10 years</option>
+                <option value="10+">10+ years</option>
+              </select>
+              <input
+                type="text"
+                name="hourlyRate"
+                placeholder="Hourly Rate (e.g., $25/hour)"
+                value={formData.hourlyRate}
+                onChange={handleInputChange}
+                className="input-base"
+                pattern="[0-9]+"
+              />
+            </div>
+          </div>
 
-          <select
-            name="yearsOfExperience"
-            value={formData.yearsOfExperience}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="">Years of Experience *</option>
-            <option value="0-1">Less than 1 year</option>
-            <option value="1-3">1-3 years</option>
-            <option value="3-5">3-5 years</option>
-            <option value="5-10">5-10 years</option>
-            <option value="10+">10+ years</option>
-          </select>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Services Offered (select all that apply)
-            </label>
-            <div className="grid grid-cols-2 gap-2">
+          {/* Services Offered Section */}
+          <div className="space-y-4 bg-blue-50 p-6 rounded-elder">
+            <div className="border-b border-blue-100 pb-2">
+              <h3 className="text-elder-lg font-semibold text-elder-text">
+                Services Offered
+              </h3>
+              <p className="text-elder-text-secondary text-sm mt-1">Select all that apply</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               {['Companionship', 'Personal Care', 'Meal Prep', 'Transportation', 'Medication Management', 'Housekeeping', 'Specialized Care'].map(service => (
-                <label key={service} className="flex items-center">
+                <label
+                  key={service}
+                  className={`relative flex items-center p-5 border-2 rounded-elder cursor-pointer transition-all ${
+                    formData.servicesOffered.includes(service)
+                      ? 'border-health-safe bg-health-safe-bg shadow-sm'
+                      : 'border-elder-border hover:border-gray-300 bg-white hover:shadow-sm'
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={formData.servicesOffered.includes(service)}
                     onChange={() => handleMultiSelect('servicesOffered', service)}
-                    className="mr-2"
+                    className="sr-only"
                   />
-                  <span className="text-sm">{service}</span>
+                  <span className="text-elder-base font-medium text-elder-text">{service}</span>
+                  {formData.servicesOffered.includes(service) && (
+                    <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-health-safe" />
+                  )}
                 </label>
               ))}
             </div>
           </div>
 
-          <input
-            type="text"
-            name="hourlyRate"
-            placeholder="Hourly Rate (e.g., 25)"
-            value={formData.hourlyRate}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            pattern="[0-9]+"
-          />
-
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              name="backgroundCheckStatus"
-              checked={formData.backgroundCheckStatus}
-              onChange={handleInputChange}
-              className="mr-2"
-            />
-            <span className="text-sm">I have completed a background check</span>
-          </label>
-        </>
+          {/* Background Check Section */}
+          <div className="space-y-4 bg-gray-50 p-6 rounded-elder">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                name="backgroundCheckStatus"
+                checked={formData.backgroundCheckStatus}
+                onChange={handleInputChange}
+                className="mr-3 w-5 h-5"
+              />
+              <span className="text-elder-base font-medium">I have completed a background check</span>
+            </label>
+          </div>
+        </div>
       );
     }
 
@@ -428,7 +453,7 @@ export default function BeehiveAuthPage() {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {isSignUp ? (
                 <>
                   {currentStep === 1 ? (
