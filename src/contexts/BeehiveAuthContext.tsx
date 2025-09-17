@@ -76,11 +76,12 @@ export function BeehiveAuthProvider({ children }: { children: React.ReactNode })
       // Send email verification
       await sendEmailVerification(firebaseUser);
 
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', firebaseUser.uid), {
+      // Create user document in Firestore with basic info
+      const userDoc = {
         email: email,
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
+        phone: userData.phone || '',
         role: userData.role || 'care_seeker',
         ageVerified: true,
         emailVerified: false,
@@ -91,7 +92,39 @@ export function BeehiveAuthProvider({ children }: { children: React.ReactNode })
         termsAcceptedAt: serverTimestamp(),
         privacyAcceptedAt: serverTimestamp(),
         zipCode: userData.zipCode || '',
-      });
+      };
+
+      // Add care seeker preferences
+      if (userData.role === 'care_seeker') {
+        Object.assign(userDoc, {
+          preferences: {
+            caregiverGenderPreference: userData.caregiverGenderPreference || '',
+            languagePreferences: userData.languagePreferences || [],
+            serviceTypesNeeded: userData.serviceTypesNeeded || [],
+            scheduleNeeds: userData.scheduleNeeds || '',
+            budgetRange: userData.budgetRange || '',
+          }
+        });
+      }
+
+      await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
+
+      // Create caregiver document if role is caregiver
+      if (userData.role === 'caregiver') {
+        await setDoc(doc(db, 'caregivers', firebaseUser.uid), {
+          userId: firebaseUser.uid,
+          yearsOfExperience: userData.yearsOfExperience || '',
+          certifications: userData.certifications || [],
+          servicesOffered: userData.servicesOffered || [],
+          languagesSpoken: userData.languagesSpoken || [],
+          availability: userData.availability || [],
+          hourlyRate: userData.hourlyRate || '',
+          backgroundCheckStatus: userData.backgroundCheckStatus || false,
+          genderIdentity: userData.genderIdentity || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
 
     } catch (error: any) {
       console.error('Signup error:', error);
