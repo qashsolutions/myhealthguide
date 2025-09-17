@@ -178,18 +178,20 @@ export default function BeehiveAuthPage() {
     if (formData.role === 'care_seeker') {
       return (
         <>
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Caregiver Gender Preference
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <div className="border-b border-elder-border pb-2">
+              <h3 className="text-elder-lg font-semibold text-elder-text">
+                Caregiver Gender Preference
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               {['No Preference', 'Male', 'Female', 'Non-binary'].map(option => (
                 <label
                   key={option}
-                  className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  className={`relative flex items-center p-5 border-2 rounded-elder cursor-pointer transition-all ${
                     formData.caregiverGenderPreference === option
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                      ? 'border-primary-500 bg-primary-50 shadow-sm'
+                      : 'border-elder-border hover:border-gray-300 bg-white hover:shadow-sm'
                   }`}
                 >
                   <input
@@ -200,27 +202,30 @@ export default function BeehiveAuthPage() {
                     onChange={handleInputChange}
                     className="sr-only"
                   />
-                  <span className="text-sm font-medium">{option}</span>
+                  <span className="text-elder-base font-medium text-elder-text">{option}</span>
                   {formData.caregiverGenderPreference === option && (
-                    <CheckCircle className="absolute top-3 right-3 w-5 h-5 text-blue-600" />
+                    <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-primary-600" />
                   )}
                 </label>
               ))}
             </div>
           </div>
 
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Services Needed (select all that apply)
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <div className="border-b border-elder-border pb-2">
+              <h3 className="text-elder-lg font-semibold text-elder-text">
+                Services Needed
+              </h3>
+              <p className="text-elder-text-secondary text-sm mt-1">Select all that apply</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               {['Companionship', 'Personal Care', 'Meal Prep', 'Transportation', 'Medication Management', 'Housekeeping'].map(service => (
                 <label
                   key={service}
-                  className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  className={`relative flex items-center p-5 border-2 rounded-elder cursor-pointer transition-all ${
                     formData.serviceTypesNeeded.includes(service)
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                      ? 'border-health-safe bg-health-safe-bg shadow-sm'
+                      : 'border-elder-border hover:border-gray-300 bg-white hover:shadow-sm'
                   }`}
                 >
                   <input
@@ -229,20 +234,22 @@ export default function BeehiveAuthPage() {
                     onChange={() => handleMultiSelect('serviceTypesNeeded', service)}
                     className="sr-only"
                   />
-                  <span className="text-sm font-medium">{service}</span>
+                  <span className="text-elder-base font-medium text-elder-text">{service}</span>
                   {formData.serviceTypesNeeded.includes(service) && (
-                    <CheckCircle className="absolute top-3 right-3 w-5 h-5 text-blue-600" />
+                    <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-health-safe" />
                   )}
                 </label>
               ))}
             </div>
           </div>
 
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Budget Range
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <div className="border-b border-elder-border pb-2">
+              <h3 className="text-elder-lg font-semibold text-elder-text">
+                Budget Range
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               {[
                 { value: '15-25', label: '$15-25/hour' },
                 { value: '25-35', label: '$25-35/hour' },
@@ -251,10 +258,10 @@ export default function BeehiveAuthPage() {
               ].map(option => (
                 <label
                   key={option.value}
-                  className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  className={`relative flex items-center p-5 border-2 rounded-elder cursor-pointer transition-all ${
                     formData.budgetRange === option.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                      ? 'border-primary-500 bg-primary-50 shadow-sm'
+                      : 'border-elder-border hover:border-gray-300 bg-white hover:shadow-sm'
                   }`}
                 >
                   <input
@@ -265,9 +272,9 @@ export default function BeehiveAuthPage() {
                     onChange={handleInputChange}
                     className="sr-only"
                   />
-                  <span className="text-sm font-medium">{option.label}</span>
+                  <span className="text-elder-base font-medium text-elder-text">{option.label}</span>
                   {formData.budgetRange === option.value && (
-                    <CheckCircle className="absolute top-3 right-3 w-5 h-5 text-blue-600" />
+                    <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-primary-600" />
                   )}
                 </label>
               ))}
@@ -478,7 +485,7 @@ export default function BeehiveAuthPage() {
                           placeholder="First Name *"
                           value={formData.firstName}
                           onChange={handleInputChange}
-                          className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="input-base"
                           required
                         />
                         <input
@@ -487,7 +494,7 @@ export default function BeehiveAuthPage() {
                           placeholder="Last Name *"
                           value={formData.lastName}
                           onChange={handleInputChange}
-                          className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="input-base"
                           required
                         />
                       </div>
@@ -498,7 +505,7 @@ export default function BeehiveAuthPage() {
                         placeholder="Email Address *"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="input-base"
                         required
                       />
 
@@ -508,7 +515,7 @@ export default function BeehiveAuthPage() {
                         placeholder="Phone Number (optional)"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="input-base"
                       />
 
                       {formData.role !== 'caregiver' && (
@@ -518,7 +525,7 @@ export default function BeehiveAuthPage() {
                           placeholder="ZIP Code (optional)"
                           value={formData.zipCode}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="input-base"
                           pattern="[0-9]{5}"
                           maxLength={5}
                         />
@@ -530,7 +537,7 @@ export default function BeehiveAuthPage() {
                         placeholder="Password * (min 6 characters)"
                         value={formData.password}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="input-base"
                         required
                         minLength={6}
                       />
@@ -541,7 +548,7 @@ export default function BeehiveAuthPage() {
                         placeholder="Confirm Password *"
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="input-base"
                         required
                       />
 
@@ -592,7 +599,7 @@ export default function BeehiveAuthPage() {
                     placeholder="Email Address"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input-base"
                     required
                   />
                   <input
@@ -601,7 +608,7 @@ export default function BeehiveAuthPage() {
                     placeholder="Password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input-base"
                     required
                   />
                   <Button
