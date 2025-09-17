@@ -3,10 +3,100 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { useBeehiveAuth } from '@/contexts/BeehiveAuthContext';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function BeehiveAuthPage() {
   const router = useRouter();
+  const { signUp, signIn } = useBeehiveAuth();
   const [isSignUp, setIsSignUp] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Form data
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'care_seeker',
+    zipCode: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+
+        // Validate required fields
+        if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+          setError('Please fill in all required fields');
+          setLoading(false);
+          return;
+        }
+
+        // Sign up with Firebase
+        await signUp(formData.email, formData.password, {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          role: formData.role === 'caregiver' ? 'caregiver' : formData.role === 'recommender' ? 'recommender' : 'care_seeker',
+          zipCode: formData.zipCode,
+        });
+
+        setSuccess('Account created! Please check your email to verify your account.');
+
+        // Redirect after 3 seconds
+        setTimeout(() => {
+          router.push('/beehive');
+        }, 3000);
+      } else {
+        // Sign in
+        if (!formData.email || !formData.password) {
+          setError('Please enter your email and password');
+          setLoading(false);
+          return;
+        }
+
+        await signIn(formData.email, formData.password);
+        router.push('/beehive');
+      }
+    } catch (err: any) {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password should be at least 6 characters');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address');
+      } else if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('Incorrect password');
+      } else {
+        setError(err.message || 'An error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -26,7 +116,11 @@ export default function BeehiveAuthPage() {
             {/* Toggle Tabs */}
             <div className="flex mb-8 border-b">
               <button
-                onClick={() => setIsSignUp(true)}
+                onClick={() => {
+                  setIsSignUp(true);
+                  setError('');
+                  setSuccess('');
+                }}
                 className={`flex-1 pb-4 text-lg font-medium transition-colors ${
                   isSignUp
                     ? 'text-blue-600 border-b-2 border-blue-600'
@@ -36,7 +130,11 @@ export default function BeehiveAuthPage() {
                 Sign Up
               </button>
               <button
-                onClick={() => setIsSignUp(false)}
+                onClick={() => {
+                  setIsSignUp(false);
+                  setError('');
+                  setSuccess('');
+                }}
                 className={`flex-1 pb-4 text-lg font-medium transition-colors ${
                   !isSignUp
                     ? 'text-blue-600 border-b-2 border-blue-600'
@@ -47,45 +145,109 @@ export default function BeehiveAuthPage() {
               </button>
             </div>
 
-            {/* Form Content */}
-            <div className="space-y-4">
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <span className="text-red-700">{error}</span>
+              </div>
+            )}
+            {success && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <span className="text-green-700">{success}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp ? (
                 <>
-                  <h2 className="text-2xl font-semibold mb-6">Coming Soon!</h2>
-                  <p className="text-gray-600 mb-6">
-                    We're currently building our secure signup process.
-                    Join our waitlist to be notified when Beehive launches.
-                  </p>
-
-                  <div className="flex flex-col gap-4 max-w-md mx-auto">
+                  <div className="grid grid-cols-2 gap-4">
                     <input
                       type="text"
-                      placeholder="Full Name"
+                      name="firstName"
+                      placeholder="First Name *"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
                       className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
                     />
                     <input
-                      type="email"
-                      placeholder="Email Address"
+                      type="text"
+                      name="lastName"
+                      placeholder="Last Name *"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
                       className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
                     />
-                    <select
-                      className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">I am a...</option>
-                      <option value="care-seeker">Care Seeker</option>
-                      <option value="caregiver">Caregiver</option>
-                    </select>
-                    <Button
-                      onClick={() => alert('Thank you! We\'ll notify you when signup is available.')}
-                      className="w-full"
-                    >
-                      Join Waitlist
-                    </Button>
+                  </div>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email Address *"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Password * (min 6 characters)"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    minLength={6}
+                  />
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    placeholder="Confirm Password *"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="care_seeker">I need care services</option>
+                    <option value="caregiver">I am a caregiver</option>
+                    <option value="recommender">I want to recommend caregivers</option>
+                  </select>
+                  <input
+                    type="text"
+                    name="zipCode"
+                    placeholder="ZIP Code (optional)"
+                    value={formData.zipCode}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    pattern="[0-9]{5}"
+                    maxLength={5}
+                  />
+
+                  <div className="text-sm text-gray-600 text-left">
+                    By signing up, you agree to our Terms of Service and Privacy Policy
                   </div>
 
-                  <p className="text-sm text-gray-600 mt-6">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? 'Creating Account...' : 'Sign Up'}
+                  </Button>
+
+                  <p className="text-sm text-gray-600">
                     Are you a caregiver?{' '}
                     <button
+                      type="button"
                       onClick={() => router.push('/beehive/refer')}
                       className="text-blue-600 hover:underline font-medium"
                     >
@@ -95,39 +257,40 @@ export default function BeehiveAuthPage() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-2xl font-semibold mb-6">Sign In</h2>
-                  <p className="text-gray-600 mb-6">
-                    Our secure sign-in process is coming soon.
-                  </p>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email Address"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? 'Signing In...' : 'Sign In'}
+                  </Button>
 
-                  <div className="flex flex-col gap-4 max-w-md mx-auto">
-                    <input
-                      type="email"
-                      placeholder="Email Address"
-                      className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled
-                    />
-                    <Button
-                      onClick={() => alert('Sign in coming soon! We\'ll notify you when it\'s ready.')}
-                      className="w-full"
-                    >
-                      Sign In (Coming Soon)
-                    </Button>
-                  </div>
-
-                  <p className="text-sm text-gray-600 mt-6">
-                    <button className="text-blue-600 hover:underline">
+                  <p className="text-sm text-gray-600">
+                    <button type="button" className="text-blue-600 hover:underline">
                       Forgot Password?
                     </button>
                   </p>
                 </>
               )}
-            </div>
+            </form>
           </div>
 
           <div className="mt-8">
