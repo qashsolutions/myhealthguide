@@ -78,13 +78,14 @@ export default function BeehiveAuthPage() {
       } else if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters');
       } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address');
-      } else if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email');
-      } else if (err.code === 'auth/wrong-password') {
-        setError('Incorrect password');
+        setError('Please enter a valid email address');
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        // Don't reveal whether email exists or password is wrong for security
+        setError('Please input the correct email/password');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Please try again later');
       } else {
-        setError(err.message || 'An error occurred. Please try again.');
+        setError('An error occurred. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -291,15 +292,6 @@ export default function BeehiveAuthPage() {
                 </>
               )}
             </form>
-          </div>
-
-          <div className="mt-8">
-            <Button
-              variant="secondary"
-              onClick={() => router.push('/beehive')}
-            >
-              ← Back to Beehive
-            </Button>
           </div>
         </div>
       </div>
