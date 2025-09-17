@@ -21,7 +21,7 @@ export default function BeehiveAuthPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'care_seeker',
+    role: '',
     zipCode: '',
   });
 
@@ -41,8 +41,15 @@ export default function BeehiveAuthPage() {
         }
 
         // Validate required fields
-        if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+        if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.role) {
           setError('Please fill in all required fields');
+          setLoading(false);
+          return;
+        }
+
+        // Validate ZIP code for caregivers
+        if (formData.role === 'caregiver' && !formData.zipCode) {
+          setError('ZIP code is required for caregivers');
           setLoading(false);
           return;
         }
@@ -217,20 +224,23 @@ export default function BeehiveAuthPage() {
                     value={formData.role}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
                   >
-                    <option value="care_seeker">I need care services</option>
-                    <option value="caregiver">I am a caregiver</option>
-                    <option value="recommender">I want to recommend caregivers</option>
+                    <option value="">Select your role *</option>
+                    <option value="care_seeker">Care Seeker - Looking for caregivers</option>
+                    <option value="caregiver">Caregiver - Providing care services</option>
+                    <option value="recommender">Recommender - Referring caregivers</option>
                   </select>
                   <input
                     type="text"
                     name="zipCode"
-                    placeholder="ZIP Code (optional)"
+                    placeholder={formData.role === 'caregiver' ? 'ZIP Code * (required for caregivers)' : 'ZIP Code (optional)'}
                     value={formData.zipCode}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     pattern="[0-9]{5}"
                     maxLength={5}
+                    required={formData.role === 'caregiver'}
                   />
 
                   <div className="text-sm text-gray-600 text-left">
