@@ -178,58 +178,101 @@ export default function BeehiveAuthPage() {
     if (formData.role === 'care_seeker') {
       return (
         <>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
               Caregiver Gender Preference
             </label>
-            <div className="flex gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {['No Preference', 'Male', 'Female', 'Non-binary'].map(option => (
-                <label key={option} className="flex items-center">
+                <label
+                  key={option}
+                  className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    formData.caregiverGenderPreference === option
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="caregiverGenderPreference"
                     value={option}
                     checked={formData.caregiverGenderPreference === option}
                     onChange={handleInputChange}
-                    className="mr-2"
+                    className="sr-only"
                   />
-                  <span className="text-sm">{option}</span>
+                  <span className="text-sm font-medium">{option}</span>
+                  {formData.caregiverGenderPreference === option && (
+                    <CheckCircle className="absolute top-3 right-3 w-5 h-5 text-blue-600" />
+                  )}
                 </label>
               ))}
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
               Services Needed (select all that apply)
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {['Companionship', 'Personal Care', 'Meal Prep', 'Transportation', 'Medication Management', 'Housekeeping'].map(service => (
-                <label key={service} className="flex items-center">
+                <label
+                  key={service}
+                  className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    formData.serviceTypesNeeded.includes(service)
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={formData.serviceTypesNeeded.includes(service)}
                     onChange={() => handleMultiSelect('serviceTypesNeeded', service)}
-                    className="mr-2"
+                    className="sr-only"
                   />
-                  <span className="text-sm">{service}</span>
+                  <span className="text-sm font-medium">{service}</span>
+                  {formData.serviceTypesNeeded.includes(service) && (
+                    <CheckCircle className="absolute top-3 right-3 w-5 h-5 text-blue-600" />
+                  )}
                 </label>
               ))}
             </div>
           </div>
 
-          <select
-            name="budgetRange"
-            value={formData.budgetRange}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select Budget Range</option>
-            <option value="15-25">$15-25/hour</option>
-            <option value="25-35">$25-35/hour</option>
-            <option value="35-50">$35-50/hour</option>
-            <option value="50+">$50+/hour</option>
-          </select>
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
+              Budget Range
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: '15-25', label: '$15-25/hour' },
+                { value: '25-35', label: '$25-35/hour' },
+                { value: '35-50', label: '$35-50/hour' },
+                { value: '50+', label: '$50+/hour' }
+              ].map(option => (
+                <label
+                  key={option.value}
+                  className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    formData.budgetRange === option.value
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="budgetRange"
+                    value={option.value}
+                    checked={formData.budgetRange === option.value}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <span className="text-sm font-medium">{option.label}</span>
+                  {formData.budgetRange === option.value && (
+                    <CheckCircle className="absolute top-3 right-3 w-5 h-5 text-blue-600" />
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
         </>
       );
     }
