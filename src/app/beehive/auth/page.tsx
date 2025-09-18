@@ -442,7 +442,7 @@ export default function BeehiveAuthPage() {
                     Drop files here or click to upload
                   </p>
                   <p className="text-sm text-elder-text-secondary mt-1">
-                    PDF, JPG, PNG up to 10MB each
+                    PDF, JPG, PNG up to 20MB each
                   </p>
                 </div>
                 <input

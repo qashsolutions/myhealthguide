@@ -11,9 +11,9 @@ service firebase.storage {
       return request.auth.uid == userId;
     }
 
-    // Helper function to validate file size (max 10MB)
+    // Helper function to validate file size (max 20MB)
     function isValidFileSize() {
-      return request.resource.size <= 10 * 1024 * 1024; // 10MB
+      return request.resource.size <= 20 * 1024 * 1024; // 20MB
     }
 
     // Helper function to validate file type
