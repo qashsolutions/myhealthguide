@@ -1,0 +1,15 @@
+# Document Processing Dependencies
+PyPDF2==3.0.1
+Pillow==10.2.0
+pytesseract==0.3.10
+google-generativeai==0.3.2
+firebase-admin==6.4.0
+
+# API and Web Server (if running as service)
+fastapi==0.109.0
+uvicorn==0.27.0
+python-multipart==0.0.6
+
+# Utilities
+python-dotenv==1.0.0
+pydantic==2.5.3
