@@ -194,7 +194,12 @@ export default function BeehiveAuthPage() {
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    const newFiles = [];
+    const newFiles: Array<{
+      name: string;
+      url: string;
+      size: number;
+      type: string;
+    }> = [];
 
     try {
       // For now, we'll simulate the upload since user needs to be authenticated
