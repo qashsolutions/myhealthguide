@@ -38,6 +38,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) {
       router.push('/beehive/auth');
+    } else if (user && !user.emailVerified) {
+      // Redirect to email verification if not verified
+      router.push('/beehive/verify-email');
     }
   }, [user, router]);
 

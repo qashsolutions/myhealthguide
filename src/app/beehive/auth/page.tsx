@@ -128,12 +128,12 @@ export default function BeehiveAuthPage() {
         // Sign up with Firebase
         await signUp(formData.email, formData.password, formData);
 
-        setSuccess('Account created! Please check your email to verify your account.');
+        setSuccess('Account created! Redirecting to email verification...');
 
-        // Redirect after 3 seconds
+        // Redirect to email verification page
         setTimeout(() => {
-          router.push('/beehive');
-        }, 3000);
+          router.push('/beehive/verify-email');
+        }, 2000);
       } else {
         // Sign in
         if (!formData.email || !formData.password) {
@@ -143,7 +143,13 @@ export default function BeehiveAuthPage() {
         }
 
         await signIn(formData.email, formData.password);
-        router.push('/beehive');
+
+        // Check if email is verified
+        if (auth.currentUser && !auth.currentUser.emailVerified) {
+          router.push('/beehive/verify-email');
+        } else {
+          router.push('/beehive/profile');
+        }
       }
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {

@@ -18,7 +18,7 @@ interface BeehiveUser {
   firstName?: string;
   lastName?: string;
   role?: string;
-  emailVerified?: boolean;
+  emailVerified: boolean;
 }
 
 interface BeehiveAuthContextType {
@@ -53,9 +53,9 @@ export function BeehiveAuthProvider({ children }: { children: React.ReactNode })
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          firstName: userData?.firstName,
-          lastName: userData?.lastName,
-          role: userData?.role,
+          firstName: userData?.firstName || '',
+          lastName: userData?.lastName || '',
+          role: userData?.role || '',
           emailVerified: firebaseUser.emailVerified,
         });
       } else {
