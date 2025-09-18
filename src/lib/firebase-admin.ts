@@ -15,9 +15,9 @@ const initializeFirebaseAdmin = () => {
 
   // In production, use environment variables for service account
   const serviceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID || "your-project-id",
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "your-client-email",
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || "your-private-key"
+    projectId: process.env.FIREBASE_ADMIN_PROJECT_ID || "your-project-id",
+    clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL || "your-client-email",
+    privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n') || "your-private-key"
   };
 
   try {
