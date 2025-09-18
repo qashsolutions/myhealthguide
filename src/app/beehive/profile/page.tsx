@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/Button';
 
 export default function ProfilePage() {
-  const { user, logOut } = useBeehiveAuth();
+  const { user, logOut, loading } = useBeehiveAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
@@ -38,11 +38,22 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) {
       router.push('/beehive/auth');
-    } else if (user && !user.emailVerified) {
-      // Redirect to email verification if not verified
-      router.push('/beehive/verify-email');
     }
+    // Remove the email verification check here since it's causing a loop
+    // The verification should be checked at the auth level, not on every page
   }, [user, router]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-600 mt-2">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;

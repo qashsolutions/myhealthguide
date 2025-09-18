@@ -23,9 +23,9 @@ export default function VerifyEmailContent() {
         // Check if already verified
         if (user.emailVerified) {
           setIsVerified(true);
-          // Redirect to profile after 2 seconds
+          // Force a page refresh to ensure auth context updates
           setTimeout(() => {
-            router.push('/beehive/profile');
+            window.location.href = '/beehive/profile';
           }, 2000);
         }
       } else {
@@ -65,9 +65,8 @@ export default function VerifyEmailContent() {
 
         if (auth.currentUser.emailVerified) {
           setIsVerified(true);
-          setTimeout(() => {
-            router.push('/beehive/profile');
-          }, 2000);
+          // Force a page refresh to ensure auth context updates
+          window.location.href = '/beehive/profile';
         } else {
           setError('Email not verified yet. Please check your inbox.');
         }
