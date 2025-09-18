@@ -426,17 +426,63 @@ export default function BeehiveAuthPage() {
               <h3 className="text-elder-lg font-semibold text-elder-text">
                 Required Documentation
               </h3>
+              <p className="text-elder-text-secondary text-sm mt-1">
+                Upload your ID, certifications, and background check documents
+              </p>
             </div>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                name="backgroundCheckStatus"
-                checked={formData.backgroundCheckStatus}
-                onChange={handleInputChange}
-                className="mr-3 w-5 h-5"
-              />
-              <span className="text-elder-base font-medium">I have uploaded all required documents for background check</span>
-            </label>
+
+            {/* File Upload Area */}
+            <div className="border-2 border-dashed border-amber-300 rounded-elder p-8 text-center bg-white/50 hover:bg-white/70 transition-colors">
+              <div className="flex flex-col items-center space-y-4">
+                <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <div>
+                  <p className="text-elder-base font-medium text-elder-text">
+                    Drop files here or click to upload
+                  </p>
+                  <p className="text-sm text-elder-text-secondary mt-1">
+                    PDF, JPG, PNG up to 10MB each
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="hidden"
+                  id="document-upload"
+                  onChange={(e) => {
+                    // TODO: Handle file upload
+                    console.log('Files selected:', e.target.files);
+                  }}
+                />
+                <label
+                  htmlFor="document-upload"
+                  className="btn-primary px-6 py-3 rounded-elder cursor-pointer"
+                >
+                  Select Files
+                </label>
+              </div>
+            </div>
+
+            {/* Uploaded Files List (placeholder for now) */}
+            {/* TODO: Show list of uploaded files here */}
+
+            {/* Confirmation Checkbox */}
+            <div className="bg-white p-4 rounded-elder border-2 border-amber-200">
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="backgroundCheckStatus"
+                  checked={formData.backgroundCheckStatus}
+                  onChange={handleInputChange}
+                  className="mt-1 mr-4 w-6 h-6 text-primary-600 border-2 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="text-elder-base font-medium text-elder-text">
+                  I confirm that I have uploaded all required documents for background verification
+                </span>
+              </label>
+            </div>
           </div>
         </div>
       );
