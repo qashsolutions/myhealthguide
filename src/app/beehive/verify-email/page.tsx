@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { sendEmailVerification, onAuthStateChanged, reload } from 'firebase/auth';
 import { Mail, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-export default function VerifyEmailPage() {
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic';
+
+function VerifyEmailContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [emailSent, setEmailSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -178,5 +180,23 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Export with Suspense wrapper and dynamic rendering
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+            <p className="text-gray-600 mt-2">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   );
 }
