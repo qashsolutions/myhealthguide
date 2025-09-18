@@ -287,48 +287,103 @@ export default function BeehiveAuthPage() {
     if (formData.role === 'caregiver') {
       return (
         <div className="space-y-6">
-          {/* Professional Information Section */}
+          {/* Service Area Section */}
           <div className="space-y-4 bg-purple-50 p-6 rounded-elder">
             <div className="border-b border-purple-100 pb-2">
               <h3 className="text-elder-lg font-semibold text-elder-text">
-                Professional Information
+                Service Area
               </h3>
             </div>
-            <div className="space-y-4">
-              <input
-                type="text"
-                name="zipCode"
-                placeholder="ZIP Code * (Service Area)"
-                value={formData.zipCode}
-                onChange={handleInputChange}
-                className="input-base"
-                pattern="[0-9]{5}"
-                maxLength={5}
-                required
-              />
-              <select
-                name="yearsOfExperience"
-                value={formData.yearsOfExperience}
-                onChange={handleInputChange}
-                className="input-base"
-                required
-              >
-                <option value="">Years of Experience *</option>
-                <option value="0-1">Less than 1 year</option>
-                <option value="1-3">1-3 years</option>
-                <option value="3-5">3-5 years</option>
-                <option value="5-10">5-10 years</option>
-                <option value="10+">10+ years</option>
-              </select>
-              <input
-                type="text"
-                name="hourlyRate"
-                placeholder="Hourly Rate (e.g., $25/hour)"
-                value={formData.hourlyRate}
-                onChange={handleInputChange}
-                className="input-base"
-                pattern="[0-9]+"
-              />
+            <input
+              type="text"
+              name="zipCode"
+              placeholder="ZIP Code * (Service Area)"
+              value={formData.zipCode}
+              onChange={handleInputChange}
+              className="input-base"
+              pattern="[0-9]{5}"
+              maxLength={5}
+              required
+            />
+          </div>
+
+          {/* Years of Experience Section */}
+          <div className="space-y-4 bg-gray-50 p-6 rounded-elder">
+            <div className="border-b border-gray-200 pb-2">
+              <h3 className="text-elder-lg font-semibold text-elder-text">
+                Years of Experience *
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { value: '0-1', label: 'Less than 1 year' },
+                { value: '1-3', label: '1-3 years' },
+                { value: '3-5', label: '3-5 years' },
+                { value: '5-10', label: '5-10 years' },
+                { value: '10+', label: '10+ years' }
+              ].map(option => (
+                <label
+                  key={option.value}
+                  className={`relative flex items-center p-5 border-2 rounded-elder cursor-pointer transition-all ${
+                    formData.yearsOfExperience === option.value
+                      ? 'border-primary-500 bg-primary-50 shadow-sm'
+                      : 'border-elder-border hover:border-gray-300 bg-white hover:shadow-sm'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="yearsOfExperience"
+                    value={option.value}
+                    checked={formData.yearsOfExperience === option.value}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                    required
+                  />
+                  <span className="text-elder-base font-medium text-elder-text">{option.label}</span>
+                  {formData.yearsOfExperience === option.value && (
+                    <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-primary-600" />
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Hourly Rate Section */}
+          <div className="space-y-4 bg-green-50 p-6 rounded-elder">
+            <div className="border-b border-green-100 pb-2">
+              <h3 className="text-elder-lg font-semibold text-elder-text">
+                Hourly Rate
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { value: '15-25', label: '$15-25/hour' },
+                { value: '25-35', label: '$25-35/hour' },
+                { value: '35-50', label: '$35-50/hour' },
+                { value: '50+', label: '$50+/hour' }
+              ].map(option => (
+                <label
+                  key={option.value}
+                  className={`relative flex items-center p-5 border-2 rounded-elder cursor-pointer transition-all ${
+                    formData.hourlyRate === option.value
+                      ? 'border-primary-500 bg-primary-50 shadow-sm'
+                      : 'border-elder-border hover:border-gray-300 bg-white hover:shadow-sm'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="hourlyRate"
+                    value={option.value}
+                    checked={formData.hourlyRate === option.value}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <span className="text-elder-base font-medium text-elder-text">{option.label}</span>
+                  {formData.hourlyRate === option.value && (
+                    <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-primary-600" />
+                  )}
+                </label>
+              ))}
             </div>
           </div>
 
@@ -365,8 +420,13 @@ export default function BeehiveAuthPage() {
             </div>
           </div>
 
-          {/* Background Check Section */}
-          <div className="space-y-4 bg-gray-50 p-6 rounded-elder">
+          {/* Documentation Section */}
+          <div className="space-y-4 bg-amber-50 p-6 rounded-elder">
+            <div className="border-b border-amber-100 pb-2">
+              <h3 className="text-elder-lg font-semibold text-elder-text">
+                Required Documentation
+              </h3>
+            </div>
             <label className="flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -375,7 +435,7 @@ export default function BeehiveAuthPage() {
                 onChange={handleInputChange}
                 className="mr-3 w-5 h-5"
               />
-              <span className="text-elder-base font-medium">I have completed a background check</span>
+              <span className="text-elder-base font-medium">I have uploaded all required documents for background check</span>
             </label>
           </div>
         </div>
