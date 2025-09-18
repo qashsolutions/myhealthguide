@@ -126,11 +126,12 @@ export default function DocumentUploadPage() {
         });
 
         // Trigger document processing
+        // Note: In production, you'd get the ID token from Firebase Auth
         await fetch('/api/documents/process', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${await user.getIdToken()}`
+            // 'Authorization': `Bearer ${await auth.currentUser?.getIdToken()}`
           },
           body: JSON.stringify({
             documentUrl: downloadURL,
