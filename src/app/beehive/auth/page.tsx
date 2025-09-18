@@ -153,7 +153,13 @@ export default function BeehiveAuthPage() {
       }
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists');
+        setError('An account with this email already exists. Redirecting to sign in...');
+        // Keep the email filled in for convenience
+        setTimeout(() => {
+          setIsSignUp(false);  // Switch to sign-in tab
+          setError('');
+          setSuccess('Please sign in with your existing account');
+        }, 2000);
       } else if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters');
       } else if (err.code === 'auth/invalid-email') {
@@ -602,6 +608,13 @@ export default function BeehiveAuthPage() {
                   setCurrentStep(1);
                   setError('');
                   setSuccess('');
+                  // Clear password but keep email
+                  setFormData(prev => ({
+                    ...prev,
+                    password: '',
+                    confirmPassword: '',
+                    role: ''
+                  }));
                 }}
                 className={`flex-1 pb-4 text-lg font-medium transition-colors ${
                   isSignUp
@@ -616,6 +629,12 @@ export default function BeehiveAuthPage() {
                   setIsSignUp(false);
                   setError('');
                   setSuccess('');
+                  // Clear password but keep email
+                  setFormData(prev => ({
+                    ...prev,
+                    password: '',
+                    confirmPassword: ''
+                  }));
                 }}
                 className={`flex-1 pb-4 text-lg font-medium transition-colors ${
                   !isSignUp
