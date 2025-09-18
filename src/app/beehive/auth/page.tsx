@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useBeehiveAuth } from '@/contexts/BeehiveAuthContext';
-import { AlertCircle, CheckCircle, Users, Heart, Share2, ChevronRight } from 'lucide-react';
+import { AlertCircle, CheckCircle, Users, Heart, Share2, ChevronRight, X } from 'lucide-react';
+import { storage, auth } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function BeehiveAuthPage() {
   const router = useRouter();
@@ -44,6 +48,17 @@ export default function BeehiveAuthPage() {
     backgroundCheckStatus: false,
     genderIdentity: '',
   });
+
+  // File upload state
+  const [uploadedFiles, setUploadedFiles] = useState<Array<{
+    name: string;
+    url: string;
+    size: number;
+    type: string;
+  }>>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const roleCards = [
     {
@@ -172,6 +187,91 @@ export default function BeehiveAuthPage() {
       }
       return prev;
     });
+  };
+
+  // File upload handlers
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newFiles = [];
+
+    try {
+      // For now, we'll simulate the upload since user needs to be authenticated
+      // In production, this would upload to Firebase Storage
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // Validate file size (20MB)
+        if (file.size > 20 * 1024 * 1024) {
+          setError(`File ${file.name} is too large. Maximum size is 20MB.`);
+          continue;
+        }
+
+        // Validate file type
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(file.type)) {
+          setError(`File ${file.name} has invalid type. Only PDF, JPG, and PNG are allowed.`);
+          continue;
+        }
+
+        // In production, upload to Firebase Storage:
+        // const storageRef = ref(storage, `caregiver-documents/${auth.currentUser?.uid}/${Date.now()}_${file.name}`);
+        // const snapshot = await uploadBytes(storageRef, file);
+        // const downloadURL = await getDownloadURL(snapshot.ref);
+
+        // For now, create a local preview
+        const fileData = {
+          name: file.name,
+          url: URL.createObjectURL(file), // In production, use downloadURL from Firebase
+          size: file.size,
+          type: file.type
+        };
+
+        newFiles.push(fileData);
+      }
+
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+
+      // Update the checkbox if files were uploaded
+      if (newFiles.length > 0) {
+        setFormData(prev => ({ ...prev, backgroundCheckStatus: true }));
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError('Failed to upload files. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+
+    // Uncheck the checkbox if no files remain
+    if (uploadedFiles.length === 1) {
+      setFormData(prev => ({ ...prev, backgroundCheckStatus: false }));
+    }
   };
 
   const renderRoleSpecificFields = () => {
@@ -432,41 +532,79 @@ export default function BeehiveAuthPage() {
             </div>
 
             {/* File Upload Area */}
-            <div className="border-2 border-dashed border-amber-300 rounded-elder p-8 text-center bg-white/50 hover:bg-white/70 transition-colors">
+            <div
+              className={`border-2 border-dashed rounded-elder p-8 text-center transition-colors ${
+                dragActive
+                  ? 'border-amber-500 bg-amber-100'
+                  : 'border-amber-300 bg-white/50 hover:bg-white/70'
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
               <div className="flex flex-col items-center space-y-4">
                 <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <div>
                   <p className="text-elder-base font-medium text-elder-text">
-                    Drop files here or click to upload
+                    {isUploading ? 'Uploading...' : 'Drop files here or click to upload'}
                   </p>
                   <p className="text-sm text-elder-text-secondary mt-1">
                     PDF, JPG, PNG up to 20MB each
                   </p>
                 </div>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   multiple
                   accept=".pdf,.jpg,.jpeg,.png"
                   className="hidden"
                   id="document-upload"
-                  onChange={(e) => {
-                    // TODO: Handle file upload
-                    console.log('Files selected:', e.target.files);
-                  }}
+                  onChange={(e) => handleFileUpload(e.target.files)}
+                  disabled={isUploading}
                 />
                 <label
                   htmlFor="document-upload"
-                  className="btn-primary px-6 py-3 rounded-elder cursor-pointer"
+                  className={`btn-primary px-6 py-3 rounded-elder cursor-pointer ${
+                    isUploading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  Select Files
+                  {isUploading ? 'Uploading...' : 'Select Files'}
                 </label>
               </div>
             </div>
 
-            {/* Uploaded Files List (placeholder for now) */}
-            {/* TODO: Show list of uploaded files here */}
+            {/* Uploaded Files List */}
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">Uploaded Documents ({uploadedFiles.length})</h4>
+                <div className="space-y-2">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-amber-200">
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="p-1 hover:bg-red-50 rounded transition-colors"
+                      >
+                        <X className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Confirmation Checkbox */}
             <div className="bg-white p-4 rounded-elder border-2 border-amber-200">
