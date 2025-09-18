@@ -7,6 +7,14 @@ import { auth } from '@/lib/firebase-admin';
  */
 export async function POST(req: NextRequest) {
   try {
+    // Check if Firebase Admin is initialized
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+
     // Verify authentication
     const token = req.headers.get('authorization')?.split('Bearer ')[1];
     if (!token) {

@@ -221,7 +221,7 @@ export default function ProfilePage() {
                       </p>
                     </div>
                     <Button
-                      size="sm"
+                      size="small"
                       onClick={() => router.push('/beehive/profile/upload')}
                     >
                       <Upload className="w-4 h-4 mr-2" />
