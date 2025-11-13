@@ -1,0 +1,424 @@
+/**
+ * Notifications Firebase Service
+ * Phase 5: SMS Notifications
+ */
+
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  query,
+  where,
+  getDocs,
+  Timestamp,
+  addDoc
+} from 'firebase/firestore';
+import { db } from './config';
+import { NotificationPreferences } from '@/types';
+import {
+  sendMedicationReminder,
+  sendMissedDoseAlert,
+  sendDailySummary,
+  sendComplianceAlert,
+  SMSResponse
+} from '@/lib/sms/twilioService';
+
+export interface NotificationLog {
+  id: string;
+  groupId: string;
+  elderId: string;
+  type: 'medication_reminder' | 'medication_missed' | 'supplement_reminder' | 'daily_summary' | 'compliance_alert';
+  recipient: string;
+  message: string;
+  status: 'sent' | 'failed' | 'scheduled';
+  messageId?: string;
+  error?: string;
+  sentAt?: Date;
+  scheduledFor?: Date;
+  createdAt: Date;
+}
+
+export interface ReminderSchedule {
+  id: string;
+  groupId: string;
+  elderId: string;
+  medicationId?: string;
+  supplementId?: string;
+  type: 'medication' | 'supplement';
+  scheduledTime: Date;
+  recipients: string[];
+  enabled: boolean;
+  createdAt: Date;
+}
+
+export class NotificationService {
+  /**
+   * Get group notification preferences
+   */
+  static async getGroupNotificationPreferences(groupId: string): Promise<NotificationPreferences | null> {
+    try {
+      const groupDoc = await getDoc(doc(db, 'groups', groupId));
+      if (!groupDoc.exists()) {
+        return null;
+      }
+
+      const data = groupDoc.data();
+      return data.settings?.notificationPreferences || null;
+    } catch (error) {
+      console.error('Error fetching notification preferences:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update group notification preferences
+   */
+  static async updateGroupNotificationPreferences(
+    groupId: string,
+    preferences: NotificationPreferences
+  ): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'groups', groupId), {
+        'settings.notificationPreferences': preferences,
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error updating notification preferences:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get notification recipients for a group
+   */
+  static async getNotificationRecipients(groupId: string): Promise<string[]> {
+    try {
+      const groupDoc = await getDoc(doc(db, 'groups', groupId));
+      if (!groupDoc.exists()) {
+        return [];
+      }
+
+      const data = groupDoc.data();
+      return data.settings?.notificationRecipients || [];
+    } catch (error) {
+      console.error('Error fetching notification recipients:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update notification recipients
+   */
+  static async updateNotificationRecipients(groupId: string, recipients: string[]): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'groups', groupId), {
+        'settings.notificationRecipients': recipients,
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error updating notification recipients:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send medication reminder SMS
+   */
+  static async sendMedicationReminderSMS(params: {
+    groupId: string;
+    elderId: string;
+    elderName: string;
+    medicationName: string;
+    scheduledTime: string;
+  }): Promise<void> {
+    try {
+      const recipients = await this.getNotificationRecipients(params.groupId);
+      const preferences = await this.getGroupNotificationPreferences(params.groupId);
+
+      if (!preferences?.enabled || !preferences.types.includes('missed_doses')) {
+        console.log('Notifications disabled or type not enabled');
+        return;
+      }
+
+      for (const recipient of recipients) {
+        const result = await sendMedicationReminder({
+          to: recipient,
+          elderName: params.elderName,
+          medicationName: params.medicationName,
+          scheduledTime: params.scheduledTime
+        });
+
+        // Log the notification
+        await this.logNotification({
+          groupId: params.groupId,
+          elderId: params.elderId,
+          type: 'medication_reminder',
+          recipient,
+          message: `Reminder: ${params.elderName} - ${params.medicationName} due at ${params.scheduledTime}`,
+          status: result.success ? 'sent' : 'failed',
+          messageId: result.messageId,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error sending medication reminder:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send missed dose alert SMS
+   */
+  static async sendMissedDoseAlertSMS(params: {
+    groupId: string;
+    elderId: string;
+    elderName: string;
+    medicationName: string;
+    missedTime: string;
+  }): Promise<void> {
+    try {
+      const recipients = await this.getNotificationRecipients(params.groupId);
+      const preferences = await this.getGroupNotificationPreferences(params.groupId);
+
+      if (!preferences?.enabled || !preferences.types.includes('missed_doses')) {
+        console.log('Notifications disabled or type not enabled');
+        return;
+      }
+
+      for (const recipient of recipients) {
+        const result = await sendMissedDoseAlert({
+          to: recipient,
+          elderName: params.elderName,
+          medicationName: params.medicationName,
+          missedTime: params.missedTime
+        });
+
+        await this.logNotification({
+          groupId: params.groupId,
+          elderId: params.elderId,
+          type: 'medication_missed',
+          recipient,
+          message: `Alert: ${params.elderName} missed ${params.medicationName} at ${params.missedTime}`,
+          status: result.success ? 'sent' : 'failed',
+          messageId: result.messageId,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error sending missed dose alert:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send daily compliance summary
+   */
+  static async sendDailySummarySMS(params: {
+    groupId: string;
+    elderId: string;
+    elderName: string;
+    complianceRate: number;
+  }): Promise<void> {
+    try {
+      const recipients = await this.getNotificationRecipients(params.groupId);
+      const preferences = await this.getGroupNotificationPreferences(params.groupId);
+
+      if (!preferences?.enabled || preferences.frequency === 'realtime') {
+        return;
+      }
+
+      for (const recipient of recipients) {
+        const result = await sendDailySummary({
+          to: recipient,
+          elderName: params.elderName,
+          complianceRate: params.complianceRate
+        });
+
+        await this.logNotification({
+          groupId: params.groupId,
+          elderId: params.elderId,
+          type: 'daily_summary',
+          recipient,
+          message: `Daily summary for ${params.elderName}: ${params.complianceRate}% compliance`,
+          status: result.success ? 'sent' : 'failed',
+          messageId: result.messageId,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error sending daily summary:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send compliance alert
+   */
+  static async sendComplianceAlertSMS(params: {
+    groupId: string;
+    elderId: string;
+    elderName: string;
+    complianceRate: number;
+  }): Promise<void> {
+    try {
+      const recipients = await this.getNotificationRecipients(params.groupId);
+      const preferences = await this.getGroupNotificationPreferences(params.groupId);
+
+      if (!preferences?.enabled) {
+        return;
+      }
+
+      // Only send if compliance is below 80%
+      if (params.complianceRate >= 80) {
+        return;
+      }
+
+      for (const recipient of recipients) {
+        const result = await sendComplianceAlert({
+          to: recipient,
+          elderName: params.elderName,
+          complianceRate: params.complianceRate
+        });
+
+        await this.logNotification({
+          groupId: params.groupId,
+          elderId: params.elderId,
+          type: 'compliance_alert',
+          recipient,
+          message: `Compliance alert for ${params.elderName}: ${params.complianceRate}%`,
+          status: result.success ? 'sent' : 'failed',
+          messageId: result.messageId,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      console.error('Error sending compliance alert:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Log notification to database
+   */
+  static async logNotification(params: {
+    groupId: string;
+    elderId: string;
+    type: NotificationLog['type'];
+    recipient: string;
+    message: string;
+    status: 'sent' | 'failed';
+    messageId?: string;
+    error?: string;
+    scheduledFor?: Date;
+  }): Promise<void> {
+    try {
+      await addDoc(collection(db, 'notification_logs'), {
+        ...params,
+        sentAt: params.status === 'sent' ? Timestamp.now() : null,
+        createdAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error logging notification:', error);
+    }
+  }
+
+  /**
+   * Get notification logs for a group
+   */
+  static async getNotificationLogs(
+    groupId: string,
+    limit: number = 50
+  ): Promise<NotificationLog[]> {
+    try {
+      const q = query(
+        collection(db, 'notification_logs'),
+        where('groupId', '==', groupId)
+      );
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        sentAt: doc.data().sentAt?.toDate(),
+        scheduledFor: doc.data().scheduledFor?.toDate(),
+        createdAt: doc.data().createdAt.toDate()
+      })) as NotificationLog[];
+    } catch (error) {
+      console.error('Error fetching notification logs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create reminder schedule
+   */
+  static async createReminderSchedule(schedule: Omit<ReminderSchedule, 'id' | 'createdAt'>): Promise<string> {
+    try {
+      const docRef = await addDoc(collection(db, 'reminder_schedules'), {
+        ...schedule,
+        scheduledTime: Timestamp.fromDate(schedule.scheduledTime),
+        createdAt: Timestamp.now()
+      });
+
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating reminder schedule:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get reminder schedules for a group
+   */
+  static async getReminderSchedules(groupId: string): Promise<ReminderSchedule[]> {
+    try {
+      const q = query(
+        collection(db, 'reminder_schedules'),
+        where('groupId', '==', groupId),
+        where('enabled', '==', true)
+      );
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        scheduledTime: doc.data().scheduledTime.toDate(),
+        createdAt: doc.data().createdAt.toDate()
+      })) as ReminderSchedule[];
+    } catch (error) {
+      console.error('Error fetching reminder schedules:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle reminder schedule
+   */
+  static async toggleReminderSchedule(scheduleId: string, enabled: boolean): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'reminder_schedules', scheduleId), {
+        enabled
+      });
+    } catch (error) {
+      console.error('Error toggling reminder schedule:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete reminder schedule
+   */
+  static async deleteReminderSchedule(scheduleId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'reminder_schedules', scheduleId), {
+        enabled: false,
+        deletedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error deleting reminder schedule:', error);
+      throw error;
+    }
+  }
+}

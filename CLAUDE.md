@@ -1,0 +1,1 @@
+- review the documents. build prod ready files, do not add To-Dos. do not assume-ask me when in doubt.

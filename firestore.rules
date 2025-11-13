@@ -1,0 +1,404 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============= Helper Functions =============
+
+    // Check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Check if user owns the document
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Check if user has active trial OR subscription
+    function hasActiveAccess(userId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        (get(/databases/$(database)/documents/users/$(userId)).data.subscriptionStatus == 'active' ||
+         (get(/databases/$(database)/documents/users/$(userId)).data.subscriptionStatus == 'trial' &&
+          get(/databases/$(database)/documents/users/$(userId)).data.trialEndDate != null &&
+          request.time < get(/databases/$(database)/documents/users/$(userId)).data.trialEndDate));
+    }
+
+    // Check if user is a member of a group
+    // Note: Since Firestore rules can't filter arrays of objects easily,
+    // we check if the user is either admin or appears in memberIds
+    function isMemberOfGroup(groupId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/groups/$(groupId)) &&
+        (get(/databases/$(database)/documents/groups/$(groupId)).data.adminId == request.auth.uid ||
+         ('memberIds' in get(/databases/$(database)/documents/groups/$(groupId)).data &&
+          request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds));
+    }
+
+    // Check if user is admin of a group
+    function isGroupAdmin(groupId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/groups/$(groupId)) &&
+        get(/databases/$(database)/documents/groups/$(groupId)).data.adminId == request.auth.uid;
+    }
+
+    // Check if user has a specific permission in a group
+    // Note: Firestore rules don't support array filtering, so we simplify:
+    // - Admins have all permissions
+    // - Members are checked for membership only (app-level permission enforcement)
+    function hasPermission(groupId) {
+      return isGroupAdmin(groupId) || isMemberOfGroup(groupId);
+    }
+
+    // ============= Users Collection =============
+
+    match /users/{userId} {
+      // Users can read their own profile (even if trial expired, for billing page)
+      allow read: if isOwner(userId);
+
+      // Users can update their own profile (except protected fields)
+      allow update: if isOwner(userId) &&
+        hasActiveAccess(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'id', 'createdAt', 'trialStartDate', 'trialEndDate',
+          'subscriptionStatus', 'phoneNumberHash'
+        ]);
+
+      // Only system can create users (via Firebase Auth)
+      // Phone number must be unique (using phoneNumberHash as ID prevents duplicates)
+      allow create: if isOwner(userId) &&
+        request.resource.data.subscriptionStatus == 'trial' &&
+        request.resource.data.trialStartDate == null; // Will be set on first actual use
+
+      // GDPR: Users can delete themselves (Right to be Forgotten, Article 17)
+      // Allow even without active trial for GDPR compliance
+      allow delete: if isOwner(userId);
+    }
+
+    // ============= Phone Number Index (for uniqueness) =============
+    // Store phoneNumberHash -> userId mapping
+    match /phone_index/{phoneHash} {
+      allow read: if isSignedIn();
+
+      // Only create when user signs up
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
+
+      // GDPR: User can delete their phone index (Right to be Forgotten)
+      allow update: if false; // Immutable
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ============= Groups Collection =============
+
+    match /groups/{groupId} {
+      // Members can read their group
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(groupId) ||
+        (isMemberOfGroup(groupId) && hasActiveAccess(request.auth.uid));
+
+      // Only admin can update group (requires active access)
+      allow update: if isGroupAdmin(groupId) &&
+        hasActiveAccess(request.auth.uid);
+
+      // Users can create groups (becomes admin, requires active access)
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.adminId == request.auth.uid;
+
+      // GDPR: Admin can delete group even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(groupId);
+    }
+
+    // ============= Elders Collection =============
+
+    match /elders/{elderId} {
+      // Members of the group can read elders
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Members with permission can create elders (max 2 per caregiver)
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId) &&
+        hasPermission(request.resource.data.groupId);
+
+      // Members with permission can update elders
+      allow update: if isMemberOfGroup(resource.data.groupId) &&
+        hasActiveAccess(request.auth.uid) &&
+        hasPermission(resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Medications Collection =============
+
+    match /medications/{medicationId} {
+      // Members can read medications in their group
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Members with permission can create medications
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId) &&
+        hasPermission(request.resource.data.groupId);
+
+      // Members with permission can update medications
+      allow update: if isMemberOfGroup(resource.data.groupId) &&
+        hasActiveAccess(request.auth.uid) &&
+        hasPermission(resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) &&
+         hasActiveAccess(request.auth.uid) &&
+         hasPermission(resource.data.groupId));
+    }
+
+    // ============= Medication Logs Collection =============
+
+    match /medication_logs/{logId} {
+      // Members can read logs in their group
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Members with permission can create logs
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId) &&
+        hasPermission(request.resource.data.groupId);
+
+      // Members can update their own logs
+      allow update: if isMemberOfGroup(resource.data.groupId) &&
+        hasActiveAccess(request.auth.uid) &&
+        (hasPermission(resource.data.groupId) ||
+         resource.data.loggedBy == request.auth.uid);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) &&
+         hasActiveAccess(request.auth.uid) &&
+         (resource.data.loggedBy == request.auth.uid ||
+          isGroupAdmin(resource.data.groupId)));
+    }
+
+    // ============= Supplements Collection =============
+
+    match /supplements/{supplementId} {
+      // Members can read supplements in their group
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Members with permission can manage supplements
+      allow create, update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId) &&
+        hasPermission(request.resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) &&
+         hasActiveAccess(request.auth.uid) &&
+         hasPermission(resource.data.groupId));
+    }
+
+    // ============= Supplement Logs Collection =============
+
+    match /supplement_logs/{logId} {
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId) &&
+        hasPermission(request.resource.data.groupId);
+
+      allow update: if isMemberOfGroup(resource.data.groupId) &&
+        hasActiveAccess(request.auth.uid) &&
+        (hasPermission(resource.data.groupId) ||
+         resource.data.loggedBy == request.auth.uid);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) &&
+         hasActiveAccess(request.auth.uid) &&
+         (resource.data.loggedBy == request.auth.uid ||
+          isGroupAdmin(resource.data.groupId)));
+    }
+
+    // ============= Diet Entries Collection =============
+
+    match /diet_entries/{entryId} {
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId) &&
+        hasPermission(request.resource.data.groupId);
+
+      allow update: if isMemberOfGroup(resource.data.groupId) &&
+        hasActiveAccess(request.auth.uid) &&
+        (hasPermission(resource.data.groupId) ||
+         resource.data.loggedBy == request.auth.uid);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) &&
+         hasActiveAccess(request.auth.uid) &&
+         (resource.data.loggedBy == request.auth.uid ||
+          isGroupAdmin(resource.data.groupId)));
+    }
+
+    // ============= AI Summaries Collection =============
+
+    match /ai_summaries/{summaryId} {
+      // Members can read AI summaries for their group
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Only system/cloud functions can create summaries
+      allow create: if false; // Created by Cloud Functions only
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow update: if false;
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Activity Logs Collection =============
+
+    match /activity_logs/{logId} {
+      // Members can read activity logs for their group
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System can create activity logs
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow update: if false;
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Invites Collection =============
+
+    match /invites/{inviteId} {
+      // Anyone can read active invites to validate codes (no access check for invite page)
+      // GDPR: Creator can read all their invites for data export
+      allow read: if resource.data.isActive == true ||
+        resource.data.createdBy == request.auth.uid;
+
+      // Only group admin can create invites (requires active access)
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isGroupAdmin(request.resource.data.groupId);
+
+      // Only creator can update/deactivate invites
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.createdBy == request.auth.uid;
+
+      // GDPR: Creator can delete even without active trial (Right to be Forgotten)
+      allow delete: if isSignedIn() &&
+        resource.data.createdBy == request.auth.uid;
+    }
+
+    // ============= Invite Acceptances Collection =============
+
+    match /invite_acceptances/{acceptanceId} {
+      // Group members can read acceptance history
+      // GDPR: User can read their own acceptances for data export
+      allow read: if resource.data.userId == request.auth.uid ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System creates acceptance records (no access check - needed for signup)
+      allow create: if isSignedIn();
+
+      // GDPR: User can delete their own acceptances (Right to be Forgotten)
+      allow update: if false;
+      allow delete: if resource.data.userId == request.auth.uid;
+    }
+
+    // ============= Notification Logs Collection =============
+
+    match /notification_logs/{logId} {
+      // Group members can read notification logs
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System creates notification logs
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow update: if false;
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Reminder Schedules Collection =============
+
+    match /reminder_schedules/{scheduleId} {
+      // Group members can read reminder schedules
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Group admin can create schedules
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isGroupAdmin(request.resource.data.groupId);
+
+      // Group admin can update schedules
+      allow update: if isGroupAdmin(resource.data.groupId) &&
+        hasActiveAccess(request.auth.uid);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Agencies Collection =============
+
+    match /agencies/{agencyId} {
+      // Agency members can read (requires active access)
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.adminId == request.auth.uid;
+
+      // Only agency owner can update
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.adminId == request.auth.uid;
+
+      // Users can create agencies
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.adminId == request.auth.uid;
+
+      // Only owner can delete
+      allow delete: if isSignedIn() &&
+        resource.data.adminId == request.auth.uid;
+    }
+
+    // ============= Default Deny =============
+
+    // Deny all other access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

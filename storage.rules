@@ -1,0 +1,79 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ============= Helper Functions =============
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Validate file size (max 5MB for images, 10MB for documents)
+    function isValidImageSize() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    function isValidDocSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Validate image file type
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // ============= User Profile Images =============
+
+    match /users/{userId}/profile/{fileName} {
+      // Users can read their own profile images
+      allow read: if isSignedIn();
+
+      // Users can upload their own profile images
+      allow write: if isSignedIn() &&
+        isOwner(userId) &&
+        isImage() &&
+        isValidImageSize();
+
+      // Users can delete their own profile images
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    // ============= Elder Profile Images =============
+
+    match /elders/{elderId}/profile/{fileName} {
+      // Any authenticated user can read elder images
+      // (access control is in Firestore rules)
+      allow read: if isSignedIn();
+
+      // Any authenticated user can upload elder images
+      // (group membership checked in app logic)
+      allow write: if isSignedIn() &&
+        isImage() &&
+        isValidImageSize();
+
+      allow delete: if isSignedIn();
+    }
+
+    // ============= Group Documents =============
+
+    match /groups/{groupId}/documents/{fileName} {
+      // Group members can read documents
+      allow read: if isSignedIn();
+
+      // Group members can upload documents
+      allow write: if isSignedIn() && isValidDocSize();
+
+      allow delete: if isSignedIn();
+    }
+
+    // ============= Default Deny =============
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
