@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
+import { MedicationService } from '@/lib/firebase/medications';
 
 interface LogDoseModalProps {
   open: boolean;
@@ -47,8 +48,18 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
       if (onSubmit) {
         await onSubmit(logData);
       } else {
-        // TODO: Call Firebase service when connected
-        console.log('Log dose:', logData);
+        // Save to Firebase
+        await MedicationService.logDose({
+          medicationId: medication.id,
+          groupId: medication.groupId,
+          elderId: medication.elderId,
+          scheduledTime: new Date(),
+          actualTime: status === 'taken' ? new Date() : undefined,
+          status,
+          notes: notes || undefined,
+          method: 'manual',
+          createdAt: new Date()
+        });
       }
 
       onClose();
@@ -56,6 +67,7 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
       setNotes('');
     } catch (error) {
       console.error('Error logging dose:', error);
+      // You could add error state here to show to user
     } finally {
       setLoading(false);
     }

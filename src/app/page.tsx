@@ -29,7 +29,7 @@ export default function LandingPage() {
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link href="/signup">
                 <Button size="lg" className="text-lg px-8">
-                  Start 7-Day Free Trial
+                  Start 14-Day Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -42,6 +42,168 @@ export default function LandingPage() {
             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
               No credit card required • Cancel anytime • US-based support
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="py-24 sm:py-32 bg-gray-50 dark:bg-gray-900">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center mb-16">
+            <h2 className="text-base font-semibold leading-7 text-blue-600 dark:text-blue-400">
+              Simple Pricing
+            </h2>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+              Choose the plan that fits your needs
+            </p>
+            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
+              All plans include 14-day free trial. No credit card required.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* Basic Plan */}
+            <Card className="relative">
+              <CardContent className="pt-8">
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
+                    <Heart className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Basic</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Perfect for small families</p>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$8.99</span>
+                    <span className="text-gray-600 dark:text-gray-400">/month</span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">1 admin + 1 member</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Up to 2 elders</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">25 MB storage</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Voice-powered logging</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Medication & diet tracking</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">AI health insights</span>
+                  </li>
+                </ul>
+                <Link href="/signup" className="block">
+                  <Button className="w-full" variant="outline">Get Started</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Family Plan - Popular */}
+            <Card className="relative border-2 border-blue-600 shadow-xl">
+              <div className="absolute top-0 right-6 transform -translate-y-1/2">
+                <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  Most Popular
+                </span>
+              </div>
+              <CardContent className="pt-8">
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 mb-4">
+                    <Users className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Family</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">For families & caregivers</p>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$14.99</span>
+                    <span className="text-gray-600 dark:text-gray-400">/month</span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300"><strong>1 admin + up to 3 members</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Up to 4 elders</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">50 MB storage</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">All Basic features</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Real-time collaboration</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Weekly health reports</span>
+                  </li>
+                </ul>
+                <Link href="/signup" className="block">
+                  <Button className="w-full">Get Started</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Agency Plan */}
+            <Card className="relative">
+              <CardContent className="pt-8">
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900 mb-4">
+                    <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Agency</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">For professional caregivers</p>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$199</span>
+                    <span className="text-gray-600 dark:text-gray-400">/month</span>
+                  </div>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300"><strong>Up to 10 groups</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">4 members per group (40 users)</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Up to 20 elders</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300"><strong>200 MB storage</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Agency dashboard & analytics</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Compliance tracking</span>
+                  </li>
+                </ul>
+                <Link href="/signup" className="block">
+                  <Button className="w-full" variant="outline">Get Started</Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -172,27 +334,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-blue-600">
-        <div className="px-6 py-24 sm:px-6 sm:py-32 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Ready to transform your caregiving?
-            </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-blue-100">
-              Start your 7-day free trial today. No credit card required.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link href="/signup">
-                <Button size="lg" variant="secondary" className="text-lg px-8">
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

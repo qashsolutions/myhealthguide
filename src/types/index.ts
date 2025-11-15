@@ -6,6 +6,10 @@ export interface User {
   email: string;
   phoneNumber: string;
   phoneNumberHash: string;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  emailVerifiedAt: Date | null;
+  phoneVerifiedAt: Date | null;
   firstName: string;
   lastName: string;
   profileImage?: string;
@@ -15,6 +19,9 @@ export interface User {
   trialStartDate: Date | null; // Date of FIRST USE (not signup)
   trialEndDate: Date | null; // 14 days from first use
   subscriptionStatus: 'trial' | 'active' | 'expired' | 'canceled';
+  subscriptionTier: 'single' | 'family' | 'agency' | null; // null during trial
+  storageUsed: number; // Bytes used
+  storageLimit: number; // Bytes allowed based on plan
   createdAt: Date;
   lastLoginAt: Date;
 }
@@ -60,6 +67,34 @@ export interface GroupMembership {
 export interface GroupSettings {
   notificationRecipients: string[];
   notificationPreferences: NotificationPreferences;
+  aiFeatures?: AIFeatureSettings;
+}
+
+export interface AIFeatureSettings {
+  enabled: boolean; // Master toggle for all AI features
+  consent: {
+    granted: boolean;
+    grantedAt?: Date;
+    grantedBy?: string;
+  };
+  features: {
+    healthChangeDetection: {
+      enabled: boolean;
+      sensitivity: 'low' | 'medium' | 'high'; // 15%, 25%, 35% threshold
+    };
+    medicationTimeOptimization: {
+      enabled: boolean;
+      autoSuggest: boolean; // Show suggestions automatically
+    };
+    weeklySummary: {
+      enabled: boolean;
+      recipients: string[]; // User IDs to receive summary
+      schedule: 'sunday' | 'monday'; // When to send
+    };
+    doctorVisitPrep: {
+      enabled: boolean;
+    };
+  };
 }
 
 export interface NotificationPreferences {
@@ -259,6 +294,33 @@ export interface Subscription {
   stripeCustomerId: string;
   stripeSubscriptionId: string;
 }
+
+// ============= Storage Types =============
+export interface StorageMetadata {
+  id: string;
+  userId: string;
+  groupId?: string;
+  filePath: string; // Full path in Firebase Storage
+  fileName: string;
+  fileType: string; // MIME type
+  fileSize: number; // Bytes
+  category: 'profile' | 'elder' | 'document';
+  uploadedAt: Date;
+}
+
+// Storage limits in bytes
+export const STORAGE_LIMITS = {
+  TRIAL: 25 * 1024 * 1024, // 25 MB
+  SINGLE: 25 * 1024 * 1024, // 25 MB
+  FAMILY: 50 * 1024 * 1024, // 50 MB
+  AGENCY: 200 * 1024 * 1024, // 200 MB
+} as const;
+
+// Individual file size limits
+export const FILE_SIZE_LIMITS = {
+  IMAGE: 5 * 1024 * 1024, // 5 MB
+  DOCUMENT: 10 * 1024 * 1024, // 10 MB
+} as const;
 
 // ============= Permission Types =============
 export type Permission =

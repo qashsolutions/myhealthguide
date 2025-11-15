@@ -1,33 +1,100 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 export default function SignupPage() {
+  const router = useRouter();
+  const { signUp } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    phoneNumber: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const validatePassword = (password: string): boolean => {
+    setPasswordError('');
+
+    // At least 7 characters
+    if (password.length < 7) {
+      setPasswordError('Password must be at least 7 characters long');
+      return false;
+    }
+
+    // Must contain at least one letter
+    if (!/[a-zA-Z]/.test(password)) {
+      setPasswordError('Password must contain at least one letter (a-z, A-Z)');
+      return false;
+    }
+
+    // Must contain at least one number
+    if (!/[0-9]/.test(password)) {
+      setPasswordError('Password must contain at least one number (0-9)');
+      return false;
+    }
+
+    // Must contain at least one special character
+    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(password)) {
+      setPasswordError("Password must contain at least one special character (!@#$%^&*(),.?\":{}<>_-+=[]\\/;'`~)");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setFormData({...formData, password: newPassword});
+
+    // Clear error when user starts typing
+    if (passwordError) {
+      setPasswordError('');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPasswordError('');
+
+    // Validate password before submitting
+    if (!validatePassword(formData.password)) {
+      return;
+    }
+
     setLoading(true);
 
-    // TODO: Implement actual signup logic with Firebase
-    setTimeout(() => {
+    try {
+      await signUp(formData.email, formData.password, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: ''
+      });
+
+      // Redirect to dashboard (verification banner will show there)
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Sign up error:', err);
+
+      // Check for specific Firebase error codes
+      if (err.code === 'auth/email-already-in-use') {
+        setError('Email already in use. Please Sign In.');
+      } else {
+        setError(err.message || 'Failed to create account. Please try again.');
+      }
+    } finally {
       setLoading(false);
-      setError('Registration system will be connected after Firebase credentials are added');
-    }, 1000);
+    }
   };
 
   return (
@@ -35,7 +102,7 @@ export default function SignupPage() {
       <CardHeader>
         <CardTitle>Create Account</CardTitle>
         <CardDescription>
-          Start your 7-day free trial - no credit card required
+          Start your 14-day free trial - no credit card required
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -76,27 +143,24 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phoneNumber">Phone Number (US only)</Label>
-            <Input
-              id="phoneNumber"
-              type="tel"
-              placeholder="(555) 123-4567"
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
               placeholder="••••••••"
               value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              onChange={handlePasswordChange}
               required
+              className={passwordError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              7 characters minimum: a-z, A-Z, 0-9 and a special character (!@#$%^&amp;*(),.?&quot;:&#123;&#125;&lt;&gt;_-+=[]\/;&apos;&#96;~)
+            </p>
+            {passwordError && (
+              <div className="text-sm text-red-600 dark:text-red-400">
+                {passwordError}
+              </div>
+            )}
           </div>
 
           {error && (
@@ -108,6 +172,23 @@ export default function SignupPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
           </Button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white dark:bg-gray-950 px-2 text-gray-500">
+                Or sign up with
+              </span>
+            </div>
+          </div>
+
+          <Link href="/phone-signup" className="block">
+            <Button type="button" variant="outline" className="w-full">
+              Sign up with Phone Number
+            </Button>
+          </Link>
         </form>
       </CardContent>
       <CardFooter className="flex justify-center">

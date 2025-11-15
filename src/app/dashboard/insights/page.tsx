@@ -1,0 +1,396 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DailySummaryCard } from '@/components/ai/DailySummaryCard';
+import { CompliancePatternChart } from '@/components/ai/CompliancePatternChart';
+import { AIInsightCard } from '@/components/ai/AIInsightCard';
+import { AIInsightsContainer } from '@/components/ai/AIInsightsContainer';
+import { ExportDataDialog } from '@/components/export/ExportDataDialog';
+import { WeeklyTrendsDashboard } from '@/components/trends/WeeklyTrendsDashboard';
+import { generateDailySummary, detectCompliancePatterns } from '@/lib/ai/geminiService';
+import { calculateWeeklyTrends } from '@/lib/utils/trendsCalculation';
+import { MedicationService } from '@/lib/firebase/medications';
+import { DietService } from '@/lib/firebase/diet';
+import { useAuth } from '@/contexts/AuthContext';
+import { ElderService } from '@/lib/firebase/elders';
+import { DailySummary, Elder } from '@/types';
+import { Sparkles, RefreshCw, Calendar, TrendingUp, AlertCircle, FileDown } from 'lucide-react';
+import { subWeeks } from 'date-fns';
+import type { TrendsData } from '@/lib/utils/trendsCalculation';
+
+export default function InsightsPage() {
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+  const [patterns, setPatterns] = useState<{ patterns: string[]; recommendations: string[] } | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [elders, setElders] = useState<Elder[]>([]);
+  const [selectedElder, setSelectedElder] = useState<Elder | null>(null);
+  const [loadingElders, setLoadingElders] = useState(true);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [trendsData, setTrendsData] = useState<TrendsData | null>(null);
+  const [loadingTrends, setLoadingTrends] = useState(false);
+  const [selectedTrendsWeeks, setSelectedTrendsWeeks] = useState<number>(12);
+
+  // Load elders from group
+  useEffect(() => {
+    async function loadElders() {
+      if (!user?.groups || user.groups.length === 0) {
+        setLoadingElders(false);
+        return;
+      }
+
+      try {
+        const groupId = user.groups[0].groupId;
+        const eldersData = await ElderService.getEldersByGroup(groupId);
+        setElders(eldersData);
+
+        // Auto-select first elder if available
+        if (eldersData.length > 0) {
+          setSelectedElder(eldersData[0]);
+        }
+      } catch (error) {
+        console.error('Error loading elders:', error);
+      } finally {
+        setLoadingElders(false);
+      }
+    }
+
+    loadElders();
+  }, [user]);
+
+  const elderName = selectedElder?.name || 'John Smith';
+
+  // Load trends data
+  const loadTrendsData = async (numberOfWeeks: number = 12) => {
+    if (!selectedElder || !user?.groups || user.groups.length === 0) {
+      return;
+    }
+
+    setLoadingTrends(true);
+    try {
+      const groupId = user.groups[0].groupId;
+      const endDate = new Date();
+      const startDate = subWeeks(endDate, numberOfWeeks);
+
+      // Fetch historical data
+      const [allMedicationLogs, allDietEntries] = await Promise.all([
+        MedicationService.getLogsByDateRange(groupId, startDate, endDate),
+        DietService.getEntriesByDateRange(groupId, startDate, endDate)
+      ]);
+
+      // Filter for selected elder
+      const medicationLogs = allMedicationLogs.filter(log => log.elderId === selectedElder.id);
+      const dietEntries = allDietEntries.filter(entry => entry.elderId === selectedElder.id);
+
+      // Calculate trends
+      const trends = calculateWeeklyTrends(medicationLogs, dietEntries, numberOfWeeks);
+      setTrendsData(trends);
+    } catch (error) {
+      console.error('Error loading trends data:', error);
+    } finally {
+      setLoadingTrends(false);
+    }
+  };
+
+  // Load trends when elder changes
+  useEffect(() => {
+    if (selectedElder) {
+      loadTrendsData(selectedTrendsWeeks);
+    }
+  }, [selectedElder, selectedTrendsWeeks]);
+
+  const loadInsights = async () => {
+    setIsLoading(true);
+    try {
+      // Mock data for development
+      // In production, fetch actual logs from Firebase
+      const mockData = {
+        medicationLogs: [
+          { status: 'taken', medicationName: 'Lisinopril', time: '8:00 AM' },
+          { status: 'taken', medicationName: 'Metformin', time: '8:00 AM' },
+          { status: 'taken', medicationName: 'Aspirin', time: '6:00 PM' },
+          { status: 'missed', medicationName: 'Vitamin D', time: '8:00 AM' },
+        ],
+        supplementLogs: [
+          { status: 'taken', supplementName: 'Omega-3', time: '8:00 AM' },
+          { status: 'taken', supplementName: 'Calcium', time: '8:00 AM' },
+        ],
+        dietEntries: [
+          { meal: 'breakfast', items: ['oatmeal', 'banana', 'coffee'] },
+          { meal: 'lunch', items: ['chicken', 'salad', 'water'] },
+          { meal: 'dinner', items: ['salmon', 'vegetables', 'rice'] },
+        ],
+        elderName
+      };
+
+      // Generate AI summary
+      const summary = await generateDailySummary(mockData);
+      setDailySummary(summary);
+
+      // Detect compliance patterns
+      const compliancePatterns = await detectCompliancePatterns(mockData.medicationLogs);
+      setPatterns(compliancePatterns);
+
+    } catch (error) {
+      console.error('Error loading insights:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadInsights();
+  }, [selectedDate]);
+
+  if (loadingElders) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <RefreshCw className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+        <span className="text-gray-600 dark:text-gray-400">Loading...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Sparkles className="w-8 h-8 text-purple-600" />
+            AI Insights
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            AI-powered analysis and recommendations
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowExportDialog(true)}
+            disabled={!selectedElder}
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            Export Report
+          </Button>
+          <Button onClick={loadInsights} disabled={isLoading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Loading...' : 'Refresh'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Elder Selector */}
+      {elders.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Select Elder</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={selectedElder?.id || ''}
+              onValueChange={(elderId) => {
+                const elder = elders.find(e => e.id === elderId);
+                if (elder) setSelectedElder(elder);
+              }}
+            >
+              <SelectTrigger className="w-full max-w-md">
+                <SelectValue placeholder="Select an elder" />
+              </SelectTrigger>
+              <SelectContent>
+                {elders.map((elder) => (
+                  <SelectItem key={elder.id} value={elder.id!}>
+                    {elder.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No elders warning */}
+      {elders.length === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No elders found in your group. Please add an elder first to view AI insights.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* AI Health Insights - New Features */}
+      {selectedElder && user?.groups && user.groups.length > 0 && (
+        <AIInsightsContainer
+          elderId={selectedElder.id!}
+          elderName={selectedElder.name}
+          groupId={user.groups[0].groupId}
+          showHealthChanges={true}
+          showMedicationOptimization={true}
+        />
+      )}
+
+      {/* Weekly Trends Dashboard */}
+      {selectedElder && trendsData && !loadingTrends && (
+        <WeeklyTrendsDashboard
+          trendsData={trendsData}
+          elderName={selectedElder.name}
+          onWeeksChange={(weeks) => {
+            setSelectedTrendsWeeks(weeks);
+            loadTrendsData(weeks);
+          }}
+        />
+      )}
+
+      {loadingTrends && (
+        <Card>
+          <CardContent className="flex items-center justify-center p-12">
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+            <span className="text-gray-600 dark:text-gray-400">Loading trends data...</span>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Date Selector */}
+      {selectedElder && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Calendar className="w-5 h-5" />
+              Viewing Insights For
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <input
+                type="date"
+                value={selectedDate.toISOString().split('T')[0]}
+                onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              />
+              <Button
+                variant="outline"
+                onClick={() => setSelectedDate(new Date())}
+              >
+                Today
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Insights */}
+      {selectedElder && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AIInsightCard
+              type="positive"
+              title="Excellent Medication Compliance"
+              description={`${elderName} has maintained 90%+ medication compliance this week. Great job!`}
+            />
+            <AIInsightCard
+              type="info"
+              title="Diet Pattern Detected"
+              description="Regular meal times observed. Breakfast consistently logged at 8:00 AM."
+            />
+            <AIInsightCard
+              type="warning"
+              title="Weekend Compliance Dip"
+              description="Compliance drops by 15% on weekends. Consider setting weekend reminders."
+              actionLabel="Set Reminder"
+              onAction={() => console.log('Navigate to reminders')}
+            />
+            <AIInsightCard
+              type="insight"
+              title="Hydration Opportunity"
+              description="AI suggests tracking water intake to ensure adequate hydration throughout the day."
+              actionLabel="Learn More"
+              onAction={() => console.log('Learn more about hydration')}
+            />
+          </div>
+
+          {/* Daily Summary */}
+          {dailySummary && (
+            <DailySummaryCard
+              summary={dailySummary}
+              elderName={elderName}
+              date={selectedDate}
+            />
+          )}
+
+          {/* Compliance Patterns */}
+          {patterns && (
+            <CompliancePatternChart
+              patterns={patterns.patterns}
+              recommendations={patterns.recommendations}
+            />
+          )}
+        </>
+      )}
+
+      {/* AI Capabilities Card */}
+      <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-purple-600" />
+            AI-Powered Features
+          </CardTitle>
+          <CardDescription>
+            Powered by Google Gemini AI
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                What AI Analyzes:
+              </h3>
+              <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                <li>• Medication and supplement compliance patterns</li>
+                <li>• Time-of-day and day-of-week trends</li>
+                <li>• Diet and nutrition observations</li>
+                <li>• Behavioral patterns and consistency</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                What AI Provides:
+              </h3>
+              <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                <li>• Daily summaries and insights</li>
+                <li>• Compliance improvement recommendations</li>
+                <li>• General wellness suggestions</li>
+                <li>• Pattern detection and alerts</li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-gray-800/50 border-l-4 border-red-500">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              <strong className="text-red-700 dark:text-red-400">DISCLAIMER:</strong> AI provides data analysis and pattern
+              detection only. It does NOT provide medical advice, medication recommendations, dosage guidance, dietary
+              prescriptions, or treatment suggestions. All medical decisions must be made in consultation with qualified
+              healthcare professionals. This tool analyzes data entered by caregivers and does not diagnose, treat, or
+              prevent any medical conditions.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Export Data Dialog */}
+      {selectedElder && user?.groups && user.groups.length > 0 && (
+        <ExportDataDialog
+          open={showExportDialog}
+          onOpenChange={setShowExportDialog}
+          elderId={selectedElder.id!}
+          elderName={selectedElder.name}
+          groupId={user.groups[0].groupId}
+        />
+      )}
+    </div>
+  );
+}

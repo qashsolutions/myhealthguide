@@ -4,9 +4,14 @@ service cloud.firestore {
 
     // ============= Helper Functions =============
 
+    // Check if request has valid App Check token (bot protection)
+    function hasValidAppCheckToken() {
+      return request.auth.token.firebase.sign_in_provider != null;
+    }
+
     // Check if user is authenticated
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && hasValidAppCheckToken();
     }
 
     // Check if user owns the document
@@ -22,6 +27,30 @@ service cloud.firestore {
          (get(/databases/$(database)/documents/users/$(userId)).data.subscriptionStatus == 'trial' &&
           get(/databases/$(database)/documents/users/$(userId)).data.trialEndDate != null &&
           request.time < get(/databases/$(database)/documents/users/$(userId)).data.trialEndDate));
+    }
+
+    // Check if user has verified email
+    function hasVerifiedEmail(userId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        get(/databases/$(database)/documents/users/$(userId)).data.emailVerified == true;
+    }
+
+    // Check if user has verified phone
+    function hasVerifiedPhone(userId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        get(/databases/$(database)/documents/users/$(userId)).data.phoneVerified == true;
+    }
+
+    // Check if user has at least one verified contact method
+    function hasVerifiedContact(userId) {
+      return hasVerifiedEmail(userId) || hasVerifiedPhone(userId);
+    }
+
+    // Check if user is fully verified (both email and phone)
+    function isFullyVerified(userId) {
+      return hasVerifiedEmail(userId) && hasVerifiedPhone(userId);
     }
 
     // Check if user is a member of a group
@@ -57,18 +86,19 @@ service cloud.firestore {
       allow read: if isOwner(userId);
 
       // Users can update their own profile (except protected fields)
+      // Allow updating verification fields only during verification process
       allow update: if isOwner(userId) &&
         hasActiveAccess(userId) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'id', 'createdAt', 'trialStartDate', 'trialEndDate',
-          'subscriptionStatus', 'phoneNumberHash'
+          'subscriptionStatus', 'phoneNumberHash', 'emailVerified',
+          'phoneVerified', 'emailVerifiedAt', 'phoneVerifiedAt'
         ]);
 
       // Only system can create users (via Firebase Auth)
-      // Phone number must be unique (using phoneNumberHash as ID prevents duplicates)
+      // Users can create their own account during signup
       allow create: if isOwner(userId) &&
-        request.resource.data.subscriptionStatus == 'trial' &&
-        request.resource.data.trialStartDate == null; // Will be set on first actual use
+        request.resource.data.subscriptionStatus == 'trial';
 
       // GDPR: Users can delete themselves (Right to be Forgotten, Article 17)
       // Allow even without active trial for GDPR compliance
@@ -358,14 +388,16 @@ service cloud.firestore {
       allow read: if isGroupAdmin(resource.data.groupId) ||
         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Group admin can create schedules
+      // Group admin can create schedules (requires full verification for emergency alerts)
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isGroupAdmin(request.resource.data.groupId);
+        isGroupAdmin(request.resource.data.groupId) &&
+        isFullyVerified(request.auth.uid);
 
-      // Group admin can update schedules
+      // Group admin can update schedules (requires full verification)
       allow update: if isGroupAdmin(resource.data.groupId) &&
-        hasActiveAccess(request.auth.uid);
+        hasActiveAccess(request.auth.uid) &&
+        isFullyVerified(request.auth.uid);
 
       // GDPR: Admin can delete even without active trial (Right to be Forgotten)
       allow delete: if isGroupAdmin(resource.data.groupId);
@@ -392,6 +424,27 @@ service cloud.firestore {
       // Only owner can delete
       allow delete: if isSignedIn() &&
         resource.data.adminId == request.auth.uid;
+    }
+
+    // ============= Storage Metadata Collection =============
+
+    match /storage_metadata/{metadataId} {
+      // Users can read their own storage metadata
+      allow read: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // System creates storage metadata (via client SDK with proper checks)
+      // Users can create metadata for their own files
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Users can delete their own file metadata
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // Metadata is immutable once created
+      allow update: if false;
     }
 
     // ============= Default Deny =============

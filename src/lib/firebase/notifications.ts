@@ -17,13 +17,21 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { NotificationPreferences } from '@/types';
-import {
-  sendMedicationReminder,
-  sendMissedDoseAlert,
-  sendDailySummary,
-  sendComplianceAlert,
-  SMSResponse
-} from '@/lib/sms/twilioService';
+// DISABLED: Using Firebase Auth instead of Twilio
+// import {
+//   sendMedicationReminder,
+//   sendMissedDoseAlert,
+//   sendDailySummary,
+//   sendComplianceAlert,
+//   SMSResponse
+// } from '@/lib/sms/twilioService';
+
+// Temporary type definition (Twilio code disabled)
+interface SMSResponse {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
 
 export interface NotificationLog {
   id: string;
@@ -143,12 +151,14 @@ export class NotificationService {
       }
 
       for (const recipient of recipients) {
-        const result = await sendMedicationReminder({
+        // DISABLED: Twilio SMS - use Firebase Phone Auth instead
+        const result: SMSResponse = { success: false, error: 'SMS disabled - use Firebase Auth' };
+        /* const result = await sendMedicationReminder({
           to: recipient,
           elderName: params.elderName,
           medicationName: params.medicationName,
           scheduledTime: params.scheduledTime
-        });
+        }); */
 
         // Log the notification
         await this.logNotification({
@@ -188,12 +198,14 @@ export class NotificationService {
       }
 
       for (const recipient of recipients) {
-        const result = await sendMissedDoseAlert({
+        // DISABLED: Twilio SMS - use Firebase Phone Auth instead
+        const result: SMSResponse = { success: false, error: 'SMS disabled - use Firebase Auth' };
+        /* const result = await sendMissedDoseAlert({
           to: recipient,
           elderName: params.elderName,
           medicationName: params.medicationName,
           missedTime: params.missedTime
-        });
+        }); */
 
         await this.logNotification({
           groupId: params.groupId,
@@ -230,11 +242,13 @@ export class NotificationService {
       }
 
       for (const recipient of recipients) {
-        const result = await sendDailySummary({
+        // DISABLED: Twilio SMS - use Firebase Phone Auth instead
+        const result: SMSResponse = { success: false, error: 'SMS disabled - use Firebase Auth' };
+        /* const result = await sendDailySummary({
           to: recipient,
           elderName: params.elderName,
           complianceRate: params.complianceRate
-        });
+        }); */
 
         await this.logNotification({
           groupId: params.groupId,
@@ -276,11 +290,13 @@ export class NotificationService {
       }
 
       for (const recipient of recipients) {
-        const result = await sendComplianceAlert({
+        // DISABLED: Twilio SMS - use Firebase Phone Auth instead
+        const result: SMSResponse = { success: false, error: 'SMS disabled - use Firebase Auth' };
+        /* const result = await sendComplianceAlert({
           to: recipient,
           elderName: params.elderName,
           complianceRate: params.complianceRate
-        });
+        }); */
 
         await this.logNotification({
           groupId: params.groupId,

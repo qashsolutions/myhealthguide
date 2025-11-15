@@ -35,13 +35,11 @@ export function InviteCodeDialog({
   const [copied, setCopied] = useState(false);
 
   const defaultPermissions: Permission[] = [
-    'view_medications',
-    'log_medications',
-    'view_supplements',
-    'log_supplements',
-    'view_diet',
-    'log_diet',
-    'view_elders'
+    'edit_medications',
+    'edit_supplements',
+    'edit_diet',
+    'log_doses',
+    'view_insights'
   ];
 
   const handleGenerate = async () => {

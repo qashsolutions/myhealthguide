@@ -12,15 +12,26 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const { signOut, user } = useAuth();
 
   const handleSignOut = async () => {
-    // TODO: Implement actual sign out
-    router.push('/login');
+    try {
+      await signOut();
+      router.push('/login');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
+
+  // Get user initials for avatar
+  const userInitials = user
+    ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
+    : 'JD';
 
   return (
     <header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-6">
@@ -54,8 +65,8 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar>
-                <AvatarImage src="/placeholder-avatar.png" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarImage src={user?.profileImage} />
+                <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

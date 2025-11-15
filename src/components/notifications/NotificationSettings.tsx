@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { NotificationPreferences, NotificationType } from '@/types';
 import { NotificationService } from '@/lib/firebase/notifications';
-import { validatePhoneForSMS } from '@/lib/sms/twilioService';
+// DISABLED: Using Firebase Auth instead - import { validatePhoneForSMS } from '@/lib/sms/twilioService';
 import { Bell, Plus, X, Check, MessageSquare } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -81,10 +81,11 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
       return;
     }
 
-    if (!validatePhoneForSMS(trimmed)) {
-      setError('Please enter a valid US phone number');
-      return;
-    }
+    // DISABLED: Using Firebase Auth instead of Twilio validation
+    // if (!validatePhoneForSMS(trimmed)) {
+    //   setError('Please enter a valid US phone number');
+    //   return;
+    // }
 
     if (recipients.includes(trimmed)) {
       setError('This phone number is already added');

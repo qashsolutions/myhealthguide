@@ -11,12 +11,44 @@ import {
   query,
   where,
   getDocs,
-  Timestamp
+  Timestamp,
+  addDoc
 } from 'firebase/firestore';
 import { db } from './config';
 import { Group, GroupMember, Permission } from '@/types';
 
 export class GroupService {
+  /**
+   * Create a new group
+   */
+  static async createGroup(data: Omit<Group, 'id'>): Promise<Group> {
+    try {
+      const docRef = await addDoc(collection(db, 'groups'), {
+        ...data,
+        memberIds: data.memberIds || [],
+        createdAt: Timestamp.fromDate(data.createdAt),
+        updatedAt: Timestamp.fromDate(data.updatedAt),
+        subscription: {
+          ...data.subscription,
+          trialEndsAt: Timestamp.fromDate(data.subscription.trialEndsAt),
+          currentPeriodEnd: Timestamp.fromDate(data.subscription.currentPeriodEnd)
+        },
+        members: data.members.map(member => ({
+          ...member,
+          addedAt: Timestamp.fromDate(member.addedAt)
+        }))
+      });
+
+      return {
+        ...data,
+        id: docRef.id
+      };
+    } catch (error) {
+      console.error('Error creating group:', error);
+      throw error;
+    }
+  }
+
   /**
    * Get group by ID
    */
@@ -37,6 +69,7 @@ export class GroupService {
         agencyId: data.agencyId,
         adminId: data.adminId,
         members: data.members || [],
+        memberIds: data.memberIds || [],
         elders: data.elders || [],
         subscription: data.subscription,
         settings: data.settings,
@@ -369,6 +402,40 @@ export class GroupService {
   }
 
   /**
+   * Update group settings (including AI features)
+   */
+  static async updateGroupSettings(
+    groupId: string,
+    settings: Partial<{
+      aiFeatures?: any;
+      notifications?: any;
+      privacy?: any;
+    }>
+  ): Promise<void> {
+    try {
+      const updateData: any = {
+        updatedAt: Timestamp.now()
+      };
+
+      // Update specific settings fields
+      if (settings.aiFeatures !== undefined) {
+        updateData['settings.aiFeatures'] = settings.aiFeatures;
+      }
+      if (settings.notifications !== undefined) {
+        updateData['settings.notifications'] = settings.notifications;
+      }
+      if (settings.privacy !== undefined) {
+        updateData['settings.privacy'] = settings.privacy;
+      }
+
+      await updateDoc(doc(db, 'groups', groupId), updateData);
+    } catch (error) {
+      console.error('Error updating group settings:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get user's groups
    */
   static async getUserGroups(userId: string): Promise<Group[]> {
@@ -389,6 +456,7 @@ export class GroupService {
           agencyId: data.agencyId,
           adminId: data.adminId,
           members: data.members || [],
+          memberIds: data.memberIds || [],
           elders: data.elders || [],
           subscription: data.subscription,
           settings: data.settings,

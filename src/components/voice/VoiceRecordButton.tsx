@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MicrophonePermissionDialog } from './MicrophonePermissionDialog';
+import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 
 interface VoiceRecordButtonProps {
   onRecordingComplete: (transcript: string) => void;
@@ -27,6 +29,16 @@ export function VoiceRecordButton({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
+
+  // Microphone permission management
+  const {
+    permissionStatus,
+    consentStatus,
+    showConsentDialog,
+    requestPermission,
+    handleConsent,
+    handleDeny
+  } = useMicrophonePermission();
 
   useEffect(() => {
     // Initialize speech recognition
@@ -102,42 +114,75 @@ export function VoiceRecordButton({
     if (isRecording) {
       stopRecording();
     } else {
-      startRecording();
+      // Check if we have permission first
+      if (permissionStatus === 'granted') {
+        startRecording();
+      } else if (consentStatus === 'denied' || permissionStatus === 'denied') {
+        if (onError) {
+          onError(new Error('Microphone access denied. Please use manual entry or change browser settings.'));
+        }
+      } else {
+        // Request permission (will show consent dialog if needed)
+        requestPermission();
+      }
     }
   };
 
+  // Auto-start recording when permission is granted
+  useEffect(() => {
+    if (permissionStatus === 'granted' && consentStatus === 'consented') {
+      // Small delay to ensure dialog has closed
+      const timer = setTimeout(() => {
+        if (!isRecording && !isProcessing) {
+          startRecording();
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [permissionStatus, consentStatus]);
+
   const effectiveIsRecording = externalIsRecording ?? isRecording;
+  const isCheckingPermission = permissionStatus === 'checking';
 
   return (
-    <Button
-      type="button"
-      onClick={handleClick}
-      disabled={disabled || isProcessing}
-      variant={variant}
-      size={size}
-      className={cn(
-        'relative transition-all',
-        effectiveIsRecording && 'bg-red-500 hover:bg-red-600 text-white',
-        className
-      )}
-    >
-      {isProcessing ? (
-        <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          Processing...
-        </>
-      ) : effectiveIsRecording ? (
-        <>
-          <MicOff className="w-4 h-4 mr-2" />
-          Stop Recording
-          <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse" />
-        </>
-      ) : (
-        <>
-          <Mic className="w-4 h-4 mr-2" />
-          Voice Input
-        </>
-      )}
-    </Button>
+    <>
+      <Button
+        type="button"
+        onClick={handleClick}
+        disabled={disabled || isProcessing || isCheckingPermission}
+        variant={variant}
+        size={size}
+        className={cn(
+          'relative transition-all',
+          effectiveIsRecording && 'bg-red-500 hover:bg-red-600 text-white',
+          className
+        )}
+      >
+        {isProcessing || isCheckingPermission ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            {isCheckingPermission ? 'Checking...' : 'Processing...'}
+          </>
+        ) : effectiveIsRecording ? (
+          <>
+            <MicOff className="w-4 h-4 mr-2" />
+            Stop Recording
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse" />
+          </>
+        ) : (
+          <>
+            <Mic className="w-4 h-4 mr-2" />
+            Voice Input
+          </>
+        )}
+      </Button>
+
+      {/* GDPR-compliant permission dialog */}
+      <MicrophonePermissionDialog
+        open={showConsentDialog}
+        onAllow={handleConsent}
+        onDeny={handleDeny}
+      />
+    </>
   );
 }

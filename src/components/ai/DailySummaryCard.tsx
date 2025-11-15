@@ -151,7 +151,7 @@ export function DailySummaryCard({ summary, elderName, date }: DailySummaryCardP
             <ul className="space-y-1">
               {summary.missedDoses.map((dose, idx) => (
                 <li key={idx} className="text-sm text-red-800 dark:text-red-200">
-                  • {dose}
+                  • {dose.medicationName} at {dose.scheduledTime}
                 </li>
               ))}
             </ul>

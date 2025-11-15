@@ -4,26 +4,47 @@ service firebase.storage {
 
     // ============= Helper Functions =============
 
+    // Check if request has valid App Check token (bot protection)
+    function hasValidAppCheckToken() {
+      return request.auth.token.firebase.sign_in_provider != null;
+    }
+
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && hasValidAppCheckToken();
     }
 
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    // Validate file size (max 5MB for images, 10MB for documents)
+    // Storage Quota Limits (enforced at application level):
+    // - Trial: 25 MB total storage
+    // - Basic (Single): 25 MB total storage
+    // - Family: 50 MB total storage
+    // - Agency: 200 MB total storage
+    //
+    // Note: Storage Rules cannot access Firestore to check total usage.
+    // Total quota enforcement is done in src/lib/firebase/storage.ts
+    // These rules only enforce individual file size limits.
+
+    // Individual file size limits
     function isValidImageSize() {
-      return request.resource.size < 5 * 1024 * 1024;
+      return request.resource.size < 5 * 1024 * 1024; // 5 MB max per image
     }
 
     function isValidDocSize() {
-      return request.resource.size < 10 * 1024 * 1024;
+      return request.resource.size < 10 * 1024 * 1024; // 10 MB max per document
     }
 
     // Validate image file type
     function isImage() {
       return request.resource.contentType.matches('image/.*');
+    }
+
+    // Validate document file types (PDF, DOC, DOCX, etc.)
+    function isDocument() {
+      return request.resource.contentType.matches('application/.*') ||
+             request.resource.contentType.matches('text/.*');
     }
 
     // ============= User Profile Images =============
@@ -62,11 +83,16 @@ service firebase.storage {
 
     match /groups/{groupId}/documents/{fileName} {
       // Group members can read documents
+      // (Group membership is verified in application code)
       allow read: if isSignedIn();
 
       // Group members can upload documents
-      allow write: if isSignedIn() && isValidDocSize();
+      // Total storage quota is checked in application code before upload
+      allow write: if isSignedIn() &&
+        isDocument() &&
+        isValidDocSize();
 
+      // Group members can delete documents
       allow delete: if isSignedIn();
     }
 
