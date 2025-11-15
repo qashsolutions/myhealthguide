@@ -8,26 +8,56 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
-    default: 'myguide.health - Intelligent Caregiving Made Simple',
+    default: 'myguide.health - AI-Powered Eldercare & Caregiver Management Platform',
     template: '%s | myguide.health'
   },
-  description: 'Voice-powered medication tracking, AI-driven insights, and real-time collaboration for families and caregiving agencies.',
-  keywords: ['caregiving', 'medication tracking', 'elderly care', 'caregiver app', 'AI healthcare'],
+  description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking, voice-enabled logging, and intelligent insights for eldercare management. Streamline caregiver workflows with AI agentic automation.',
+  keywords: [
+    'eldercare management',
+    'caregiver app',
+    'caregiver agencies',
+    'AI caregiving',
+    'AI agentic automation',
+    'automated medication tracking',
+    'elderly care platform',
+    'senior care software',
+    'caregiver workflow automation',
+    'AI-powered healthcare',
+    'medication reminder app',
+    'family caregiving tools',
+    'agency caregiver management',
+    'voice-enabled care tracking',
+    'intelligent eldercare'
+  ],
   authors: [{ name: 'myguide.health' }],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://myguide.health',
-    title: 'myguide.health - Intelligent Caregiving Made Simple',
-    description: 'Voice-powered medication tracking, AI-driven insights, and real-time collaboration.',
+    url: 'https://www.myguide.health',
+    title: 'myguide.health - AI-Powered Eldercare & Caregiver Management',
+    description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking and intelligent insights for eldercare.',
     siteName: 'myguide.health'
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'myguide.health - Intelligent Caregiving Made Simple',
-    description: 'Voice-powered medication tracking, AI-driven insights, and real-time collaboration.',
+    title: 'myguide.health - AI-Powered Eldercare & Caregiver Management',
+    description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking and intelligent insights.',
     creator: '@myguidehealth'
-  }
+  },
+  verification: {
+    google: '9e30119a2aec4ced',
+  },
 };
 
 export default function RootLayout({
