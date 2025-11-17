@@ -35,6 +35,8 @@ export interface UserPreferences {
 }
 
 // ============= Group Types =============
+export type PermissionLevel = 'admin' | 'write' | 'read';
+
 export interface Group {
   id: string;
   name: string;
@@ -43,9 +45,14 @@ export interface Group {
   adminId: string;
   members: GroupMember[];
   memberIds: string[]; // For Firestore rules - array of user IDs for easy membership checking
+  writeMemberIds: string[]; // User IDs with write permission (max 1) - for efficient Firestore rules checking
   elders: Elder[];
   subscription: Subscription;
   settings: GroupSettings;
+  inviteCode: string; // 6-digit alphanumeric (encrypted)
+  inviteCodeExpiry?: Date; // Optional expiry for invite code
+  inviteCodeGeneratedAt: Date;
+  inviteCodeGeneratedBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,15 +60,34 @@ export interface Group {
 export interface GroupMember {
   userId: string;
   role: 'admin' | 'member';
-  permissions: Permission[];
+  permissionLevel: PermissionLevel; // Simplified permission system
+  permissions: Permission[]; // Legacy - kept for backward compatibility
   addedAt: Date;
   addedBy: string;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvedAt?: Date;
+  approvedBy?: string;
 }
 
 export interface GroupMembership {
   groupId: string;
   role: 'admin' | 'member';
+  permissionLevel: PermissionLevel;
   joinedAt: Date;
+}
+
+export interface PendingApproval {
+  id: string;
+  groupId: string;
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  userPhone?: string;
+  requestedAt: Date;
+  status: 'pending' | 'approved' | 'rejected';
+  processedAt?: Date;
+  processedBy?: string;
+  notes?: string;
 }
 
 export interface GroupSettings {
@@ -106,12 +132,17 @@ export interface NotificationPreferences {
 export type NotificationType = 'missed_doses' | 'diet_alerts' | 'supplement_alerts';
 
 // ============= Agency Types =============
+export type AgencyRole = 'super_admin' | 'caregiver_admin' | 'caregiver' | 'family_member';
+
 export interface Agency {
   id: string;
   name: string;
-  adminId: string;
+  superAdminId: string; // Owner of the agency
+  type: 'individual' | 'professional'; // Individual family or professional agency
+  groupIds: string[]; // All groups under this agency
+  caregiverIds: string[]; // All caregivers in this agency
+  maxEldersPerCaregiver: number; // Configurable limit (default: 3)
   subscription: Subscription;
-  groups: string[];
   settings: AgencySettings;
   createdAt: Date;
   updatedAt: Date;
@@ -119,12 +150,43 @@ export interface Agency {
 
 export interface AgencyMembership {
   agencyId: string;
-  role: 'owner' | 'admin' | 'member';
+  role: AgencyRole;
   joinedAt: Date;
+  // For caregiver_admin and caregiver roles
+  assignedElderIds?: string[]; // Elders this caregiver can access
+  assignedGroupIds?: string[]; // Groups this caregiver can access
 }
 
 export interface AgencySettings {
   notificationPreferences: NotificationPreferences;
+  billing?: {
+    plan: 'free' | 'basic' | 'premium' | 'enterprise';
+    billingEmail: string;
+    maxCaregivers?: number;
+    maxElders?: number;
+  };
+}
+
+// Caregiver Assignment - tracks which caregivers are assigned to which elders
+export interface CaregiverAssignment {
+  id: string;
+  agencyId: string;
+  caregiverId: string; // User ID of the caregiver
+  elderIds: string[]; // Array of elder IDs assigned to this caregiver
+  groupId: string; // The group containing these elders
+  role: 'caregiver_admin' | 'caregiver'; // caregiver_admin = admin for assigned elders only
+  assignedAt: Date;
+  assignedBy: string; // Super admin who made the assignment
+  permissions: CaregiverPermissions;
+  active: boolean;
+}
+
+export interface CaregiverPermissions {
+  canEditMedications: boolean;
+  canLogDoses: boolean;
+  canViewReports: boolean;
+  canManageSchedules: boolean;
+  canInviteMembers: boolean; // Only family members to their assigned elders
 }
 
 // ============= Elder Types =============

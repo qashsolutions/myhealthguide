@@ -110,16 +110,20 @@ function getBrowserInfo(): { browser: string; browserVersion?: string; os?: stri
   // Detect browser
   if (ua.includes('Firefox/')) {
     browser = 'Firefox';
-    browserVersion = ua.match(/Firefox\\/([0-9.]+)/)?.[1] || '';
+    const match = ua.match(/Firefox\/([0-9.]+)/);
+    browserVersion = match ? match[1] : '';
   } else if (ua.includes('Edg/')) {
     browser = 'Edge';
-    browserVersion = ua.match(/Edg\\/([0-9.]+)/)?.[1] || '';
+    const match = ua.match(/Edg\/([0-9.]+)/);
+    browserVersion = match ? match[1] : '';
   } else if (ua.includes('Chrome/')) {
     browser = 'Chrome';
-    browserVersion = ua.match(/Chrome\\/([0-9.]+)/)?.[1] || '';
+    const match = ua.match(/Chrome\/([0-9.]+)/);
+    browserVersion = match ? match[1] : '';
   } else if (ua.includes('Safari/')) {
     browser = 'Safari';
-    browserVersion = ua.match(/Version\\/([0-9.]+)/)?.[1] || '';
+    const match = ua.match(/Version\/([0-9.]+)/);
+    browserVersion = match ? match[1] : '';
   }
 
   // Detect OS

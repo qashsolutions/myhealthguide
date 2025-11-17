@@ -1,10 +1,14 @@
 /**
  * AI Chat Service - Gemini Integration
  * Natural language assistant for caregivers
+ * Phase 4: Action Execution
  */
 
 import { collection, addDoc, query, orderBy, getDocs, Timestamp, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { ActionHandler } from './actionHandler';
+import { AgencyService } from '@/lib/firebase/agencies';
+import { AgencyRole } from '@/types';
 
 export interface ChatMessage {
   id?: string;
@@ -26,6 +30,9 @@ export interface ChatAction {
 export interface ChatContext {
   userId: string;
   groupId: string;
+  agencyId?: string; // Phase 5: Agency multi-tenant support
+  agencyRole?: AgencyRole; // Phase 5: User's role in the agency
+  assignedElderIds?: string[]; // Phase 5: Elders assigned to this caregiver
   elders: any[];
   medications: any[];
   upcomingSchedules: any[];
@@ -105,8 +112,44 @@ User Question: ${userMessage}`;
     // Detect if actions are needed
     const actions = detectActions(userMessage, context);
 
+    // Execute actions if detected
+    let actionResults: string[] = [];
+    if (actions.length > 0) {
+      for (const action of actions) {
+        try {
+          const result = await ActionHandler.executeAction(action, {
+            userId: context.userId,
+            groupId: context.groupId,
+            agencyId: context.agencyId,
+            agencyRole: context.agencyRole,
+            assignedElderIds: context.assignedElderIds,
+            elderIds: context.elders.map(e => e.id).filter(Boolean) as string[]
+          });
+
+          if (result.success) {
+            actionResults.push(result.message);
+            action.status = 'completed';
+          } else {
+            actionResults.push(`❌ ${result.message}`);
+            action.status = 'failed';
+            action.error = result.error;
+          }
+        } catch (error: any) {
+          action.status = 'failed';
+          action.error = error.message;
+          actionResults.push(`❌ Failed to execute action: ${error.message}`);
+        }
+      }
+    }
+
+    // Append action results to AI response
+    let finalResponse = aiResponse;
+    if (actionResults.length > 0) {
+      finalResponse += '\n\n' + actionResults.join('\n');
+    }
+
     return {
-      response: aiResponse,
+      response: finalResponse,
       actions: actions.length > 0 ? actions : undefined,
     };
   } catch (error) {

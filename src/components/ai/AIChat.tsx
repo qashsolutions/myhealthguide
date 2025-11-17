@@ -217,19 +217,31 @@ export function AIChat({ context }: AIChatProps) {
                   onClick={() => setInput("What medication is coming up for Dad?")}
                   className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  "What medication is coming up for Dad?"
+                  💬 "What medication is coming up for Dad?"
                 </button>
                 <button
                   onClick={() => setInput("Show me today's schedule")}
                   className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  "Show me today's schedule"
+                  💬 "Show me today's schedule"
                 </button>
                 <button
                   onClick={() => setInput("Remind me to give Mom her medicine at 8pm")}
                   className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  "Remind me to give Mom her medicine at 8pm"
+                  ⏰ "Remind me to give Mom her medicine at 8pm"
+                </button>
+                <button
+                  onClick={() => setInput("Mark Dad's blood pressure medicine as taken")}
+                  className="block w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 rounded hover:bg-green-100 dark:hover:bg-green-900/30"
+                >
+                  ✅ "Mark Dad's blood pressure medicine as taken"
+                </button>
+                <button
+                  onClick={() => setInput("Invite Sarah to the group")}
+                  className="block w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                >
+                  👥 "Invite Sarah to the group"
                 </button>
               </div>
             </div>
@@ -256,9 +268,23 @@ export function AIChat({ context }: AIChatProps) {
                     {message.actions.map((action, i) => (
                       <div
                         key={i}
-                        className="text-xs bg-blue-500/20 dark:bg-blue-500/30 px-2 py-1 rounded"
+                        className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${
+                          action.status === 'completed'
+                            ? 'bg-green-500/20 dark:bg-green-500/30 text-green-900 dark:text-green-200'
+                            : action.status === 'failed'
+                            ? 'bg-red-500/20 dark:bg-red-500/30 text-red-900 dark:text-red-200'
+                            : 'bg-blue-500/20 dark:bg-blue-500/30 text-blue-900 dark:text-blue-200'
+                        }`}
                       >
-                        📋 Action: {action.type.replace('_', ' ')}
+                        <span>
+                          {action.status === 'completed' ? '✅' : action.status === 'failed' ? '❌' : '📋'}
+                        </span>
+                        <span>
+                          {action.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                        {action.status === 'failed' && action.error && (
+                          <span className="text-xs opacity-75">- {action.error}</span>
+                        )}
                       </div>
                     ))}
                   </div>

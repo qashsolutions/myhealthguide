@@ -15,6 +15,7 @@ import { doc, setDoc, getDoc, updateDoc, query, collection, where, getDocs } fro
 import { User } from '@/types';
 import { hashPhoneNumber, formatPhoneNumber } from '@/lib/utils/phoneUtils';
 import { GroupService } from './groups';
+import { AgencyService } from './agencies';
 
 export class AuthService {
   /**
@@ -80,8 +81,10 @@ export class AuthService {
 
     await setDoc(doc(db, 'users', firebaseUser.uid), user);
 
-    // Create a default group for the user
+    // Create a default group and agency for the user
     const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+    // Create group first
     const group = await GroupService.createGroup({
       name: `${userData.firstName}'s Family`,
       type: 'family',
@@ -89,11 +92,14 @@ export class AuthService {
       members: [{
         userId: firebaseUser.uid,
         role: 'admin',
+        permissionLevel: 'admin',
         permissions: [],
         addedAt: new Date(),
-        addedBy: firebaseUser.uid
+        addedBy: firebaseUser.uid,
+        approvalStatus: 'approved'
       }],
       memberIds: [firebaseUser.uid],
+      writeMemberIds: [],
       elders: [],
       subscription: {
         tier: 'single',
@@ -111,15 +117,56 @@ export class AuthService {
           types: ['missed_doses', 'diet_alerts', 'supplement_alerts']
         }
       },
+      inviteCode: '',
+      inviteCodeGeneratedAt: new Date(),
+      inviteCodeGeneratedBy: firebaseUser.uid,
       createdAt: new Date(),
       updatedAt: new Date()
     });
 
-    // Update user with group membership
+    // Create agency (individual family type)
+    const agency = await AgencyService.createAgency({
+      name: `${userData.firstName}'s Family`,
+      superAdminId: firebaseUser.uid,
+      type: 'individual',
+      groupIds: [group.id],
+      caregiverIds: [firebaseUser.uid],
+      maxEldersPerCaregiver: 3,
+      subscription: {
+        tier: 'single',
+        status: 'trial',
+        trialEndsAt: trialEndDate,
+        currentPeriodEnd: trialEndDate,
+        stripeCustomerId: '',
+        stripeSubscriptionId: ''
+      },
+      settings: {
+        notificationPreferences: {
+          enabled: true,
+          frequency: 'realtime',
+          types: ['missed_doses', 'diet_alerts', 'supplement_alerts']
+        }
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    // Update group with agency ID
+    await GroupService.updateGroupSettings(group.id, {
+      agencyId: agency.id
+    } as any);
+
+    // Update user with group and agency memberships
     await updateDoc(doc(db, 'users', firebaseUser.uid), {
       groups: [{
         groupId: group.id,
         role: 'admin',
+        permissionLevel: 'admin',
+        joinedAt: new Date()
+      }],
+      agencies: [{
+        agencyId: agency.id,
+        role: 'super_admin',
         joinedAt: new Date()
       }]
     });
@@ -335,8 +382,10 @@ export class AuthService {
         createdAt: now
       });
 
-      // Create default group
+      // Create default group and agency
       const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+      // Create group first
       const group = await GroupService.createGroup({
         name: `${userData.firstName}'s Family`,
         type: 'family',
@@ -344,11 +393,14 @@ export class AuthService {
         members: [{
           userId: firebaseUser.uid,
           role: 'admin',
+          permissionLevel: 'admin',
           permissions: [],
           addedAt: now,
-          addedBy: firebaseUser.uid
+          addedBy: firebaseUser.uid,
+          approvalStatus: 'approved'
         }],
         memberIds: [firebaseUser.uid],
+        writeMemberIds: [],
         elders: [],
         subscription: {
           tier: 'single',
@@ -366,15 +418,56 @@ export class AuthService {
             types: ['missed_doses', 'diet_alerts', 'supplement_alerts']
           }
         },
+        inviteCode: '',
+        inviteCodeGeneratedAt: now,
+        inviteCodeGeneratedBy: firebaseUser.uid,
         createdAt: now,
         updatedAt: now
       });
 
-      // Update user with group membership
+      // Create agency (individual family type)
+      const agency = await AgencyService.createAgency({
+        name: `${userData.firstName}'s Family`,
+        superAdminId: firebaseUser.uid,
+        type: 'individual',
+        groupIds: [group.id],
+        caregiverIds: [firebaseUser.uid],
+        maxEldersPerCaregiver: 3,
+        subscription: {
+          tier: 'single',
+          status: 'trial',
+          trialEndsAt: trialEndDate,
+          currentPeriodEnd: trialEndDate,
+          stripeCustomerId: '',
+          stripeSubscriptionId: ''
+        },
+        settings: {
+          notificationPreferences: {
+            enabled: true,
+            frequency: 'realtime',
+            types: ['missed_doses', 'diet_alerts', 'supplement_alerts']
+          }
+        },
+        createdAt: now,
+        updatedAt: now
+      });
+
+      // Update group with agency ID
+      await GroupService.updateGroupSettings(group.id, {
+        agencyId: agency.id
+      } as any);
+
+      // Update user with group and agency memberships
       await updateDoc(doc(db, 'users', firebaseUser.uid), {
         groups: [{
           groupId: group.id,
           role: 'admin',
+          permissionLevel: 'admin',
+          joinedAt: now
+        }],
+        agencies: [{
+          agencyId: agency.id,
+          role: 'super_admin',
           joinedAt: now
         }]
       });

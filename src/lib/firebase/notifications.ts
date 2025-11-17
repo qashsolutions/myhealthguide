@@ -1,5 +1,6 @@
 /**
  * Notifications Firebase Service
+ * Phase 3: FCM Push Notifications
  * Phase 5: SMS Notifications
  */
 
@@ -15,7 +16,8 @@ import {
   Timestamp,
   addDoc
 } from 'firebase/firestore';
-import { db } from './config';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { app, db } from './config';
 import { NotificationPreferences } from '@/types';
 // DISABLED: Using Firebase Auth instead of Twilio
 // import {
@@ -434,6 +436,192 @@ export class NotificationService {
       });
     } catch (error) {
       console.error('Error deleting reminder schedule:', error);
+      throw error;
+    }
+  }
+
+  // ============= FCM Push Notifications =============
+
+  /**
+   * Check if FCM is supported in this browser
+   */
+  static isFCMSupported(): boolean {
+    return typeof window !== 'undefined' &&
+           'Notification' in window &&
+           'serviceWorker' in navigator &&
+           'PushManager' in window;
+  }
+
+  /**
+   * Request notification permission from user
+   */
+  static async requestNotificationPermission(): Promise<boolean> {
+    if (!this.isFCMSupported()) {
+      console.warn('Push notifications are not supported in this browser');
+      return false;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get FCM token for current device
+   */
+  static async getFCMToken(): Promise<string | null> {
+    if (!this.isFCMSupported()) {
+      return null;
+    }
+
+    const permission = Notification.permission;
+    if (permission !== 'granted') {
+      console.warn('Notification permission not granted');
+      return null;
+    }
+
+    try {
+      const messaging = getMessaging(app);
+
+      // Register service worker
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      if (!vapidKey) {
+        console.error('VAPID key not configured');
+        return null;
+      }
+
+      const token = await getToken(messaging, {
+        vapidKey,
+        serviceWorkerRegistration: registration
+      });
+
+      return token;
+    } catch (error) {
+      console.error('Error getting FCM token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save FCM token to Firestore for a user
+   */
+  static async saveFCMToken(userId: string, token: string): Promise<void> {
+    try {
+      const tokenRef = doc(db, `users/${userId}/fcm_tokens/${token}`);
+
+      await setDoc(tokenRef, {
+        token,
+        userId,
+        deviceType: 'web',
+        createdAt: Timestamp.now(),
+        lastUsedAt: Timestamp.now()
+      }, { merge: true });
+
+      console.log('FCM token saved successfully');
+    } catch (error) {
+      console.error('Error saving FCM token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Setup FCM for a user (request permission + get token + save)
+   */
+  static async setupFCMForUser(userId: string): Promise<string | null> {
+    try {
+      if (!this.isFCMSupported()) {
+        return null;
+      }
+
+      // Request permission
+      const granted = await this.requestNotificationPermission();
+      if (!granted) {
+        return null;
+      }
+
+      // Get token
+      const token = await this.getFCMToken();
+      if (!token) {
+        return null;
+      }
+
+      // Save token
+      await this.saveFCMToken(userId, token);
+
+      return token;
+    } catch (error) {
+      console.error('Error setting up FCM:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Listen for foreground FCM messages
+   */
+  static setupFCMListener(callback: (payload: any) => void): (() => void) | null {
+    if (!this.isFCMSupported()) {
+      return null;
+    }
+
+    try {
+      const messaging = getMessaging(app);
+
+      const unsubscribe = onMessage(messaging, (payload) => {
+        console.log('Foreground FCM message received:', payload);
+        callback(payload);
+
+        // Show browser notification
+        if (payload.notification) {
+          new Notification(payload.notification.title || 'Notification', {
+            body: payload.notification.body,
+            icon: payload.notification.icon || '/icon-192.png',
+            badge: '/icon-badge.png',
+            data: payload.data
+          });
+        }
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error setting up FCM listener:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Send admin notification about pending approval
+   * This queues the notification for a Cloud Function to process
+   */
+  static async notifyAdminOfPendingApproval(params: {
+    adminId: string;
+    groupId: string;
+    groupName: string;
+    requestingUserName: string;
+  }): Promise<void> {
+    try {
+      await addDoc(collection(db, 'notification_queue'), {
+        type: 'pending_approval',
+        userId: params.adminId,
+        title: 'New Join Request',
+        body: `${params.requestingUserName} wants to join ${params.groupName}`,
+        data: {
+          groupId: params.groupId,
+          type: 'pending_approval',
+          link: '/dashboard/settings?tab=group'
+        },
+        status: 'pending',
+        createdAt: Timestamp.now()
+      });
+
+      console.log('Admin notification queued successfully');
+    } catch (error) {
+      console.error('Error queuing admin notification:', error);
       throw error;
     }
   }

@@ -12,10 +12,13 @@ import {
   where,
   getDocs,
   Timestamp,
-  addDoc
+  addDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from './config';
-import { Group, GroupMember, Permission } from '@/types';
+import { Group, GroupMember, Permission, PermissionLevel, PendingApproval } from '@/types';
+import { generateInviteCode, encryptInviteCode, decryptInviteCode } from '@/lib/utils/inviteCode';
+import { NotificationService } from './notifications';
 
 export class GroupService {
   /**
@@ -410,6 +413,7 @@ export class GroupService {
       aiFeatures?: any;
       notifications?: any;
       privacy?: any;
+      agencyId?: string;
     }>
   ): Promise<void> {
     try {
@@ -426,6 +430,10 @@ export class GroupService {
       }
       if (settings.privacy !== undefined) {
         updateData['settings.privacy'] = settings.privacy;
+      }
+      // Update agencyId if provided
+      if (settings.agencyId !== undefined) {
+        updateData['agencyId'] = settings.agencyId;
       }
 
       await updateDoc(doc(db, 'groups', groupId), updateData);
@@ -466,6 +474,428 @@ export class GroupService {
       });
     } catch (error) {
       console.error('Error getting user groups:', error);
+      throw error;
+    }
+  }
+
+  // ============= Invite Code Management =============
+
+  /**
+   * Generate new invite code for group
+   */
+  static async generateGroupInviteCode(
+    groupId: string,
+    generatedBy: string
+  ): Promise<string> {
+    try {
+      const plainCode = generateInviteCode();
+      const encryptedCode = await encryptInviteCode(plainCode);
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        inviteCode: encryptedCode,
+        inviteCodeGeneratedAt: Timestamp.now(),
+        inviteCodeGeneratedBy: generatedBy,
+        updatedAt: Timestamp.now()
+      });
+
+      return plainCode; // Return plain code to show to admin
+    } catch (error) {
+      console.error('Error generating invite code:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh invite code (invalidates old code)
+   */
+  static async refreshInviteCode(
+    groupId: string,
+    refreshedBy: string
+  ): Promise<string> {
+    // Same as generate - creates new code
+    return this.generateGroupInviteCode(groupId, refreshedBy);
+  }
+
+  /**
+   * Verify invite code
+   */
+  static async verifyInviteCode(
+    groupId: string,
+    plainCode: string
+  ): Promise<boolean> {
+    try {
+      const group = await this.getGroup(groupId);
+
+      if (!group || !group.inviteCode) {
+        return false;
+      }
+
+      // Decrypt stored code
+      const storedPlainCode = await decryptInviteCode(group.inviteCode);
+
+      // Check if codes match
+      if (storedPlainCode !== plainCode) {
+        return false;
+      }
+
+      // Check if code has expired (if expiry is set)
+      if (group.inviteCodeExpiry && group.inviteCodeExpiry < new Date()) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error verifying invite code:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get decrypted invite code (admin only)
+   */
+  static async getInviteCode(groupId: string): Promise<string | null> {
+    try {
+      const group = await this.getGroup(groupId);
+
+      if (!group || !group.inviteCode) {
+        return null;
+      }
+
+      return await decryptInviteCode(group.inviteCode);
+    } catch (error) {
+      console.error('Error getting invite code:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Find group by invite code
+   * NOTE: This is inefficient for large datasets - consider using a separate invite_codes collection
+   */
+  static async findGroupByInviteCode(plainCode: string): Promise<string | null> {
+    try {
+      // Get all groups (inefficient - for production, use a dedicated collection)
+      const q = query(collection(db, 'groups'));
+      const snapshot = await getDocs(q);
+
+      // Check each group's invite code
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+
+        if (data.inviteCode) {
+          try {
+            const storedPlainCode = await decryptInviteCode(data.inviteCode);
+
+            if (storedPlainCode === plainCode) {
+              return doc.id;
+            }
+          } catch (err) {
+            // Skip invalid encrypted codes
+            continue;
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error finding group by invite code:', error);
+      return null;
+    }
+  }
+
+  // ============= Permission Management =============
+
+  /**
+   * Update member permission level
+   */
+  static async updateMemberPermissionLevel(
+    groupId: string,
+    userId: string,
+    permissionLevel: PermissionLevel
+  ): Promise<void> {
+    try {
+      const group = await this.getGroup(groupId);
+
+      if (!group) {
+        throw new Error('Group not found');
+      }
+
+      // Check if assigning 'write' permission
+      if (permissionLevel === 'write') {
+        // Ensure only 1 member has 'write' permission
+        const existingWriteMember = group.members.find(
+          m => m.permissionLevel === 'write' && m.userId !== userId
+        );
+
+        if (existingWriteMember) {
+          throw new Error('Only one member can have write permission. Please revoke existing write permission first.');
+        }
+      }
+
+      const updatedMembers = group.members.map(member =>
+        member.userId === userId
+          ? { ...member, permissionLevel }
+          : member
+      );
+
+      // Update writeMemberIds array for efficient Firestore rules checking
+      const writeMemberIds = updatedMembers
+        .filter(m => m.permissionLevel === 'write')
+        .map(m => m.userId);
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        members: updatedMembers,
+        writeMemberIds: writeMemberIds,
+        updatedAt: Timestamp.now()
+      });
+
+      // Update user's group membership
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const updatedUserGroups = userData.groups.map((g: any) =>
+          g.groupId === groupId
+            ? { ...g, permissionLevel }
+            : g
+        );
+
+        await updateDoc(doc(db, 'users', userId), {
+          groups: updatedUserGroups
+        });
+      }
+    } catch (error) {
+      console.error('Error updating member permission level:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get member permission level
+   */
+  static async getMemberPermissionLevel(
+    groupId: string,
+    userId: string
+  ): Promise<PermissionLevel | null> {
+    try {
+      const group = await this.getGroup(groupId);
+
+      if (!group) {
+        return null;
+      }
+
+      // Admin always has 'admin' permission
+      if (group.adminId === userId) {
+        return 'admin';
+      }
+
+      const member = group.members.find(m => m.userId === userId);
+
+      return member?.permissionLevel || null;
+    } catch (error) {
+      console.error('Error getting member permission level:', error);
+      return null;
+    }
+  }
+
+  // ============= Approval Management =============
+
+  /**
+   * Create pending approval for join request
+   */
+  static async createPendingApproval(
+    groupId: string,
+    userId: string,
+    userName: string,
+    userEmail?: string,
+    userPhone?: string
+  ): Promise<string> {
+    try {
+      const approval: Omit<PendingApproval, 'id'> = {
+        groupId,
+        userId,
+        userName,
+        userEmail,
+        userPhone,
+        requestedAt: new Date(),
+        status: 'pending'
+      };
+
+      const docRef = await addDoc(
+        collection(db, 'groups', groupId, 'pending_approvals'),
+        {
+          ...approval,
+          requestedAt: Timestamp.fromDate(approval.requestedAt)
+        }
+      );
+
+      // Get group info for notification
+      const group = await this.getGroup(groupId);
+
+      if (group) {
+        // Send notification to admin
+        await NotificationService.notifyAdminOfPendingApproval({
+          adminId: group.adminId,
+          groupId,
+          groupName: group.name,
+          requestingUserName: userName
+        });
+      }
+
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating pending approval:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pending approvals for group
+   */
+  static async getPendingApprovals(groupId: string): Promise<PendingApproval[]> {
+    try {
+      const q = query(
+        collection(db, 'groups', groupId, 'pending_approvals'),
+        where('status', '==', 'pending')
+      );
+
+      const snapshot = await getDocs(q);
+
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          groupId: data.groupId,
+          userId: data.userId,
+          userName: data.userName,
+          userEmail: data.userEmail,
+          userPhone: data.userPhone,
+          requestedAt: data.requestedAt.toDate(),
+          status: data.status,
+          processedAt: data.processedAt?.toDate(),
+          processedBy: data.processedBy,
+          notes: data.notes
+        };
+      });
+    } catch (error) {
+      console.error('Error getting pending approvals:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Approve join request
+   */
+  static async approveJoinRequest(
+    groupId: string,
+    approvalId: string,
+    approvedBy: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      // Update approval status
+      await updateDoc(
+        doc(db, 'groups', groupId, 'pending_approvals', approvalId),
+        {
+          status: 'approved',
+          processedAt: Timestamp.now(),
+          processedBy: approvedBy
+        }
+      );
+
+      // Add user to group with 'read' permission by default
+      const group = await this.getGroup(groupId);
+
+      if (!group) {
+        throw new Error('Group not found');
+      }
+
+      const newMember: GroupMember = {
+        userId,
+        role: 'member',
+        permissionLevel: 'read',
+        permissions: ['view_all', 'view_insights'],
+        addedAt: new Date(),
+        addedBy: approvedBy,
+        approvalStatus: 'approved',
+        approvedAt: new Date(),
+        approvedBy
+      };
+
+      const updatedMembers = [...group.members, newMember];
+      const updatedMemberIds = [...group.memberIds, userId];
+
+      // writeMemberIds stays the same (new member has read permission)
+      const writeMemberIds = group.members
+        .filter(m => m.permissionLevel === 'write')
+        .map(m => m.userId);
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        members: updatedMembers,
+        memberIds: updatedMemberIds,
+        writeMemberIds: writeMemberIds,
+        updatedAt: Timestamp.now()
+      });
+
+      // Add group to user's groups array
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const userGroups = userData.groups || [];
+
+        await updateDoc(doc(db, 'users', userId), {
+          groups: [
+            ...userGroups,
+            {
+              groupId,
+              role: 'member',
+              permissionLevel: 'read',
+              joinedAt: Timestamp.now()
+            }
+          ]
+        });
+      }
+    } catch (error) {
+      console.error('Error approving join request:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reject join request
+   */
+  static async rejectJoinRequest(
+    groupId: string,
+    approvalId: string,
+    rejectedBy: string,
+    notes?: string
+  ): Promise<void> {
+    try {
+      await updateDoc(
+        doc(db, 'groups', groupId, 'pending_approvals', approvalId),
+        {
+          status: 'rejected',
+          processedAt: Timestamp.now(),
+          processedBy: rejectedBy,
+          notes: notes || ''
+        }
+      );
+    } catch (error) {
+      console.error('Error rejecting join request:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete processed approval (cleanup)
+   */
+  static async deleteApproval(
+    groupId: string,
+    approvalId: string
+  ): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'groups', groupId, 'pending_approvals', approvalId));
+    } catch (error) {
+      console.error('Error deleting approval:', error);
       throw error;
     }
   }

@@ -79,6 +79,47 @@ service cloud.firestore {
       return isGroupAdmin(groupId) || isMemberOfGroup(groupId);
     }
 
+    // Check if user has write permission (can create/edit data)
+    // Permission levels: 'admin', 'write', 'read'
+    // Admin OR member in writeMemberIds array
+    function hasWritePermission(groupId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/groups/$(groupId)) &&
+        (get(/databases/$(database)/documents/groups/$(groupId)).data.adminId == request.auth.uid ||
+         ('writeMemberIds' in get(/databases/$(database)/documents/groups/$(groupId)).data &&
+          request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.writeMemberIds));
+    }
+
+    // Check if user has read permission (can view data)
+    function hasReadPermission(groupId) {
+      return isMemberOfGroup(groupId);
+    }
+
+    // Check if user's join request is approved
+    function isApprovedMember(groupId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/groups/$(groupId)) &&
+        request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+    }
+
+    // ============= Phase 5: Agency Helper Functions =============
+
+    // Check if user is super admin of an agency
+    function isSuperAdmin(agencyId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/agencies/$(agencyId)) &&
+        get(/databases/$(database)/documents/agencies/$(agencyId)).data.superAdminId == request.auth.uid;
+    }
+
+    // Check if user has any active assignment in an agency
+    // Note: This is a simplified check - actual elder-level access is checked in individual rules
+    function hasAgencyAccess(agencyId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/agencies/$(agencyId)) &&
+        (get(/databases/$(database)/documents/agencies/$(agencyId)).data.superAdminId == request.auth.uid ||
+         request.auth.uid in get(/databases/$(database)/documents/agencies/$(agencyId)).data.caregiverIds);
+    }
+
     // ============= Users Collection =============
 
     match /users/{userId} {
@@ -139,6 +180,25 @@ service cloud.firestore {
 
       // GDPR: Admin can delete group even without active trial (Right to be Forgotten)
       allow delete: if isGroupAdmin(groupId);
+
+      // ============= Pending Approvals Subcollection =============
+
+      match /pending_approvals/{approvalId} {
+        // Only group admin can read pending approvals
+        allow read: if isGroupAdmin(groupId);
+
+        // Anyone with valid invite code can create approval request
+        // No active access check - needed for new users joining
+        allow create: if isSignedIn() &&
+          request.resource.data.userId == request.auth.uid;
+
+        // Only group admin can update (approve/reject)
+        allow update: if isGroupAdmin(groupId) &&
+          hasActiveAccess(request.auth.uid);
+
+        // Admin can delete processed approvals (cleanup)
+        allow delete: if isGroupAdmin(groupId);
+      }
     }
 
     // ============= Elders Collection =============
@@ -149,16 +209,14 @@ service cloud.firestore {
       allow read: if isGroupAdmin(resource.data.groupId) ||
         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Members with permission can create elders (max 2 per caregiver)
+      // Only members with WRITE permission can create elders
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(request.resource.data.groupId) &&
-        hasPermission(request.resource.data.groupId);
+        hasWritePermission(request.resource.data.groupId);
 
-      // Members with permission can update elders
-      allow update: if isMemberOfGroup(resource.data.groupId) &&
-        hasActiveAccess(request.auth.uid) &&
-        hasPermission(resource.data.groupId);
+      // Only members with WRITE permission can update elders
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
 
       // GDPR: Admin can delete even without active trial (Right to be Forgotten)
       allow delete: if isGroupAdmin(resource.data.groupId);
@@ -172,22 +230,18 @@ service cloud.firestore {
       allow read: if isGroupAdmin(resource.data.groupId) ||
         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Members with permission can create medications
+      // Only members with WRITE permission can create medications
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(request.resource.data.groupId) &&
-        hasPermission(request.resource.data.groupId);
+        hasWritePermission(request.resource.data.groupId);
 
-      // Members with permission can update medications
-      allow update: if isMemberOfGroup(resource.data.groupId) &&
-        hasActiveAccess(request.auth.uid) &&
-        hasPermission(resource.data.groupId);
+      // Only members with WRITE permission can update medications
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
 
-      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
-      allow delete: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) &&
-         hasActiveAccess(request.auth.uid) &&
-         hasPermission(resource.data.groupId));
+      // Only members with WRITE permission can delete medications
+      allow delete: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
     }
 
     // ============= Medication Logs Collection =============
@@ -198,24 +252,18 @@ service cloud.firestore {
       allow read: if isGroupAdmin(resource.data.groupId) ||
         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Members with permission can create logs
+      // Only members with WRITE permission can create logs
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(request.resource.data.groupId) &&
-        hasPermission(request.resource.data.groupId);
+        hasWritePermission(request.resource.data.groupId);
 
-      // Members can update their own logs
-      allow update: if isMemberOfGroup(resource.data.groupId) &&
-        hasActiveAccess(request.auth.uid) &&
-        (hasPermission(resource.data.groupId) ||
-         resource.data.loggedBy == request.auth.uid);
+      // Only members with WRITE permission can update logs
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
 
-      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
-      allow delete: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) &&
-         hasActiveAccess(request.auth.uid) &&
-         (resource.data.loggedBy == request.auth.uid ||
-          isGroupAdmin(resource.data.groupId)));
+      // Only members with WRITE permission can delete logs
+      allow delete: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
     }
 
     // ============= Supplements Collection =============
@@ -226,17 +274,14 @@ service cloud.firestore {
       allow read: if isGroupAdmin(resource.data.groupId) ||
         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Members with permission can manage supplements
+      // Only members with WRITE permission can manage supplements
       allow create, update: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(request.resource.data.groupId) &&
-        hasPermission(request.resource.data.groupId);
+        hasWritePermission(request.resource.data.groupId);
 
-      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
-      allow delete: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) &&
-         hasActiveAccess(request.auth.uid) &&
-         hasPermission(resource.data.groupId));
+      // Only members with WRITE permission can delete supplements
+      allow delete: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
     }
 
     // ============= Supplement Logs Collection =============
@@ -246,22 +291,18 @@ service cloud.firestore {
       allow read: if isGroupAdmin(resource.data.groupId) ||
         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
+      // Only members with WRITE permission can create logs
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(request.resource.data.groupId) &&
-        hasPermission(request.resource.data.groupId);
+        hasWritePermission(request.resource.data.groupId);
 
-      allow update: if isMemberOfGroup(resource.data.groupId) &&
-        hasActiveAccess(request.auth.uid) &&
-        (hasPermission(resource.data.groupId) ||
-         resource.data.loggedBy == request.auth.uid);
+      // Only members with WRITE permission can update logs
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
 
-      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
-      allow delete: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) &&
-         hasActiveAccess(request.auth.uid) &&
-         (resource.data.loggedBy == request.auth.uid ||
-          isGroupAdmin(resource.data.groupId)));
+      // Only members with WRITE permission can delete logs
+      allow delete: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
     }
 
     // ============= Diet Entries Collection =============
@@ -271,22 +312,18 @@ service cloud.firestore {
       allow read: if isGroupAdmin(resource.data.groupId) ||
         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
+      // Only members with WRITE permission can create diet entries
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(request.resource.data.groupId) &&
-        hasPermission(request.resource.data.groupId);
+        hasWritePermission(request.resource.data.groupId);
 
-      allow update: if isMemberOfGroup(resource.data.groupId) &&
-        hasActiveAccess(request.auth.uid) &&
-        (hasPermission(resource.data.groupId) ||
-         resource.data.loggedBy == request.auth.uid);
+      // Only members with WRITE permission can update diet entries
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
 
-      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
-      allow delete: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) &&
-         hasActiveAccess(request.auth.uid) &&
-         (resource.data.loggedBy == request.auth.uid ||
-          isGroupAdmin(resource.data.groupId)));
+      // Only members with WRITE permission can delete diet entries
+      allow delete: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
     }
 
     // ============= AI Summaries Collection =============
@@ -403,27 +440,91 @@ service cloud.firestore {
       allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
-    // ============= Agencies Collection =============
+    // ============= Agencies Collection (Phase 5) =============
 
     match /agencies/{agencyId} {
-      // Agency members can read (requires active access)
+      // Super admin and caregivers can read agency (requires active access)
       allow read: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        resource.data.adminId == request.auth.uid;
+        hasAgencyAccess(agencyId);
 
-      // Only agency owner can update
+      // Only super admin can update agency settings
       allow update: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        resource.data.adminId == request.auth.uid;
+        isSuperAdmin(agencyId);
 
-      // Users can create agencies
+      // Users can create agencies (becomes super admin)
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        request.resource.data.adminId == request.auth.uid;
+        request.resource.data.superAdminId == request.auth.uid;
 
-      // Only owner can delete
+      // Only super admin can delete agency
       allow delete: if isSignedIn() &&
-        resource.data.adminId == request.auth.uid;
+        isSuperAdmin(agencyId);
+    }
+
+    // ============= Caregiver Assignments Collection (Phase 5) =============
+
+    match /caregiver_assignments/{assignmentId} {
+      // Super admin can read all assignments
+      // Caregiver can read their own assignments
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.caregiverId == request.auth.uid);
+
+      // Only super admin can create caregiver assignments
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(request.resource.data.agencyId) &&
+        request.resource.data.assignedBy == request.auth.uid;
+
+      // Only super admin can update assignments
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(resource.data.agencyId);
+
+      // Only super admin can delete assignments
+      allow delete: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(resource.data.agencyId);
+    }
+
+    // ============= Notification Queue Collection (Phase 3) =============
+
+    match /notification_queue/{notificationId} {
+      // Users can read their own queued notifications
+      allow read: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // System can create notification queue entries
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid);
+
+      // Cloud Functions can update status
+      allow update: if false; // Only Cloud Functions via Admin SDK
+
+      // System can delete processed notifications (cleanup)
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ============= FCM Tokens Subcollection (Phase 3) =============
+    // Structure: users/{userId}/fcm_tokens/{tokenId}
+
+    match /users/{userId}/fcm_tokens/{tokenId} {
+      // Users can read their own FCM tokens
+      allow read: if isOwner(userId);
+
+      // Users can create their own FCM tokens
+      allow create: if isOwner(userId) &&
+        request.resource.data.userId == userId;
+
+      // Users can update their own FCM tokens (refresh)
+      allow update: if isOwner(userId);
+
+      // Users can delete their own FCM tokens
+      allow delete: if isOwner(userId);
     }
 
     // ============= Storage Metadata Collection =============

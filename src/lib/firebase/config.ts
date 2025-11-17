@@ -51,4 +51,6 @@ export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
 export const storage: FirebaseStorage = getStorage(app);
 
+// Export app for FCM and other services
+export { app };
 export default app;

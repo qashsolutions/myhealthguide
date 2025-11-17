@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,6 +16,8 @@ import {
 } from 'lucide-react';
 
 export default function LandingPage() {
+  const [selectedPlan, setSelectedPlan] = useState<'single' | 'family' | 'multi'>('family');
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -62,14 +67,21 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            {/* Basic Plan */}
-            <Card className="relative">
+            {/* Single Agency Plan */}
+            <Card
+              className={`relative cursor-pointer transition-all ${
+                selectedPlan === 'single'
+                  ? 'border-2 border-blue-600 shadow-xl'
+                  : 'border hover:border-blue-300'
+              }`}
+              onClick={() => setSelectedPlan('single')}
+            >
               <CardContent className="pt-8">
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
                     <Heart className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Basic</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Family</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Perfect for small families</p>
                   <div className="mt-4">
                     <span className="text-4xl font-bold text-gray-900 dark:text-white">$8.99</span>
@@ -109,7 +121,14 @@ export default function LandingPage() {
             </Card>
 
             {/* Family Plan - Popular */}
-            <Card className="relative border-2 border-blue-600 shadow-xl">
+            <Card
+              className={`relative cursor-pointer transition-all ${
+                selectedPlan === 'family'
+                  ? 'border-2 border-blue-600 shadow-xl'
+                  : 'border hover:border-blue-300'
+              }`}
+              onClick={() => setSelectedPlan('family')}
+            >
               <div className="absolute top-0 right-6 transform -translate-y-1/2">
                 <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
                   Most Popular
@@ -120,7 +139,7 @@ export default function LandingPage() {
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 mb-4">
                     <Users className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Family</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Single Agency</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">For families & caregivers</p>
                   <div className="mt-4">
                     <span className="text-4xl font-bold text-gray-900 dark:text-white">$14.99</span>
@@ -159,17 +178,24 @@ export default function LandingPage() {
               </CardContent>
             </Card>
 
-            {/* Agency Plan */}
-            <Card className="relative">
+            {/* Multi Agency Plan */}
+            <Card
+              className={`relative cursor-pointer transition-all ${
+                selectedPlan === 'multi'
+                  ? 'border-2 border-blue-600 shadow-xl'
+                  : 'border hover:border-blue-300'
+              }`}
+              onClick={() => setSelectedPlan('multi')}
+            >
               <CardContent className="pt-8">
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900 mb-4">
                     <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Agency</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Multi Agency</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">For professional caregivers</p>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$199</span>
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$144</span>
                     <span className="text-gray-600 dark:text-gray-400">/month</span>
                   </div>
                 </div>

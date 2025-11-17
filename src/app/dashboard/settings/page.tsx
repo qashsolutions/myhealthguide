@@ -21,6 +21,8 @@ import { NotificationHistory } from '@/components/notifications/NotificationHist
 import { GroupService } from '@/lib/firebase/groups';
 import { MemberCard } from '@/components/group/MemberCard';
 import { InviteCodeDialog } from '@/components/group/InviteCodeDialog';
+import { ApprovalQueue } from '@/components/group/ApprovalQueue';
+import { PermissionManager } from '@/components/group/PermissionManager';
 import { DataExportPanel } from '@/components/admin/DataExportPanel';
 import { DataDeletionPanel } from '@/components/admin/DataDeletionPanel';
 import { AIFeaturesSettings } from '@/components/settings/AIFeaturesSettings';
@@ -515,6 +517,16 @@ function GroupSettings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pending Approvals Queue (Admin Only) */}
+      {isGroupAdmin && (
+        <ApprovalQueue groupId={groupId} adminId={currentUser.id} />
+      )}
+
+      {/* Permission Manager (Admin Only) */}
+      {isGroupAdmin && (
+        <PermissionManager groupId={groupId} adminId={currentUser.id} />
+      )}
 
       {/* Members */}
       <Card>
