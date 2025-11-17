@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
@@ -23,6 +23,8 @@ import { MemberCard } from '@/components/group/MemberCard';
 import { InviteCodeDialog } from '@/components/group/InviteCodeDialog';
 import { DataExportPanel } from '@/components/admin/DataExportPanel';
 import { DataDeletionPanel } from '@/components/admin/DataDeletionPanel';
+import { AIFeaturesSettings } from '@/components/settings/AIFeaturesSettings';
+import { ActivityHistory } from '@/components/settings/ActivityHistory';
 import { useEffect } from 'react';
 
 export default function SettingsPage() {
@@ -41,64 +43,93 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Sidebar Navigation */}
-        <div className="space-y-1">
-          <Button
-            variant={activeTab === 'profile' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setActiveTab('profile')}
-          >
-            <User className="w-4 h-4 mr-2" />
-            Profile
-          </Button>
-          <Button
-            variant={activeTab === 'notifications' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setActiveTab('notifications')}
-          >
-            <Bell className="w-4 h-4 mr-2" />
-            Notifications
-          </Button>
-          <Button
-            variant={activeTab === 'security' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setActiveTab('security')}
-          >
-            <Shield className="w-4 h-4 mr-2" />
-            Security
-          </Button>
-          <Button
-            variant={activeTab === 'subscription' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setActiveTab('subscription')}
-          >
-            <CreditCard className="w-4 h-4 mr-2" />
-            Subscription
-          </Button>
-          <Button
-            variant={activeTab === 'group' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setActiveTab('group')}
-          >
-            <UsersIcon className="w-4 h-4 mr-2" />
-            Group
-          </Button>
-          <Button
-            variant={activeTab === 'data' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-            onClick={() => setActiveTab('data')}
-          >
-            <Database className="w-4 h-4 mr-2" />
-            Data & Privacy
-          </Button>
+        <div className="space-y-4">
+          {/* Account Section */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3 mb-2">
+              Account
+            </p>
+            <Button
+              variant={activeTab === 'profile' ? 'default' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => setActiveTab('profile')}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+            <Button
+              variant={activeTab === 'security' ? 'default' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => setActiveTab('security')}
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Security & Activity
+            </Button>
+            <Button
+              variant={activeTab === 'subscription' ? 'default' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => setActiveTab('subscription')}
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Subscription
+            </Button>
+          </div>
+
+          {/* Collaboration Section */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3 mb-2">
+              Collaboration
+            </p>
+            <Button
+              variant={activeTab === 'notifications' ? 'default' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => setActiveTab('notifications')}
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              Notifications
+            </Button>
+            <Button
+              variant={activeTab === 'group' ? 'default' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => setActiveTab('group')}
+            >
+              <UsersIcon className="w-4 h-4 mr-2" />
+              Group Management
+            </Button>
+          </div>
+
+          {/* Advanced Section */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3 mb-2">
+              Advanced
+            </p>
+            <Button
+              variant={activeTab === 'ai' ? 'default' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => setActiveTab('ai')}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI Features
+            </Button>
+            <Button
+              variant={activeTab === 'data' ? 'default' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => setActiveTab('data')}
+            >
+              <Database className="w-4 h-4 mr-2" />
+              Privacy & Data
+            </Button>
+          </div>
         </div>
 
         {/* Content Area */}
         <div className="md:col-span-3 space-y-6">
           {activeTab === 'profile' && <ProfileSettings />}
-          {activeTab === 'notifications' && <NotificationSettings />}
-          {activeTab === 'security' && <SecuritySettings />}
+          {activeTab === 'security' && <SecurityActivitySettings />}
           {activeTab === 'subscription' && <SubscriptionSettings />}
+          {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'group' && <GroupSettings />}
+          {activeTab === 'ai' && <AISettings />}
           {activeTab === 'data' && <DataPrivacySettings />}
         </div>
       </div>
@@ -218,104 +249,166 @@ function NotificationSettings() {
   );
 }
 
-function SecuritySettings() {
+function SecurityActivitySettings() {
+  const [securityTab, setSecurityTab] = useState<'security' | 'activity'>('security');
+  const currentUser = { id: 'mock-user-id' }; // Replace with actual user from auth context
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Security Settings</CardTitle>
-        <CardDescription>
-          Manage your account security
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
-          <h3 className="font-medium mb-3">Change Password</h3>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input id="currentPassword" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input id="newPassword" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input id="confirmPassword" type="password" />
-            </div>
-            <Button size="sm">Update Password</Button>
+    <div className="space-y-4">
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setSecurityTab('security')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            securityTab === 'security'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Security
           </div>
+        </button>
+        <button
+          onClick={() => setSecurityTab('activity')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            securityTab === 'activity'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Activity History
+          </div>
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {securityTab === 'security' ? (
+        <div className="space-y-4">
+          <Card className="bg-white dark:bg-gray-900">
+            <CardHeader>
+              <CardTitle>Change Password</CardTitle>
+              <CardDescription>Update your password to keep your account secure</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <Input id="currentPassword" type="password" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input id="newPassword" type="password" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input id="confirmPassword" type="password" />
+              </div>
+              <Button size="sm">Update Password</Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-50 dark:bg-gray-800/50">
+            <CardHeader>
+              <CardTitle>Two-Factor Authentication</CardTitle>
+              <CardDescription>Add an extra layer of security to your account</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" size="sm">
+                Enable 2FA
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white dark:bg-gray-900 border-red-200 dark:border-red-800">
+            <CardHeader>
+              <CardTitle className="text-red-600">Danger Zone</CardTitle>
+              <CardDescription>Permanently delete your account and all data</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" size="sm" className="text-red-600 border-red-600 hover:bg-red-50">
+                Delete Account
+              </Button>
+            </CardContent>
+          </Card>
         </div>
+      ) : (
+        <ActivityHistory userId={currentUser.id} />
+      )}
+    </div>
+  );
+}
 
-        <Separator />
+function AISettings() {
+  const groupId = 'mock-group-id'; // Replace with actual groupId
+  const isAdmin = true; // Replace with actual admin check
 
-        <div>
-          <h3 className="font-medium mb-3">Two-Factor Authentication</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Add an extra layer of security to your account
-          </p>
-          <Button variant="outline" size="sm">
-            Enable 2FA
-          </Button>
-        </div>
+  const handleSave = async (settings: any) => {
+    console.log('Saving AI settings:', settings);
+    // Implement actual save logic here
+  };
 
-        <Separator />
-
-        <div>
-          <h3 className="font-medium mb-3 text-red-600">Danger Zone</h3>
-          <Button variant="outline" size="sm" className="text-red-600 border-red-600 hover:bg-red-50">
-            Delete Account
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+  return (
+    <AIFeaturesSettings
+      groupId={groupId}
+      isAdmin={isAdmin}
+      onSave={handleSave}
+    />
   );
 }
 
 function SubscriptionSettings() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Subscription</CardTitle>
-        <CardDescription>
-          Manage your subscription and billing
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-lg">Single Plan</h3>
-            <Badge>Trial</Badge>
+    <div className="space-y-4">
+      <Card className="bg-white dark:bg-gray-900">
+        <CardHeader>
+          <CardTitle>Current Plan</CardTitle>
+          <CardDescription>Manage your subscription</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold text-lg">Single Plan</h3>
+              <Badge>Trial</Badge>
+            </div>
+            <p className="text-2xl font-bold mb-1">$8.99<span className="text-sm font-normal">/month</span></p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Trial ends in 7 days
+            </p>
+            <Button size="sm">Upgrade Plan</Button>
           </div>
-          <p className="text-2xl font-bold mb-1">$8.99<span className="text-sm font-normal">/month</span></p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Trial ends in 7 days
-          </p>
-          <Button size="sm">Upgrade Plan</Button>
-        </div>
+        </CardContent>
+      </Card>
 
-        <Separator />
-
-        <div>
-          <h3 className="font-medium mb-3">Billing Information</h3>
+      <Card className="bg-gray-50 dark:bg-gray-800/50">
+        <CardHeader>
+          <CardTitle>Billing Information</CardTitle>
+          <CardDescription>Manage payment methods</CardDescription>
+        </CardHeader>
+        <CardContent>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
             No payment method on file
           </p>
           <Button variant="outline" size="sm">
             Add Payment Method
           </Button>
-        </div>
+        </CardContent>
+      </Card>
 
-        <Separator />
-
-        <div>
-          <h3 className="font-medium mb-3">Billing History</h3>
+      <Card className="bg-white dark:bg-gray-900">
+        <CardHeader>
+          <CardTitle>Billing History</CardTitle>
+          <CardDescription>View past invoices and payments</CardDescription>
+        </CardHeader>
+        <CardContent>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             No invoices yet
           </p>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
