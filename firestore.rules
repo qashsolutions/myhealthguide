@@ -447,6 +447,27 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // ============= User Activity Tracking Collection =============
+    // Structure: user_activity/{userId}/logs/{logId}
+
+    match /user_activity/{userId}/logs/{logId} {
+      // Users can read ONLY their own activity logs
+      // GDPR: Allow reading even without active trial (for data export)
+      allow read: if isOwner(userId);
+
+      // System creates activity logs automatically
+      // Users authenticated can create their own activity logs
+      allow create: if isSignedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId;
+
+      // Activity logs are immutable (audit trail integrity)
+      allow update: if false;
+
+      // GDPR: Users can delete their own activity logs (Right to be Forgotten)
+      allow delete: if isOwner(userId);
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
