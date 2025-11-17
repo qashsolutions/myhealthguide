@@ -9,6 +9,7 @@ import { DailySummaryCard } from '@/components/ai/DailySummaryCard';
 import { CompliancePatternChart } from '@/components/ai/CompliancePatternChart';
 import { AIInsightCard } from '@/components/ai/AIInsightCard';
 import { AIInsightsContainer } from '@/components/ai/AIInsightsContainer';
+import { AIChat } from '@/components/ai/AIChat';
 import { ExportDataDialog } from '@/components/export/ExportDataDialog';
 import { WeeklyTrendsDashboard } from '@/components/trends/WeeklyTrendsDashboard';
 import { generateDailySummary, detectCompliancePatterns } from '@/lib/ai/geminiService';
@@ -17,10 +18,12 @@ import { MedicationService } from '@/lib/firebase/medications';
 import { DietService } from '@/lib/firebase/diet';
 import { useAuth } from '@/contexts/AuthContext';
 import { ElderService } from '@/lib/firebase/elders';
+import { GroupService } from '@/lib/firebase/groups';
 import { DailySummary, Elder } from '@/types';
 import { Sparkles, RefreshCw, Calendar, TrendingUp, AlertCircle, FileDown } from 'lucide-react';
 import { subWeeks } from 'date-fns';
 import type { TrendsData } from '@/lib/utils/trendsCalculation';
+import type { ChatContext } from '@/lib/ai/chatService';
 
 export default function InsightsPage() {
   const { user } = useAuth();
@@ -35,6 +38,7 @@ export default function InsightsPage() {
   const [trendsData, setTrendsData] = useState<TrendsData | null>(null);
   const [loadingTrends, setLoadingTrends] = useState(false);
   const [selectedTrendsWeeks, setSelectedTrendsWeeks] = useState<number>(12);
+  const [chatContext, setChatContext] = useState<ChatContext | null>(null);
 
   // Load elders from group
   useEffect(() => {
@@ -101,8 +105,39 @@ export default function InsightsPage() {
   useEffect(() => {
     if (selectedElder) {
       loadTrendsData(selectedTrendsWeeks);
+      loadChatContext();
     }
   }, [selectedElder, selectedTrendsWeeks]);
+
+  // Load chat context
+  const loadChatContext = async () => {
+    if (!user || !selectedElder || !user.groups || user.groups.length === 0) {
+      return;
+    }
+
+    try {
+      const groupId = user.groups[0].groupId;
+
+      // Fetch data for chat context
+      const [medications, groupMembers] = await Promise.all([
+        MedicationService.getActiveMedications(groupId, selectedElder.id!),
+        GroupService.getGroupMembersWithDetails(groupId)
+      ]);
+
+      const context: ChatContext = {
+        userId: user.id,
+        groupId: groupId,
+        elders: [selectedElder],
+        medications: medications || [],
+        upcomingSchedules: [], // TODO: Fetch actual upcoming schedules
+        groupMembers: groupMembers || []
+      };
+
+      setChatContext(context);
+    } catch (error) {
+      console.error('Error loading chat context:', error);
+    }
+  };
 
   const loadInsights = async () => {
     setIsLoading(true);
@@ -222,6 +257,11 @@ export default function InsightsPage() {
             No elders found in your group. Please add an elder first to view AI insights.
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* AI Chat Assistant */}
+      {selectedElder && chatContext && (
+        <AIChat context={chatContext} />
       )}
 
       {/* AI Health Insights - New Features */}

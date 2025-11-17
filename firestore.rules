@@ -468,6 +468,27 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
 
+    // ============= AI Chat History Collection =============
+    // Structure: chat_history/{userId}/messages/{messageId}
+
+    match /chat_history/{userId}/messages/{messageId} {
+      // Users can read ONLY their own chat messages
+      // GDPR: Allow reading even without active trial (for data export)
+      allow read: if isOwner(userId);
+
+      // Users can create their own chat messages
+      allow create: if isSignedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.userId == userId &&
+        hasActiveAccess(userId);
+
+      // Chat messages are immutable (history preservation)
+      allow update: if false;
+
+      // GDPR: Users can delete their own chat history (Right to be Forgotten)
+      allow delete: if isOwner(userId);
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
