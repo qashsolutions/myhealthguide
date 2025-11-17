@@ -73,9 +73,14 @@ export class GroupService {
         adminId: data.adminId,
         members: data.members || [],
         memberIds: data.memberIds || [],
+        writeMemberIds: data.writeMemberIds || [],
         elders: data.elders || [],
         subscription: data.subscription,
         settings: data.settings,
+        inviteCode: data.inviteCode || '',
+        inviteCodeExpiry: data.inviteCodeExpiry ? data.inviteCodeExpiry.toDate() : undefined,
+        inviteCodeGeneratedAt: data.inviteCodeGeneratedAt ? data.inviteCodeGeneratedAt.toDate() : new Date(),
+        inviteCodeGeneratedBy: data.inviteCodeGeneratedBy || data.adminId,
         createdAt: data.createdAt.toDate(),
         updatedAt: data.updatedAt.toDate()
       };
@@ -465,9 +470,14 @@ export class GroupService {
           adminId: data.adminId,
           members: data.members || [],
           memberIds: data.memberIds || [],
+          writeMemberIds: data.writeMemberIds || [],
           elders: data.elders || [],
           subscription: data.subscription,
           settings: data.settings,
+          inviteCode: data.inviteCode || '',
+          inviteCodeExpiry: data.inviteCodeExpiry ? data.inviteCodeExpiry.toDate() : undefined,
+          inviteCodeGeneratedAt: data.inviteCodeGeneratedAt ? data.inviteCodeGeneratedAt.toDate() : new Date(),
+          inviteCodeGeneratedBy: data.inviteCodeGeneratedBy || data.adminId,
           createdAt: data.createdAt.toDate(),
           updatedAt: data.updatedAt.toDate()
         };

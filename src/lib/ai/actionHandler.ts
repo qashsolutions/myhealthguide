@@ -233,7 +233,7 @@ export class ActionHandler {
       const medicationName = medMatch ? medMatch[1].trim() : 'medication';
 
       // Get medications for this elder
-      const medications = await MedicationService.getActiveMedications(context.groupId, elderId);
+      const medications = await MedicationService.getMedicationsByElder(elderId);
 
       // Find matching medication (fuzzy match)
       const medication = medications?.find(med =>
@@ -250,21 +250,24 @@ export class ActionHandler {
       }
 
       // Log the dose as taken
-      const logId = await MedicationService.logMedication({
+      const now = new Date();
+      const log = await MedicationService.logDose({
         groupId: context.groupId,
         elderId: elderId,
         medicationId: medication.id!,
+        scheduledTime: now, // For manual logs, scheduled = actual
+        actualTime: now,
         status: 'taken',
-        actualTime: new Date(),
         loggedBy: context.userId,
         method: 'manual',
-        notes: `Logged via AI chat: "${message}"`
+        notes: `Logged via AI chat: "${message}"`,
+        createdAt: now
       });
 
       return {
         success: true,
         message: `✅ Logged ${medication.name} as taken`,
-        data: { logId, medicationName: medication.name }
+        data: { logId: log.id, medicationName: medication.name }
       };
     } catch (error: any) {
       return {

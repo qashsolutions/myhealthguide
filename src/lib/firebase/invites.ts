@@ -220,9 +220,11 @@ export class InviteService {
       const newMember: GroupMember = {
         userId: params.userId,
         role: invite.role,
+        permissionLevel: invite.role === 'admin' ? 'admin' : 'read', // Default to 'read' for members
         permissions: invite.permissions,
         addedAt: new Date(),
-        addedBy: invite.createdBy
+        addedBy: invite.createdBy,
+        approvalStatus: 'approved' // Auto-approved for invites
       };
 
       await updateDoc(doc(db, 'groups', invite.groupId), {

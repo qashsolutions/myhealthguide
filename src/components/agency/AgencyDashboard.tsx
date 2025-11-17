@@ -15,7 +15,7 @@ import {
 import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
 import { Agency, CaregiverAssignment, Group } from '@/types';
-import { Skeleton } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AgencyDashboardProps {
   userId: string;

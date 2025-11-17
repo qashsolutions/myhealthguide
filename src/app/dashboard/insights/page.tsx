@@ -120,7 +120,7 @@ export default function InsightsPage() {
 
       // Fetch data for chat context
       const [medications, groupMembers] = await Promise.all([
-        MedicationService.getActiveMedications(groupId, selectedElder.id!),
+        MedicationService.getMedicationsByElder(selectedElder.id!),
         GroupService.getGroupMembersWithDetails(groupId)
       ]);
 
