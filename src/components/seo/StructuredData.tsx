@@ -46,11 +46,6 @@ export function StructuredData() {
       priceCurrency: 'USD',
       priceValidUntil: '2025-12-31',
     },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      ratingCount: '127',
-    },
     description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking, voice-enabled logging, and intelligent insights for eldercare management.',
     featureList: [
       'Automated medication tracking',
