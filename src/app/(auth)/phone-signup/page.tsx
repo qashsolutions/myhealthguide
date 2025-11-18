@@ -220,7 +220,7 @@ function PhoneSignupForm() {
                 maxLength={6}
                 required
                 disabled={loading}
-                className="text-center text-2xl tracking-widest"
+                className="text-center text-2xl tracking-widest placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
               <p className="text-xs text-gray-500">
                 Enter the 6-digit code sent to {phoneNumber}

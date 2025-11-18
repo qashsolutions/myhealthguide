@@ -30,14 +30,14 @@ export function Footer() {
             <div className="flex items-center gap-3 text-sm">
               <Link
                 href="/privacy"
-                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
               >
                 Privacy Policy
               </Link>
               <span className="text-gray-400 dark:text-gray-600">•</span>
               <Link
                 href="/terms"
-                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
               >
                 Terms of Service
               </Link>
