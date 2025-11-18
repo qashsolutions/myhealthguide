@@ -16,6 +16,7 @@ interface CookiePreferences {
 export function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [dntEnabled, setDntEnabled] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
     essential: true,
     analytics: false,
@@ -23,18 +24,49 @@ export function CookieConsent() {
   });
 
   useEffect(() => {
+    // Check for Do Not Track (DNT) browser signal
+    const isDntEnabled =
+      navigator.doNotTrack === '1' ||
+      (window as any).doNotTrack === '1' ||
+      navigator.doNotTrack === 'yes';
+
+    setDntEnabled(isDntEnabled);
+
+    // If DNT is enabled, automatically set analytics to false
+    if (isDntEnabled) {
+      setPreferences({
+        essential: true,
+        analytics: false,
+        marketing: false
+      });
+    }
+
     // Check if user has already consented
     const consent = localStorage.getItem('cookie-consent');
     if (!consent) {
       // Show banner after 1 second delay for better UX
       setTimeout(() => setShowBanner(true), 1000);
+    } else {
+      // If DNT is enabled but user previously accepted analytics, override with DNT preference
+      if (isDntEnabled) {
+        const consentData = JSON.parse(consent);
+        if (consentData.preferences.analytics) {
+          // DNT takes precedence - disable analytics
+          const updatedConsent = {
+            essential: true,
+            analytics: false,
+            marketing: false
+          };
+          saveConsent(updatedConsent);
+        }
+      }
     }
   }, []);
 
   const acceptAll = async () => {
     const consentData: CookiePreferences = {
       essential: true,
-      analytics: true,
+      analytics: !dntEnabled, // Respect DNT - don't enable analytics if DNT is on
       marketing: true
     };
 
@@ -127,6 +159,18 @@ export function CookieConsent() {
             "Accept All", you agree to the storing of cookies on your device.
           </p>
 
+          {/* DNT Notice */}
+          {dntEnabled && (
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                <Info className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  Your browser's "Do Not Track" setting is enabled. We respect this preference and analytics cookies will remain disabled.
+                </span>
+              </p>
+            </div>
+          )}
+
           {/* Details Toggle */}
           <button
             onClick={() => setShowDetails(!showDetails)}
@@ -169,6 +213,11 @@ export function CookieConsent() {
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     Help us understand how visitors interact with the website by collecting and
                     reporting information anonymously. Used to improve user experience.
+                    {dntEnabled && (
+                      <span className="block mt-1 text-blue-600 dark:text-blue-400 font-medium">
+                        Disabled due to Do Not Track setting
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="ml-4">
@@ -176,9 +225,10 @@ export function CookieConsent() {
                     type="checkbox"
                     checked={preferences.analytics}
                     onChange={(e) =>
-                      setPreferences({ ...preferences, analytics: e.target.checked })
+                      !dntEnabled && setPreferences({ ...preferences, analytics: e.target.checked })
                     }
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    disabled={dntEnabled}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -228,11 +278,11 @@ export function CookieConsent() {
           {/* Privacy Policy Link */}
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
             By using our site, you agree to our{' '}
-            <a href="/privacy-policy" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <a href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">
               Privacy Policy
             </a>
             {' '}and{' '}
-            <a href="/terms-of-service" className="text-blue-600 dark:text-blue-400 hover:underline">
+            <a href="/terms" className="text-blue-600 dark:text-blue-400 hover:underline">
               Terms of Service
             </a>
           </p>

@@ -27,12 +27,21 @@ export function Footer() {
 
           {/* Right side - Links and Tagline */}
           <div className="flex flex-col items-center md:items-end gap-1">
-            <Link
-              href="/privacy"
-              className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
-            >
-              Privacy Policy
-            </Link>
+            <div className="flex items-center gap-3 text-sm">
+              <Link
+                href="/privacy"
+                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+              >
+                Privacy Policy
+              </Link>
+              <span className="text-gray-400 dark:text-gray-600">•</span>
+              <Link
+                href="/terms"
+                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+              >
+                Terms of Service
+              </Link>
+            </div>
             <p className="text-xs text-gray-600 dark:text-gray-400">
               Made with care for seniors and caregivers
             </p>
