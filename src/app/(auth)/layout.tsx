@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { Footer } from '@/components/shared/Footer';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -8,6 +9,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
