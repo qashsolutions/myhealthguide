@@ -63,7 +63,7 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-      <div className="p-6">
+      <div className="pt-6 pr-6 pb-6 pl-4">
         <Link href="/dashboard" className="flex items-center">
           <Image
             src="/logo.png"

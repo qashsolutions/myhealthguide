@@ -7,9 +7,9 @@ export function Footer() {
   return (
     <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
       <div className="mx-auto max-w-7xl px-4 py-3 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-2">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-2">
           {/* Left side - Brand and Copyright */}
-          <div className="flex flex-col items-center md:items-start gap-1">
+          <div className="flex flex-col items-start gap-1">
             <Link href="/" className="flex items-center">
               <Image
                 src="/logo.png"
