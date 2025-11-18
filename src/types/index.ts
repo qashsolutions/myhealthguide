@@ -19,7 +19,7 @@ export interface User {
   trialStartDate: Date | null; // Date of FIRST USE (not signup)
   trialEndDate: Date | null; // 14 days from first use
   subscriptionStatus: 'trial' | 'active' | 'expired' | 'canceled';
-  subscriptionTier: 'single' | 'family' | 'agency' | null; // null during trial
+  subscriptionTier: 'family' | 'single_agency' | 'multi_agency' | null; // null during trial
   storageUsed: number; // Bytes used
   storageLimit: number; // Bytes allowed based on plan
   createdAt: Date;
@@ -375,7 +375,7 @@ export interface ActivityLog {
 
 // ============= Subscription Types =============
 export interface Subscription {
-  tier: 'single' | 'family' | 'agency';
+  tier: 'family' | 'single_agency' | 'multi_agency';
   status: 'trial' | 'active' | 'cancelled';
   trialEndsAt: Date;
   currentPeriodEnd: Date;
@@ -399,9 +399,36 @@ export interface StorageMetadata {
 // Storage limits in bytes
 export const STORAGE_LIMITS = {
   TRIAL: 25 * 1024 * 1024, // 25 MB
-  SINGLE: 25 * 1024 * 1024, // 25 MB
-  FAMILY: 50 * 1024 * 1024, // 50 MB
-  AGENCY: 200 * 1024 * 1024, // 200 MB
+  FAMILY: 25 * 1024 * 1024, // 25 MB (1 admin + 1 member, max 2 elders)
+  SINGLE_AGENCY: 50 * 1024 * 1024, // 50 MB (1 caregiver + 3 members, max 4 elders)
+  MULTI_AGENCY: 200 * 1024 * 1024, // 200 MB (10 groups, 40 users, max 30 elders)
+} as const;
+
+// Plan limits
+export const PLAN_LIMITS = {
+  FAMILY: {
+    maxElders: 2,
+    maxMembers: 2, // 1 admin + 1 member
+    maxGroups: 1,
+    storage: STORAGE_LIMITS.FAMILY,
+    price: 8.99,
+  },
+  SINGLE_AGENCY: {
+    maxElders: 4,
+    maxMembers: 4, // 1 caregiver + 3 members
+    maxGroups: 1,
+    storage: STORAGE_LIMITS.SINGLE_AGENCY,
+    price: 14.99,
+  },
+  MULTI_AGENCY: {
+    maxElders: 30, // 10 caregivers × max 3 elders each
+    maxCaregivers: 10,
+    maxEldersPerCaregiver: 3,
+    maxGroups: 10,
+    maxMembersPerGroup: 4, // 1 caregiver + 3 elders
+    storage: STORAGE_LIMITS.MULTI_AGENCY,
+    price: 144,
+  },
 } as const;
 
 // Individual file size limits

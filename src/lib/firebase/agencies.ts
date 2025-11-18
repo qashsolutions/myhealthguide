@@ -25,6 +25,7 @@ import {
   AgencyRole,
   GroupMember
 } from '@/types';
+import { canAddCaregiver } from './planLimits';
 
 export class AgencyService {
   // ============= Agency Management =============
@@ -254,6 +255,12 @@ export class AgencyService {
 
       // Update agency's caregiver list
       if (!agency.caregiverIds.includes(caregiverId)) {
+        // Check if agency can add more caregivers (plan limit)
+        const canAdd = await canAddCaregiver(agencyId);
+        if (!canAdd.allowed) {
+          throw new Error(canAdd.message);
+        }
+
         await updateDoc(doc(db, 'agencies', agencyId), {
           caregiverIds: [...agency.caregiverIds, caregiverId],
           updatedAt: Timestamp.now()

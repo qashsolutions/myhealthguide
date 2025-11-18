@@ -19,13 +19,20 @@ import { db } from './config';
 import { Group, GroupMember, Permission, PermissionLevel, PendingApproval } from '@/types';
 import { generateInviteCode, encryptInviteCode, decryptInviteCode } from '@/lib/utils/inviteCode';
 import { NotificationService } from './notifications';
+import { canCreateGroup, canAddGroupMember } from './planLimits';
 
 export class GroupService {
   /**
    * Create a new group
    */
-  static async createGroup(data: Omit<Group, 'id'>): Promise<Group> {
+  static async createGroup(data: Omit<Group, 'id'>, userId: string): Promise<Group> {
     try {
+      // Check plan limits before creating group
+      const canCreate = await canCreateGroup(userId);
+      if (!canCreate.allowed) {
+        throw new Error(canCreate.message || 'Cannot create group due to plan limits');
+      }
+
       const docRef = await addDoc(collection(db, 'groups'), {
         ...data,
         memberIds: data.memberIds || [],

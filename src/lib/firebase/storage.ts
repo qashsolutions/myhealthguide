@@ -27,7 +27,7 @@ import { StorageMetadata, STORAGE_LIMITS, FILE_SIZE_LIMITS } from '@/types';
  */
 export function getStorageLimitForTier(
   subscriptionStatus: 'trial' | 'active' | 'expired' | 'canceled',
-  subscriptionTier: 'single' | 'family' | 'agency' | null
+  subscriptionTier: 'family' | 'single_agency' | 'multi_agency' | null
 ): number {
   // During trial or if no tier, always 25 MB
   if (subscriptionStatus === 'trial' || !subscriptionTier) {
@@ -36,12 +36,12 @@ export function getStorageLimitForTier(
 
   // If expired or canceled, still return their tier limit (but they can't upload)
   switch (subscriptionTier) {
-    case 'single':
-      return STORAGE_LIMITS.SINGLE;
     case 'family':
       return STORAGE_LIMITS.FAMILY;
-    case 'agency':
-      return STORAGE_LIMITS.AGENCY;
+    case 'single_agency':
+      return STORAGE_LIMITS.SINGLE_AGENCY;
+    case 'multi_agency':
+      return STORAGE_LIMITS.MULTI_AGENCY;
     default:
       return STORAGE_LIMITS.TRIAL;
   }
@@ -286,7 +286,7 @@ export async function initializeUserStorage(userId: string): Promise<void> {
  */
 export async function updateStorageLimitOnSubscriptionChange(
   userId: string,
-  newTier: 'single' | 'family' | 'agency'
+  newTier: 'family' | 'single_agency' | 'multi_agency'
 ): Promise<void> {
   try {
     const newLimit = getStorageLimitForTier('active', newTier);

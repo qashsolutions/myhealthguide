@@ -12,14 +12,22 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { Elder } from '@/types';
+import { canCreateElder } from './planLimits';
 
 export class ElderService {
   private static COLLECTION = 'elders';
 
   /**
    * Create a new elder
+   * @param userId - The user creating the elder (for plan limit validation)
    */
-  static async createElder(groupId: string, elder: Omit<Elder, 'id'>): Promise<Elder> {
+  static async createElder(groupId: string, userId: string, elder: Omit<Elder, 'id'>): Promise<Elder> {
+    // Check plan limits before creating elder
+    const canCreate = await canCreateElder(userId, groupId);
+    if (!canCreate.allowed) {
+      throw new Error(canCreate.message || 'Cannot create elder due to plan limits');
+    }
+
     const docRef = await addDoc(collection(db, this.COLLECTION), {
       ...elder,
       groupId,

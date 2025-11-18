@@ -102,7 +102,7 @@ export class AuthService {
       writeMemberIds: [],
       elders: [],
       subscription: {
-        tier: 'single',
+        tier: 'family',
         status: 'trial',
         trialEndsAt: trialEndDate,
         currentPeriodEnd: trialEndDate,
@@ -122,7 +122,7 @@ export class AuthService {
       inviteCodeGeneratedBy: firebaseUser.uid,
       createdAt: new Date(),
       updatedAt: new Date()
-    });
+    }, firebaseUser.uid);
 
     // Create agency (individual family type)
     const agency = await AgencyService.createAgency({
@@ -133,7 +133,7 @@ export class AuthService {
       caregiverIds: [firebaseUser.uid],
       maxEldersPerCaregiver: 3,
       subscription: {
-        tier: 'single',
+        tier: 'family',
         status: 'trial',
         trialEndsAt: trialEndDate,
         currentPeriodEnd: trialEndDate,
@@ -403,7 +403,7 @@ export class AuthService {
         writeMemberIds: [],
         elders: [],
         subscription: {
-          tier: 'single',
+          tier: 'family',
           status: 'trial',
           trialEndsAt: trialEndDate,
           currentPeriodEnd: trialEndDate,
@@ -423,7 +423,7 @@ export class AuthService {
         inviteCodeGeneratedBy: firebaseUser.uid,
         createdAt: now,
         updatedAt: now
-      });
+      }, firebaseUser.uid);
 
       // Create agency (individual family type)
       const agency = await AgencyService.createAgency({
@@ -434,7 +434,7 @@ export class AuthService {
         caregiverIds: [firebaseUser.uid],
         maxEldersPerCaregiver: 3,
         subscription: {
-          tier: 'single',
+          tier: 'family',
           status: 'trial',
           trialEndsAt: trialEndDate,
           currentPeriodEnd: trialEndDate,

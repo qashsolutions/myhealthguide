@@ -37,7 +37,7 @@ export default function NewElderPage() {
         throw new Error('You must be part of a group to add an elder');
       }
 
-      await ElderService.createElder(groupId, {
+      await ElderService.createElder(groupId, user.id, {
         name: formData.name,
         groupId,
         dateOfBirth: new Date(formData.dateOfBirth),
