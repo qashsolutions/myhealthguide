@@ -9,11 +9,15 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.myguide.health'),
   title: {
     default: 'myguide.health - AI-Powered Eldercare & Caregiver Management Platform',
     template: '%s | myguide.health'
   },
   description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking, voice-enabled logging, and intelligent insights for eldercare management. Streamline caregiver workflows with AI agentic automation.',
+  alternates: {
+    canonical: '/',
+  },
   viewport: {
     width: 'device-width',
     initialScale: 1,
