@@ -1,17 +1,12 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useState } from 'react';
 import { Check, Heart, Users, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-export const metadata: Metadata = {
-  title: 'Pricing',
-  description: 'Simple, transparent pricing for myguide.health. Choose from Family, Single Agency, or Multi Agency plans. All plans include a 14-day free trial.',
-  alternates: {
-    canonical: '/pricing',
-  },
-};
-
 export default function PricingPage() {
+  const [selectedPlan, setSelectedPlan] = useState('Single Agency'); // Default to most popular
   const plans = [
     {
       name: 'Family',
@@ -81,13 +76,15 @@ export default function PricingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {plans.map((plan) => {
             const Icon = plan.icon;
+            const isSelected = selectedPlan === plan.name;
             return (
               <Card
                 key={plan.name}
-                className={`relative p-8 ${
-                  plan.popular
+                onClick={() => setSelectedPlan(plan.name)}
+                className={`relative p-8 cursor-pointer transition-all ${
+                  isSelected
                     ? 'border-2 border-blue-500 shadow-lg'
-                    : 'border border-gray-200 dark:border-gray-700'
+                    : 'border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 {plan.popular && (
@@ -134,10 +131,15 @@ export default function PricingPage() {
                 {/* CTA Button */}
                 <Button
                   className={`w-full ${
-                    plan.popular
+                    isSelected
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
                       : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Handle button click - navigate to signup or checkout
+                    window.location.href = '/signup';
+                  }}
                 >
                   Get Started
                 </Button>
