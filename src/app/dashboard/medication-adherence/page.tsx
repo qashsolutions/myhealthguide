@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,9 +28,9 @@ import type { Medication } from '@/types';
 
 export default function MedicationAdherencePage() {
   const { user } = useAuth();
-  const groupId = user?.groups?.[0]?.groupId;
-  // TODO: Implement proper elder selection - elderId should come from state/props
-  const elderId = undefined as string | undefined;
+  const { selectedElder } = useElder();
+  const groupId = selectedElder?.groupId || user?.groups?.[0]?.groupId;
+  const elderId = selectedElder?.id;
 
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);

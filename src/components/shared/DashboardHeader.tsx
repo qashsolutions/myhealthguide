@@ -13,6 +13,7 @@ import {
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { ElderSelector } from '@/components/dashboard/ElderSelector';
 
 export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
@@ -39,6 +40,10 @@ export function DashboardHeader() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Dashboard
         </h2>
+        {/* Elder Selector */}
+        <div className="ml-4 border-l border-gray-300 dark:border-gray-700 pl-4">
+          <ElderSelector />
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Brain, Loader2, AlertTriangle, Info, RefreshCw, Shield } from 'lucide-react';
@@ -16,10 +17,10 @@ import {
 
 export default function DementiaScreeningPage() {
   const { user } = useAuth();
-  const groupId = user?.groups?.[0]?.groupId;
-  // TODO: Implement proper elder selection - elderId should come from state/props
-  const elderId = undefined as string | undefined;
-  const elderName = 'Elder'; // TODO: Get from selected elder
+  const { selectedElder } = useElder();
+  const groupId = selectedElder?.groupId || user?.groups?.[0]?.groupId;
+  const elderId = selectedElder?.id;
+  const elderName = selectedElder?.name || 'Elder';
 
   const [hasConsent, setHasConsent] = useState(false);
   const [checkingConsent, setCheckingConsent] = useState(true);
