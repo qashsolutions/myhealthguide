@@ -119,6 +119,29 @@ service cloud.firestore {
          request.auth.uid in get(/databases/$(database)/documents/agencies/$(agencyId)).data.caregiverIds);
     }
 
+    // Check if caregiver is assigned to a specific elder
+    // SECURITY: This ensures caregivers can ONLY access their assigned elders
+    function isCaregiverAssignedToElder(elderId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/elders/$(elderId)) &&
+        (
+          // Check user's agencies array for assigned elder IDs
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          elderId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencies[0].assignedElderIds
+        );
+    }
+
+    // Check if user can access a specific group (either member or assigned caregiver)
+    function canAccessGroup(groupId) {
+      return isGroupAdmin(groupId) ||
+        isMemberOfGroup(groupId) ||
+        (
+          // Check if caregiver is assigned to this group
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          groupId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencies[0].assignedGroupIds
+        );
+    }
+
     // ============= Users Collection =============
 
     match /users/{userId} {
@@ -163,10 +186,10 @@ service cloud.firestore {
     // ============= Groups Collection =============
 
     match /groups/{groupId} {
-      // Members can read their group
+      // Members AND assigned caregivers can read their group
       // GDPR: Admins can read even without active trial (for data export)
       allow read: if isGroupAdmin(groupId) ||
-        (isMemberOfGroup(groupId) && hasActiveAccess(request.auth.uid));
+        (canAccessGroup(groupId) && hasActiveAccess(request.auth.uid));
 
       // Only admin can update group (requires active access)
       allow update: if isGroupAdmin(groupId) &&
@@ -203,19 +226,22 @@ service cloud.firestore {
     // ============= Elders Collection =============
 
     match /elders/{elderId} {
-      // Members of the group can read elders
+      // Members AND assigned caregivers can read elders
       // GDPR: Admins can read even without active trial (for data export)
       allow read: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+        isCaregiverAssignedToElder(elderId) ||
+        (canAccessGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Only members with WRITE permission can create elders
+      // Only members with WRITE permission OR assigned caregivers can create elders
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(request.resource.data.groupId);
+        (hasWritePermission(request.resource.data.groupId) ||
+         canAccessGroup(request.resource.data.groupId));
 
-      // Only members with WRITE permission can update elders
+      // Only members with WRITE permission OR assigned caregivers can update elders
       allow update: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         isCaregiverAssignedToElder(elderId));
 
       // GDPR: Admin can delete even without active trial (Right to be Forgotten)
       allow delete: if isGroupAdmin(resource.data.groupId);
@@ -224,105 +250,121 @@ service cloud.firestore {
     // ============= Medications Collection =============
 
     match /medications/{medicationId} {
-      // Members can read medications in their group
+      // Members AND assigned caregivers can read medications
       // GDPR: Admins can read even without active trial (for data export)
       allow read: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+        (canAccessGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Only members with WRITE permission can create medications
+      // Members with WRITE permission AND assigned caregivers can create medications
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(request.resource.data.groupId);
+        (hasWritePermission(request.resource.data.groupId) ||
+         canAccessGroup(request.resource.data.groupId));
 
-      // Only members with WRITE permission can update medications
+      // Members with WRITE permission AND assigned caregivers can update medications
       allow update: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
 
-      // Only members with WRITE permission can delete medications
+      // Members with WRITE permission AND assigned caregivers can delete medications
       allow delete: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
     }
 
     // ============= Medication Logs Collection =============
 
     match /medication_logs/{logId} {
-      // Members can read logs in their group
+      // Members AND assigned caregivers can read logs
       // GDPR: Admins can read even without active trial (for data export)
       allow read: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+        (canAccessGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Only members with WRITE permission can create logs
+      // Members with WRITE permission AND assigned caregivers can create logs
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(request.resource.data.groupId);
+        (hasWritePermission(request.resource.data.groupId) ||
+         canAccessGroup(request.resource.data.groupId));
 
-      // Only members with WRITE permission can update logs
+      // Members with WRITE permission AND assigned caregivers can update logs
       allow update: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
 
-      // Only members with WRITE permission can delete logs
+      // Members with WRITE permission AND assigned caregivers can delete logs
       allow delete: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
     }
 
     // ============= Supplements Collection =============
 
     match /supplements/{supplementId} {
-      // Members can read supplements in their group
+      // Members AND assigned caregivers can read supplements
       // GDPR: Admins can read even without active trial (for data export)
       allow read: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+        (canAccessGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Only members with WRITE permission can manage supplements
+      // Members with WRITE permission AND assigned caregivers can manage supplements
       allow create, update: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(request.resource.data.groupId);
+        (hasWritePermission(request.resource.data.groupId) ||
+         canAccessGroup(request.resource.data.groupId));
 
-      // Only members with WRITE permission can delete supplements
+      // Members with WRITE permission AND assigned caregivers can delete supplements
       allow delete: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
     }
 
     // ============= Supplement Logs Collection =============
 
     match /supplement_logs/{logId} {
+      // Members AND assigned caregivers can read supplement logs
       // GDPR: Admins can read even without active trial (for data export)
       allow read: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+        (canAccessGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Only members with WRITE permission can create logs
+      // Members with WRITE permission AND assigned caregivers can create logs
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(request.resource.data.groupId);
+        (hasWritePermission(request.resource.data.groupId) ||
+         canAccessGroup(request.resource.data.groupId));
 
-      // Only members with WRITE permission can update logs
+      // Members with WRITE permission AND assigned caregivers can update logs
       allow update: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
 
-      // Only members with WRITE permission can delete logs
+      // Members with WRITE permission AND assigned caregivers can delete logs
       allow delete: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
     }
 
     // ============= Diet Entries Collection =============
 
     match /diet_entries/{entryId} {
+      // Members AND assigned caregivers can read diet entries
       // GDPR: Admins can read even without active trial (for data export)
       allow read: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+        (canAccessGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Only members with WRITE permission can create diet entries
+      // Members with WRITE permission AND assigned caregivers can create diet entries
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(request.resource.data.groupId);
+        (hasWritePermission(request.resource.data.groupId) ||
+         canAccessGroup(request.resource.data.groupId));
 
-      // Only members with WRITE permission can update diet entries
+      // Members with WRITE permission AND assigned caregivers can update diet entries
       allow update: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
 
-      // Only members with WRITE permission can delete diet entries
+      // Members with WRITE permission AND assigned caregivers can delete diet entries
       allow delete: if hasActiveAccess(request.auth.uid) &&
-        hasWritePermission(resource.data.groupId);
+        (hasWritePermission(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
     }
 
     // ============= AI Summaries Collection =============
