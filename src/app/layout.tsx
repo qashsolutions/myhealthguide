@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 import { Footer } from '@/components/shared/Footer';
 import { StructuredData } from '@/components/seo/StructuredData';
+import { CookieConsent } from '@/components/cookies/CookieConsent';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -80,6 +81,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Footer />
+          <CookieConsent />
         </Providers>
       </body>
     </html>

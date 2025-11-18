@@ -5,6 +5,12 @@ import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { AuthService } from '@/lib/firebase/auth';
 import { User } from '@/types';
+import {
+  initializeSession,
+  associateSessionWithUser,
+  endSession,
+  trackSessionActivity
+} from '@/lib/session/sessionManager';
 
 interface AuthContextType {
   user: User | null;
@@ -37,6 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Fetch user data from Firestore
           const userData = await AuthService.getCurrentUserData();
           setUser(userData);
+
+          // Initialize/associate session with user
+          if (typeof window !== 'undefined') {
+            associateSessionWithUser(userData.id);
+          }
         } catch (error) {
           console.error('Error fetching user data:', error);
           setUser(null);
@@ -47,6 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setLoading(false);
     });
+
+    // Initialize session on app load (even if not logged in)
+    if (typeof window !== 'undefined') {
+      initializeSession();
+    }
 
     return () => unsubscribe();
   }, []);
@@ -72,6 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async (): Promise<void> => {
+    // End session before signing out
+    if (typeof window !== 'undefined') {
+      await endSession();
+    }
+
     await AuthService.signOut();
     setUser(null);
     setFirebaseUser(null);

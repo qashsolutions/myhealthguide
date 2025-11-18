@@ -98,8 +98,7 @@ service cloud.firestore {
     // Check if user's join request is approved
     function isApprovedMember(groupId) {
       return isSignedIn() &&
-        exists(/databases/$(database)/documents/groups/$(groupId)) &&
-        request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+        isMemberOfGroup(groupId);
     }
 
     // ============= Phase 5: Agency Helper Functions =============
@@ -588,6 +587,291 @@ service cloud.firestore {
 
       // GDPR: Users can delete their own chat history (Right to be Forgotten)
       allow delete: if isOwner(userId);
+    }
+
+    // ============= Alerts Collection (Agentic AI Phase 1-3) =============
+
+    match /alerts/{alertId} {
+      // Group members can read alerts for their group
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System/AI can create alerts (Cloud Functions or client with proper access)
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Group members can update alerts (to dismiss, action, mark viewed)
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial (Right to be Forgotten)
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Alert Analytics Collection (Phase 2 Learning) =============
+
+    match /alertAnalytics/{analyticsId} {
+      // Only group admin and system can read analytics
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System creates analytics (calculated by Phase 2 learning system)
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Analytics are append-only (immutable for historical tracking)
+      allow update: if false;
+
+      // GDPR: Admin can delete even without active trial
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Emergency Patterns Collection (Phase 1) =============
+
+    match /emergencyPatterns/{patternId} {
+      // Group members can read emergency patterns
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System/AI creates emergency patterns
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Group admin can update (mark as reviewed/resolved)
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isGroupAdmin(resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Doctor Visit Summaries Collection (Phase 1) =============
+
+    match /doctorVisitSummaries/{summaryId} {
+      // Group members can read summaries
+      // Plus anyone in sharedWith array
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid)) ||
+        (request.auth.uid in resource.data.sharedWith);
+
+      // Group members with write permission can create summaries
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(request.resource.data.groupId);
+
+      // Group admin can update (to add sharedWith users or export links)
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isGroupAdmin(resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Shift Sessions Collection (Phase 1) =============
+
+    match /shiftSessions/{sessionId} {
+      // Caregivers can read their own sessions
+      // Agency super admin can read all sessions in their agency
+      // Group members can read sessions for their elders
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (resource.data.caregiverId == request.auth.uid ||
+         (resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId)) ||
+         isMemberOfGroup(resource.data.groupId));
+
+      // Caregivers can create their own shift sessions
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.caregiverId == request.auth.uid &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Caregivers can update their own sessions (to end shift)
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        resource.data.caregiverId == request.auth.uid;
+
+      // Agency admin can delete sessions for cleanup
+      allow delete: if isSignedIn() &&
+        (resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId));
+    }
+
+    // ============= Shift Handoff Notes Collection (Phase 1) =============
+
+    match /shiftHandoffNotes/{noteId} {
+      // All caregivers in the group can read handoff notes
+      // Agency super admin can read all notes
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        ((resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId)) ||
+         isMemberOfGroup(resource.data.groupId));
+
+      // System creates handoff notes when shift ends
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Caregivers can update to acknowledge reading the handoff
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // GDPR: Admin can delete even without active trial
+      allow delete: if isGroupAdmin(resource.data.groupId) ||
+        (resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId));
+    }
+
+    // ============= Appointments Collection (Phase 1) =============
+
+    match /appointments/{appointmentId} {
+      // Group members can read appointments
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Group members with write permission can create appointments
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(request.resource.data.groupId);
+
+      // Group members with write permission can update appointments
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
+
+      // Group members with write permission can delete appointments
+      allow delete: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
+    }
+
+    // ============= User Alert Preferences Collection (Phase 3) =============
+
+    match /userAlertPreferences/{preferencesId} {
+      // Users can read their own preferences for specific groups
+      allow read: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // Users can create their own preferences
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Users can update their own preferences
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.userId == request.auth.uid;
+
+      // GDPR: Users can delete their own preferences (Right to be Forgotten)
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ============= Medical Disclaimer Consents Collection =============
+
+    match /medicalDisclaimerConsents/{consentId} {
+      // Users can read their own consents
+      allow read: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // Users can create their own consents
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Users can update their own consents (to revoke)
+      allow update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // Users can delete their own consents (GDPR)
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ============= Medical Feature Access Logs Collection =============
+
+    match /medicalFeatureAccessLogs/{logId} {
+      // Users can read their own access logs (GDPR transparency)
+      allow read: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // System creates access logs
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Access logs are immutable (audit trail)
+      allow update: if false;
+
+      // Users can delete their own logs (GDPR Right to be Forgotten)
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ============= Drug Interactions Collection =============
+
+    match /drugInteractions/{interactionId} {
+      // Group members can read interactions for their group
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System/AI creates interaction records
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // System can update when re-checking FDA data
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // GDPR: Admin can delete
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Dementia Screenings Collection =============
+
+    match /dementiaScreenings/{screeningId} {
+      // Group members can read screenings
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System/AI creates screening records
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Group admin can update (mark as reviewed)
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isGroupAdmin(resource.data.groupId);
+
+      // GDPR: Admin can delete
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Caregiver Burnout Assessments Collection =============
+
+    match /caregiverBurnoutAssessments/{assessmentId} {
+      // Super admin can read all assessments for their agency
+      // Caregiver can read their own assessments
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.caregiverId == request.auth.uid);
+
+      // System creates burnout assessments
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        hasAgencyAccess(request.resource.data.agencyId);
+
+      // Super admin can update (mark as reviewed, add action taken)
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(resource.data.agencyId);
+
+      // Super admin can delete
+      allow delete: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
     }
 
     // ============= Default Deny =============
