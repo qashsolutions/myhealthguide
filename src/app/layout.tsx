@@ -13,6 +13,11 @@ export const metadata: Metadata = {
     template: '%s | myguide.health'
   },
   description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking, voice-enabled logging, and intelligent insights for eldercare management. Streamline caregiver workflows with AI agentic automation.',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+  },
   keywords: [
     'eldercare management',
     'caregiver app',
