@@ -47,6 +47,18 @@ export function AIFeaturesSettings({
         },
         doctorVisitPrep: {
           enabled: true
+        },
+        medicationRefillAlerts: {
+          enabled: true,
+          defaultThresholdDays: 7
+        },
+        shiftHandoffNotes: {
+          enabled: true,
+          autoGenerate: true
+        },
+        emergencyPatternDetection: {
+          enabled: true,
+          sensitivity: 'medium'
         }
       }
     }

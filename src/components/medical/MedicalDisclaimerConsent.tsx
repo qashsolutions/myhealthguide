@@ -21,7 +21,7 @@ const DISCLAIMER_VERSION = 'v1.0';
 const MINIMUM_READ_TIME = 15000; // 15 seconds minimum
 const CONSENT_EXPIRY_DAYS = 90;
 
-const DISCLAIMER_TEXT = {
+const DISCLAIMER_TEXT: Record<MedicalFeatureType, string> = {
   medication_interactions: `IMPORTANT MEDICAL DISCLAIMER - PLEASE READ CAREFULLY
 
 This medication interaction information is provided for INFORMATIONAL PURPOSES ONLY and is NOT a substitute for professional medical advice, diagnosis, or treatment.
@@ -82,11 +82,23 @@ By clicking "I Understand and Agree" below, you acknowledge that:
 
 This consent expires in 90 days and must be renewed.`,
 
+  side_effects: `IMPORTANT MEDICAL DISCLAIMER - SIDE EFFECTS INFORMATION
+
+This side effects information is provided for INFORMATIONAL PURPOSES ONLY and is NOT a substitute for professional medical advice. Always consult your healthcare provider about side effects and medication concerns.`,
+
+  schedule_conflicts: `IMPORTANT MEDICAL DISCLAIMER - MEDICATION SCHEDULING
+
+This medication scheduling information is provided for INFORMATIONAL PURPOSES ONLY. Always consult your healthcare provider or pharmacist about proper medication timing and administration.`,
+
+  dementia_screening: `IMPORTANT MEDICAL DISCLAIMER - BEHAVIORAL SCREENING
+
+This behavioral screening tool is provided for INFORMATIONAL PURPOSES ONLY and is NOT a medical diagnosis. Only qualified healthcare professionals can diagnose medical conditions. Always consult a doctor for proper medical evaluation.`,
+
   all_medical_features: `COMPREHENSIVE MEDICAL DISCLAIMER
 
 All medical features in this application (medication interactions, side effects detection, schedule analysis, behavioral screening) are provided for INFORMATIONAL PURPOSES ONLY.
 
-[Same disclaimer text as above, but applies to all medical features]
+This system CANNOT and DOES NOT provide medical advice, diagnoses, or treatment recommendations. All information must be discussed with qualified healthcare professionals before making any medical decisions.
 
 By consenting, you agree to these terms for ALL medical features in the application.`
 };

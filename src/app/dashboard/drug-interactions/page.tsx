@@ -20,6 +20,8 @@ import type { Medication } from '@/types';
 export default function DrugInteractionsPage() {
   const { user } = useAuth();
   const groupId = user?.groups?.[0]?.groupId;
+  // TODO: Implement proper elder selection - elderId should come from state/props
+  const elderId = undefined as string | undefined;
   const [hasConsent, setHasConsent] = useState(false);
   const [checkingConsent, setCheckingConsent] = useState(true);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
@@ -62,7 +64,7 @@ export default function DrugInteractionsPage() {
     setLoading(true);
     try {
       // Run fresh interaction check
-      const result = await runInteractionCheck(groupId, user?.groups?.[0]?.elderId || '');
+      const result = await runInteractionCheck(groupId, elderId || '');
       setInteractions(result.interactions);
     } catch (error) {
       console.error('Error loading interactions:', error);

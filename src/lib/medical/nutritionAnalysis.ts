@@ -311,7 +311,7 @@ function analyzeMealPatterns(entries: DietEntry[], days: number) {
   let snackCount = 0;
 
   entries.forEach(entry => {
-    const mealType = entry.mealType?.toLowerCase();
+    const mealType = entry.meal?.toLowerCase();
 
     if (mealType === 'breakfast') breakfastCount++;
     else if (mealType === 'lunch') lunchCount++;
@@ -342,19 +342,21 @@ function analyzeFoodVariety(entries: DietEntry[]) {
   });
 
   entries.forEach(entry => {
-    const foodItem = entry.foodItem?.toLowerCase() || '';
+    const foodItems = entry.items?.map(item => item.toLowerCase()).join(' ') || '';
     const notes = entry.notes?.toLowerCase() || '';
-    const searchText = `${foodItem} ${notes}`;
+    const searchText = `${foodItems} ${notes}`;
 
     // Track unique foods
-    if (foodItem) {
-      uniqueFoodsSet.add(foodItem);
-    }
+    entry.items?.forEach(item => {
+      if (item) {
+        uniqueFoodsSet.add(item.toLowerCase());
+      }
+    });
 
     // Categorize into food groups
     Object.entries(FOOD_GROUPS).forEach(([group, keywords]) => {
       if (keywords.some(keyword => searchText.includes(keyword))) {
-        foodGroupCounts[group].add(foodItem || entry.id);
+        foodGroupCounts[group].add(foodItems || entry.id);
       }
     });
   });
@@ -384,8 +386,8 @@ function analyzeHydration(entries: DietEntry[], days: number) {
 
   entries.forEach(entry => {
     const notes = entry.notes?.toLowerCase() || '';
-    const foodItem = entry.foodItem?.toLowerCase() || '';
-    const searchText = `${foodItem} ${notes}`;
+    const foodItems = entry.items?.map(item => item.toLowerCase()).join(' ') || '';
+    const searchText = `${foodItems} ${notes}`;
 
     // Count water mentions
     if (searchText.includes('water') || searchText.includes('glass')) {

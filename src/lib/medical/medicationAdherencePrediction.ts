@@ -89,7 +89,7 @@ export async function predictMedicationAdherence(
       ...doc.data(),
       scheduledTime: doc.data().scheduledTime?.toDate(),
       takenAt: doc.data().takenAt?.toDate()
-    })) as MedicationLog[];
+    } as unknown)) as MedicationLog[];
 
     if (logs.length < 7) {
       // Not enough data for prediction

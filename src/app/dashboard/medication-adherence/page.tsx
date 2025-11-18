@@ -23,11 +23,13 @@ import {
 } from '@/lib/medical/medicationAdherencePrediction';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import type { Medication } from '@/types';
 
 export default function MedicationAdherencePage() {
   const { user } = useAuth();
   const groupId = user?.groups?.[0]?.groupId;
-  const elderId = user?.groups?.[0]?.elderId;
+  // TODO: Implement proper elder selection - elderId should come from state/props
+  const elderId = undefined as string | undefined;
 
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -71,7 +73,7 @@ export default function MedicationAdherencePage() {
       const medications = medicationsSnap.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      } as Medication));
 
       // Run predictions for each medication
       for (const med of medications) {
@@ -102,6 +104,8 @@ export default function MedicationAdherencePage() {
         return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-500';
       case 'low':
         return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-500';
+      default:
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 border-gray-500';
     }
   };
 

@@ -11,7 +11,8 @@ import type { MedicationScheduleConflict } from '@/types';
 export default function ScheduleConflictsPage() {
   const { user } = useAuth();
   const groupId = user?.groups?.[0]?.groupId;
-  const elderId = user?.groups?.[0]?.elderId;
+  // TODO: Implement proper elder selection - elderId should come from state/props
+  const elderId = undefined as string | undefined;
 
   const [loading, setLoading] = useState(false);
   const [conflicts, setConflicts] = useState<MedicationScheduleConflict[]>([]);

@@ -73,7 +73,7 @@ export function Sidebar() {
       <nav className="px-3 space-y-1">
         {navItems.map((item, index) => {
           // Handle section items
-          if ('section' in item) {
+          if ('section' in item && item.items) {
             return (
               <div key={`section-${index}`} className="pt-4 pb-2">
                 <div className="px-3 mb-2">

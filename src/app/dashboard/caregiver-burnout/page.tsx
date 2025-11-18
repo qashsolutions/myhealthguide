@@ -5,16 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw } from 'lucide-react';
-import {
-  assessCaregiverBurnout,
-  assessAllCaregivers,
-  type CaregiverBurnoutAssessment
-} from '@/lib/medical/caregiverBurnoutDetection';
+import { assessCaregiverBurnout, assessAllCaregivers } from '@/lib/medical/caregiverBurnoutDetection';
+import type { CaregiverBurnoutAssessment } from '@/types';
 
 export default function CaregiverBurnoutPage() {
   const { user } = useAuth();
-  const agencyId = user?.agencyId; // Assumes agency admins have agencyId
-  const isAgencyAdmin = user?.role === 'agency_admin';
+  // Check if user is a super_admin in any agency
+  const agencyMembership = user?.agencies?.find(a => a.role === 'super_admin');
+  const agencyId = agencyMembership?.agencyId;
+  const isAgencyAdmin = !!agencyMembership;
 
   const [loading, setLoading] = useState(false);
   const [assessments, setAssessments] = useState<CaregiverBurnoutAssessment[]>([]);
@@ -55,6 +54,8 @@ export default function CaregiverBurnoutPage() {
         return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-500';
       case 'low':
         return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-500';
+      default:
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 border-gray-500';
     }
   };
 
@@ -163,7 +164,7 @@ export default function CaregiverBurnoutPage() {
                     selectedAssessment?.id === assessment.id
                       ? 'bg-blue-50 dark:bg-blue-900/20'
                       : ''
-                  } ${getRiskColor(assessment.burnoutRisk).split(' ').pop()}`}
+                  } ${getRiskColor(assessment.burnoutRisk).split(' ').pop() || ''}`}
                   onClick={() => setSelectedAssessment(assessment)}
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -181,7 +182,7 @@ export default function CaregiverBurnoutPage() {
                   </div>
                   <span
                     className={`text-xs px-2 py-1 rounded ${
-                      getRiskColor(assessment.burnoutRisk).split('border-')[0]
+                      getRiskColor(assessment.burnoutRisk).split('border-')[0] || ''
                     }`}
                   >
                     {assessment.burnoutRisk.toUpperCase()}

@@ -157,8 +157,8 @@ export async function checkMedicationInteractions(
             medication2: med2,
             medication1MentionsMed2: med1MentionsMed2,
             medication2MentionsMed1: med2MentionsMed1,
-            fdaData1,
-            fdaData2
+            fdaData1: fdaData1 || null,
+            fdaData2: fdaData2 || null
           });
         }
       }

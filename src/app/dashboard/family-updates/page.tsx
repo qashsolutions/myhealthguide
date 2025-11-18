@@ -12,8 +12,9 @@ import { collection, query, where, getDocs, orderBy, updateDoc, doc } from 'fire
 export default function FamilyUpdatesPage() {
   const { user } = useAuth();
   const groupId = user?.groups?.[0]?.groupId;
-  const elderId = user?.groups?.[0]?.elderId;
-  const elderName = user?.groups?.[0]?.elderName || 'Elder';
+  // TODO: Implement proper elder selection - elderId should come from state/props
+  const elderId = undefined as string | undefined;
+  const elderName = 'Elder'; // TODO: Get from selected elder
 
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);

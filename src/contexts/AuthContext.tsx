@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userData);
 
           // Initialize/associate session with user
-          if (typeof window !== 'undefined') {
+          if (typeof window !== 'undefined' && userData) {
             associateSessionWithUser(userData.id);
           }
         } catch (error) {
