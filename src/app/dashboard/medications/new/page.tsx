@@ -95,6 +95,29 @@ export default function NewMedicationPage() {
     }
   };
 
+  // Check if no elders exist
+  if (elders.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add New Medication</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                You need to add an elder before you can add medications.
+              </p>
+              <Button onClick={() => router.push('/dashboard/elders/new')}>
+                Add Elder First
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto">
       <Card>
@@ -127,6 +150,7 @@ export default function NewMedicationPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 required
+                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
             </div>
 
@@ -134,10 +158,11 @@ export default function NewMedicationPage() {
               <Label htmlFor="dosage">Dosage</Label>
               <Input
                 id="dosage"
-                placeholder="10mg"
+                placeholder="100"
                 value={formData.dosage}
                 onChange={(e) => setFormData({...formData, dosage: e.target.value})}
                 required
+                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
             </div>
 
@@ -145,10 +170,11 @@ export default function NewMedicationPage() {
               <Label htmlFor="times">Times (comma separated)</Label>
               <Input
                 id="times"
-                placeholder="8:00 AM, 8:00 PM"
+                placeholder="7 am"
                 value={formData.times}
                 onChange={(e) => setFormData({...formData, times: e.target.value})}
                 required
+                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
             </div>
 
@@ -160,6 +186,7 @@ export default function NewMedicationPage() {
                 value={formData.startDate}
                 onChange={(e) => setFormData({...formData, startDate: e.target.value})}
                 required
+                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
             </div>
 
@@ -171,6 +198,7 @@ export default function NewMedicationPage() {
                 rows={3}
                 value={formData.instructions}
                 onChange={(e) => setFormData({...formData, instructions: e.target.value})}
+                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
             </div>
 

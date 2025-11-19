@@ -130,6 +130,29 @@ export default function NewDietEntryPage() {
     }
   };
 
+  // Check if no elders exist
+  if (elders.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Log Meal Entry</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                You need to add an elder before you can log meals.
+              </p>
+              <Button onClick={() => router.push('/dashboard/elders/new')}>
+                Add Elder First
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -214,6 +237,7 @@ export default function NewDietEntryPage() {
                   onChange={(e) => setItemInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addItem()}
                   placeholder="e.g., oatmeal, banana"
+                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
                 />
                 <Button onClick={addItem} size="icon">
                   <Plus className="w-4 h-4" />

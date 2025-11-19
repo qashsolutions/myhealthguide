@@ -69,6 +69,7 @@ export default function NewElderPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 required
+                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
             </div>
 
@@ -80,6 +81,7 @@ export default function NewElderPage() {
                 value={formData.dateOfBirth}
                 onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
                 required
+                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
             </div>
 
@@ -91,6 +93,7 @@ export default function NewElderPage() {
                 rows={4}
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
             </div>
 
