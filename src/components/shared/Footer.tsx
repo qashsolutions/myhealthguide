@@ -27,12 +27,19 @@ export function Footer() {
 
           {/* Right side - Links and Tagline */}
           <div className="flex flex-col items-center md:items-end gap-1">
-            <div className="flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-3 text-sm flex-wrap justify-center md:justify-end">
               <Link
                 href="/privacy"
                 className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
               >
                 Privacy Policy
+              </Link>
+              <span className="text-gray-400 dark:text-gray-600">•</span>
+              <Link
+                href="/hipaa-notice"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
+              >
+                HIPAA Notice
               </Link>
               <span className="text-gray-400 dark:text-gray-600">•</span>
               <Link

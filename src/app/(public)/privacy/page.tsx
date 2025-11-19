@@ -11,6 +11,20 @@ export default function PrivacyPage() {
             <strong>Last Updated:</strong> November 18, 2025
           </p>
 
+          {/* HIPAA Notice Callout */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-600 p-6 mb-8">
+            <h3 className="font-semibold text-lg mb-2">HIPAA Notice of Privacy Practices</h3>
+            <p className="text-sm mb-3">
+              If you are using our Service for health-related purposes, please also review our HIPAA Notice of Privacy Practices, which explains how your Protected Health Information (PHI) is used and disclosed.
+            </p>
+            <a
+              href="/hipaa-notice"
+              className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline font-medium"
+            >
+              View HIPAA Notice of Privacy Practices →
+            </a>
+          </div>
+
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mt-8 mb-4">1. Introduction</h2>
             <p className="mb-4">
