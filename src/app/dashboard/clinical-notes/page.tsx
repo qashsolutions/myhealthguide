@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Loader2, FileText, Download, Printer, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
+import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { generateClinicalNotePDF, ClinicalNotePDFData } from '@/lib/utils/pdfExport';
 import { format } from 'date-fns';
 
@@ -84,8 +85,9 @@ export default function ClinicalNotesPage() {
   };
 
   return (
-    <EmailVerificationGate featureName="clinical notes generation">
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <TrialExpirationGate featureName="clinical notes generation">
+      <EmailVerificationGate featureName="clinical notes generation">
+        <div className="p-6 max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
@@ -287,7 +289,8 @@ export default function ClinicalNotesPage() {
           </Card>
         </div>
       )}
-      </div>
-    </EmailVerificationGate>
+        </div>
+      </EmailVerificationGate>
+    </TrialExpirationGate>
   );
 }

@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
+import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { ElderService } from '@/lib/firebase/elders';
 
 export default function NewElderPage() {
@@ -62,68 +63,70 @@ export default function NewElderPage() {
   };
 
   return (
-    <EmailVerificationGate featureName="elder profiles">
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Add New Elder</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  placeholder="John Smith"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                <Input
-                  id="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-                  required
-                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Medical conditions, preferences, etc."
-                  rows={4}
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                />
-              </div>
-
-              {error && (
-                <div className="text-sm text-red-600 dark:text-red-400">
-                  {error}
+    <TrialExpirationGate featureName="elder profiles">
+      <EmailVerificationGate featureName="elder profiles">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add New Elder</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="John Smith"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    required
+                    className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                  />
                 </div>
-              )}
 
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? 'Saving...' : 'Add Elder'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => router.back()}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </EmailVerificationGate>
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+                    required
+                    className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Medical conditions, preferences, etc."
+                    rows={4}
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                  />
+                </div>
+
+                {error && (
+                  <div className="text-sm text-red-600 dark:text-red-400">
+                    {error}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4">
+                  <Button type="submit" disabled={loading} className="flex-1">
+                    {loading ? 'Saving...' : 'Add Elder'}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => router.back()}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </EmailVerificationGate>
+    </TrialExpirationGate>
   );
 }

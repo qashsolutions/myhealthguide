@@ -18,6 +18,7 @@ import { MedicationService } from '@/lib/firebase/medications';
 import { DietService } from '@/lib/firebase/diet';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
+import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { ElderService } from '@/lib/firebase/elders';
 import { GroupService } from '@/lib/firebase/groups';
 import { DailySummary, Elder } from '@/types';
@@ -208,8 +209,9 @@ export default function InsightsPage() {
   }
 
   return (
-    <EmailVerificationGate featureName="AI health insights">
-      <div className="space-y-6">
+    <TrialExpirationGate featureName="AI health insights">
+      <EmailVerificationGate featureName="AI health insights">
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -448,7 +450,8 @@ export default function InsightsPage() {
           groupId={user.groups[0].groupId}
         />
       )}
-      </div>
-    </EmailVerificationGate>
+        </div>
+      </EmailVerificationGate>
+    </TrialExpirationGate>
   );
 }

@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MedicationService } from '@/lib/firebase/medications';
 import { ElderService } from '@/lib/firebase/elders';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
+import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { Elder } from '@/types';
 
 export default function NewMedicationPage() {
@@ -112,31 +113,34 @@ export default function NewMedicationPage() {
   // Check if no elders exist
   if (elders.length === 0) {
     return (
-      <EmailVerificationGate featureName="medications">
-        <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add New Medication</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  You need to add an elder before you can add medications.
-                </p>
-                <Button onClick={() => router.push('/dashboard/elders/new')}>
-                  Add Elder First
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </EmailVerificationGate>
+      <TrialExpirationGate featureName="medications">
+        <EmailVerificationGate featureName="medications">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Medication</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    You need to add an elder before you can add medications.
+                  </p>
+                  <Button onClick={() => router.push('/dashboard/elders/new')}>
+                    Add Elder First
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </EmailVerificationGate>
+      </TrialExpirationGate>
     );
   }
 
   return (
-    <EmailVerificationGate featureName="medications">
-      <div className="max-w-2xl mx-auto">
+    <TrialExpirationGate featureName="medications">
+      <EmailVerificationGate featureName="medications">
+        <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle>Add New Medication</CardTitle>
@@ -237,6 +241,7 @@ export default function NewMedicationPage() {
           </CardContent>
         </Card>
       </div>
-    </EmailVerificationGate>
+      </EmailVerificationGate>
+    </TrialExpirationGate>
   );
 }

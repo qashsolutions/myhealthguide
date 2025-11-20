@@ -17,6 +17,7 @@ import { Utensils, Info, CheckCircle, ArrowLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
+import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { DietService } from '@/lib/firebase/diet';
 import { ElderService } from '@/lib/firebase/elders';
 
@@ -153,8 +154,9 @@ export default function VoiceDietPage() {
   };
 
   return (
-    <EmailVerificationGate featureName="voice diet entry">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <TrialExpirationGate featureName="voice diet entry">
+      <EmailVerificationGate featureName="voice diet entry">
+        <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link href="/dashboard/diet">
@@ -282,7 +284,8 @@ export default function VoiceDietPage() {
 
         {/* Recording Indicator */}
         <VoiceRecordingIndicator isRecording={isRecording} />
-      </div>
-    </EmailVerificationGate>
+        </div>
+      </EmailVerificationGate>
+    </TrialExpirationGate>
   );
 }

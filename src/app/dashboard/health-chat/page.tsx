@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
+import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -119,8 +120,9 @@ export default function HealthChatPage() {
   ];
 
   return (
-    <EmailVerificationGate featureName="health chat AI assistant">
-      <div className="p-6 max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
+    <TrialExpirationGate featureName="health chat AI assistant">
+      <EmailVerificationGate featureName="health chat AI assistant">
+        <div className="p-6 max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
@@ -274,7 +276,8 @@ export default function HealthChatPage() {
           </p>
         )}
       </Card>
-      </div>
-    </EmailVerificationGate>
+        </div>
+      </EmailVerificationGate>
+    </TrialExpirationGate>
   );
 }
