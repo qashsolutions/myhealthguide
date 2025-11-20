@@ -71,6 +71,9 @@ export class AuthService {
       },
       trialStartDate: now,              // Set to current date
       trialEndDate: trialEnd,            // Set to 14 days from now
+      gracePeriodStartDate: null,        // Set when trial expires
+      gracePeriodEndDate: null,          // Set when trial expires (48 hours after)
+      dataExportRequested: false,        // User hasn't requested export yet
       subscriptionStatus: 'trial',       // Trial status
       subscriptionTier: null,            // No paid tier during trial
       storageUsed: 0,                    // No storage used yet
@@ -365,6 +368,9 @@ export class AuthService {
         },
         trialStartDate: now,
         trialEndDate: trialEnd,
+        gracePeriodStartDate: null,        // Set when trial expires
+        gracePeriodEndDate: null,          // Set when trial expires (48 hours after)
+        dataExportRequested: false,        // User hasn't requested export yet
         subscriptionStatus: 'trial',
         subscriptionTier: null,
         storageUsed: 0,
