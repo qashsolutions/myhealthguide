@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
+import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -118,18 +119,19 @@ export default function HealthChatPage() {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <MessageSquare className="h-8 w-8 text-blue-600" />
-            Health Chat
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Ask questions about health data in natural language
-          </p>
+    <EmailVerificationGate featureName="health chat AI assistant">
+      <div className="p-6 max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+              <MessageSquare className="h-8 w-8 text-blue-600" />
+              Health Chat
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Ask questions about health data in natural language
+            </p>
+          </div>
         </div>
-      </div>
 
       <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4 mb-4">
         <div className="flex items-start gap-3">
@@ -272,6 +274,7 @@ export default function HealthChatPage() {
           </p>
         )}
       </Card>
-    </div>
+      </div>
+    </EmailVerificationGate>
   );
 }

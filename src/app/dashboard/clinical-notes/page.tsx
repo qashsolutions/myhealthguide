@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Loader2, FileText, Download, Printer, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
+import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { generateClinicalNotePDF, ClinicalNotePDFData } from '@/lib/utils/pdfExport';
 import { format } from 'date-fns';
 
@@ -83,18 +84,19 @@ export default function ClinicalNotesPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-            <FileText className="h-8 w-8 text-blue-600" />
-            Clinical Notes Generator
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            AI-powered clinical summaries for healthcare provider consultations
-          </p>
+    <EmailVerificationGate featureName="clinical notes generation">
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+              <FileText className="h-8 w-8 text-blue-600" />
+              Clinical Notes Generator
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              AI-powered clinical summaries for healthcare provider consultations
+            </p>
+          </div>
         </div>
-      </div>
 
       <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4">
         <div className="flex items-start gap-3">
@@ -285,6 +287,7 @@ export default function ClinicalNotesPage() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
+    </EmailVerificationGate>
   );
 }

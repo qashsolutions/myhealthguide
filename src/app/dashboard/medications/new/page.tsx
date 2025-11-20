@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { MedicationService } from '@/lib/firebase/medications';
 import { ElderService } from '@/lib/firebase/elders';
+import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { Elder } from '@/types';
 
 export default function NewMedicationPage() {
@@ -111,127 +112,131 @@ export default function NewMedicationPage() {
   // Check if no elders exist
   if (elders.length === 0) {
     return (
+      <EmailVerificationGate featureName="medications">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add New Medication</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  You need to add an elder before you can add medications.
+                </p>
+                <Button onClick={() => router.push('/dashboard/elders/new')}>
+                  Add Elder First
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </EmailVerificationGate>
+    );
+  }
+
+  return (
+    <EmailVerificationGate featureName="medications">
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle>Add New Medication</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                You need to add an elder before you can add medications.
-              </p>
-              <Button onClick={() => router.push('/dashboard/elders/new')}>
-                Add Elder First
-              </Button>
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="elderId">Elder</Label>
+                <Select value={formData.elderId} onValueChange={(value) => setFormData({...formData, elderId: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an elder" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {elders.map((elder) => (
+                      <SelectItem key={elder.id} value={elder.id}>
+                        {elder.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Medication Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Lisinopril"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  required
+                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dosage">Dosage</Label>
+                <Input
+                  id="dosage"
+                  placeholder="100"
+                  value={formData.dosage}
+                  onChange={(e) => setFormData({...formData, dosage: e.target.value})}
+                  required
+                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="times">Times (comma separated)</Label>
+                <Input
+                  id="times"
+                  placeholder="7 am"
+                  value={formData.times}
+                  onChange={(e) => setFormData({...formData, times: e.target.value})}
+                  required
+                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                  required
+                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="instructions">Instructions (Optional)</Label>
+                <Textarea
+                  id="instructions"
+                  placeholder="Take with food"
+                  rows={3}
+                  value={formData.instructions}
+                  onChange={(e) => setFormData({...formData, instructions: e.target.value})}
+                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+              </div>
+
+              {error && (
+                <div className="text-sm text-red-600 dark:text-red-400">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4">
+                <Button type="submit" disabled={loading} className="flex-1">
+                  {loading ? 'Saving...' : 'Add Medication'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => router.back()}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       </div>
-    );
-  }
-
-  return (
-    <div className="max-w-2xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New Medication</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="elderId">Elder</Label>
-              <Select value={formData.elderId} onValueChange={(value) => setFormData({...formData, elderId: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an elder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {elders.map((elder) => (
-                    <SelectItem key={elder.id} value={elder.id}>
-                      {elder.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Medication Name</Label>
-              <Input
-                id="name"
-                placeholder="Lisinopril"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                required
-                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dosage">Dosage</Label>
-              <Input
-                id="dosage"
-                placeholder="100"
-                value={formData.dosage}
-                onChange={(e) => setFormData({...formData, dosage: e.target.value})}
-                required
-                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="times">Times (comma separated)</Label>
-              <Input
-                id="times"
-                placeholder="7 am"
-                value={formData.times}
-                onChange={(e) => setFormData({...formData, times: e.target.value})}
-                required
-                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                required
-                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="instructions">Instructions (Optional)</Label>
-              <Textarea
-                id="instructions"
-                placeholder="Take with food"
-                rows={3}
-                value={formData.instructions}
-                onChange={(e) => setFormData({...formData, instructions: e.target.value})}
-                className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-              />
-            </div>
-
-            {error && (
-              <div className="text-sm text-red-600 dark:text-red-400">
-                {error}
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-4">
-              <Button type="submit" disabled={loading} className="flex-1">
-                {loading ? 'Saving...' : 'Add Medication'}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => router.back()}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    </EmailVerificationGate>
   );
 }

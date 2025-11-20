@@ -17,6 +17,7 @@ import { calculateWeeklyTrends } from '@/lib/utils/trendsCalculation';
 import { MedicationService } from '@/lib/firebase/medications';
 import { DietService } from '@/lib/firebase/diet';
 import { useAuth } from '@/contexts/AuthContext';
+import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { ElderService } from '@/lib/firebase/elders';
 import { GroupService } from '@/lib/firebase/groups';
 import { DailySummary, Elder } from '@/types';
@@ -207,18 +208,19 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-purple-600" />
-            AI Insights
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            AI-powered analysis and recommendations
-          </p>
-        </div>
+    <EmailVerificationGate featureName="AI health insights">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-8 h-8 text-purple-600" />
+              AI Insights
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              AI-powered analysis and recommendations
+            </p>
+          </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -446,6 +448,7 @@ export default function InsightsPage() {
           groupId={user.groups[0].groupId}
         />
       )}
-    </div>
+      </div>
+    </EmailVerificationGate>
   );
 }

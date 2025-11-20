@@ -14,6 +14,7 @@ import { Utensils, Plus, X, Sparkles, ArrowLeft, Loader } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
+import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { DietService } from '@/lib/firebase/diet';
 import { ElderService } from '@/lib/firebase/elders';
 
@@ -166,28 +167,31 @@ export default function NewDietEntryPage() {
   // Check if no elders exist
   if (elders.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Log Meal Entry</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                You need to add an elder before you can log meals.
-              </p>
-              <Button onClick={() => router.push('/dashboard/elders/new')}>
-                Add Elder First
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <EmailVerificationGate featureName="diet tracking">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Log Meal Entry</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  You need to add an elder before you can log meals.
+                </p>
+                <Button onClick={() => router.push('/dashboard/elders/new')}>
+                  Add Elder First
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </EmailVerificationGate>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <EmailVerificationGate featureName="diet tracking">
+      <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/dashboard/diet">
@@ -371,5 +375,6 @@ export default function NewDietEntryPage() {
         )}
       </div>
     </div>
+    </EmailVerificationGate>
   );
 }

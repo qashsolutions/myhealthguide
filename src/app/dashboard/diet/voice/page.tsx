@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Utensils, Info, CheckCircle, ArrowLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { DietService } from '@/lib/firebase/diet';
 import { ElderService } from '@/lib/firebase/elders';
 
@@ -152,23 +153,24 @@ export default function VoiceDietPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/diet">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Voice Meal Log
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Use voice to quickly log meals and food intake
-          </p>
+    <EmailVerificationGate featureName="voice diet entry">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/diet">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Voice Meal Log
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Use voice to quickly log meals and food intake
+            </p>
+          </div>
         </div>
-      </div>
 
       {/* Browser Support Alert */}
       <BrowserSupportAlert manualEntryUrl="/dashboard/diet/new" />
@@ -278,8 +280,9 @@ export default function VoiceDietPage() {
         onRetry={handleRetry}
       />
 
-      {/* Recording Indicator */}
-      <VoiceRecordingIndicator isRecording={isRecording} />
-    </div>
+        {/* Recording Indicator */}
+        <VoiceRecordingIndicator isRecording={isRecording} />
+      </div>
+    </EmailVerificationGate>
   );
 }
