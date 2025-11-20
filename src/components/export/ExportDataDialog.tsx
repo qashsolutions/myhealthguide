@@ -18,6 +18,7 @@ import { MedicationService } from '@/lib/firebase/medications';
 import { DietService } from '@/lib/firebase/diet';
 import { generateHealthReportPDF } from '@/lib/utils/pdfExport';
 import { subDays } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ExportDataDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function ExportDataDialog({
   elderName,
   groupId
 }: ExportDataDialogProps) {
+  const { user } = useAuth();
   const [dateRange, setDateRange] = useState<string>('30');
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +55,17 @@ export function ExportDataDialog({
     setError(null);
 
     try {
+      if (!user) {
+        throw new Error('You must be signed in to export data');
+      }
+
+      const userId = user.id;
+      const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+      if (!userRole) {
+        throw new Error('Unable to determine user role');
+      }
+
       const days = parseInt(dateRange);
       const endDate = new Date();
       const startDate = subDays(endDate, days);
@@ -61,7 +74,9 @@ export function ExportDataDialog({
       const allMedicationLogs = await MedicationService.getLogsByDateRange(
         groupId,
         startDate,
-        endDate
+        endDate,
+        userId,
+        userRole
       );
 
       // Filter for this elder
@@ -71,7 +86,9 @@ export function ExportDataDialog({
       const allDietEntries = await DietService.getEntriesByDateRange(
         groupId,
         startDate,
-        endDate
+        endDate,
+        userId,
+        userRole
       );
 
       // Filter for this elder
@@ -81,7 +98,7 @@ export function ExportDataDialog({
       const uniqueMedicationIds = [...new Set(medicationLogs.map(log => log.medicationId))];
       const medications = await Promise.all(
         uniqueMedicationIds.map(async (medId) => {
-          const med = await MedicationService.getMedication(medId);
+          const med = await MedicationService.getMedication(medId, userId, userRole);
           return med ? {
             id: med.id!,
             name: med.name,

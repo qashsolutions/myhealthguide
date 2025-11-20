@@ -4,16 +4,28 @@
  */
 
 import { DailySummary, DietAnalysis, AIAnalysis } from '@/types';
+import { logPHIThirdPartyDisclosure, UserRole } from '../medical/phiAuditLog';
 
 /**
  * Generate daily summary using Gemini AI
+ * @param data - Medical data to analyze
+ * @param userId - User ID for HIPAA audit logging
+ * @param userRole - User role for HIPAA audit logging
+ * @param groupId - Group ID for HIPAA audit logging
+ * @param elderId - Elder ID for HIPAA audit logging
  */
-export async function generateDailySummary(data: {
-  medicationLogs: any[];
-  supplementLogs: any[];
-  dietEntries: any[];
-  elderName: string;
-}): Promise<DailySummary> {
+export async function generateDailySummary(
+  data: {
+    medicationLogs: any[];
+    supplementLogs: any[];
+    dietEntries: any[];
+    elderName: string;
+  },
+  userId: string,
+  userRole: UserRole,
+  groupId: string,
+  elderId: string
+): Promise<DailySummary> {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -73,6 +85,18 @@ Format: Return valid JSON matching the DailySummary TypeScript interface.
 `;
 
   try {
+    // HIPAA Audit: Log third-party PHI disclosure to Google Gemini AI
+    await logPHIThirdPartyDisclosure({
+      userId,
+      userRole,
+      groupId,
+      elderId,
+      serviceName: 'Google Gemini AI',
+      serviceType: 'health_summary_generation',
+      dataShared: ['medication_logs', 'supplement_logs', 'diet_entries', 'elder_name'],
+      purpose: 'Generate daily health summary for caregiving insights',
+    });
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
       {
@@ -118,13 +142,24 @@ Format: Return valid JSON matching the DailySummary TypeScript interface.
 
 /**
  * Analyze diet entry for nutritional concerns
+ * @param entry - Diet entry data
+ * @param userId - User ID for HIPAA audit logging
+ * @param userRole - User role for HIPAA audit logging
+ * @param groupId - Group ID for HIPAA audit logging
+ * @param elderId - Elder ID for HIPAA audit logging
  */
-export async function analyzeDietEntry(entry: {
-  meal: string;
-  items: string[];
-  elderAge: number;
-  existingConditions?: string[];
-}): Promise<DietAnalysis> {
+export async function analyzeDietEntry(
+  entry: {
+    meal: string;
+    items: string[];
+    elderAge: number;
+    existingConditions?: string[];
+  },
+  userId: string,
+  userRole: UserRole,
+  groupId: string,
+  elderId: string
+): Promise<DietAnalysis> {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -161,6 +196,18 @@ Format: Return valid JSON matching the DietAnalysis TypeScript interface.
 `;
 
   try {
+    // HIPAA Audit: Log third-party PHI disclosure to Google Gemini AI
+    await logPHIThirdPartyDisclosure({
+      userId,
+      userRole,
+      groupId,
+      elderId,
+      serviceName: 'Google Gemini AI',
+      serviceType: 'diet_analysis',
+      dataShared: ['meal_type', 'food_items', 'elder_age', 'medical_conditions'],
+      purpose: 'Analyze diet entry for nutritional concerns',
+    });
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
       {
@@ -205,8 +252,19 @@ Format: Return valid JSON matching the DietAnalysis TypeScript interface.
 
 /**
  * Detect patterns in medication compliance
+ * @param logs - Medication logs to analyze
+ * @param userId - User ID for HIPAA audit logging
+ * @param userRole - User role for HIPAA audit logging
+ * @param groupId - Group ID for HIPAA audit logging
+ * @param elderId - Elder ID for HIPAA audit logging
  */
-export async function detectCompliancePatterns(logs: any[]): Promise<{
+export async function detectCompliancePatterns(
+  logs: any[],
+  userId: string,
+  userRole: UserRole,
+  groupId: string,
+  elderId: string
+): Promise<{
   patterns: string[];
   recommendations: string[];
 }> {
@@ -240,6 +298,18 @@ Format: Return JSON with patterns and recommendations arrays.
 `;
 
   try {
+    // HIPAA Audit: Log third-party PHI disclosure to Google Gemini AI
+    await logPHIThirdPartyDisclosure({
+      userId,
+      userRole,
+      groupId,
+      elderId,
+      serviceName: 'Google Gemini AI',
+      serviceType: 'compliance_pattern_detection',
+      dataShared: ['medication_logs', 'compliance_status', 'timestamps'],
+      purpose: 'Detect medication compliance patterns and provide recommendations',
+    });
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
       {

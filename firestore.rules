@@ -916,6 +916,33 @@ service cloud.firestore {
         isSuperAdmin(resource.data.agencyId);
     }
 
+    // ============= PHI Audit Logs Collection (HIPAA Compliance) =============
+    // HIPAA § 164.312(b) - Audit Controls
+    // Required for tracking access to Protected Health Information
+
+    match /phi_audit_logs/{logId} {
+      // Users can read their OWN audit logs (HIPAA transparency requirement)
+      // Group admins can read audit logs for their group (oversight)
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         isGroupAdmin(resource.data.groupId));
+
+      // System creates PHI audit logs automatically
+      // Any authenticated user can create logs for their own actions
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
+
+      // PHI audit logs are IMMUTABLE (audit trail integrity - HIPAA requirement)
+      // Cannot be modified once created to ensure authenticity
+      allow update: if false;
+
+      // GDPR: Users can delete their OWN audit logs (Right to be Forgotten, Article 17)
+      // Group admins can delete audit logs for their group
+      allow delete: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         isGroupAdmin(resource.data.groupId));
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default

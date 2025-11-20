@@ -48,7 +48,9 @@ export interface MedicationTimeOptimization {
  */
 export async function optimizeMedicationTimes(
   medicationId: string,
-  groupId: string
+  groupId: string,
+  userId: string,
+  userRole: 'admin' | 'caregiver' | 'member'
 ): Promise<MedicationTimeOptimization | null> {
   try {
     // 1. Check feature flags
@@ -70,7 +72,9 @@ export async function optimizeMedicationTimes(
     const allLogs = await MedicationService.getLogsByDateRange(
       groupId,
       thirtyDaysAgo,
-      new Date()
+      new Date(),
+      userId,
+      userRole
     );
 
     // Filter for this specific medication
@@ -247,7 +251,9 @@ function generateRecommendation(
  */
 export async function analyzeAllMedicationTimes(
   elderId: string,
-  groupId: string
+  groupId: string,
+  userId: string,
+  userRole: 'admin' | 'caregiver' | 'member'
 ): Promise<Array<{
   medicationId: string;
   medicationName: string;
@@ -267,7 +273,7 @@ export async function analyzeAllMedicationTimes(
     }
 
     // 2. Get all active medications for this elder
-    const allMedications = await MedicationService.getMedicationsByGroup(groupId);
+    const allMedications = await MedicationService.getMedicationsByGroup(groupId, userId, userRole);
     const now = new Date();
     const elderMedications = allMedications.filter(
       med => med.elderId === elderId && (!med.endDate || new Date(med.endDate) > now)
@@ -277,7 +283,7 @@ export async function analyzeAllMedicationTimes(
     const results = [];
 
     for (const medication of elderMedications) {
-      const optimization = await optimizeMedicationTimes(medication.id!, groupId);
+      const optimization = await optimizeMedicationTimes(medication.id!, groupId, userId, userRole);
 
       if (optimization && optimization.optimizationNeeded) {
         results.push({

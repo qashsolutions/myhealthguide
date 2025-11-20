@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
 import { MedicationService } from '@/lib/firebase/medications';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LogDoseModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ interface LogDoseModalProps {
 }
 
 export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: LogDoseModalProps) {
+  const { user } = useAuth();
   const [status, setStatus] = useState<'taken' | 'missed' | 'skipped'>('taken');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,17 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
         await onSubmit(logData);
       } else {
         // Save to Firebase
+        if (!user) {
+          throw new Error('You must be signed in to log medication');
+        }
+
+        const userId = user.id;
+        const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+        if (!userRole) {
+          throw new Error('Unable to determine user role');
+        }
+
         await MedicationService.logDose({
           medicationId: medication.id,
           groupId: medication.groupId,
@@ -59,7 +72,7 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
           notes: notes || undefined,
           method: 'manual',
           createdAt: new Date()
-        });
+        }, userId, userRole);
       }
 
       onClose();

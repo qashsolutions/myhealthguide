@@ -7,6 +7,7 @@ import { detectHealthChanges, HealthChangeAlert as HealthChangeAlertType } from 
 import { analyzeAllMedicationTimes } from '@/lib/ai/medicationTimeOptimization';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AIInsightsContainerProps {
   elderId: string;
@@ -25,6 +26,7 @@ export function AIInsightsContainer({
   showMedicationOptimization = true,
   onApplySuggestion
 }: AIInsightsContainerProps) {
+  const { user } = useAuth();
   const [healthChanges, setHealthChanges] = useState<HealthChangeAlertType | null>(null);
   const [medicationOptimizations, setMedicationOptimizations] = useState<Array<{
     medicationId: string;
@@ -36,15 +38,29 @@ export function AIInsightsContainer({
 
   useEffect(() => {
     async function loadInsights() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
+
+        const userId = user.id;
+        const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+        if (!userRole) {
+          setError('Unable to determine user role');
+          setLoading(false);
+          return;
+        }
 
         const promises = [];
 
         if (showHealthChanges) {
           promises.push(
-            detectHealthChanges(elderId, groupId)
+            detectHealthChanges(elderId, groupId, userId, userRole)
               .then(result => setHealthChanges(result))
               .catch(err => {
                 console.error('Error detecting health changes:', err);
@@ -55,7 +71,7 @@ export function AIInsightsContainer({
 
         if (showMedicationOptimization) {
           promises.push(
-            analyzeAllMedicationTimes(elderId, groupId)
+            analyzeAllMedicationTimes(elderId, groupId, userId, userRole)
               .then(result => setMedicationOptimizations(result))
               .catch(err => {
                 console.error('Error analyzing medication times:', err);
@@ -72,7 +88,7 @@ export function AIInsightsContainer({
     }
 
     loadInsights();
-  }, [elderId, groupId, showHealthChanges, showMedicationOptimization]);
+  }, [elderId, groupId, showHealthChanges, showMedicationOptimization, user]);
 
   if (loading) {
     return (

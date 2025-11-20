@@ -47,6 +47,31 @@ export default function VoiceDietPage() {
       return;
     }
 
+    if (!user) {
+      setError('You must be signed in');
+      return;
+    }
+
+    const groupId = user.groups[0]?.groupId;
+    if (!groupId) {
+      setError('You must be part of a group');
+      return;
+    }
+
+    const userId = user.id;
+    const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+    if (!userRole) {
+      setError('Unable to determine user role');
+      return;
+    }
+
+    // Try to find elder ID by name
+    const elderName = parsedData.elderName || 'Unknown';
+    const elders = await ElderService.getEldersByGroup(groupId, userId, userRole);
+    const elder = elders.find(e => e.name.toLowerCase().trim() === elderName.toLowerCase().trim());
+    const elderId = elder?.id || elderName;
+
     setIsAnalyzing(true);
     try {
       const result = await analyzeDietEntry({
@@ -54,7 +79,7 @@ export default function VoiceDietPage() {
         items: parsedData.items,
         elderAge: 75, // Mock - replace with actual elder age
         existingConditions: []
-      });
+      }, userId, userRole, groupId, elderId);
       setAnalysis(result);
     } catch (error) {
       console.error('Error analyzing diet:', error);
@@ -74,9 +99,16 @@ export default function VoiceDietPage() {
         throw new Error('You must be part of a group');
       }
 
+      const userId = user.id;
+      const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+      if (!userRole) {
+        throw new Error('Unable to determine user role');
+      }
+
       // Try to find elder ID by name
       const elderName = parsedData.elderName || 'Unknown';
-      const elders = await ElderService.getEldersByGroup(groupId);
+      const elders = await ElderService.getEldersByGroup(groupId, userId, userRole);
       const elder = elders.find(e => e.name.toLowerCase().trim() === elderName.toLowerCase().trim());
       const elderId = elder?.id || elderName; // Fallback to name if not found
 
@@ -92,7 +124,7 @@ export default function VoiceDietPage() {
         loggedBy: user.id,
         method: 'voice',
         createdAt: new Date()
-      });
+      }, userId, userRole);
 
       const mealType = parsedData.meal || 'meal';
       setSuccess(`Successfully logged ${mealType} for ${elderName}`);

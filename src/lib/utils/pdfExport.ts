@@ -277,3 +277,296 @@ function calculateMetrics(data: ExportData): ComplianceMetrics {
     dietEntriesCount: data.dietEntries.length
   };
 }
+
+// ============= Clinical Note PDF Export =============
+
+export interface ClinicalNotePDFData {
+  patientInfo: {
+    name: string;
+    age: number;
+    dateOfBirth?: string;
+    medicalConditions?: string[];
+    allergies?: string[];
+  };
+  reportInfo: {
+    generatedDate: string;
+    timeframeDays: number;
+    generatedBy: string;
+  };
+  clinicalSummary: string;
+  medicationList: Array<{
+    name: string;
+    dosage: string;
+    frequency: string;
+    compliance?: string;
+  }>;
+  complianceAnalysis: {
+    overallRate: string;
+    totalDoses: number;
+    takenDoses: number;
+    missedDoses: number;
+  };
+  recommendations: string[];
+  questionsForDoctor: string[];
+}
+
+/**
+ * Generate a professional clinical note PDF for doctor visits
+ */
+export async function generateClinicalNotePDF(
+  data: ClinicalNotePDFData,
+  filename?: string
+): Promise<void> {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  let yPosition = margin;
+
+  // Helper function to add text with word wrap
+  const addWrappedText = (text: string, maxWidth: number, fontSize: number = 10) => {
+    doc.setFontSize(fontSize);
+    const lines = doc.splitTextToSize(text, maxWidth);
+
+    lines.forEach((line: string) => {
+      // Check if we need a new page
+      if (yPosition > pageHeight - margin - 30) {
+        doc.addPage();
+        yPosition = margin;
+      }
+      doc.text(line, margin, yPosition);
+      yPosition += fontSize * 0.5;
+    });
+  };
+
+  // === HEADER ===
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Clinical Summary Report', pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 10;
+
+  // Date and timeframe
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Generated: ${data.reportInfo.generatedDate}`, pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 5;
+  doc.text(`Period: Last ${data.reportInfo.timeframeDays} days`, pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 10;
+
+  // Separator line
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, yPosition, pageWidth - margin, yPosition);
+  yPosition += 8;
+
+  // === PATIENT INFORMATION ===
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Patient Information', margin, yPosition);
+  yPosition += 7;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Name: ${data.patientInfo.name}`, margin, yPosition);
+  yPosition += 5;
+  doc.text(`Age: ${data.patientInfo.age} years`, margin, yPosition);
+  yPosition += 5;
+
+  if (data.patientInfo.dateOfBirth) {
+    doc.text(`Date of Birth: ${data.patientInfo.dateOfBirth}`, margin, yPosition);
+    yPosition += 5;
+  }
+
+  if (data.patientInfo.medicalConditions && data.patientInfo.medicalConditions.length > 0) {
+    const conditions = data.patientInfo.medicalConditions.join(', ');
+    const conditionsLines = doc.splitTextToSize(`Known Conditions: ${conditions}`, pageWidth - 2 * margin);
+    conditionsLines.forEach((line: string) => {
+      doc.text(line, margin, yPosition);
+      yPosition += 5;
+    });
+  }
+
+  if (data.patientInfo.allergies && data.patientInfo.allergies.length > 0) {
+    doc.setTextColor(200, 0, 0); // Red for allergies
+    const allergies = data.patientInfo.allergies.join(', ');
+    const allergiesLines = doc.splitTextToSize(`ALLERGIES: ${allergies}`, pageWidth - 2 * margin);
+    allergiesLines.forEach((line: string) => {
+      doc.text(line, margin, yPosition);
+      yPosition += 5;
+    });
+    doc.setTextColor(0, 0, 0); // Reset to black
+  }
+
+  yPosition += 5;
+
+  // === CLINICAL SUMMARY ===
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Clinical Summary', margin, yPosition);
+  yPosition += 7;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  addWrappedText(data.clinicalSummary, pageWidth - 2 * margin);
+  yPosition += 8;
+
+  // === MEDICATION ADHERENCE ===
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Medication Adherence', margin, yPosition);
+  yPosition += 7;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Overall Compliance: ${data.complianceAnalysis.overallRate}%`, margin, yPosition);
+  yPosition += 5;
+  doc.text(`Doses Taken: ${data.complianceAnalysis.takenDoses} of ${data.complianceAnalysis.totalDoses}`, margin, yPosition);
+  yPosition += 5;
+  doc.text(`Doses Missed: ${data.complianceAnalysis.missedDoses}`, margin, yPosition);
+  yPosition += 8;
+
+  // === CURRENT MEDICATIONS TABLE ===
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Current Medications', margin, yPosition);
+  yPosition += 7;
+
+  // Check if we need a new page before the table
+  if (yPosition > pageHeight - 80) {
+    doc.addPage();
+    yPosition = margin;
+  }
+
+  // Create medication table
+  const medicationTableData = data.medicationList.map(med => [
+    med.name,
+    med.dosage,
+    med.frequency,
+    med.compliance || 'N/A'
+  ]);
+
+  autoTable(doc, {
+    startY: yPosition,
+    head: [['Medication', 'Dosage', 'Frequency', 'Compliance']],
+    body: medicationTableData,
+    theme: 'striped',
+    headStyles: { fillColor: [66, 139, 202] },
+    margin: { left: margin, right: margin },
+    styles: { fontSize: 9 },
+  });
+
+  yPosition = (doc as any).lastAutoTable.finalY + 10;
+
+  // === RECOMMENDATIONS ===
+  if (data.recommendations && data.recommendations.length > 0) {
+    // Check if we need a new page
+    if (yPosition > pageHeight - 60) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Clinical Recommendations', margin, yPosition);
+    yPosition += 7;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+    data.recommendations.forEach((rec, index) => {
+      if (yPosition > pageHeight - margin - 35) {
+        doc.addPage();
+        yPosition = margin;
+      }
+      const bullet = `${index + 1}. `;
+      const lines = doc.splitTextToSize(rec, pageWidth - 2 * margin - 10);
+      doc.text(bullet, margin, yPosition);
+      doc.text(lines, margin + 10, yPosition);
+      yPosition += lines.length * 5 + 2;
+    });
+
+    yPosition += 5;
+  }
+
+  // === QUESTIONS FOR DOCTOR ===
+  if (data.questionsForDoctor && data.questionsForDoctor.length > 0) {
+    // Check if we need a new page
+    if (yPosition > pageHeight - 60) {
+      doc.addPage();
+      yPosition = margin;
+    }
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Questions for Healthcare Provider', margin, yPosition);
+    yPosition += 7;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+    data.questionsForDoctor.forEach((question, index) => {
+      if (yPosition > pageHeight - margin - 35) {
+        doc.addPage();
+        yPosition = margin;
+      }
+      const bullet = `${index + 1}. `;
+      const lines = doc.splitTextToSize(question, pageWidth - 2 * margin - 10);
+      doc.text(bullet, margin, yPosition);
+      doc.text(lines, margin + 10, yPosition);
+      yPosition += lines.length * 5 + 2;
+    });
+
+    yPosition += 10;
+  }
+
+  // === DISCLAIMER ===
+  // Always add disclaimer at the bottom of the last page
+  const disclaimerY = pageHeight - 35;
+
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, disclaimerY - 5, pageWidth - margin, disclaimerY - 5);
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(100, 100, 100);
+
+  const disclaimer = 'MEDICAL DISCLAIMER: This report is AI-generated to assist clinical discussions. ' +
+    'It does NOT constitute medical advice, diagnosis, or treatment recommendations. ' +
+    'All medical decisions should be made by licensed healthcare providers. ' +
+    'This information should be reviewed and verified by a qualified healthcare professional.';
+
+  const disclaimerLines = doc.splitTextToSize(disclaimer, pageWidth - 2 * margin);
+  let disclaimerYPos = disclaimerY;
+  disclaimerLines.forEach((line: string) => {
+    doc.text(line, margin, disclaimerYPos);
+    disclaimerYPos += 3;
+  });
+
+  // === FOOTER (on every page) ===
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      `Page ${i} of ${totalPages}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+    doc.text(
+      `Generated by MyGuide Health - ${data.reportInfo.generatedDate}`,
+      pageWidth / 2,
+      pageHeight - 6,
+      { align: 'center' }
+    );
+  }
+
+  // Download the PDF
+  const defaultFilename = `Clinical_Note_${data.patientInfo.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  doc.save(filename || defaultFilename);
+}

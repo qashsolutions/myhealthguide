@@ -37,7 +37,14 @@ export default function NewElderPage() {
         throw new Error('You must be part of a group to add an elder');
       }
 
-      await ElderService.createElder(groupId, user.id, {
+      const userId = user.id;
+      const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+      if (!userRole) {
+        throw new Error('Unable to determine user role');
+      }
+
+      await ElderService.createElder(groupId, userId, userRole, {
         name: formData.name,
         groupId,
         dateOfBirth: new Date(formData.dateOfBirth),

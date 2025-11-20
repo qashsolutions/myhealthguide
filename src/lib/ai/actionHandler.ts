@@ -233,7 +233,10 @@ export class ActionHandler {
       const medicationName = medMatch ? medMatch[1].trim() : 'medication';
 
       // Get medications for this elder
-      const medications = await MedicationService.getMedicationsByElder(elderId);
+      // Note: For actionHandler, we don't have explicit user role information in context
+      // We'll use 'member' as default role since context.userId exists and has access to this elder
+      const userRole = 'member' as 'admin' | 'caregiver' | 'member';
+      const medications = await MedicationService.getMedicationsByElder(elderId, context.userId, userRole);
 
       // Find matching medication (fuzzy match)
       const medication = medications?.find(med =>
@@ -262,7 +265,7 @@ export class ActionHandler {
         method: 'manual',
         notes: `Logged via AI chat: "${message}"`,
         createdAt: now
-      });
+      }, context.userId, userRole);
 
       return {
         success: true,

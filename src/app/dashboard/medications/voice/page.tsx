@@ -48,9 +48,16 @@ export default function VoiceMedicationPage() {
         throw new Error('You must be part of a group');
       }
 
+      const userId = user.id;
+      const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+      if (!userRole) {
+        throw new Error('Unable to determine user role');
+      }
+
       // Try to find elder ID by name
       const elderName = parsedData.elderName || 'Unknown';
-      const elders = await ElderService.getEldersByGroup(groupId);
+      const elders = await ElderService.getEldersByGroup(groupId, userId, userRole);
       const elder = elders.find(e => e.name.toLowerCase().trim() === elderName.toLowerCase().trim());
 
       if (!elder) {
@@ -58,7 +65,7 @@ export default function VoiceMedicationPage() {
       }
 
       // Try to find medication by name
-      const medications = await MedicationService.getMedicationsByElder(elder.id);
+      const medications = await MedicationService.getMedicationsByElder(elder.id, userId, userRole);
       const medication = medications.find(m =>
         m.name.toLowerCase().trim() === parsedData.itemName.toLowerCase().trim()
       );
@@ -78,7 +85,7 @@ export default function VoiceMedicationPage() {
         method: 'voice',
         voiceTranscript: editedTranscript,
         createdAt: new Date()
-      });
+      }, userId, userRole);
 
       setSuccess(`Successfully logged ${parsedData.itemName} for ${elderName}`);
       setShowDialog(false);

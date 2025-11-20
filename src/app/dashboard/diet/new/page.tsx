@@ -35,7 +35,9 @@ export default function NewDietEntryPage() {
     async function loadElders() {
       if (user?.groups[0]?.groupId) {
         try {
-          const eldersList = await ElderService.getEldersByGroup(user.groups[0].groupId);
+          const userId = user.id;
+          const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
+          const eldersList = await ElderService.getEldersByGroup(user.groups[0].groupId, userId, userRole);
           setElders(eldersList);
         } catch (err) {
           console.error('Error loading elders:', err);
@@ -64,6 +66,30 @@ export default function NewDietEntryPage() {
       return;
     }
 
+    if (!elderId) {
+      setError('Please select an elder');
+      return;
+    }
+
+    if (!user) {
+      setError('You must be signed in');
+      return;
+    }
+
+    const groupId = user.groups[0]?.groupId;
+    if (!groupId) {
+      setError('You must be part of a group');
+      return;
+    }
+
+    const userId = user.id;
+    const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+    if (!userRole) {
+      setError('Unable to determine user role');
+      return;
+    }
+
     setIsAnalyzing(true);
     setError('');
 
@@ -73,7 +99,7 @@ export default function NewDietEntryPage() {
         items,
         elderAge: 75, // Mock age - replace with actual elder age from Firebase
         existingConditions: [] // Replace with actual conditions
-      });
+      }, userId, userRole, groupId, elderId);
 
       setAnalysis(result);
     } catch (err) {
@@ -109,6 +135,13 @@ export default function NewDietEntryPage() {
         throw new Error('You must be part of a group');
       }
 
+      const userId = user.id;
+      const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+      if (!userRole) {
+        throw new Error('Unable to determine user role');
+      }
+
       await DietService.createEntry({
         elderId,
         groupId,
@@ -120,7 +153,7 @@ export default function NewDietEntryPage() {
         loggedBy: user.id,
         method: 'manual',
         createdAt: new Date()
-      });
+      }, userId, userRole);
 
       router.push('/dashboard/diet');
     } catch (err: any) {

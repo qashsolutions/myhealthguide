@@ -31,7 +31,9 @@ export interface HealthChangeAlert {
  */
 export async function detectHealthChanges(
   elderId: string,
-  groupId: string
+  groupId: string,
+  userId: string,
+  userRole: 'admin' | 'caregiver' | 'member'
 ): Promise<HealthChangeAlert | null> {
   try {
     // 1. Check feature flags
@@ -64,10 +66,10 @@ export async function detectHealthChanges(
 
     // 4. Fetch data for both weeks
     const [thisWeekMeds, lastWeekMeds, thisWeekDiet, lastWeekDiet] = await Promise.all([
-      MedicationService.getLogsByDateRange(groupId, thisWeekStart, now),
-      MedicationService.getLogsByDateRange(groupId, lastWeekStart, lastWeekEnd),
-      DietService.getEntriesByDateRange(groupId, thisWeekStart, now),
-      DietService.getEntriesByDateRange(groupId, lastWeekStart, lastWeekEnd)
+      MedicationService.getLogsByDateRange(groupId, thisWeekStart, now, userId, userRole),
+      MedicationService.getLogsByDateRange(groupId, lastWeekStart, lastWeekEnd, userId, userRole),
+      DietService.getEntriesByDateRange(groupId, thisWeekStart, now, userId, userRole),
+      DietService.getEntriesByDateRange(groupId, lastWeekStart, lastWeekEnd, userId, userRole)
     ]);
 
     // 5. Filter by elder

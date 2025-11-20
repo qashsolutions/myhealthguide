@@ -32,9 +32,15 @@ export default function NewMedicationPage() {
   // Load elders for selection
   useEffect(() => {
     async function loadElders() {
-      if (user?.groups[0]?.groupId) {
+      if (user?.groups[0]?.groupId && user?.id) {
         try {
-          const eldersList = await ElderService.getEldersByGroup(user.groups[0].groupId);
+          // Get user's role for HIPAA audit logging
+          const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
+          const eldersList = await ElderService.getEldersByGroup(
+            user.groups[0].groupId,
+            user.id,
+            userRole
+          );
           setElders(eldersList);
         } catch (err) {
           console.error('Error loading elders:', err);
@@ -69,23 +75,30 @@ export default function NewMedicationPage() {
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      await MedicationService.createMedication({
-        elderId: formData.elderId,
-        groupId,
-        name: formData.name,
-        dosage: formData.dosage,
-        frequency: {
-          type: formData.frequency as 'daily' | 'weekly' | 'asNeeded',
-          times: timesArray
+      // Get user's role for HIPAA audit logging
+      const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
+
+      await MedicationService.createMedication(
+        {
+          elderId: formData.elderId,
+          groupId,
+          name: formData.name,
+          dosage: formData.dosage,
+          frequency: {
+            type: formData.frequency as 'daily' | 'weekly' | 'asNeeded',
+            times: timesArray
+          },
+          instructions: formData.instructions,
+          startDate: new Date(formData.startDate),
+          endDate: undefined,
+          reminders: true,
+          createdBy: user.id,
+          createdAt: new Date(),
+          updatedAt: new Date()
         },
-        instructions: formData.instructions,
-        startDate: new Date(formData.startDate),
-        endDate: undefined,
-        reminders: true,
-        createdBy: user.id,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
+        user.id,
+        userRole
+      );
 
       router.push('/dashboard/medications');
     } catch (err: any) {

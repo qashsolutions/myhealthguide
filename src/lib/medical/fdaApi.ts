@@ -9,6 +9,8 @@
  * 5. Link to source
  */
 
+import { logPHIThirdPartyDisclosure, UserRole } from './phiAuditLog';
+
 export interface FDADrugLabelData {
   // Raw FDA response - stored as-is
   source: 'openfda';
@@ -47,7 +49,11 @@ const CACHE_DURATION_DAYS = 30; // Re-fetch FDA data after 30 days
  * Tries multiple search strategies to find the drug
  */
 export async function fetchFDADrugLabel(
-  medicationName: string
+  medicationName: string,
+  userId?: string,
+  userRole?: UserRole,
+  groupId?: string,
+  elderId?: string
 ): Promise<FDADrugLabelData | null> {
   try {
     // Try search strategies in order of specificity
@@ -62,6 +68,25 @@ export async function fetchFDADrugLabel(
 
     for (const searchQuery of searchStrategies) {
       const url = `${FDA_BASE_URL}?search=${encodeURIComponent(searchQuery)}&limit=1`;
+
+      // HIPAA Audit: Log third-party PHI disclosure to FDA Drug Information API
+      if (userId && userRole && groupId && elderId) {
+        try {
+          await logPHIThirdPartyDisclosure({
+            userId,
+            userRole,
+            groupId,
+            elderId,
+            serviceName: 'FDA Drug Information API',
+            serviceType: 'drug_information_lookup',
+            dataShared: ['medication_name'],
+            purpose: `Look up drug label information for ${medicationName} from FDA database`,
+          });
+        } catch (logError) {
+          console.error('Error logging PHI disclosure:', logError);
+          // Continue with FDA API call even if logging fails
+        }
+      }
 
       const response = await fetch(url);
 

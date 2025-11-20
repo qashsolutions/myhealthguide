@@ -50,7 +50,9 @@ export default function InsightsPage() {
 
       try {
         const groupId = user.groups[0].groupId;
-        const eldersData = await ElderService.getEldersByGroup(groupId);
+        const userId = user.id;
+        const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
+        const eldersData = await ElderService.getEldersByGroup(groupId, userId, userRole);
         setElders(eldersData);
 
         // Auto-select first elder if available
@@ -78,13 +80,15 @@ export default function InsightsPage() {
     setLoadingTrends(true);
     try {
       const groupId = user.groups[0].groupId;
+      const userId = user.id;
+      const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
       const endDate = new Date();
       const startDate = subWeeks(endDate, numberOfWeeks);
 
       // Fetch historical data
       const [allMedicationLogs, allDietEntries] = await Promise.all([
-        MedicationService.getLogsByDateRange(groupId, startDate, endDate),
-        DietService.getEntriesByDateRange(groupId, startDate, endDate)
+        MedicationService.getLogsByDateRange(groupId, startDate, endDate, userId, userRole),
+        DietService.getEntriesByDateRange(groupId, startDate, endDate, userId, userRole)
       ]);
 
       // Filter for selected elder
@@ -117,10 +121,12 @@ export default function InsightsPage() {
 
     try {
       const groupId = user.groups[0].groupId;
+      const userId = user.id;
+      const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
 
       // Fetch data for chat context
       const [medications, groupMembers] = await Promise.all([
-        MedicationService.getMedicationsByElder(selectedElder.id!),
+        MedicationService.getMedicationsByElder(selectedElder.id!, userId, userRole),
         GroupService.getGroupMembersWithDetails(groupId)
       ]);
 
@@ -140,8 +146,17 @@ export default function InsightsPage() {
   };
 
   const loadInsights = async () => {
+    if (!selectedElder || !user?.groups || user.groups.length === 0) {
+      return;
+    }
+
     setIsLoading(true);
     try {
+      const groupId = user.groups[0].groupId;
+      const userId = user.id;
+      const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
+      const elderId = selectedElder.id!;
+
       // Mock data for development
       // In production, fetch actual logs from Firebase
       const mockData = {
@@ -164,11 +179,11 @@ export default function InsightsPage() {
       };
 
       // Generate AI summary
-      const summary = await generateDailySummary(mockData);
+      const summary = await generateDailySummary(mockData, userId, userRole, groupId, elderId);
       setDailySummary(summary);
 
       // Detect compliance patterns
-      const compliancePatterns = await detectCompliancePatterns(mockData.medicationLogs);
+      const compliancePatterns = await detectCompliancePatterns(mockData.medicationLogs, userId, userRole, groupId, elderId);
       setPatterns(compliancePatterns);
 
     } catch (error) {

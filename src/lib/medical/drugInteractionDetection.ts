@@ -30,7 +30,11 @@ import type { Medication } from '@/types';
  */
 export async function getFDADataForMedication(
   medicationId: string,
-  medicationName: string
+  medicationName: string,
+  userId?: string,
+  userRole?: 'admin' | 'caregiver' | 'member',
+  groupId?: string,
+  elderId?: string
 ): Promise<FDADrugLabelData | null> {
   try {
     // Check if we have cached FDA data
@@ -55,7 +59,7 @@ export async function getFDADataForMedication(
 
     // Fetch fresh FDA data
     console.log(`🔍 Fetching FDA data for ${medicationName}...`);
-    const fdaData = await fetchFDADrugLabel(medicationName);
+    const fdaData = await fetchFDADrugLabel(medicationName, userId, userRole, groupId, elderId);
 
     if (!fdaData) {
       console.warn(`❌ No FDA data found for ${medicationName}`);
@@ -87,7 +91,9 @@ export async function getFDADataForMedication(
  */
 export async function checkMedicationInteractions(
   groupId: string,
-  elderId: string
+  elderId: string,
+  userId?: string,
+  userRole?: 'admin' | 'caregiver' | 'member'
 ): Promise<Array<{
   medication1: Medication;
   medication2: Medication;
@@ -124,7 +130,7 @@ export async function checkMedicationInteractions(
     const fdaDataMap = new Map<string, FDADrugLabelData | null>();
 
     for (const med of activeMedications) {
-      const fdaData = await getFDADataForMedication(med.id, med.name);
+      const fdaData = await getFDADataForMedication(med.id, med.name, userId, userRole, groupId, elderId);
       fdaDataMap.set(med.id, fdaData);
     }
 
@@ -257,10 +263,12 @@ export async function getPotentialInteractions(
  */
 export async function runInteractionCheck(
   groupId: string,
-  elderId: string
+  elderId: string,
+  userId?: string,
+  userRole?: 'admin' | 'caregiver' | 'member'
 ): Promise<{ count: number; interactions: any[] }> {
   try {
-    const interactions = await checkMedicationInteractions(groupId, elderId);
+    const interactions = await checkMedicationInteractions(groupId, elderId, userId, userRole);
 
     // Save each detected interaction
     for (const interaction of interactions) {
