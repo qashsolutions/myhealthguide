@@ -107,7 +107,7 @@ export function TrialExpirationBanner() {
     if (daysRemaining > 3) return null;
 
     let severity: 'warning' | 'urgent' | 'critical' = 'warning';
-    let icon = Clock;
+    let Icon = Clock;
     let bgColor = 'bg-yellow-50 dark:bg-yellow-900/20';
     let borderColor = 'border-yellow-300 dark:border-yellow-700';
     let textColor = 'text-yellow-900 dark:text-yellow-100';
@@ -116,7 +116,7 @@ export function TrialExpirationBanner() {
 
     if (daysRemaining === 0) {
       severity = 'critical';
-      icon = AlertTriangle;
+      Icon = AlertTriangle;
       bgColor = 'bg-orange-50 dark:bg-orange-900/20';
       borderColor = 'border-orange-300 dark:border-orange-700';
       textColor = 'text-orange-900 dark:text-orange-100';
@@ -124,7 +124,7 @@ export function TrialExpirationBanner() {
       message = 'Subscribe now or export your data. It will be deleted 48 hours after expiration.';
     } else if (daysRemaining === 1) {
       severity = 'urgent';
-      icon = AlertTriangle;
+      Icon = AlertTriangle;
       bgColor = 'bg-orange-50 dark:bg-orange-900/20';
       borderColor = 'border-orange-300 dark:border-orange-700';
       textColor = 'text-orange-900 dark:text-orange-100';
@@ -139,7 +139,7 @@ export function TrialExpirationBanner() {
     return (
       <Alert className={`mb-4 ${bgColor} ${borderColor}`}>
         <div className="flex items-start gap-3">
-          <icon className={`w-5 h-5 ${textColor.replace('text-', 'text-').replace('dark:', '')} mt-0.5 flex-shrink-0`} />
+          <Icon className={`w-5 h-5 ${textColor.replace('text-', 'text-').replace('dark:', '')} mt-0.5 flex-shrink-0`} />
           <div className="flex-1">
             <AlertDescription className={textColor}>
               <strong className="font-bold">{title}</strong>
