@@ -22,13 +22,36 @@ let vertexAI: VertexAI | null = null;
 
 /**
  * Initialize Vertex AI client (lazy initialization)
+ * Supports two authentication methods:
+ * 1. GOOGLE_APPLICATION_CREDENTIALS_JSON (for Vercel/serverless) - JSON string
+ * 2. GOOGLE_APPLICATION_CREDENTIALS (for local dev) - file path
  */
 function getVertexAI(): VertexAI {
   if (!vertexAI && projectId) {
-    vertexAI = new VertexAI({
-      project: projectId,
-      location: location,
-    });
+    const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+
+    if (credentialsJson) {
+      // Production (Vercel): Use JSON credentials from environment variable
+      try {
+        const credentials = JSON.parse(credentialsJson);
+        vertexAI = new VertexAI({
+          project: projectId,
+          location: location,
+          googleAuthOptions: {
+            credentials: credentials,
+          },
+        });
+      } catch (error) {
+        console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
+        throw new Error('Invalid GOOGLE_APPLICATION_CREDENTIALS_JSON format');
+      }
+    } else {
+      // Local Dev: Use GOOGLE_APPLICATION_CREDENTIALS file path (auto-detected by SDK)
+      vertexAI = new VertexAI({
+        project: projectId,
+        location: location,
+      });
+    }
   }
 
   if (!vertexAI) {
