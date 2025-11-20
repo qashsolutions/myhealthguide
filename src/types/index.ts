@@ -18,6 +18,9 @@ export interface User {
   preferences: UserPreferences;
   trialStartDate: Date | null; // Date of FIRST USE (not signup)
   trialEndDate: Date | null; // 14 days from first use
+  gracePeriodStartDate: Date | null; // When trial expired (48-hour countdown begins)
+  gracePeriodEndDate: Date | null; // When data will be deleted (48 hours after expiration)
+  dataExportRequested: boolean; // Whether user requested data export during grace period
   subscriptionStatus: 'trial' | 'active' | 'expired' | 'canceled';
   subscriptionTier: 'family' | 'single_agency' | 'multi_agency' | null; // null during trial
   storageUsed: number; // Bytes used
