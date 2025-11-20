@@ -98,7 +98,7 @@ Format: Return valid JSON matching the DailySummary TypeScript interface.
     });
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -209,7 +209,7 @@ Format: Return valid JSON matching the DietAnalysis TypeScript interface.
     });
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -311,7 +311,7 @@ Format: Return JSON with patterns and recommendations arrays.
     });
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
