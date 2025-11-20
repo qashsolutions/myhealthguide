@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   Home,
@@ -65,14 +64,10 @@ export function Sidebar() {
     <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
       <div className="pt-6 pr-6 pb-6 pl-4">
         <Link href="/dashboard" className="flex items-center">
-          <Image
-            src="/logo.png"
-            alt="myguide.health"
-            width={150}
-            height={40}
-            className="h-10 w-auto"
-            priority
-          />
+          <h1 className="text-3xl tracking-tight text-slate-900 dark:text-slate-100">
+            <span className="font-bold">Health</span>
+            <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
+          </h1>
         </Link>
       </div>
       <nav className="px-3 space-y-1">
