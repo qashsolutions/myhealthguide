@@ -67,6 +67,7 @@ const elderCentricSections = [
     defaultOpen: false,
     items: [
       { href: '/dashboard/shift-handoff', label: 'Shift Handoff', icon: Clock },
+      { href: '/dashboard/timesheet', label: 'Timesheet', icon: Clock },
       { href: '/dashboard/family-updates', label: 'Family Updates', icon: Mail },
       { href: '/dashboard/caregiver-burnout', label: 'Caregiver Burnout', icon: Users },
       { href: '/dashboard/alerts', label: 'Alerts', icon: Bell }
