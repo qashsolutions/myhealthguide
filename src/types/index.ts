@@ -1059,3 +1059,89 @@ export interface ScheduleConflict {
   message: string;
   conflictingShift?: ScheduledShift;
 }
+
+// Shift swap request
+export interface ShiftSwapRequest {
+  id: string;
+  agencyId: string;
+  requestingCaregiverId: string;
+  requestingCaregiverName: string;
+  targetCaregiverId?: string; // Optional - can be "anyone available"
+  targetCaregiverName?: string;
+  shiftToSwapId: string; // The shift they want to give away
+  shiftToSwap: {
+    elderId: string;
+    elderName: string;
+    date: Date;
+    startTime: string;
+    endTime: string;
+  };
+  offerShiftId?: string; // Optional - shift they're offering in exchange
+  offerShift?: {
+    elderId: string;
+    elderName: string;
+    date: Date;
+    startTime: string;
+    endTime: string;
+  };
+  reason?: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'admin_approved';
+  requestedAt: Date;
+  acceptedBy?: string; // Caregiver who accepted
+  acceptedAt?: Date;
+  reviewedBy?: string; // SuperAdmin who reviewed
+  reviewedAt?: Date;
+  reviewNotes?: string;
+}
+
+// Caregiver availability
+export interface CaregiverAvailability {
+  id: string;
+  agencyId: string;
+  caregiverId: string;
+  // Weekly recurring availability (default schedule)
+  weeklyAvailability: {
+    dayOfWeek: number; // 0-6 (Sun-Sat)
+    available: boolean;
+    timeSlots?: Array<{
+      startTime: string; // "09:00"
+      endTime: string; // "17:00"
+    }>;
+  }[];
+  // Specific date overrides (for time off, special availability)
+  dateOverrides: {
+    date: Date;
+    available: boolean;
+    reason?: string; // "Vacation", "Doctor appointment", etc.
+    timeSlots?: Array<{
+      startTime: string;
+      endTime: string;
+    }>;
+  }[];
+  // Preferences
+  maxShiftsPerWeek?: number;
+  maxHoursPerWeek?: number;
+  preferredElders?: string[]; // Elder IDs they prefer to work with
+  unavailableElders?: string[]; // Elder IDs they can't work with
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Caregiver notification
+export interface CaregiverNotification {
+  id: string;
+  agencyId: string;
+  caregiverId: string;
+  type: 'shift_assigned' | 'shift_cancelled' | 'shift_swap_request' | 'shift_swap_accepted' | 'shift_request_approved' | 'shift_request_rejected' | 'shift_reminder';
+  title: string;
+  message: string;
+  data?: Record<string, any>; // Type-specific data
+  priority: 'low' | 'normal' | 'high';
+  read: boolean;
+  actionRequired: boolean; // Requires caregiver action (e.g., accept swap)
+  actionUrl?: string; // Link to relevant page
+  createdAt: Date;
+  readAt?: Date;
+  expiresAt?: Date; // For time-sensitive notifications
+}

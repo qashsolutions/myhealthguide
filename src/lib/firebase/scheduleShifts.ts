@@ -30,18 +30,34 @@ import type {
   ScheduleConflict
 } from '@/types';
 import { parse, format, addDays, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
+import { checkCaregiverAvailability } from './caregiverAvailability';
+import { notifyShiftAssigned, notifyShiftRequestApproved, notifyShiftRequestRejected } from '@/lib/notifications/caregiverNotifications';
 
 /**
  * Check for scheduling conflicts
  */
 export async function checkScheduleConflicts(
   caregiverId: string,
+  agencyId: string,
   date: Date,
   startTime: string,
   endTime: string,
   excludeShiftId?: string // When editing, exclude current shift
 ): Promise<ScheduleConflict | null> {
   try {
+    // Check caregiver availability first
+    const availabilityConflict = await checkCaregiverAvailability(
+      caregiverId,
+      agencyId,
+      date,
+      startTime,
+      endTime
+    );
+
+    if (availabilityConflict) {
+      return availabilityConflict;
+    }
+
     // Query shifts for this caregiver on this date
     const shiftsQuery = query(
       collection(db, 'scheduledShifts'),
@@ -131,8 +147,8 @@ export async function createScheduledShift(
   recurringScheduleId?: string
 ): Promise<{ success: boolean; shiftId?: string; error?: string; conflict?: ScheduleConflict }> {
   try {
-    // Check for conflicts
-    const conflict = await checkScheduleConflicts(caregiverId, date, startTime, endTime);
+    // Check for conflicts (including availability)
+    const conflict = await checkScheduleConflicts(caregiverId, agencyId, date, startTime, endTime);
     if (conflict) {
       return { success: false, error: conflict.message, conflict };
     }
@@ -161,6 +177,13 @@ export async function createScheduledShift(
     };
 
     const shiftRef = await addDoc(collection(db, 'scheduledShifts'), shift);
+
+    // Send notification to caregiver
+    await notifyShiftAssigned(agencyId, caregiverId, {
+      id: shiftRef.id,
+      ...shift
+    });
+
     return { success: true, shiftId: shiftRef.id };
   } catch (error: any) {
     console.error('Error creating scheduled shift:', error);
@@ -435,6 +458,16 @@ export async function approveShiftRequest(
       createdShiftIds
     });
 
+    // Send notification to caregiver
+    await notifyShiftRequestApproved(
+      request.agencyId,
+      request.caregiverId,
+      assignedElderName,
+      request.requestType === 'specific'
+        ? `${format(request.specificDate!, 'MMM d, yyyy')} ${request.startTime}-${request.endTime}`
+        : `Recurring: ${request.recurringDays?.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ')} ${request.startTime}-${request.endTime}`
+    );
+
     return { success: true };
   } catch (error: any) {
     console.error('Error approving shift request:', error);
@@ -451,6 +484,22 @@ export async function rejectShiftRequest(
   reviewNotes: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Get the request to get caregiver info
+    const requestSnap = await getDocs(
+      query(collection(db, 'shiftRequests'), where('__name__', '==', requestId))
+    );
+
+    if (!requestSnap.empty) {
+      const request = requestSnap.docs[0].data();
+
+      // Send notification to caregiver
+      await notifyShiftRequestRejected(
+        request.agencyId,
+        request.caregiverId,
+        reviewNotes || 'Your shift request was declined.'
+      );
+    }
+
     const requestRef = doc(db, 'shiftRequests', requestId);
     await updateDoc(requestRef, {
       status: 'rejected',
