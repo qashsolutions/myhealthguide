@@ -278,7 +278,7 @@ export default function VerifyPage() {
             Add your email for account recovery and legal notices
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4"">
+        <CardContent className="space-y-4">
 
           {!emailVerified ? (
             <>

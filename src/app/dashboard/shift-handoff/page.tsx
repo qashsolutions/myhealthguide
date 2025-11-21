@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar } from 'lucide-react';
 import { startShiftSession, endShiftSession } from '@/lib/ai/shiftHandoffGeneration';
-import { findScheduledShiftForClockIn, linkShiftToSession, completeScheduledShift } from '@/lib/firebase/scheduleShifts';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { findScheduledShiftForClockIn, linkShiftToSession } from '@/lib/firebase/scheduleShifts';
+import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import type { ShiftSession, ShiftHandoffNote, ScheduledShift } from '@/types';
 import { format } from 'date-fns';
@@ -146,9 +146,24 @@ export default function ShiftHandoffPage() {
         selectedElder.name
       );
 
-      // Mark scheduled shift as completed if linked
-      if (activeShift.shiftSessionId) {
-        await completeScheduledShift(activeShift.shiftSessionId);
+      // Find and complete any scheduled shift linked to this session
+      try {
+        const shiftsQuery = query(
+          collection(db, 'scheduledShifts'),
+          where('shiftSessionId', '==', activeShift.id),
+          where('status', '==', 'in_progress')
+        );
+        const shiftsSnapshot = await getDocs(shiftsQuery);
+
+        if (!shiftsSnapshot.empty) {
+          const scheduledShiftRef = doc(db, 'scheduledShifts', shiftsSnapshot.docs[0].id);
+          await updateDoc(scheduledShiftRef, {
+            status: 'completed',
+            updatedAt: new Date()
+          });
+        }
+      } catch (err) {
+        console.error('Error completing scheduled shift:', err);
       }
 
       await loadActiveShift();
