@@ -133,7 +133,7 @@ export default function PricingPage() {
                   variant={isSelected ? 'default' : 'outline'}
                   className={`w-full ${
                     isSelected
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+                      ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
                       : ''
                   }`}
                   onClick={(e) => {
