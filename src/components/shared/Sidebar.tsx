@@ -45,6 +45,7 @@ const elderCentricSections = [
     icon: AlertTriangle,
     defaultOpen: false,
     items: [
+      { href: '/dashboard/incidents', label: 'Incident Reports', icon: AlertTriangle },
       { href: '/dashboard/drug-interactions', label: 'Drug Interactions', icon: AlertTriangle },
       { href: '/dashboard/schedule-conflicts', label: 'Schedule Conflicts', icon: Clock },
       { href: '/dashboard/dementia-screening', label: 'Dementia Screening', icon: Brain }
