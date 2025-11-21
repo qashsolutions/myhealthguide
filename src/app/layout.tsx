@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from './providers';
-import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { CookieConsent } from '@/components/cookies/CookieConsent';
@@ -93,7 +92,6 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <Providers>
-          <Header />
           {children}
           <Footer />
           <CookieConsent />
