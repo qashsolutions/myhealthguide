@@ -78,7 +78,7 @@ import { Heart } from 'lucide-react';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { selectedElder, elders, selectElder } = useElder();
+  const { selectedElder, availableElders, setSelectedElder } = useElder();
 
   // Initialize collapsed state - Daily Care open by default
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -116,13 +116,13 @@ export function Sidebar() {
           <select
             value={selectedElder?.id || ''}
             onChange={(e) => {
-              const elder = elders.find(el => el.id === e.target.value);
-              if (elder) selectElder(elder);
+              const elder = availableElders.find(el => el.id === e.target.value);
+              if (elder) setSelectedElder(elder);
             }}
             className="w-full px-3 py-2 text-sm font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 border-2 border-blue-200 dark:border-blue-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select an elder...</option>
-            {elders.map((elder) => (
+            {availableElders.map((elder) => (
               <option key={elder.id} value={elder.id}>
                 {elder.name}
               </option>

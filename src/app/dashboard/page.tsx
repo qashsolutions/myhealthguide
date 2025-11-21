@@ -23,22 +23,22 @@ import { format } from 'date-fns';
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { elders, selectElder, selectedElder } = useElder();
+  const { availableElders, setSelectedElder, selectedElder } = useElder();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Small delay to allow context to load
     const timer = setTimeout(() => setLoading(false), 500);
     return () => clearTimeout(timer);
-  }, [elders]);
+  }, [availableElders]);
 
   // Calculate overall stats
-  const totalElders = elders.length;
+  const totalElders = availableElders.length;
   const totalMedications = 0; // TODO: Aggregate from all elders
   const avgCompliance = 0; // TODO: Calculate from all elders
 
   const handleElderClick = (elder: Elder) => {
-    selectElder(elder);
+    setSelectedElder(elder);
     router.push('/dashboard/medications');
   };
 
@@ -112,7 +112,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Elders Grid */}
-      {elders.length > 0 ? (
+      {availableElders.length > 0 ? (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -124,7 +124,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {elders.map((elder) => (
+            {availableElders.map((elder) => (
               <Card
                 key={elder.id}
                 className={`p-6 cursor-pointer transition-all hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 ${
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                     className="w-full justify-between group"
                     onClick={(e) => {
                       e.stopPropagation();
-                      selectElder(elder);
+                      setSelectedElder(elder);
                       router.push('/dashboard/medications');
                     }}
                   >
