@@ -37,7 +37,7 @@ export default function TimesheetPage() {
         // Show all shifts for this caregiver
         shiftsQuery = query(
           collection(db, 'shiftSessions'),
-          where('caregiverId', '==', user.uid),
+          where('caregiverId', '==', user.id),
           where('status', '==', 'completed'),
           orderBy('startTime', 'desc')
         );

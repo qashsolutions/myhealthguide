@@ -36,7 +36,7 @@ async function getGroupAdmins(groupId: string): Promise<User[]> {
 
     const snapshot = await getDocs(usersQuery);
     return snapshot.docs.map(doc => ({
-      uid: doc.id,
+      id: doc.id,
       ...doc.data()
     })) as User[];
   } catch (error) {

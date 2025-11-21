@@ -34,7 +34,7 @@ export default function ShiftHandoffPage() {
     try {
       const shiftsQuery = query(
         collection(db, 'shiftSessions'),
-        where('caregiverId', '==', user.uid),
+        where('caregiverId', '==', user.id),
         where('elderId', '==', selectedElder.id),
         where('status', '==', 'active'),
         orderBy('startTime', 'desc'),
@@ -95,9 +95,9 @@ export default function ShiftHandoffPage() {
 
     try {
       const shiftId = await startShiftSession(
-        user.groups?.[0] || '',
+        user.groups?.[0]?.groupId || '',
         selectedElder.id,
-        user.uid
+        user.id
       );
 
       await loadActiveShift();
@@ -119,7 +119,7 @@ export default function ShiftHandoffPage() {
     try {
       await endShiftSession(
         activeShift.id,
-        user.groups?.[0] || '',
+        user.groups?.[0]?.groupId || '',
         selectedElder.id,
         selectedElder.name
       );

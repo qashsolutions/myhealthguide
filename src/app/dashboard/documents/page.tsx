@@ -30,7 +30,7 @@ export default function DocumentsPage() {
     if (!user) return;
 
     try {
-      const allFiles = await getUserFiles(user.uid);
+      const allFiles = await getUserFiles(user.id);
 
       // Filter by selected elder if one is selected
       const filteredFiles = selectedElder
@@ -57,9 +57,9 @@ export default function DocumentsPage() {
     setError(null);
 
     try {
-      const path = `documents/${user.uid}/${selectedElder.id}/${Date.now()}_${file.name}`;
+      const path = `documents/${user.id}/${selectedElder.id}/${Date.now()}_${file.name}`;
       const result = await uploadFileWithQuota(
-        user.uid,
+        user.id,
         file,
         path,
         'document',
@@ -83,7 +83,7 @@ export default function DocumentsPage() {
     if (!user || !confirm('Are you sure you want to delete this document?')) return;
 
     try {
-      const result = await deleteFileWithQuota(user.uid, doc.filePath);
+      const result = await deleteFileWithQuota(user.id, doc.filePath);
 
       if (result.success) {
         await loadDocuments();

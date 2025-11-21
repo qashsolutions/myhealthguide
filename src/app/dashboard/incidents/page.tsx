@@ -96,9 +96,9 @@ export default function IncidentsPage() {
 
     try {
       const incident: Omit<Incident, 'id'> = {
-        groupId: user.groups?.[0] || '',
+        groupId: user.groups?.[0]?.groupId || '',
         elderId: selectedElder.id,
-        reportedBy: user.uid,
+        reportedBy: user.id,
         incidentType: formData.incidentType,
         severity: formData.severity,
         occurredAt: new Date(formData.occurredAt),
