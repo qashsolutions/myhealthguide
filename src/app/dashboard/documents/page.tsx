@@ -63,7 +63,7 @@ export default function DocumentsPage() {
         file,
         path,
         'document',
-        user.groups?.[0]
+        user.groups?.[0]?.groupId
       );
 
       if (!result.success) {
