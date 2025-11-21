@@ -23,8 +23,7 @@ import {
   Download,
   UserCheck,
   Building2,
-  Stethoscope,
-  ChevronRight
+  Stethoscope
 } from 'lucide-react';
 
 export default function FeaturesPage() {
@@ -394,10 +393,10 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Sticky Navigation */}
+      {/* Sticky Navigation - Two Rows */}
       <div className="sticky top-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="flex gap-2 overflow-x-auto py-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 py-4">
             {featureCategories.map((category) => {
               const CategoryIcon = category.icon;
               const isActive = activeSection === category.id;
@@ -405,14 +404,14 @@ export default function FeaturesPage() {
                 <button
                   key={category.id}
                   onClick={() => scrollToSection(category.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-md'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <CategoryIcon className="w-4 h-4" />
-                  <span className="text-sm font-medium">{category.title}</span>
+                  <CategoryIcon className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium text-center leading-tight">{category.title}</span>
                 </button>
               );
             })}
@@ -489,35 +488,6 @@ export default function FeaturesPage() {
                 </Card>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-blue-600 dark:bg-blue-900 py-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Ready to transform your caregiving?
-            </h2>
-            <p className="mt-6 text-lg leading-8 text-blue-100">
-              Start your 14-day free trial today. No credit card required.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <a
-                href="/signup"
-                className="rounded-md bg-white px-8 py-3 text-base font-semibold text-blue-600 shadow-sm hover:bg-blue-50 transition-colors inline-flex items-center gap-2"
-              >
-                Start Free Trial
-                <ChevronRight className="w-5 h-5" />
-              </a>
-              <a
-                href="/pricing"
-                className="text-base font-semibold leading-7 text-white hover:text-blue-100 transition-colors"
-              >
-                View Pricing <span aria-hidden="true">→</span>
-              </a>
-            </div>
           </div>
         </div>
       </section>
