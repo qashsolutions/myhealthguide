@@ -943,6 +943,163 @@ service cloud.firestore {
          isGroupAdmin(resource.data.groupId));
     }
 
+    // ============= Scheduled Shifts Collection (Calendar) =============
+
+    match /scheduledShifts/{shiftId} {
+      // Super admin can read all shifts in their agency
+      // Caregiver can read their own assigned shifts
+      // Group members can read shifts for their group
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        ((resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId)) ||
+         resource.data.caregiverId == request.auth.uid ||
+         isMemberOfGroup(resource.data.groupId));
+
+      // Only super admin can create scheduled shifts
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(request.resource.data.agencyId) &&
+        request.resource.data.createdBy == request.auth.uid;
+
+      // Super admin OR assigned caregiver can update (caregiver can confirm shift)
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.caregiverId == request.auth.uid);
+
+      // Only super admin can delete shifts
+      allow delete: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
+    }
+
+    // ============= Shift Requests Collection =============
+
+    match /shiftRequests/{requestId} {
+      // Super admin can read all requests in their agency
+      // Caregiver can read their own requests
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.caregiverId == request.auth.uid);
+
+      // Caregivers can create their own shift requests
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.caregiverId == request.auth.uid &&
+        hasAgencyAccess(request.resource.data.agencyId);
+
+      // Only super admin can update (approve/reject)
+      // Caregiver can cancel their own request
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         (resource.data.caregiverId == request.auth.uid &&
+          request.resource.data.status == 'cancelled'));
+
+      // Caregiver can delete their own pending requests
+      // Super admin can delete any request
+      allow delete: if isSignedIn() &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         (resource.data.caregiverId == request.auth.uid &&
+          resource.data.status == 'pending'));
+    }
+
+    // ============= Shift Swap Requests Collection =============
+
+    match /shiftSwapRequests/{swapId} {
+      // Super admin can read all swap requests in their agency
+      // Requesting caregiver can read their own swap requests
+      // Target caregiver can read requests directed to them
+      // All caregivers in agency can read open swaps (anyone available)
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.requestingCaregiverId == request.auth.uid ||
+         resource.data.targetCaregiverId == request.auth.uid ||
+         (resource.data.targetCaregiverId == null && hasAgencyAccess(resource.data.agencyId)));
+
+      // Caregivers can create shift swap requests for their own shifts
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.requestingCaregiverId == request.auth.uid &&
+        hasAgencyAccess(request.resource.data.agencyId);
+
+      // Requesting caregiver can cancel their own request
+      // Target caregiver can accept/reject
+      // Super admin can approve/reject
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (resource.data.requestingCaregiverId == request.auth.uid ||
+         resource.data.targetCaregiverId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId));
+
+      // Requesting caregiver can delete their own pending requests
+      // Super admin can delete any request
+      allow delete: if isSignedIn() &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         (resource.data.requestingCaregiverId == request.auth.uid &&
+          resource.data.status == 'pending'));
+    }
+
+    // ============= Caregiver Availability Collection =============
+
+    match /caregiverAvailability/{availabilityId} {
+      // Super admin can read all caregiver availability in their agency
+      // Caregiver can read their own availability
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.caregiverId == request.auth.uid);
+
+      // Caregivers can create their own availability (auto-created if not exists)
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.caregiverId == request.auth.uid &&
+        hasAgencyAccess(request.resource.data.agencyId);
+
+      // Caregivers can update their own availability
+      // Super admin can update any caregiver's availability
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (resource.data.caregiverId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId));
+
+      // Caregivers can delete their own availability
+      // Super admin can delete any caregiver's availability
+      allow delete: if isSignedIn() &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.caregiverId == request.auth.uid);
+    }
+
+    // ============= Caregiver Notifications Collection =============
+
+    match /caregiverNotifications/{notificationId} {
+      // Caregiver can read their own notifications
+      // Super admin can read all notifications in their agency
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (resource.data.caregiverId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId));
+
+      // System creates notifications
+      // Super admin can create notifications for caregivers
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(request.resource.data.agencyId) ||
+         hasAgencyAccess(request.resource.data.agencyId));
+
+      // Caregiver can update their own notifications (mark as read)
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.caregiverId == request.auth.uid;
+
+      // Caregiver can delete their own notifications
+      // Super admin can delete any notification
+      allow delete: if isSignedIn() &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.caregiverId == request.auth.uid);
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
