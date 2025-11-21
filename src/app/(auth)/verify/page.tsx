@@ -254,204 +254,230 @@ export default function VerifyPage() {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Verify Your Contact Information</CardTitle>
-        <CardDescription>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Verify Your Contact Information
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
           Please verify both your email and phone number to access all features
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-4 p-4 border rounded-lg">
-            <div className="flex items-center gap-2">
-              <Mail className="w-5 h-5" />
-              <h3 className="font-semibold">Email Verification</h3>
-              {emailVerified && <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 ml-auto" />}
+        </p>
+      </div>
+
+      {/* Email Verification Card */}
+      <Card className="border-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-2xl">
+            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
+            Email Verification
+            {emailVerified && <CheckCircle className="w-7 h-7 text-green-600 dark:text-green-400 ml-auto" />}
+          </CardTitle>
+          <CardDescription className="text-base">
+            Add your email for account recovery and legal notices
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4"">
 
-            {!emailVerified ? (
-              <>
-                {!userEmail ? (
-                  <>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Add your email for account recovery and legal notices
-                    </p>
-                    <div className="space-y-2">
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        value={emailInput}
-                        onChange={(e) => setEmailInput(e.target.value)}
-                      />
-                      <Button
-                        onClick={addEmail}
-                        className="w-full"
-                        disabled={addingEmail || !emailInput}
-                      >
-                        {addingEmail ? 'Adding email...' : 'Add and verify email'}
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      We sent a verification link to {userEmail}
-                    </p>
-
-                    {emailSent && (
-                      <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                        <p className="text-sm text-green-600 dark:text-green-400">
-                          Email sent! Check your inbox.
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Button
-                        onClick={checkEmailVerification}
-                        disabled={checkingEmail}
-                        className="w-full"
-                      >
-                        {checkingEmail ? (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            Checking...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            I've verified my email
-                          </>
-                        )}
-                      </Button>
-
-                      <Button
-                        onClick={resendEmailVerification}
-                        variant="outline"
-                        className="w-full"
-                        disabled={emailSent}
-                      >
-                        {emailSent ? 'Email sent!' : 'Resend email'}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                <p className="text-sm text-green-600 dark:text-green-400">
-                  Email verified!
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-4 p-4 border rounded-lg">
-            <div className="flex items-center gap-2">
-              <Smartphone className="w-5 h-5" />
-              <h3 className="font-semibold">Phone Verification</h3>
-              {phoneVerified && <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 ml-auto" />}
-            </div>
-
-            {!phoneVerified ? (
-              <>
-                {!userPhone ? (
-                  <>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Add your phone number to enable emergency alerts
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex">
-                        <div className="flex items-center px-3 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md">
-                          <span className="text-gray-600 dark:text-gray-400">+1</span>
-                        </div>
-                        <Input
-                          type="tel"
-                          placeholder="(555) 123-4567"
-                          value={phoneInput}
-                          onChange={(e) => setPhoneInput(e.target.value)}
-                          className="rounded-l-none"
-                        />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Verify {userPhone} to enable emergency alerts
-                  </p>
-                )}
-
-                {!phoneSent ? (
-                  <>
-                    <div id="recaptcha-container" className="flex justify-center"></div>
-                    <Button
-                      onClick={sendPhoneCode}
-                      className="w-full"
-                      disabled={!userPhone && !phoneInput}
-                    >
-                      {!userPhone ? 'Add and verify phone' : 'Send code to phone'}
-                    </Button>
-                  </>
-                ) : (
-                  <div className="space-y-2">
+          {!emailVerified ? (
+            <>
+              {!userEmail ? (
+                <>
+                  <div className="space-y-3">
                     <Input
-                      type="text"
-                      placeholder="Enter 6-digit code"
-                      value={phoneCode}
-                      onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      maxLength={6}
-                      className="text-center text-2xl tracking-widest"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      className="text-lg h-12"
                     />
-                    <p className="text-xs text-gray-500">
-                      Enter the code sent to {userPhone}
-                    </p>
                     <Button
-                      onClick={verifyPhoneCode}
-                      disabled={verifyingPhone || phoneCode.length !== 6}
-                      className="w-full"
+                      onClick={addEmail}
+                      className="w-full h-12 text-lg"
+                      disabled={addingEmail || !emailInput}
+                      size="lg"
                     >
-                      {verifyingPhone ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Verifying...
-                        </>
-                      ) : (
-                        'Verify code'
-                      )}
-                    </Button>
-                    <Button
-                      onClick={sendPhoneCode}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      Resend code
+                      {addingEmail ? 'Adding email...' : 'Add and verify email'}
                     </Button>
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
-                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                <p className="text-sm text-green-600 dark:text-green-400">
-                  Phone verified!
+                </>
+              ) : (
+                <>
+                  <p className="text-base text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                    We sent a verification link to <strong>{userEmail}</strong>
+                  </p>
+
+                  {emailSent && (
+                    <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <p className="text-base text-green-600 dark:text-green-400 font-medium">
+                        Email sent! Check your inbox.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <Button
+                      onClick={checkEmailVerification}
+                      disabled={checkingEmail}
+                      className="w-full h-12 text-lg"
+                      size="lg"
+                    >
+                      {checkingEmail ? (
+                        <>
+                          <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                          Checking...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-5 w-5" />
+                          I've verified my email
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={resendEmailVerification}
+                      variant="outline"
+                      className="w-full h-12 text-lg"
+                      size="lg"
+                      disabled={emailSent}
+                    >
+                      {emailSent ? 'Email sent!' : 'Resend email'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <p className="text-base text-green-600 dark:text-green-400 font-medium">
+                Email verified!
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Phone Verification Card */}
+      <Card className="border-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-2xl">
+            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <Smartphone className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            Phone Verification
+            {phoneVerified && <CheckCircle className="w-7 h-7 text-green-600 dark:text-green-400 ml-auto" />}
+          </CardTitle>
+          <CardDescription className="text-base">
+            Add your phone number to enable emergency alerts
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+
+          {!phoneVerified ? (
+            <>
+              {!userPhone ? (
+                <>
+                  <div className="space-y-3">
+                    <div className="flex">
+                      <div className="flex items-center px-4 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md h-12">
+                        <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">+1</span>
+                      </div>
+                      <Input
+                        type="tel"
+                        placeholder="(555) 123-4567"
+                        value={phoneInput}
+                        onChange={(e) => setPhoneInput(e.target.value)}
+                        className="rounded-l-none text-lg h-12"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-base text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  Verify <strong>{userPhone}</strong> to enable emergency alerts
                 </p>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
 
-        {error && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-md">
-            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-          </div>
-        )}
+              {!phoneSent ? (
+                <>
+                  <div id="recaptcha-container" className="flex justify-center"></div>
+                  <Button
+                    onClick={sendPhoneCode}
+                    className="w-full h-12 text-lg"
+                    size="lg"
+                    disabled={!userPhone && !phoneInput}
+                  >
+                    {!userPhone ? 'Add and verify phone' : 'Send code to phone'}
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <Input
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={phoneCode}
+                    onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    maxLength={6}
+                    className="text-center text-3xl tracking-widest h-16 font-mono"
+                  />
+                  <p className="text-sm text-gray-500 text-center">
+                    Enter the code sent to {userPhone}
+                  </p>
+                  <Button
+                    onClick={verifyPhoneCode}
+                    disabled={verifyingPhone || phoneCode.length !== 6}
+                    className="w-full h-12 text-lg"
+                    size="lg"
+                  >
+                    {verifyingPhone ? (
+                      <>
+                        <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      'Verify code'
+                    )}
+                  </Button>
+                  <Button
+                    onClick={sendPhoneCode}
+                    variant="outline"
+                    className="w-full h-12 text-lg"
+                    size="lg"
+                  >
+                    Resend code
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <p className="text-base text-green-600 dark:text-green-400 font-medium">
+                Phone verified!
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        <div className="text-center pt-4 border-t">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+      {error && (
+        <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-900/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0" />
+              <p className="text-base text-red-600 dark:text-red-400 font-medium">{error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="bg-gray-50 dark:bg-gray-800">
+        <CardContent className="pt-6 text-center">
+          <p className="text-base text-gray-600 dark:text-gray-400">
             {emailVerified || phoneVerified ? (
               <>You can access the dashboard with one verified contact method, but both are required for emergency alerts.</>
             ) : (
@@ -461,14 +487,15 @@ export default function VerifyPage() {
           {(emailVerified || phoneVerified) && (
             <Button
               onClick={() => router.push('/dashboard')}
-              variant="link"
-              className="mt-2"
+              variant="default"
+              size="lg"
+              className="mt-4 h-12 text-lg"
             >
               Continue to dashboard →
             </Button>
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
