@@ -22,6 +22,17 @@ export const metadata: Metadata = {
     width: 'device-width',
     initialScale: 1,
     maximumScale: 5,
+    userScalable: true,
+    viewportFit: 'cover',
+  },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'HealthGuide',
+  },
+  formatDetection: {
+    telephone: false,
   },
   keywords: [
     'eldercare management',
