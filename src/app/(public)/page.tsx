@@ -260,7 +260,7 @@ export default function LandingPage() {
               Powerful Features
             </h2>
             <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Everything you need to provide better care
+              Tools for better care
             </p>
           </div>
 
