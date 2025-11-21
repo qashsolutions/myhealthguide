@@ -130,10 +130,11 @@ export default function PricingPage() {
 
                 {/* CTA Button */}
                 <Button
+                  variant={isSelected ? 'default' : 'outline'}
                   className={`w-full ${
                     isSelected
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+                      : ''
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
