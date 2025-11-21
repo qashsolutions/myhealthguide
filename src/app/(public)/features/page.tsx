@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Mic,
@@ -27,8 +28,10 @@ import {
 } from 'lucide-react';
 
 export default function FeaturesPage() {
+  const [activeSection, setActiveSection] = useState('voice');
   const featureCategories = [
     {
+      id: 'voice',
       title: 'Voice-Powered Caregiving',
       description: 'Log medications, meals, and activities hands-free using natural language',
       icon: Mic,
@@ -52,6 +55,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'ai',
       title: 'AI-Driven Intelligence',
       description: 'Advanced AI powered by Google Gemini and MedGemma for clinical-grade insights',
       icon: Brain,
@@ -85,6 +89,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'tracking',
       title: 'Comprehensive Health Tracking',
       description: 'Track medications, diet, supplements, and activities in one place',
       icon: Heart,
@@ -118,6 +123,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'safety',
       title: 'Medical Safety Features',
       description: 'FDA-integrated drug checking and clinical screening tools',
       icon: AlertTriangle,
@@ -146,6 +152,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'notifications',
       title: 'Smart Notifications',
       description: 'Push notifications to keep everyone informed and on schedule',
       icon: Bell,
@@ -174,6 +181,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'collaboration',
       title: 'Real-Time Collaboration',
       description: 'Multiple family members and caregivers coordinating seamlessly',
       icon: Users,
@@ -207,6 +215,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'agency',
       title: 'Agency Management',
       description: 'Professional caregiving agencies managing multiple client groups',
       icon: Building2,
@@ -235,6 +244,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'analytics',
       title: 'Health Analytics',
       description: 'Insights and trends to improve care quality over time',
       icon: TrendingUp,
@@ -268,6 +278,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'security',
       title: 'HIPAA-Aware Security',
       description: 'Enterprise-grade security and privacy protection',
       icon: Shield,
@@ -301,6 +312,7 @@ export default function FeaturesPage() {
       ]
     },
     {
+      id: 'data',
       title: 'Data Ownership',
       description: 'Your data, your control, with easy export and deletion',
       icon: Download,
@@ -330,6 +342,41 @@ export default function FeaturesPage() {
     }
   ];
 
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 120; // Account for sticky nav height
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+      setActiveSection(id);
+    }
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { threshold: 0.3, rootMargin: '-120px 0px -50% 0px' }
+    );
+
+    featureCategories.forEach((category) => {
+      const element = document.getElementById(category.id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="bg-white dark:bg-gray-900">
       {/* Hero Section */}
@@ -347,10 +394,36 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Feature Categories */}
-      <section className="py-24 sm:py-32">
+      {/* Sticky Navigation */}
+      <div className="sticky top-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="space-y-24">
+          <div className="flex gap-2 overflow-x-auto py-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {featureCategories.map((category) => {
+              const CategoryIcon = category.icon;
+              const isActive = activeSection === category.id;
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => scrollToSection(category.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <CategoryIcon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{category.title}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Feature Categories */}
+      <section className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="space-y-12">
             {featureCategories.map((category, categoryIndex) => {
               const CategoryIcon = category.icon;
               const colorClasses = {
@@ -366,48 +439,54 @@ export default function FeaturesPage() {
               };
 
               return (
-                <div key={categoryIndex} className="space-y-8">
-                  {/* Category Header */}
-                  <div className="flex items-start gap-4">
-                    <div className={`inline-flex p-4 rounded-2xl ${colorClasses[category.color as keyof typeof colorClasses]}`}>
-                      <CategoryIcon className="w-8 h-8" />
+                <Card
+                  key={categoryIndex}
+                  id={category.id}
+                  className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg p-8 scroll-mt-32"
+                >
+                  <div className="space-y-8">
+                    {/* Category Header */}
+                    <div className="flex items-start gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
+                      <div className={`inline-flex p-4 rounded-2xl ${colorClasses[category.color as keyof typeof colorClasses]}`}>
+                        <CategoryIcon className="w-8 h-8" />
+                      </div>
+                      <div className="flex-1">
+                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                          {category.title}
+                        </h2>
+                        <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
+                          {category.description}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                        {category.title}
-                      </h2>
-                      <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
-                        {category.description}
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Feature Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {category.features.map((feature, featureIndex) => {
-                      const FeatureIcon = feature.icon;
-                      return (
-                        <Card key={featureIndex} className="border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all">
-                          <CardContent className="pt-6">
-                            <div className="flex items-start gap-3 mb-3">
-                              <div className={`p-2 rounded-lg ${colorClasses[category.color as keyof typeof colorClasses]}`}>
-                                <FeatureIcon className="w-5 h-5" />
+                    {/* Feature Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {category.features.map((feature, featureIndex) => {
+                        const FeatureIcon = feature.icon;
+                        return (
+                          <Card key={featureIndex} className="border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all hover:shadow-md">
+                            <CardContent className="pt-6">
+                              <div className="flex items-start gap-3 mb-3">
+                                <div className={`p-2 rounded-lg ${colorClasses[category.color as keyof typeof colorClasses]}`}>
+                                  <FeatureIcon className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {feature.name}
+                                  </h3>
+                                </div>
                               </div>
-                              <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                  {feature.name}
-                                </h3>
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {feature.description}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {feature.description}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
