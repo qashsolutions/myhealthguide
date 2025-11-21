@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -12,14 +11,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="myguide.health"
-                width={150}
-                height={40}
-                className="h-8 w-auto"
-                priority
-              />
+              <h1 className="text-2xl tracking-tight text-slate-900 dark:text-slate-100">
+                <span className="font-bold">Health</span>
+                <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
+              </h1>
             </Link>
 
             {/* Back to Home Link */}
