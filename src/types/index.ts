@@ -982,3 +982,80 @@ export interface BurnoutFactor {
   data: Record<string, any>;
   points: number; // Contribution to risk score
 }
+
+// ============= Schedule/Calendar Types =============
+
+export interface ScheduledShift {
+  id: string;
+  agencyId: string;
+  groupId: string;
+  elderId: string;
+  elderName: string; // Denormalized for display
+  caregiverId: string;
+  caregiverName: string; // Denormalized for display
+  date: Date; // Date of the shift
+  startTime: string; // "09:00" format
+  endTime: string; // "17:00" format
+  duration: number; // Minutes
+  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  notes?: string;
+  isRecurring: boolean; // Part of a recurring schedule
+  recurringScheduleId?: string; // Link to RecurringSchedule
+  shiftSessionId?: string; // Linked to actual ShiftSession when clocked in
+  createdBy: string; // SuperAdmin who created/assigned
+  createdAt: Date;
+  updatedAt: Date;
+  confirmedBy?: string; // Caregiver who confirmed
+  confirmedAt?: Date;
+  cancelledBy?: string;
+  cancelledAt?: Date;
+  cancellationReason?: string;
+}
+
+export interface ShiftRequest {
+  id: string;
+  agencyId: string;
+  caregiverId: string;
+  caregiverName: string; // Denormalized
+  requestType: 'specific' | 'recurring'; // One-time or recurring request
+  // For specific requests
+  specificDate?: Date;
+  // For recurring requests
+  recurringDays?: number[]; // [0,1,2,3,4,5,6] for Sun-Sat
+  startTime: string; // "09:00"
+  endTime: string; // "17:00"
+  preferredElders?: string[]; // Elder IDs they prefer (optional)
+  notes?: string; // Why they want this shift
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  requestedAt: Date;
+  reviewedBy?: string; // SuperAdmin
+  reviewedAt?: Date;
+  reviewNotes?: string; // Admin's response
+  // If approved, these shifts are created
+  createdShiftIds?: string[]; // ScheduledShift IDs created from this request
+}
+
+export interface RecurringSchedule {
+  id: string;
+  agencyId: string;
+  groupId: string;
+  elderId: string;
+  caregiverId: string;
+  daysOfWeek: number[]; // [0,1,2,3,4,5,6] for Sun-Sat
+  startTime: string; // "09:00"
+  endTime: string; // "17:00"
+  startDate: Date; // When recurring schedule begins
+  endDate?: Date; // Optional end date
+  active: boolean; // Can be paused/resumed
+  notes?: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Conflict detection result
+export interface ScheduleConflict {
+  type: 'caregiver_double_booked' | 'elder_has_shift' | 'caregiver_unavailable';
+  message: string;
+  conflictingShift?: ScheduledShift;
+}

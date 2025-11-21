@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useElder } from '@/contexts/ElderContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Home,
   Users,
@@ -21,7 +22,8 @@ import {
   Mail,
   ChevronDown,
   ChevronRight,
-  FolderOpen
+  FolderOpen,
+  Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -83,7 +85,11 @@ import { Heart } from 'lucide-react';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const { selectedElder, availableElders, setSelectedElder } = useElder();
+
+  // Check if user is multi-agency tier (calendar is only for multi-agency)
+  const isMultiAgency = user?.subscriptionTier === 'multi_agency';
 
   // Initialize collapsed state - Daily Care open by default
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -165,6 +171,22 @@ export function Sidebar() {
           <Users className="w-5 h-5" />
           Manage Elders
         </Link>
+
+        {/* Calendar - Only for multi-agency tier */}
+        {isMultiAgency && (
+          <Link
+            href="/dashboard/calendar"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              pathname === '/dashboard/calendar'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            )}
+          >
+            <Calendar className="w-5 h-5" />
+            Shift Calendar
+          </Link>
+        )}
 
         {/* Elder-specific sections - Only show when elder is selected */}
         {selectedElder && (

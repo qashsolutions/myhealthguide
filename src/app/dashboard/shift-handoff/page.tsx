@@ -5,28 +5,42 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, PlayCircle, StopCircle, FileText, AlertCircle } from 'lucide-react';
+import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar } from 'lucide-react';
 import { startShiftSession, endShiftSession } from '@/lib/ai/shiftHandoffGeneration';
+import { findScheduledShiftForClockIn, linkShiftToSession, completeScheduledShift } from '@/lib/firebase/scheduleShifts';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import type { ShiftSession, ShiftHandoffNote } from '@/types';
+import type { ShiftSession, ShiftHandoffNote, ScheduledShift } from '@/types';
 import { format } from 'date-fns';
 
 export default function ShiftHandoffPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
   const [activeShift, setActiveShift] = useState<ShiftSession | null>(null);
+  const [scheduledShift, setScheduledShift] = useState<ScheduledShift | null>(null);
   const [recentHandoffs, setRecentHandoffs] = useState<ShiftHandoffNote[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load active shift and recent handoffs
+  // Load active shift, scheduled shift, and recent handoffs
   useEffect(() => {
     if (user && selectedElder) {
       loadActiveShift();
+      loadScheduledShift();
       loadRecentHandoffs();
     }
   }, [user, selectedElder]);
+
+  const loadScheduledShift = async () => {
+    if (!user || !selectedElder) return;
+
+    try {
+      const shift = await findScheduledShiftForClockIn(user.id, selectedElder.id);
+      setScheduledShift(shift);
+    } catch (err: any) {
+      console.error('Error loading scheduled shift:', err);
+    }
+  };
 
   const loadActiveShift = async () => {
     if (!user || !selectedElder) return;
@@ -94,13 +108,21 @@ export default function ShiftHandoffPage() {
     setError(null);
 
     try {
-      const shiftId = await startShiftSession(
+      // Start shift session
+      const shiftSessionId = await startShiftSession(
         user.groups?.[0]?.groupId || '',
         selectedElder.id,
-        user.id
+        user.id,
+        user.agencies?.[0]?.agencyId
       );
 
+      // Link to scheduled shift if exists
+      if (scheduledShift) {
+        await linkShiftToSession(scheduledShift.id, shiftSessionId);
+      }
+
       await loadActiveShift();
+      setScheduledShift(null); // Clear scheduled shift after clock-in
 
       // TODO: Send notification to admin
     } catch (err: any) {
@@ -123,6 +145,11 @@ export default function ShiftHandoffPage() {
         selectedElder.id,
         selectedElder.name
       );
+
+      // Mark scheduled shift as completed if linked
+      if (activeShift.shiftSessionId) {
+        await completeScheduledShift(activeShift.shiftSessionId);
+      }
 
       await loadActiveShift();
       await loadRecentHandoffs();
@@ -215,6 +242,28 @@ export default function ShiftHandoffPage() {
                   No active shift. Clock in to start tracking your shift.
                 </p>
               </div>
+
+              {/* Scheduled Shift Indicator */}
+              {scheduledShift && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        Scheduled Shift
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        {scheduledShift.startTime} - {scheduledShift.endTime}
+                      </p>
+                      {scheduledShift.notes && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Note: {scheduledShift.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <Button
                 onClick={handleClockIn}
