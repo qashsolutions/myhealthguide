@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
@@ -29,15 +28,11 @@ export function Header() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
         {/* Logo */}
         <div className="flex lg:flex-1">
-          <Link href="/">
-            <Image
-              src="/logo.png"
-              alt="myguide.health"
-              width={150}
-              height={40}
-              className="h-10 w-auto"
-              priority
-            />
+          <Link href="/" className="flex items-center">
+            <h1 className="text-2xl tracking-tight text-slate-900 dark:text-slate-100">
+              <span className="font-bold">Health</span>
+              <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
+            </h1>
           </Link>
         </div>
 
