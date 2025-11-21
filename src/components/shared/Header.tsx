@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -16,6 +17,7 @@ const navigation = [
 
 export function Header() {
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Don't show public header on dashboard pages
@@ -71,7 +73,19 @@ export function Header() {
         </div>
 
         {/* Desktop CTA buttons */}
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-4">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="mr-2"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-5 h-5" />
+            ) : (
+              <Moon className="w-5 h-5" />
+            )}
+          </Button>
           <Link href="/login">
             <Button variant="ghost" size="sm">
               Sign In
@@ -105,6 +119,24 @@ export function Header() {
               </Link>
             ))}
             <div className="mt-4 space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="w-full"
+              >
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="w-4 h-4 mr-2" />
+                    Light Mode
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4 mr-2" />
+                    Dark Mode
+                  </>
+                )}
+              </Button>
               <Link href="/login" className="block">
                 <Button variant="outline" size="sm" className="w-full">
                   Sign In
