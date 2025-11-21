@@ -115,7 +115,16 @@ export default function LandingPage() {
                   </li>
                 </ul>
                 <Link href="/signup" className="block">
-                  <Button className="w-full" variant="outline">Get Started</Button>
+                  <Button
+                    variant={selectedPlan === 'single' ? 'default' : 'outline'}
+                    className={`w-full ${
+                      selectedPlan === 'single'
+                        ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
+                        : ''
+                    }`}
+                  >
+                    Get Started
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
@@ -173,7 +182,16 @@ export default function LandingPage() {
                   </li>
                 </ul>
                 <Link href="/signup" className="block">
-                  <Button className="w-full">Get Started</Button>
+                  <Button
+                    variant={selectedPlan === 'family' ? 'default' : 'outline'}
+                    className={`w-full ${
+                      selectedPlan === 'family'
+                        ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
+                        : ''
+                    }`}
+                  >
+                    Get Started
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
@@ -226,7 +244,16 @@ export default function LandingPage() {
                   </li>
                 </ul>
                 <Link href="/signup" className="block">
-                  <Button className="w-full" variant="outline">Get Started</Button>
+                  <Button
+                    variant={selectedPlan === 'multi' ? 'default' : 'outline'}
+                    className={`w-full ${
+                      selectedPlan === 'multi'
+                        ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
+                        : ''
+                    }`}
+                  >
+                    Get Started
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
