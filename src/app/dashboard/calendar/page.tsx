@@ -40,6 +40,7 @@ import {
 import { getUnreadNotificationCount } from '@/lib/notifications/caregiverNotifications';
 import type { ScheduledShift, ShiftRequest, ShiftSwapRequest, AgencyRole } from '@/types';
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
+import { validateNoProfanity } from '@/lib/utils/profanityFilter';
 
 export default function CalendarPage() {
   const { user } = useAuth();
@@ -192,6 +193,15 @@ export default function CalendarPage() {
         return;
       }
 
+      // Check notes for profanity
+      if (shiftForm.notes) {
+        const profanityCheck = validateNoProfanity(shiftForm.notes, 'Notes');
+        if (!profanityCheck.isValid) {
+          setError(profanityCheck.error || 'Notes contain inappropriate language');
+          return;
+        }
+      }
+
       // Get caregiver name (simplified - would need to fetch from users collection)
       const caregiverName = shiftForm.caregiverId; // TODO: Fetch actual name
 
@@ -227,6 +237,15 @@ export default function CalendarPage() {
 
     setError(null);
     try {
+      // Check notes for profanity
+      if (requestForm.notes) {
+        const profanityCheck = validateNoProfanity(requestForm.notes, 'Notes');
+        if (!profanityCheck.isValid) {
+          setError(profanityCheck.error || 'Notes contain inappropriate language');
+          return;
+        }
+      }
+
       const result = await createShiftRequest(
         userAgency.agencyId,
         user.id,
@@ -301,6 +320,15 @@ export default function CalendarPage() {
 
     setError(null);
     try {
+      // Check reason for profanity
+      if (swapForm.reason) {
+        const profanityCheck = validateNoProfanity(swapForm.reason, 'Reason');
+        if (!profanityCheck.isValid) {
+          setError(profanityCheck.error || 'Reason contains inappropriate language');
+          return;
+        }
+      }
+
       const result = await createShiftSwapRequest(
         userAgency.agencyId,
         user.id,

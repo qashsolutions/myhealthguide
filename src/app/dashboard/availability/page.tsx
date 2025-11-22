@@ -24,6 +24,7 @@ import {
 } from '@/lib/firebase/caregiverAvailability';
 import type { CaregiverAvailability } from '@/types';
 import { format } from 'date-fns';
+import { validateNoProfanity } from '@/lib/utils/profanityFilter';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -185,6 +186,16 @@ export default function AvailabilityPage() {
     setError(null);
     setSuccess(null);
     try {
+      // Check reason for profanity
+      if (overrideForm.reason) {
+        const profanityCheck = validateNoProfanity(overrideForm.reason, 'Reason');
+        if (!profanityCheck.isValid) {
+          setError(profanityCheck.error || 'Reason contains inappropriate language');
+          setSaving(false);
+          return;
+        }
+      }
+
       const result = await addDateOverride(
         availability.id,
         new Date(overrideForm.date),

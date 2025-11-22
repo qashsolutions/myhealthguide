@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
-import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info } from 'lucide-react';
+import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { validateNoProfanity } from '@/lib/utils/profanityFilter';
 
 interface Message {
   id: string;
@@ -29,6 +30,7 @@ export default function HealthChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [profanityError, setProfanityError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -41,6 +43,15 @@ export default function HealthChatPage() {
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !user || !selectedElder) return;
+
+    // Check for profanity
+    const profanityCheck = validateNoProfanity(message, 'Message');
+    if (!profanityCheck.isValid) {
+      setProfanityError(profanityCheck.error || 'Please use appropriate language.');
+      return;
+    }
+
+    setProfanityError(null);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -256,7 +267,10 @@ export default function HealthChatPage() {
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              setProfanityError(null);
+            }}
             placeholder="Ask about health data..."
             disabled={loading || !selectedElder}
             className="flex-1"
@@ -270,6 +284,12 @@ export default function HealthChatPage() {
             <Send className="h-4 w-4" />
           </Button>
         </form>
+        {profanityError && (
+          <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-sm">
+            <AlertTriangle className="h-4 w-4" />
+            <p>{profanityError}</p>
+          </div>
+        )}
         {!selectedElder && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
             Please select an elder to start chatting
