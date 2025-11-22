@@ -163,7 +163,7 @@ export default function CalendarPage() {
     if (!user || !userAgency) return;
 
     try {
-      const requests = await getSwapRequests(user.id, 'received', 'pending');
+      const requests = await getSwapRequests(user.id, userAgency.agencyId, 'received');
       setSwapRequests(requests);
     } catch (err: any) {
       console.error('Error loading swap requests:', err);
@@ -174,7 +174,7 @@ export default function CalendarPage() {
     if (!user || !userAgency) return;
 
     try {
-      const count = await getUnreadNotificationCount(user.id, userAgency.agencyId);
+      const count = await getUnreadNotificationCount(user.id);
       setUnreadNotifications(count);
     } catch (err: any) {
       console.error('Error loading notifications:', err);
@@ -357,14 +357,13 @@ export default function CalendarPage() {
     }
   };
 
-  const handleRejectSwap = async (reason: string) => {
+  const handleRejectSwap = async () => {
     if (!user || !selectedSwapRequest) return;
 
     try {
       const result = await rejectShiftSwapRequest(
         selectedSwapRequest.id,
-        user.id,
-        reason
+        user.id
       );
 
       if (result.success) {
@@ -975,7 +974,7 @@ export default function CalendarPage() {
               </div>
 
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => handleRejectSwap('Not available')}>
+                <Button variant="outline" onClick={handleRejectSwap}>
                   Decline
                 </Button>
                 <Button onClick={handleAcceptSwap}>
