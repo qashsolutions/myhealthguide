@@ -8,7 +8,8 @@ import { db } from '@/lib/firebase/config';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AgencyDashboard } from '@/components/agency/AgencyDashboard';
 import { CaregiverAssignmentManager } from '@/components/agency/CaregiverAssignmentManager';
-import { Building2, Users, Settings } from 'lucide-react';
+import { AgencyAnalyticsDashboard } from '@/components/agency/analytics/AgencyAnalyticsDashboard';
+import { Building2, Users, Settings, BarChart3 } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ export default function AgencyPage() {
   const [agencyId, setAgencyId] = useState<string | null>(null);
   const [groupId, setGroupId] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isMultiAgency, setIsMultiAgency] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,6 +32,10 @@ export default function AgencyPage() {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
+
+          // Check subscription tier
+          const subscriptionTier = userData.subscriptionTier || 'family';
+          setIsMultiAgency(subscriptionTier === 'multi_agency');
 
           // Get first agency (user might belong to multiple)
           if (userData.agencies && userData.agencies.length > 0) {
@@ -126,11 +132,17 @@ export default function AgencyPage() {
 
       {isSuperAdmin ? (
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto">
+          <TabsList className={`grid w-full ${isMultiAgency ? 'grid-cols-3' : 'grid-cols-2'} lg:w-auto`}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
               Overview
             </TabsTrigger>
+            {isMultiAgency && (
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Analytics
+              </TabsTrigger>
+            )}
             <TabsTrigger value="assignments" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Assignments
@@ -140,6 +152,12 @@ export default function AgencyPage() {
           <TabsContent value="overview" className="space-y-6">
             <AgencyDashboard userId={userId} agencyId={agencyId} />
           </TabsContent>
+
+          {isMultiAgency && (
+            <TabsContent value="analytics" className="space-y-6">
+              <AgencyAnalyticsDashboard agencyId={agencyId} />
+            </TabsContent>
+          )}
 
           <TabsContent value="assignments" className="space-y-6">
             <CaregiverAssignmentManager
