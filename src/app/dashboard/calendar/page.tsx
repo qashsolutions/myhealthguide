@@ -16,7 +16,9 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Filter
+  Filter,
+  Repeat,
+  Bell
 } from 'lucide-react';
 import {
   getScheduledShifts,
@@ -29,7 +31,14 @@ import {
   cancelScheduledShift,
   checkScheduleConflicts
 } from '@/lib/firebase/scheduleShifts';
-import type { ScheduledShift, ShiftRequest, AgencyRole } from '@/types';
+import {
+  createShiftSwapRequest,
+  getSwapRequests,
+  acceptShiftSwapRequest,
+  rejectShiftSwapRequest
+} from '@/lib/firebase/shiftSwap';
+import { getUnreadNotificationCount } from '@/lib/notifications/caregiverNotifications';
+import type { ScheduledShift, ShiftRequest, ShiftSwapRequest, AgencyRole } from '@/types';
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
 
 export default function CalendarPage() {
@@ -45,11 +54,13 @@ export default function CalendarPage() {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date()));
   const [scheduledShifts, setScheduledShifts] = useState<ScheduledShift[]>([]);
   const [shiftRequests, setShiftRequests] = useState<ShiftRequest[]>([]);
+  const [swapRequests, setSwapRequests] = useState<ShiftSwapRequest[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // View mode: 'calendar' or 'requests'
-  const [viewMode, setViewMode] = useState<'calendar' | 'requests'>('calendar');
+  // View mode: 'calendar', 'requests', or 'swaps'
+  const [viewMode, setViewMode] = useState<'calendar' | 'requests' | 'swaps'>('calendar');
 
   // Filter by caregiver (for superadmin)
   const [selectedCaregiverId, setSelectedCaregiverId] = useState<string>('all');
@@ -58,7 +69,17 @@ export default function CalendarPage() {
   const [showCreateShiftModal, setShowCreateShiftModal] = useState(false);
   const [showRequestShiftModal, setShowRequestShiftModal] = useState(false);
   const [showRequestReviewModal, setShowRequestReviewModal] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showSwapReviewModal, setShowSwapReviewModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ShiftRequest | null>(null);
+  const [selectedShift, setSelectedShift] = useState<ScheduledShift | null>(null);
+  const [selectedSwapRequest, setSelectedSwapRequest] = useState<ShiftSwapRequest | null>(null);
+
+  // Swap form
+  const [swapForm, setSwapForm] = useState({
+    targetCaregiverId: '',
+    reason: ''
+  });
 
   // Create shift form
   const [shiftForm, setShiftForm] = useState({
@@ -87,6 +108,10 @@ export default function CalendarPage() {
       loadSchedule();
       if (isSuperAdmin) {
         loadShiftRequests();
+      }
+      if (isCaregiver) {
+        loadSwapRequests();
+        loadNotifications();
       }
     }
   }, [currentWeekStart, selectedCaregiverId, isMultiAgency, userAgency]);
@@ -131,6 +156,28 @@ export default function CalendarPage() {
       setShiftRequests(requests);
     } catch (err: any) {
       console.error('Error loading shift requests:', err);
+    }
+  };
+
+  const loadSwapRequests = async () => {
+    if (!user || !userAgency) return;
+
+    try {
+      const requests = await getSwapRequests(user.id, 'received', 'pending');
+      setSwapRequests(requests);
+    } catch (err: any) {
+      console.error('Error loading swap requests:', err);
+    }
+  };
+
+  const loadNotifications = async () => {
+    if (!user || !userAgency) return;
+
+    try {
+      const count = await getUnreadNotificationCount(user.id, userAgency.agencyId);
+      setUnreadNotifications(count);
+    } catch (err: any) {
+      console.error('Error loading notifications:', err);
     }
   };
 
@@ -249,6 +296,89 @@ export default function CalendarPage() {
     }
   };
 
+  const handleRequestSwap = async () => {
+    if (!user || !userAgency || !selectedShift) return;
+
+    setError(null);
+    try {
+      const result = await createShiftSwapRequest(
+        userAgency.agencyId,
+        user.id,
+        `${user.firstName} ${user.lastName}`,
+        selectedShift.id,
+        {
+          elderId: selectedShift.elderId,
+          elderName: selectedShift.elderName,
+          date: selectedShift.date,
+          startTime: selectedShift.startTime,
+          endTime: selectedShift.endTime
+        },
+        swapForm.targetCaregiverId || undefined,
+        undefined, // targetCaregiverName - will be filled by the service
+        undefined, // offerShiftId
+        undefined, // offerShift
+        swapForm.reason
+      );
+
+      if (result.success) {
+        setShowSwapModal(false);
+        setSelectedShift(null);
+        resetSwapForm();
+        alert('Swap request submitted successfully!');
+      } else {
+        setError(result.error || 'Failed to submit swap request');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleAcceptSwap = async () => {
+    if (!user || !selectedSwapRequest) return;
+
+    try {
+      const result = await acceptShiftSwapRequest(
+        selectedSwapRequest.id,
+        user.id,
+        `${user.firstName} ${user.lastName}`
+      );
+
+      if (result.success) {
+        setShowSwapReviewModal(false);
+        setSelectedSwapRequest(null);
+        loadSwapRequests();
+        loadSchedule();
+        alert('Swap accepted! The shift has been assigned to you.');
+      } else {
+        setError(result.error || 'Failed to accept swap');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleRejectSwap = async (reason: string) => {
+    if (!user || !selectedSwapRequest) return;
+
+    try {
+      const result = await rejectShiftSwapRequest(
+        selectedSwapRequest.id,
+        user.id,
+        reason
+      );
+
+      if (result.success) {
+        setShowSwapReviewModal(false);
+        setSelectedSwapRequest(null);
+        loadSwapRequests();
+      } else {
+        setError(result.error || 'Failed to reject swap');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   const resetShiftForm = () => {
     setShiftForm({
       caregiverId: '',
@@ -270,6 +400,13 @@ export default function CalendarPage() {
       startTime: '09:00',
       endTime: '17:00',
       notes: ''
+    });
+  };
+
+  const resetSwapForm = () => {
+    setSwapForm({
+      targetCaregiverId: '',
+      reason: ''
     });
   };
 
@@ -328,6 +465,12 @@ export default function CalendarPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {isCaregiver && unreadNotifications > 0 && (
+            <Button variant="outline" onClick={() => window.location.href = '/dashboard/notifications/test'}>
+              <Bell className="w-4 h-4 mr-2" />
+              Notifications ({unreadNotifications})
+            </Button>
+          )}
           {isSuperAdmin && (
             <>
               <Button onClick={() => setViewMode('requests')} variant={viewMode === 'requests' ? 'default' : 'outline'}>
@@ -341,10 +484,16 @@ export default function CalendarPage() {
             </>
           )}
           {isCaregiver && (
-            <Button onClick={() => setShowRequestShiftModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Request Shift
-            </Button>
+            <>
+              <Button onClick={() => setViewMode('swaps')} variant={viewMode === 'swaps' ? 'default' : 'outline'}>
+                <Repeat className="w-4 h-4 mr-2" />
+                Swaps ({swapRequests.length})
+              </Button>
+              <Button onClick={() => setShowRequestShiftModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Request Shift
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -437,6 +586,17 @@ export default function CalendarPage() {
                               )}
                               <div className="mt-1 truncate">{shift.elderName}</div>
                               <div className="mt-1 text-xs opacity-75 capitalize">{shift.status}</div>
+                              {isCaregiver && shift.caregiverId === user.id && shift.status === 'scheduled' && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedShift(shift);
+                                    setShowSwapModal(true);
+                                  }}
+                                  className="mt-2 w-full text-xs py-1 px-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded"
+                                >
+                                  Request Swap
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -486,6 +646,56 @@ export default function CalendarPage() {
                           onClick={() => {
                             setSelectedRequest(request);
                             setShowRequestReviewModal(true);
+                          }}
+                        >
+                          Review
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {viewMode === 'swaps' && isCaregiver && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Swap Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {swapRequests.length === 0 ? (
+              <p className="text-center text-gray-600 dark:text-gray-400 py-8">
+                No pending swap requests
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {swapRequests.map((request) => (
+                  <div key={request.id} className="border rounded-lg p-4 dark:border-gray-700">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold">{request.requestingCaregiverName}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {format(request.shiftToSwap.date, 'MMM d, yyyy')} • {request.shiftToSwap.startTime} - {request.shiftToSwap.endTime}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Elder: {request.shiftToSwap.elderName}
+                        </p>
+                        {request.reason && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            Reason: {request.reason}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedSwapRequest(request);
+                            setShowSwapReviewModal(true);
                           }}
                         >
                           Review
@@ -672,6 +882,104 @@ export default function CalendarPage() {
                 </Button>
                 <Button onClick={handleRequestShift}>
                   Submit Request
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Request Swap Modal (Caregiver) */}
+      {showSwapModal && selectedShift && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Request Shift Swap</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <p className="text-sm font-medium">Shift Details</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {format(selectedShift.date, 'MMM d, yyyy')} • {selectedShift.startTime} - {selectedShift.endTime}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Elder: {selectedShift.elderName}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Target Caregiver (Optional)</label>
+                <Input
+                  value={swapForm.targetCaregiverId}
+                  onChange={(e) => setSwapForm({ ...swapForm, targetCaregiverId: e.target.value })}
+                  placeholder="Leave blank to request any available caregiver"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Enter caregiver ID to request specific person
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Reason (Optional)</label>
+                <Input
+                  value={swapForm.reason}
+                  onChange={(e) => setSwapForm({ ...swapForm, reason: e.target.value })}
+                  placeholder="Why do you need to swap this shift?"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => {
+                  setShowSwapModal(false);
+                  setSelectedShift(null);
+                  resetSwapForm();
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={handleRequestSwap}>
+                  Submit Swap Request
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Review Swap Request Modal (Caregiver) */}
+      {showSwapReviewModal && selectedSwapRequest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Review Swap Request</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <p className="text-sm font-medium">From: {selectedSwapRequest.requestingCaregiverName}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {format(selectedSwapRequest.shiftToSwap.date, 'MMM d, yyyy')} • {selectedSwapRequest.shiftToSwap.startTime} - {selectedSwapRequest.shiftToSwap.endTime}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Elder: {selectedSwapRequest.shiftToSwap.elderName}
+                </p>
+                {selectedSwapRequest.reason && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    Reason: {selectedSwapRequest.reason}
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-xs text-blue-900 dark:text-blue-100">
+                  By accepting, this shift will be assigned to you and the other caregiver will be notified.
+                </p>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => handleRejectSwap('Not available')}>
+                  Decline
+                </Button>
+                <Button onClick={handleAcceptSwap}>
+                  Accept Swap
                 </Button>
               </div>
             </CardContent>
