@@ -6,13 +6,20 @@ import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
-import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info, AlertTriangle } from 'lucide-react';
+import { MedGemmaConsentDialog } from '@/components/medgemma/MedGemmaConsentDialog';
+import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info, AlertTriangle, Brain } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { validateNoProfanity } from '@/lib/utils/profanityFilter';
+import {
+  checkMedGemmaConsent,
+  createMedGemmaConsent,
+  logMedGemmaAccess
+} from '@/lib/medgemma/consentManagement';
 
 interface Message {
   id: string;
@@ -33,6 +40,12 @@ export default function HealthChatPage() {
   const [profanityError, setProfanityError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // MedGemma consent management
+  const [consentValid, setConsentValid] = useState(false);
+  const [consentId, setConsentId] = useState<string | null>(null);
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
+  const [checkingConsent, setCheckingConsent] = useState(true);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -40,6 +53,59 @@ export default function HealthChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Check MedGemma consent on mount
+  useEffect(() => {
+    if (!user || !selectedElder) {
+      setCheckingConsent(false);
+      return;
+    }
+
+    checkMedGemmaConsent(user.id, selectedElder.groupId).then(({ valid, consent }) => {
+      setConsentValid(valid);
+      setConsentId(consent?.id || null);
+      setCheckingConsent(false);
+
+      if (valid && consent) {
+        // Log access
+        logMedGemmaAccess(
+          user.id,
+          selectedElder.groupId,
+          selectedElder.id,
+          'health_chat',
+          'accessed',
+          consent.id,
+          true,
+          consent.preferredModel === 'medgemma-4b' ? 'medgemma-4b' : 'medgemma-27b'
+        );
+      }
+    });
+  }, [user, selectedElder]);
+
+  const handleConsent = async (preferredModel: 'medgemma-4b' | 'medgemma-27b') => {
+    if (!user || !selectedElder) return;
+
+    try {
+      const newConsent = await createMedGemmaConsent(user.id, selectedElder.groupId, preferredModel);
+      setConsentId(newConsent.id);
+      setConsentValid(true);
+      setShowConsentDialog(false);
+
+      // Log access
+      await logMedGemmaAccess(
+        user.id,
+        selectedElder.groupId,
+        selectedElder.id,
+        'health_chat',
+        'accessed',
+        newConsent.id,
+        true,
+        preferredModel
+      );
+    } catch (error) {
+      console.error('Error creating consent:', error);
+    }
+  };
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !user || !selectedElder) return;
@@ -137,14 +203,36 @@ export default function HealthChatPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-              <MessageSquare className="h-8 w-8 text-blue-600" />
+              <Brain className="h-8 w-8 text-purple-600" />
               Health Chat
+              <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
+                Powered by MedGemma
+              </span>
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               Ask questions about health data in natural language
             </p>
           </div>
         </div>
+
+        {/* MedGemma Consent Gate */}
+        {checkingConsent ? (
+          <Alert className="mb-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription>Checking MedGemma consent status...</AlertDescription>
+          </Alert>
+        ) : !consentValid ? (
+          <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+              <strong>MedGemma Consent Required:</strong> To use Health Chat, please review and accept the
+              Google Health AI Developer Foundations terms.
+              <Button size="sm" className="mt-2" onClick={() => setShowConsentDialog(true)}>
+                Review Terms & Enable
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
       <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4 mb-4">
         <div className="flex items-start gap-3">
@@ -271,16 +359,16 @@ export default function HealthChatPage() {
               setInputValue(e.target.value);
               setProfanityError(null);
             }}
-            placeholder="Ask about health data..."
-            disabled={loading || !selectedElder}
+            placeholder={!consentValid ? "MedGemma consent required" : "Ask about health data..."}
+            disabled={loading || !selectedElder || !consentValid}
             className="flex-1"
           />
           <VoiceRecordButton
             onRecordingComplete={handleVoiceInput}
-            disabled={loading || !selectedElder}
+            disabled={loading || !selectedElder || !consentValid}
             variant="outline"
           />
-          <Button type="submit" disabled={loading || !inputValue.trim() || !selectedElder}>
+          <Button type="submit" disabled={loading || !inputValue.trim() || !selectedElder || !consentValid}>
             <Send className="h-4 w-4" />
           </Button>
         </form>
@@ -297,6 +385,13 @@ export default function HealthChatPage() {
         )}
       </Card>
         </div>
+
+        {/* MedGemma Consent Dialog */}
+        <MedGemmaConsentDialog
+          open={showConsentDialog}
+          onConsent={handleConsent}
+          onDecline={() => setShowConsentDialog(false)}
+        />
       </EmailVerificationGate>
     </TrialExpirationGate>
   );

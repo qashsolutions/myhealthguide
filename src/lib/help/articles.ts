@@ -67,11 +67,24 @@ export const helpArticles: HelpArticle[] = [
   // AI-DRIVEN FEATURES
   // ============================================
   {
+    id: 'medgemma-hub',
+    title: 'MedGemma AI Hub',
+    description: 'Central hub for Google MedGemma AI - model info, consent management, and feature overview',
+    value: 'Manage all AI-powered features in one place',
+    path: 'Dashboard → MedGemma AI',
+    route: '/dashboard/medgemma',
+    roles: ['admin', 'caregiver', 'caregiver_admin', 'super_admin'],
+    category: 'ai',
+    tags: ['medgemma', 'ai', 'hub', 'google', 'consent', 'models', '4b', '27b'],
+    featured: true,
+    icon: 'Brain',
+  },
+  {
     id: 'clinical-notes',
     title: 'AI Clinical Notes',
     description: 'Generate comprehensive clinical notes for doctor visits using MedGemma AI',
     value: 'Save 15 minutes per doctor visit',
-    path: 'Dashboard → Clinical Notes',
+    path: 'Dashboard → MedGemma AI → Clinical Notes',
     route: '/dashboard/clinical-notes',
     roles: ['admin', 'caregiver_admin', 'super_admin'],
     category: 'ai',
@@ -82,9 +95,9 @@ export const helpArticles: HelpArticle[] = [
   {
     id: 'health-chat',
     title: 'AI Health Chat',
-    description: 'Ask questions about care, medications, and health in natural language',
+    description: 'Ask questions about care, medications, and health using MedGemma',
     value: 'Get instant answers to health questions',
-    path: 'Dashboard → Health Chat',
+    path: 'Dashboard → MedGemma AI → Health Chat',
     route: '/dashboard/health-chat',
     roles: ['admin', 'caregiver', 'caregiver_admin', 'super_admin'],
     category: 'ai',

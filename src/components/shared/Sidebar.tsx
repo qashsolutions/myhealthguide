@@ -23,7 +23,8 @@ import {
   ChevronDown,
   ChevronRight,
   FolderOpen,
-  Calendar
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -187,6 +188,60 @@ export function Sidebar() {
             Shift Calendar
           </Link>
         )}
+
+        {/* MedGemma AI Section - Always visible, prominent */}
+        <div className="pt-4 pb-2">
+          <div className="px-3">
+            <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              AI-Powered
+            </p>
+          </div>
+        </div>
+
+        {/* MedGemma Hub */}
+        <Link
+          href="/dashboard/medgemma"
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+            pathname === '/dashboard/medgemma'
+              ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10'
+          )}
+        >
+          <Brain className="w-5 h-5" />
+          MedGemma AI
+          <span className="ml-auto text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-semibold">
+            NEW
+          </span>
+        </Link>
+
+        {/* MedGemma Features */}
+        <Link
+          href="/dashboard/health-chat"
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+            pathname === '/dashboard/health-chat'
+              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          )}
+        >
+          <MessageSquare className="w-4 h-4" />
+          Health Chat
+        </Link>
+
+        <Link
+          href="/dashboard/clinical-notes"
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+            pathname === '/dashboard/clinical-notes'
+              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          )}
+        >
+          <FileText className="w-4 h-4" />
+          Clinical Notes
+        </Link>
 
         {/* Elder-specific sections - Only show when elder is selected */}
         {selectedElder && (
