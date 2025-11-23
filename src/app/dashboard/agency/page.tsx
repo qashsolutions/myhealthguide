@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AgencyDashboard } from '@/components/agency/AgencyDashboard';
 import { CaregiverAssignmentManager } from '@/components/agency/CaregiverAssignmentManager';
 import { AgencyAnalyticsDashboard } from '@/components/agency/analytics/AgencyAnalyticsDashboard';
-import { Building2, Users, Settings, BarChart3 } from 'lucide-react';
+import { AgencyBillingDashboard } from '@/components/agency/billing/AgencyBillingDashboard';
+import { Building2, Users, Settings, BarChart3, DollarSign } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -132,16 +133,22 @@ export default function AgencyPage() {
 
       {isSuperAdmin ? (
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className={`grid w-full ${isMultiAgency ? 'grid-cols-3' : 'grid-cols-2'} lg:w-auto`}>
+          <TabsList className={`grid w-full ${isMultiAgency ? 'grid-cols-4' : 'grid-cols-2'} lg:w-auto`}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
               Overview
             </TabsTrigger>
             {isMultiAgency && (
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Analytics
-              </TabsTrigger>
+              <>
+                <TabsTrigger value="analytics" className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger value="billing" className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Billing
+                </TabsTrigger>
+              </>
             )}
             <TabsTrigger value="assignments" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -154,9 +161,15 @@ export default function AgencyPage() {
           </TabsContent>
 
           {isMultiAgency && (
-            <TabsContent value="analytics" className="space-y-6">
-              <AgencyAnalyticsDashboard agencyId={agencyId} />
-            </TabsContent>
+            <>
+              <TabsContent value="analytics" className="space-y-6">
+                <AgencyAnalyticsDashboard agencyId={agencyId} />
+              </TabsContent>
+
+              <TabsContent value="billing" className="space-y-6">
+                <AgencyBillingDashboard agencyId={agencyId} />
+              </TabsContent>
+            </>
           )}
 
           <TabsContent value="assignments" className="space-y-6">

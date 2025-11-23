@@ -1071,6 +1071,30 @@ service cloud.firestore {
          resource.data.caregiverId == request.auth.uid);
     }
 
+    // ============= Elder Subscriptions Collection (Multi-Agency Billing) =============
+
+    match /elderSubscriptions/{subscriptionId} {
+      // Only SuperAdmin can read elder subscriptions for their agency
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(resource.data.agencyId);
+
+      // Only SuperAdmin can create elder subscriptions
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(request.resource.data.agencyId) &&
+        request.resource.data.addedBy == request.auth.uid;
+
+      // Only SuperAdmin can update (for cancellation)
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(resource.data.agencyId);
+
+      // SuperAdmin can delete (soft delete preferred)
+      allow delete: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
+    }
+
     // ============= Caregiver Notifications Collection =============
 
     match /caregiverNotifications/{notificationId} {

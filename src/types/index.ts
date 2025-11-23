@@ -161,6 +161,14 @@ export interface Agency {
   settings: AgencySettings;
   createdAt: Date;
   updatedAt: Date;
+
+  // Billing fields (multi-agency tier only)
+  activeElderCount?: number; // Count of active elders with subscriptions
+  currentMonthlyTotal?: number; // Sum of all active elder subscriptions ($30 per elder)
+  nextBillingDate?: Date; // Earliest next billing date across all elders
+  totalRevenue?: number; // Lifetime revenue (informational)
+  stripeCustomerId?: string; // Agency-level Stripe customer ID
+  stripeSubscriptionIds?: string[]; // All active elder subscription IDs
 }
 
 export interface AgencyMembership {
@@ -202,6 +210,39 @@ export interface CaregiverPermissions {
   canViewReports: boolean;
   canManageSchedules: boolean;
   canInviteMembers: boolean; // Only family members to their assigned elders
+}
+
+// ============= Elder Subscription Types (Multi-Agency Billing) =============
+export interface ElderSubscription {
+  id: string;
+  agencyId: string;
+  elderId: string;
+  elderName: string;
+  caregiverId: string;
+
+  // Billing
+  subscriptionStatus: 'active' | 'cancelled' | 'refunded' | 'at_risk';
+  monthlyRate: number; // 30 (stored for historical records)
+  billingCycleStart: Date; // When elder was added
+  billingCycleEnd: Date; // 31 days from start
+  nextBillingDate: Date; // Next 31-day cycle
+
+  // Stripe
+  stripeSubscriptionId: string;
+  stripeCustomerId: string; // Agency's customer ID
+  stripePriceId: string;
+
+  // Cancellation
+  cancelledAt: Date | null;
+  cancellationReason: string | null;
+  refundIssued: boolean;
+  refundAmount: number;
+  refundIssuedAt: Date | null;
+
+  // Metadata
+  addedBy: string; // SuperAdmin who added elder
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // ============= Elder Types =============
@@ -430,7 +471,7 @@ export const PLAN_LIMITS = {
     maxGroups: 10,
     maxMembersPerGroup: 4, // 1 caregiver + 3 elders
     storage: STORAGE_LIMITS.MULTI_AGENCY,
-    price: 144,
+    price: 30, // $30 per elder per 31 days (dynamically calculated based on active elders)
   },
 } as const;
 
