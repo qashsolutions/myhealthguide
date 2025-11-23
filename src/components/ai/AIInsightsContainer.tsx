@@ -9,6 +9,7 @@ import { detectHealthChanges, HealthChangeAlert as HealthChangeAlertType } from 
 import { analyzeAllMedicationTimes } from '@/lib/ai/medicationTimeOptimization';
 import { detectEmergencyPatterns } from '@/lib/ai/emergencyPatternDetection';
 import { calculateRefillPredictions } from '@/lib/ai/medicationRefillPrediction';
+import { getUserAlertPreferences } from '@/lib/ai/userAlertPreferences';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
@@ -95,7 +96,12 @@ export function AIInsightsContainer({
 
         if (showEmergencyPatterns && elderName) {
           promises.push(
-            detectEmergencyPatterns(groupId, elderId, elderName)
+            // Load user preferences to get sensitivity level
+            getUserAlertPreferences(userId, groupId)
+              .then(prefs => {
+                const sensitivity = prefs.preferences.emergencyAlerts.sensitivity;
+                return detectEmergencyPatterns(groupId, elderId, elderName, sensitivity);
+              })
               .then(result => setEmergencyPattern(result))
               .catch(err => {
                 console.error('Error detecting emergency patterns:', err);

@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
@@ -27,6 +27,7 @@ import { DataExportPanel } from '@/components/admin/DataExportPanel';
 import { DataDeletionPanel } from '@/components/admin/DataDeletionPanel';
 import { AIFeaturesSettings } from '@/components/settings/AIFeaturesSettings';
 import { ActivityHistory } from '@/components/settings/ActivityHistory';
+import { AlertPreferencesSettings } from '@/components/settings/AlertPreferencesSettings';
 import { useEffect } from 'react';
 
 export default function SettingsPage() {
@@ -114,6 +115,14 @@ export default function SettingsPage() {
               AI Features
             </Button>
             <Button
+              variant={activeTab === 'alerts' ? 'default' : 'ghost'}
+              className="w-full justify-start"
+              onClick={() => setActiveTab('alerts')}
+            >
+              <BellRing className="w-4 h-4 mr-2" />
+              Alert Preferences
+            </Button>
+            <Button
               variant={activeTab === 'data' ? 'default' : 'ghost'}
               className="w-full justify-start"
               onClick={() => setActiveTab('data')}
@@ -132,6 +141,7 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'group' && <GroupSettings />}
           {activeTab === 'ai' && <AISettings />}
+          {activeTab === 'alerts' && <AlertPreferencesSettings />}
           {activeTab === 'data' && <DataPrivacySettings />}
         </div>
       </div>

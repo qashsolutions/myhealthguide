@@ -554,3 +554,458 @@ async function removeInvalidToken(token: string, userIds: string[]): Promise<voi
     }
   }
 }
+
+// ============= AI HEALTH MONITORING SCHEDULED JOBS =============
+
+/**
+ * Hourly: Process FCM notification queue
+ * Runs every hour to send queued push notifications
+ */
+export const processFCMNotificationQueue = functions.pubsub
+  .schedule('0 * * * *') // Every hour
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting processFCMNotificationQueue job...');
+
+    try {
+      const queueRef = admin.firestore().collection('fcm_notification_queue');
+      const snapshot = await queueRef
+        .where('status', '==', 'pending')
+        .limit(100)
+        .get();
+
+      if (snapshot.empty) {
+        console.log('No pending FCM notifications');
+        return { success: true, sent: 0 };
+      }
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const notifDoc of snapshot.docs) {
+        try {
+          const notifData = notifDoc.data();
+
+          // Get user's FCM tokens
+          const userDoc = await admin.firestore()
+            .collection('users')
+            .doc(notifData.userId)
+            .get();
+
+          if (!userDoc.exists) {
+            await notifDoc.ref.update({ status: 'failed', error: 'User not found' });
+            failedCount++;
+            continue;
+          }
+
+          const userData = userDoc.data();
+          const tokens = userData?.fcmTokens || [];
+
+          if (tokens.length === 0) {
+            await notifDoc.ref.update({ status: 'failed', error: 'No FCM tokens' });
+            failedCount++;
+            continue;
+          }
+
+          // Send FCM notification
+          const payload: admin.messaging.MulticastMessage = {
+            tokens,
+            notification: {
+              title: notifData.title,
+              body: notifData.body
+            },
+            data: notifData.data || {},
+            webpush: notifData.webpush || {}
+          };
+
+          const response = await admin.messaging().sendEachForMulticast(payload);
+
+          // Update status
+          await notifDoc.ref.update({
+            status: 'sent',
+            sentAt: admin.firestore.Timestamp.now(),
+            successCount: response.successCount,
+            failureCount: response.failureCount
+          });
+
+          sentCount++;
+        } catch (error) {
+          console.error('Error sending FCM notification:', error);
+          await notifDoc.ref.update({
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+          failedCount++;
+        }
+      }
+
+      console.log(`FCM notifications sent: ${sentCount}, failed: ${failedCount}`);
+      return { success: true, sent: sentCount, failed: failedCount };
+    } catch (error) {
+      console.error('Error in processFCMNotificationQueue:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+/**
+ * Daily at 2 AM: Run Emergency Pattern Detection for all active elders
+ */
+export const runEmergencyPatternDetection = functions.pubsub
+  .schedule('0 2 * * *') // Every day at 2 AM
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting runEmergencyPatternDetection job...');
+
+    try {
+      // Get all active groups
+      const groupsSnapshot = await admin.firestore()
+        .collection('groups')
+        .get();
+
+      let patternsDetected = 0;
+      let alertsCreated = 0;
+
+      for (const groupDoc of groupsSnapshot.docs) {
+        const groupData = groupDoc.data();
+        const groupId = groupDoc.id;
+
+        // Get all elders in this group
+        const eldersSnapshot = await admin.firestore()
+          .collection('elders')
+          .where('groupId', '==', groupId)
+          .get();
+
+        for (const elderDoc of eldersSnapshot.docs) {
+          try {
+            const elderData = elderDoc.data();
+            const elderId = elderDoc.id;
+
+            // Call the detection logic (mimics detectEmergencyPatterns from client)
+            const pattern = await detectEmergencyPatternForElder(
+              groupId,
+              elderId,
+              elderData.name
+            );
+
+            if (pattern && pattern.riskScore >= 8) {
+              patternsDetected++;
+
+              // Create dashboard alert for group admin
+              await admin.firestore().collection('alerts').add({
+                userId: groupData.adminId,
+                groupId,
+                elderId,
+                type: 'emergency_pattern',
+                severity: pattern.severity === 'critical' ? 'critical' : 'warning',
+                title: `⚠️  Emergency Pattern Detected: ${elderData.name}`,
+                message: `Risk Score: ${pattern.riskScore}/15 - ${pattern.factors.length} concerning patterns detected`,
+                data: {
+                  patternId: pattern.id,
+                  riskScore: pattern.riskScore,
+                  factorCount: pattern.factors.length
+                },
+                actionUrl: '/dashboard/insights',
+                status: 'active',
+                read: false,
+                dismissed: false,
+                acknowledged: false,
+                createdAt: admin.firestore.Timestamp.now(),
+                expiresAt: admin.firestore.Timestamp.fromDate(
+                  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                )
+              });
+
+              // Queue FCM notification
+              await admin.firestore().collection('fcm_notification_queue').add({
+                userId: groupData.adminId,
+                groupId,
+                title: `⚠️  Emergency Pattern: ${elderData.name}`,
+                body: `Risk Score: ${pattern.riskScore}/15`,
+                data: {
+                  type: 'emergency_pattern',
+                  severity: pattern.severity,
+                  url: '/dashboard/insights'
+                },
+                webpush: {
+                  fcmOptions: { link: '/dashboard/insights' },
+                  notification: {
+                    icon: '/icon-192x192.png',
+                    requireInteraction: pattern.severity === 'critical'
+                  }
+                },
+                status: 'pending',
+                createdAt: admin.firestore.Timestamp.now()
+              });
+
+              alertsCreated++;
+            }
+          } catch (error) {
+            console.error(`Error detecting pattern for elder ${elderDoc.id}:`, error);
+          }
+        }
+      }
+
+      console.log(`Emergency patterns detected: ${patternsDetected}, alerts created: ${alertsCreated}`);
+      return { success: true, patternsDetected, alertsCreated };
+    } catch (error) {
+      console.error('Error in runEmergencyPatternDetection:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+/**
+ * Daily at 3 AM: Run Medication Refill Predictions for all medications
+ */
+export const runMedicationRefillPredictions = functions.pubsub
+  .schedule('0 3 * * *') // Every day at 3 AM
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting runMedicationRefillPredictions job...');
+
+    try {
+      // Get all active medications
+      const medicationsSnapshot = await admin.firestore()
+        .collection('medications')
+        .get();
+
+      let predictionsRun = 0;
+      let alertsCreated = 0;
+
+      for (const medDoc of medicationsSnapshot.docs) {
+        try {
+          const medData = medDoc.data();
+          const medicationId = medDoc.id;
+
+          // Skip PRN medications
+          if (medData.asNeeded) {
+            continue;
+          }
+
+          // Run prediction logic
+          const prediction = await predictMedicationRefill(
+            medData.groupId,
+            medData.elderId,
+            medicationId
+          );
+
+          if (prediction && prediction.shouldAlert) {
+            predictionsRun++;
+
+            // Get group to find admin
+            const groupDoc = await admin.firestore()
+              .collection('groups')
+              .doc(medData.groupId)
+              .get();
+
+            if (groupDoc.exists) {
+              const groupData = groupDoc.data();
+
+              // Map urgency
+              const urgency = prediction.daysRemaining <= 3 ? 'critical' :
+                             prediction.daysRemaining <= 7 ? 'high' :
+                             prediction.daysRemaining <= 14 ? 'medium' : 'low';
+
+              // Create dashboard alert
+              await admin.firestore().collection('alerts').add({
+                userId: groupData?.adminId,
+                groupId: medData.groupId,
+                elderId: medData.elderId,
+                type: 'medication_refill',
+                severity: urgency === 'critical' ? 'critical' : 'warning',
+                title: urgency === 'critical' ? '🚨 Urgent: Medication Running Out' : '💊 Medication Refill Needed',
+                message: `${medData.name}: ${prediction.daysRemaining} days of supply remaining`,
+                data: {
+                  medicationId,
+                  medicationName: medData.name,
+                  daysRemaining: prediction.daysRemaining,
+                  urgency
+                },
+                actionUrl: '/dashboard/medications',
+                status: 'active',
+                read: false,
+                dismissed: false,
+                createdAt: admin.firestore.Timestamp.now(),
+                expiresAt: admin.firestore.Timestamp.fromDate(
+                  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                )
+              });
+
+              // Queue FCM if critical or high
+              if (urgency === 'critical' || urgency === 'high') {
+                await admin.firestore().collection('fcm_notification_queue').add({
+                  userId: groupData?.adminId,
+                  groupId: medData.groupId,
+                  title: `💊 ${medData.name} Refill`,
+                  body: `${prediction.daysRemaining} days remaining`,
+                  data: {
+                    type: 'medication_refill',
+                    url: '/dashboard/medications'
+                  },
+                  webpush: {
+                    fcmOptions: { link: '/dashboard/medications' },
+                    notification: { icon: '/icon-192x192.png' }
+                  },
+                  status: 'pending',
+                  createdAt: admin.firestore.Timestamp.now()
+                });
+              }
+
+              alertsCreated++;
+            }
+          }
+        } catch (error) {
+          console.error(`Error predicting refill for medication ${medDoc.id}:`, error);
+        }
+      }
+
+      console.log(`Refill predictions: ${predictionsRun}, alerts created: ${alertsCreated}`);
+      return { success: true, predictionsRun, alertsCreated };
+    } catch (error) {
+      console.error('Error in runMedicationRefillPredictions:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+// ============= HELPER FUNCTIONS FOR AI DETECTION =============
+
+/**
+ * Simplified emergency pattern detection
+ * (Full logic would be imported from client-side detection library)
+ */
+async function detectEmergencyPatternForElder(
+  groupId: string,
+  elderId: string,
+  elderName: string
+): Promise<any | null> {
+  // This is a simplified version. In production, you'd import the full detection logic
+  // from your client-side library or duplicate it here.
+
+  const factors = [];
+  let riskScore = 0;
+
+  // Check medication compliance (last 7 days)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const logsSnapshot = await admin.firestore()
+    .collection('medication_logs')
+    .where('groupId', '==', groupId)
+    .where('elderId', '==', elderId)
+    .where('loggedAt', '>=', admin.firestore.Timestamp.fromDate(sevenDaysAgo))
+    .get();
+
+  const totalDoses = logsSnapshot.size;
+  const missedDoses = logsSnapshot.docs.filter(doc => doc.data().status === 'missed').length;
+
+  if (totalDoses > 0) {
+    const complianceRate = ((totalDoses - missedDoses) / totalDoses) * 100;
+
+    if (complianceRate < 70) {
+      factors.push({
+        type: 'medication_compliance_decline',
+        description: `Medication compliance dropped to ${complianceRate.toFixed(0)}% (last 7 days)`,
+        points: 4,
+        severity: 'critical'
+      });
+      riskScore += 4;
+    }
+  }
+
+  // Check consecutive missed doses
+  const recentMissed = logsSnapshot.docs
+    .filter(doc => doc.data().status === 'missed')
+    .slice(0, 3).length;
+
+  if (recentMissed >= 3) {
+    factors.push({
+      type: 'consecutive_missed_doses',
+      description: `${recentMissed} consecutive doses missed`,
+      points: 3,
+      severity: 'high'
+    });
+    riskScore += 3;
+  }
+
+  // Only return pattern if risk score >= 8
+  if (riskScore < 8) {
+    return null;
+  }
+
+  const severity = riskScore >= 12 ? 'critical' : riskScore >= 10 ? 'high' : 'medium';
+
+  return {
+    id: `pattern-${elderId}-${Date.now()}`,
+    riskScore,
+    severity,
+    factors,
+    recommendations: [
+      'Contact healthcare provider if patterns persist',
+      'Review medication schedule with elder',
+      'Consider automated reminders'
+    ],
+    detectedAt: new Date()
+  };
+}
+
+/**
+ * Simplified medication refill prediction
+ */
+async function predictMedicationRefill(
+  groupId: string,
+  elderId: string,
+  medicationId: string
+): Promise<any | null> {
+  // Get medication logs from last 30 days
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const logsSnapshot = await admin.firestore()
+    .collection('medication_logs')
+    .where('groupId', '==', groupId)
+    .where('elderId', '==', elderId)
+    .where('medicationId', '==', medicationId)
+    .where('loggedAt', '>=', admin.firestore.Timestamp.fromDate(thirtyDaysAgo))
+    .get();
+
+  if (logsSnapshot.size < 10) {
+    return null; // Not enough data
+  }
+
+  const takenDoses = logsSnapshot.docs.filter(doc => doc.data().status === 'taken').length;
+  const dailyUsageRate = takenDoses / 30;
+
+  // Get medication doc
+  const medDoc = await admin.firestore()
+    .collection('medications')
+    .doc(medicationId)
+    .get();
+
+  if (!medDoc.exists) {
+    return null;
+  }
+
+  const medData = medDoc.data();
+  const currentQuantity = medData?.currentQuantity || 0;
+
+  if (dailyUsageRate === 0) {
+    return null; // No usage
+  }
+
+  const daysRemaining = Math.floor(currentQuantity / dailyUsageRate);
+
+  // Only alert if <= 14 days
+  if (daysRemaining > 14) {
+    return null;
+  }
+
+  return {
+    medicationId,
+    medicationName: medData?.name,
+    currentQuantity,
+    dailyUsageRate,
+    daysRemaining,
+    shouldAlert: true,
+    estimatedRunOutDate: new Date(Date.now() + daysRemaining * 24 * 60 * 60 * 1000),
+    confidence: logsSnapshot.size > 25 ? 'high' : 'medium'
+  };
+}
