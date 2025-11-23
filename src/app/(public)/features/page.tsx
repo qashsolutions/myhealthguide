@@ -382,13 +382,36 @@ export default function FeaturesPage() {
       <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-20 sm:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
+            {/* AI Badge */}
+            <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800">
+              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                Powered by Google MedGemma & Gemini AI
+              </span>
+            </div>
+
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Tools for Better Caregiving
+              Clinical-Grade AI for Everyday Caregiving
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              HealthGuide combines voice-powered logging, AI-driven insights, and real-time collaboration
-              to help families and agencies provide the best possible care for their elders.
+              Voice-powered logging with MedGemma clinical notes, predictive insights, and real-time collaboration
             </p>
+
+            {/* Key Highlights */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span>Agentic AI Automation</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span>HIPAA-Aware Security</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Google MedGemma</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
