@@ -39,6 +39,7 @@ export interface UserPreferences {
 
 // ============= Group Types =============
 export type PermissionLevel = 'admin' | 'write' | 'read';
+export type UserRole = 'admin' | 'caregiver' | 'caregiver_admin' | 'super_admin';
 
 export interface Group {
   id: string;
