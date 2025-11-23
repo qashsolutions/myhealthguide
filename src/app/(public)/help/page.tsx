@@ -18,18 +18,27 @@ import {
   Info,
   Mic,
   MicOff,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { helpArticles, HelpArticle, HelpCategory } from '@/lib/help/articles';
 import { UserRole } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserRole } from '@/lib/utils/getUserRole';
 
 export default function HelpPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<HelpCategory | 'all'>('all');
   const [selectedRole, setSelectedRole] = useState<UserRole | 'all'>('all');
   const [searchResults, setSearchResults] = useState<HelpArticle[]>([]);
+  const [showAllFeatures, setShowAllFeatures] = useState(false); // Toggle to show all features
+
+  // Get user's effective role
+  const userRole = useMemo(() => getUserRole(user), [user]);
 
   // Initialize MiniSearch
   const miniSearch = useMemo(() => {
@@ -68,16 +77,23 @@ export default function HelpPage() {
   const filteredResults = useMemo(() => {
     let results = searchResults;
 
+    // Auto-filter by user's role if logged in and not showing all features
+    if (userRole && !showAllFeatures && selectedRole === 'all') {
+      results = results.filter((article) => article.roles.includes(userRole));
+    }
+
+    // Manual category filter
     if (selectedCategory !== 'all') {
       results = results.filter((article) => article.category === selectedCategory);
     }
 
+    // Manual role filter (overrides auto-filter)
     if (selectedRole !== 'all') {
       results = results.filter((article) => article.roles.includes(selectedRole));
     }
 
     return results;
-  }, [searchResults, selectedCategory, selectedRole]);
+  }, [searchResults, selectedCategory, selectedRole, userRole, showAllFeatures]);
 
   // Simple voice search (no GDPR consent needed for public help search)
   const handleVoiceSearch = () => {
@@ -222,6 +238,34 @@ export default function HelpPage() {
                 <Info className="h-4 w-4" />
                 <AlertDescription>{voiceError}</AlertDescription>
               </Alert>
+            </div>
+          )}
+
+          {/* User Role Info + Show All Toggle */}
+          {userRole && (
+            <div className="mt-4 max-w-3xl mx-auto flex items-center justify-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Showing features for: <strong className="capitalize">{userRole.replace('_', ' ')}</strong>
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAllFeatures(!showAllFeatures)}
+                className="ml-auto text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+              >
+                {showAllFeatures ? (
+                  <>
+                    <EyeOff className="w-4 h-4 mr-2" />
+                    Show My Features
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Show All Features
+                  </>
+                )}
+              </Button>
             </div>
           )}
 

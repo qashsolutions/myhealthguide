@@ -14,6 +14,7 @@ import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ElderSelector } from '@/components/dashboard/ElderSelector';
+import { QuickSearch } from '@/components/dashboard/QuickSearch';
 
 export function DashboardHeader() {
   const { theme, setTheme } = useTheme();
@@ -35,7 +36,7 @@ export function DashboardHeader() {
     : 'JD';
 
   return (
-    <header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-6">
+    <header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-6 gap-6">
       <div className="flex items-center gap-4">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Dashboard
@@ -44,6 +45,11 @@ export function DashboardHeader() {
         <div className="ml-4 border-l border-gray-300 dark:border-gray-700 pl-4">
           <ElderSelector />
         </div>
+      </div>
+
+      {/* Quick Search - Center */}
+      <div className="flex-1 max-w-md">
+        <QuickSearch />
       </div>
 
       <div className="flex items-center gap-4">
