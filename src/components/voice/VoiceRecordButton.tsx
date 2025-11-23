@@ -64,9 +64,27 @@ export function VoiceRecordButton({
           setIsProcessing(false);
           setIsRecording(false);
 
-          const errorMessage = event.error === 'not-allowed'
-            ? 'Microphone access denied. Please allow microphone access in your browser settings.'
-            : `Speech recognition error: ${event.error}`;
+          let errorMessage: string;
+
+          switch (event.error) {
+            case 'not-allowed':
+              errorMessage = 'Microphone access denied. Please allow microphone access in your browser settings.';
+              break;
+            case 'aborted':
+              errorMessage = 'Recording was stopped. Please try again.';
+              break;
+            case 'no-speech':
+              errorMessage = 'No speech detected. Please speak clearly and try again.';
+              break;
+            case 'audio-capture':
+              errorMessage = 'No microphone found. Please check your microphone connection.';
+              break;
+            case 'network':
+              errorMessage = 'Network error. Please check your internet connection.';
+              break;
+            default:
+              errorMessage = `Speech recognition error: ${event.error}. Please try again.`;
+          }
 
           if (onError) {
             onError(new Error(errorMessage));
@@ -91,14 +109,28 @@ export function VoiceRecordButton({
       return;
     }
 
+    // Prevent starting if already recording
+    if (isRecording || isProcessing) {
+      console.warn('Recording already in progress');
+      return;
+    }
+
     try {
       setIsRecording(true);
       recognition.start();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting recording:', error);
       setIsRecording(false);
-      if (onError) {
-        onError(error as Error);
+
+      // Handle specific error cases
+      if (error.message?.includes('already started')) {
+        if (onError) {
+          onError(new Error('Recording already in progress. Please wait.'));
+        }
+      } else {
+        if (onError) {
+          onError(error as Error);
+        }
       }
     }
   };
