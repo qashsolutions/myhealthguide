@@ -6,34 +6,26 @@ import MiniSearch from 'minisearch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Search,
-  Mic,
-  MicOff,
   Sparkles,
   TrendingUp,
   Users,
   Shield,
   ArrowRight,
   X,
+  Info,
 } from 'lucide-react';
 import { helpArticles, HelpArticle, HelpCategory } from '@/lib/help/articles';
 import { UserRole } from '@/types';
 
-// Icon mapping for dynamic icons
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Mic,
-  Sparkles,
-  Shield,
-  Users,
-  TrendingUp,
-  // Add more as needed
-};
-
 export default function HelpPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isListening, setIsListening] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<HelpCategory | 'all'>('all');
   const [selectedRole, setSelectedRole] = useState<UserRole | 'all'>('all');
   const [searchResults, setSearchResults] = useState<HelpArticle[]>([]);
@@ -86,40 +78,16 @@ export default function HelpPage() {
     return results;
   }, [searchResults, selectedCategory, selectedRole]);
 
-  // Voice search
-  const handleVoiceSearch = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Voice search is not supported in your browser. Please use Chrome or Edge.');
-      return;
-    }
+  // Voice search handlers
+  const handleVoiceComplete = (transcript: string) => {
+    setSearchQuery(transcript);
+    setIsRecording(false);
+    setVoiceError('');
+  };
 
-    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    const recognition = new SpeechRecognition();
-
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setSearchQuery(transcript);
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.start();
+  const handleVoiceError = (error: Error) => {
+    setVoiceError(error.message);
+    setIsRecording(false);
   };
 
   // Category labels
@@ -181,18 +149,27 @@ export default function HelpPage() {
                     <X className="h-4 w-4" />
                   </Button>
                 )}
-                <Button
-                  variant={isListening ? 'default' : 'outline'}
+                <VoiceRecordButton
+                  onRecordingComplete={handleVoiceComplete}
+                  onError={handleVoiceError}
+                  isRecording={isRecording}
                   size="sm"
-                  onClick={handleVoiceSearch}
-                  className={`h-10 ${isListening ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
-                >
-                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  <span className="ml-2">{isListening ? 'Listening...' : 'Voice'}</span>
-                </Button>
+                  variant="outline"
+                  className="h-10"
+                />
               </div>
             </div>
           </div>
+
+          {/* Voice Error Alert */}
+          {voiceError && (
+            <div className="mt-4 max-w-3xl mx-auto">
+              <Alert variant="destructive">
+                <Info className="h-4 w-4" />
+                <AlertDescription>{voiceError}</AlertDescription>
+              </Alert>
+            </div>
+          )}
 
           {/* Quick Filters */}
           <div className="mt-6 max-w-5xl mx-auto">
