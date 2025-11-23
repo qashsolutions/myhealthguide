@@ -204,22 +204,22 @@ export default function LandingPage() {
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Multi Agency</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">For professional caregivers</p>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$144</span>
-                    <span className="text-gray-600 dark:text-gray-400">/month</span>
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$30</span>
+                    <span className="text-gray-600 dark:text-gray-400">/per elder</span>
                   </div>
                 </div>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300"><strong>Up to 10 groups</strong></span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300"><strong>Up to 10 caregivers</strong></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">4 members per group (40 users)</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Up to 30 elders total</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Up to 20 elders</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">31-day billing cycles</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -231,7 +231,7 @@ export default function LandingPage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Compliance tracking</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Compliance & burnout tracking</span>
                   </li>
                 </ul>
                 <Link href="/signup" className="block">
