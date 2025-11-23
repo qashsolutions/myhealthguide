@@ -44,17 +44,18 @@ export default function PricingPage() {
     {
       name: 'Multi Agency',
       subtitle: 'For professional caregivers',
-      price: 144,
+      price: 30,
+      priceNote: 'per elder',
       icon: Shield,
       iconColor: 'text-purple-600',
       bgColor: 'bg-purple-50 dark:bg-purple-900/20',
       features: [
-        'Up to 10 groups',
-        '4 members per group (40 users)',
-        'Up to 30 elders',
+        'Up to 10 caregivers',
+        'Up to 30 elders total',
+        '31-day billing cycles',
         '200 MB storage',
         'Agency dashboard & analytics',
-        'Compliance tracking',
+        'Compliance & burnout tracking',
       ],
     },
   ];
@@ -113,7 +114,9 @@ export default function PricingPage() {
                   <span className="text-5xl font-bold text-gray-900 dark:text-gray-100">
                     ${plan.price}
                   </span>
-                  <span className="text-gray-600 dark:text-gray-400 ml-2">/month</span>
+                  <span className="text-gray-600 dark:text-gray-400 ml-2">
+                    /{(plan as any).priceNote || 'month'}
+                  </span>
                 </div>
 
                 {/* Features */}

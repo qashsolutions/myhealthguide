@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Cookie, X, Check, Info } from 'lucide-react';
+import { Cookie, Check, Info } from 'lucide-react';
 import { db } from '@/lib/firebase/config';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
@@ -128,26 +128,18 @@ export function CookieConsent() {
       <Card className="w-full max-w-4xl pointer-events-auto shadow-2xl border-2 border-blue-500 bg-white dark:bg-gray-900">
         {/* Header */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
-                <Cookie className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  Cookie Preferences
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  We use cookies to enhance your experience
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 rounded-lg">
+              <Cookie className="h-6 w-6 text-white" />
             </div>
-            <button
-              onClick={() => setShowBanner(false)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </button>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                Cookie Preferences
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                We use cookies to enhance your experience
+              </p>
+            </div>
           </div>
         </div>
 
