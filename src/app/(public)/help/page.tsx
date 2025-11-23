@@ -6,7 +6,6 @@ import MiniSearch from 'minisearch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Search,
@@ -17,6 +16,8 @@ import {
   ArrowRight,
   X,
   Info,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { helpArticles, HelpArticle, HelpCategory } from '@/lib/help/articles';
 import { UserRole } from '@/types';
@@ -78,16 +79,58 @@ export default function HelpPage() {
     return results;
   }, [searchResults, selectedCategory, selectedRole]);
 
-  // Voice search handlers
-  const handleVoiceComplete = (transcript: string) => {
-    setSearchQuery(transcript);
-    setIsRecording(false);
-    setVoiceError('');
-  };
+  // Simple voice search (no GDPR consent needed for public help search)
+  const handleVoiceSearch = () => {
+    if (typeof window === 'undefined') return;
 
-  const handleVoiceError = (error: Error) => {
-    setVoiceError(error.message);
-    setIsRecording(false);
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceError('Voice search is not supported in your browser. Please try Chrome, Edge, or Safari.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setVoiceError('');
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+      setIsRecording(false);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+
+      if (event.error === 'not-allowed') {
+        setVoiceError('Microphone access denied. Please allow microphone access in your browser settings and try again.');
+      } else if (event.error === 'no-speech') {
+        setVoiceError('No speech detected. Please try again and speak clearly.');
+      } else {
+        setVoiceError(`Voice search error: ${event.error}. Please try typing instead.`);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      setIsRecording(false);
+      setVoiceError('Could not start voice search. Please try again or use text search.');
+    }
   };
 
   // Category labels
@@ -149,14 +192,25 @@ export default function HelpPage() {
                     <X className="h-4 w-4" />
                   </Button>
                 )}
-                <VoiceRecordButton
-                  onRecordingComplete={handleVoiceComplete}
-                  onError={handleVoiceError}
-                  isRecording={isRecording}
+                <Button
+                  variant={isRecording ? 'default' : 'outline'}
                   size="sm"
-                  variant="outline"
-                  className="h-10"
-                />
+                  onClick={handleVoiceSearch}
+                  className={`h-10 transition-colors ${isRecording ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+                  disabled={isRecording}
+                >
+                  {isRecording ? (
+                    <>
+                      <MicOff className="w-4 h-4 mr-2" />
+                      Listening...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4 mr-2" />
+                      Voice
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </div>
