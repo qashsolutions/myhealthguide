@@ -2,10 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Users, Shield, CheckCircle } from 'lucide-react';
+import { Heart, Users, Shield, CheckCircle, Loader2 } from 'lucide-react';
 import { PRICING } from '@/lib/constants/pricing';
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 /**
  * Shared PricingCards Component
@@ -33,6 +38,75 @@ export function PricingCards({
   defaultSelectedPlan = 'single',
 }: PricingCardsProps) {
   const [selectedPlan, setSelectedPlan] = useState<'family' | 'single' | 'multi'>(defaultSelectedPlan);
+  const [loading, setLoading] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Map plan IDs to Stripe Price IDs
+  const getPriceId = (planId: 'family' | 'single' | 'multi'): string => {
+    switch (planId) {
+      case 'family':
+        return process.env.NEXT_PUBLIC_STRIPE_FAMILY_PRICE_ID || process.env.STRIPE_FAMILY_PRICE_ID || '';
+      case 'single':
+        return process.env.NEXT_PUBLIC_STRIPE_SINGLE_AGENCY_PRICE_ID || process.env.STRIPE_SINGLE_AGENCY_PRICE_ID || '';
+      case 'multi':
+        return process.env.NEXT_PUBLIC_STRIPE_MULTI_AGENCY_PRICE_ID || process.env.STRIPE_MULTI_AGENCY_PRICE_ID || '';
+    }
+  };
+
+  const handleSubscribe = async (planId: 'family' | 'single' | 'multi', planName: string) => {
+    // If not logged in, redirect to signup
+    if (!user) {
+      window.location.href = '/signup';
+      return;
+    }
+
+    setLoading(planId);
+
+    try {
+      const priceId = getPriceId(planId);
+
+      if (!priceId) {
+        throw new Error('Price ID not configured');
+      }
+
+      // Create checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId,
+          userId: user.uid,
+          userEmail: user.email,
+          planName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe failed to load');
+      }
+
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: data.sessionId,
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to start subscription');
+    } finally {
+      setLoading(null);
+    }
+  };
 
   // Plan data - using PRICING constants as single source of truth
   const plans = [
@@ -109,7 +183,7 @@ export function PricingCards({
             </p>
             {showTrialInfo && (
               <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-                All plans include 14-day free trial. No credit card required.
+                All plans include 14-day free trial. Cancel anytime for a full refund.
               </p>
             )}
           </div>
@@ -180,18 +254,25 @@ export function PricingCards({
                   </ul>
 
                   {/* CTA Button */}
-                  <Link href="/signup" className="block">
-                    <Button
-                      variant={isSelected ? 'default' : 'outline'}
-                      className={`w-full ${
-                        isSelected
-                          ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
-                          : ''
-                      }`}
-                    >
-                      Get Started
-                    </Button>
-                  </Link>
+                  <Button
+                    variant={isSelected ? 'default' : 'outline'}
+                    className={`w-full ${
+                      isSelected
+                        ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
+                        : ''
+                    }`}
+                    onClick={() => handleSubscribe(plan.id, plan.name)}
+                    disabled={loading === plan.id}
+                  >
+                    {loading === plan.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Start 14-Day Free Trial'
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             );
@@ -202,7 +283,7 @@ export function PricingCards({
         {showTrialInfo && (
           <div className="mt-16 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              All plans include a 14-day free trial. No credit card required.
+              All plans include a 14-day free trial. Cancel anytime for a full refund.
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               Need help choosing?{' '}

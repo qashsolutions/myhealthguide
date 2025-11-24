@@ -63,19 +63,62 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.created': {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log('Subscription created:', subscription.id);
+        const userId = subscription.metadata.userId;
+        const planName = subscription.metadata.planName;
+
+        if (userId) {
+          // Update user subscription status in Firestore
+          const admin = require('firebase-admin');
+          const db = admin.firestore();
+
+          await db.collection('users').doc(userId).update({
+            subscriptionStatus: subscription.status === 'trialing' ? 'trial' : 'active',
+            subscriptionTier: planName?.toLowerCase().replace(' plan', '').replace(' ', '_') || 'unknown',
+            stripeCustomerId: subscription.customer as string,
+            stripeSubscriptionId: subscription.id,
+            trialEndDate: subscription.trial_end
+              ? admin.firestore.Timestamp.fromDate(new Date(subscription.trial_end * 1000))
+              : null,
+            updatedAt: admin.firestore.Timestamp.now(),
+          });
+          console.log('Subscription created and synced to Firestore:', subscription.id);
+        }
         break;
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log('Subscription updated:', subscription.id);
+        const userId = subscription.metadata.userId;
+
+        if (userId) {
+          const admin = require('firebase-admin');
+          const db = admin.firestore();
+
+          await db.collection('users').doc(userId).update({
+            subscriptionStatus: subscription.status === 'active' ? 'active' :
+                               subscription.status === 'trialing' ? 'trial' :
+                               subscription.status === 'canceled' ? 'canceled' : 'expired',
+            updatedAt: admin.firestore.Timestamp.now(),
+          });
+          console.log('Subscription updated:', subscription.id);
+        }
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log('Subscription deleted:', subscription.id);
+        const userId = subscription.metadata.userId;
+
+        if (userId) {
+          const admin = require('firebase-admin');
+          const db = admin.firestore();
+
+          await db.collection('users').doc(userId).update({
+            subscriptionStatus: 'canceled',
+            updatedAt: admin.firestore.Timestamp.now(),
+          });
+          console.log('Subscription canceled:', subscription.id);
+        }
         break;
       }
 
