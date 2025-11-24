@@ -66,3 +66,9 @@ google-cloud-sdk/
 *.md
 !CLAUDE.md
 !README.md
+
+# Firebase Extensions Credentials
+extensions/*.env
+
+# Firebase Functions Environment Variables
+functions/.env

@@ -1,0 +1,18 @@
+name: twilio-send-message
+ref: twilio/send-message@0.3.4
+
+params:
+  - param: TWILIO_ACCOUNT_SID
+    value: AC5171da10575a33d677a99c51fe1ef9b2
+
+  - param: TWILIO_AUTH_TOKEN
+    value: a239376f4edf286755314a25e85df9ed
+
+  - param: TWILIO_PHONE_NUMBER
+    value: +18668183926
+
+  - param: FIRESTORE_COLLECTION_PATH
+    value: sms_queue
+
+  - param: LOCATION
+    value: us-central1

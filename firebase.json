@@ -47,5 +47,8 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "extensions": {
+    "twilio-send-message": "extensions/twilio-send-message.yaml"
   }
 }

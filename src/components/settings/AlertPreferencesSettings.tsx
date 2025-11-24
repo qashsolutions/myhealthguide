@@ -206,13 +206,12 @@ export function AlertPreferencesSettings() {
               <div>
                 <Label className="font-medium">SMS Notifications</Label>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Requires Firebase Extension (not currently configured)
+                  Via Twilio - warning and critical alerts sent to your phone
                 </p>
               </div>
             </div>
             <Switch
               checked={preferences.preferences.notificationChannels.sms}
-              disabled
               onCheckedChange={(checked) => {
                 setPreferences({
                   ...preferences,

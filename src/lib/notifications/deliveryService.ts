@@ -123,11 +123,20 @@ export async function deliverNotification(
       );
     }
 
-    // SMS and Email hooks (requires Firebase Extensions - document but don't implement)
+    // SMS via Twilio Cloud Function
     if (channels.includes('sms')) {
-      console.log('⚠️  SMS requested but not configured. Add Firebase Extension: Twilio SMS');
-      result.failedChannels.push('sms');
-      result.errors?.push('SMS: Requires Firebase Extension (Twilio)');
+      deliveryPromises.push(
+        deliverToSMS(payload)
+          .then(() => {
+            result.deliveredChannels.push('sms');
+            return undefined;
+          })
+          .catch((err) => {
+            result.failedChannels.push('sms');
+            result.errors?.push(`SMS: ${err.message}`);
+            return undefined;
+          })
+      );
     }
 
     if (channels.includes('email')) {
@@ -216,6 +225,45 @@ async function deliverToFCM(payload: NotificationPayload): Promise<void> {
     console.log('✅ FCM notification queued');
   } catch (error) {
     console.error('Error queuing FCM notification:', error);
+    throw error;
+  }
+}
+
+/**
+ * Deliver to SMS (via Twilio Cloud Function)
+ * Writes to sms_queue collection which triggers Cloud Function
+ */
+async function deliverToSMS(payload: NotificationPayload): Promise<void> {
+  try {
+    // Get user's phone number
+    const userDoc = await getDocs(
+      query(collection(db, 'users'), where('__name__', '==', payload.userId))
+    );
+
+    if (userDoc.empty) {
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.docs[0].data();
+    const phoneNumber = userData.phoneNumber;
+
+    if (!phoneNumber) {
+      throw new Error('User has no phone number configured');
+    }
+
+    // Queue SMS via Twilio extension (writes to sms_queue collection)
+    await addDoc(collection(db, 'sms_queue'), {
+      to: phoneNumber,
+      body: `${payload.title}\n\n${payload.body}\n\nView: https://app.myguide.health${payload.actionUrl || '/dashboard/insights'}`,
+      delivery: {
+        state: 'PENDING',
+        startTime: Timestamp.now()
+      }
+    });
+
+    console.log('✅ SMS queued for Twilio');
+  } catch (error) {
+    console.error('Error queuing SMS:', error);
     throw error;
   }
 }
