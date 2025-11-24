@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { ElderBillingService } from '@/lib/stripe/elderBilling';
+import { db } from '@/lib/firebase/config';
+import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 
 // Lazy initialization
 function getStripe(): Stripe {
@@ -68,18 +70,15 @@ export async function POST(req: NextRequest) {
 
         if (userId) {
           // Update user subscription status in Firestore
-          const admin = require('firebase-admin');
-          const db = admin.firestore();
-
-          await db.collection('users').doc(userId).update({
+          await updateDoc(doc(db, 'users', userId), {
             subscriptionStatus: subscription.status === 'trialing' ? 'trial' : 'active',
             subscriptionTier: planName?.toLowerCase().replace(' plan', '').replace(' ', '_') || 'unknown',
             stripeCustomerId: subscription.customer as string,
             stripeSubscriptionId: subscription.id,
             trialEndDate: subscription.trial_end
-              ? admin.firestore.Timestamp.fromDate(new Date(subscription.trial_end * 1000))
+              ? Timestamp.fromDate(new Date(subscription.trial_end * 1000))
               : null,
-            updatedAt: admin.firestore.Timestamp.now(),
+            updatedAt: Timestamp.now(),
           });
           console.log('Subscription created and synced to Firestore:', subscription.id);
         }
@@ -91,14 +90,11 @@ export async function POST(req: NextRequest) {
         const userId = subscription.metadata.userId;
 
         if (userId) {
-          const admin = require('firebase-admin');
-          const db = admin.firestore();
-
-          await db.collection('users').doc(userId).update({
+          await updateDoc(doc(db, 'users', userId), {
             subscriptionStatus: subscription.status === 'active' ? 'active' :
                                subscription.status === 'trialing' ? 'trial' :
                                subscription.status === 'canceled' ? 'canceled' : 'expired',
-            updatedAt: admin.firestore.Timestamp.now(),
+            updatedAt: Timestamp.now(),
           });
           console.log('Subscription updated:', subscription.id);
         }
@@ -110,12 +106,9 @@ export async function POST(req: NextRequest) {
         const userId = subscription.metadata.userId;
 
         if (userId) {
-          const admin = require('firebase-admin');
-          const db = admin.firestore();
-
-          await db.collection('users').doc(userId).update({
+          await updateDoc(doc(db, 'users', userId), {
             subscriptionStatus: 'canceled',
-            updatedAt: admin.firestore.Timestamp.now(),
+            updatedAt: Timestamp.now(),
           });
           console.log('Subscription canceled:', subscription.id);
         }
