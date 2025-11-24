@@ -30,7 +30,7 @@ function getStripe(): Stripe {
   return stripeInstance;
 }
 
-const STRIPE_ELDER_CARE_PRICE_ID = process.env.STRIPE_ELDER_CARE_PRICE_ID!
+const STRIPE_MULTI_AGENCY_PRICE_ID = process.env.STRIPE_MULTI_AGENCY_PRICE_ID!
 
 export class ElderBillingService {
   /**
@@ -81,7 +81,7 @@ export class ElderBillingService {
       customer: stripeCustomerId,
       items: [
         {
-          price: STRIPE_ELDER_CARE_PRICE_ID,
+          price: STRIPE_MULTI_AGENCY_PRICE_ID,
           quantity: 1,
         },
       ],
@@ -108,7 +108,7 @@ export class ElderBillingService {
       nextBillingDate: Timestamp.fromDate(billingCycleEnd) as any,
       stripeSubscriptionId: subscription.id,
       stripeCustomerId,
-      stripePriceId: STRIPE_ELDER_CARE_PRICE_ID,
+      stripePriceId: STRIPE_MULTI_AGENCY_PRICE_ID,
       cancelledAt: null,
       cancellationReason: null,
       refundIssued: false,
