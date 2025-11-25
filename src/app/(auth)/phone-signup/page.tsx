@@ -72,6 +72,7 @@ function PhoneSignupForm() {
 
       // Send verification code (automatically prepend +1 for US numbers)
       const formattedPhone = `+1${digitsOnly}`;
+      console.log('📞 [PHONE-SIGNUP] Sending verification to:', formattedPhone);
       const result = await AuthService.sendPhoneVerification(formattedPhone, recaptchaVerifier);
       setConfirmationResult(result);
       setStep('verify');
@@ -113,7 +114,10 @@ function PhoneSignupForm() {
       // Complete signup with phone auth (automatically prepend +1 for US numbers)
       const digitsOnly = phoneNumber.replace(/\D/g, '');
       const formattedPhone = `+1${digitsOnly}`;
-      await AuthService.signInWithPhone(
+      console.log('📞 [PHONE-SIGNUP] Completing signup with phone:', formattedPhone);
+      console.log('📞 [PHONE-SIGNUP] User data:', { firstName: formData.firstName, lastName: formData.lastName });
+
+      const user = await AuthService.signInWithPhone(
         formattedPhone,
         verificationCode,
         confirmationResult,
@@ -123,6 +127,9 @@ function PhoneSignupForm() {
           email: ''
         }
       );
+
+      console.log('✅ [PHONE-SIGNUP] Sign in successful! User ID:', user.id);
+      console.log('✅ [PHONE-SIGNUP] User phone in DB:', user.phoneNumber);
 
       // Redirect to dashboard (verification banner will prompt for email)
       router.push('/dashboard');

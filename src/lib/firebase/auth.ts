@@ -313,11 +313,16 @@ export class AuthService {
     }
   ): Promise<User> {
     try {
+      console.log('🔐 [AUTH-SERVICE] signInWithPhone called with phone:', phoneNumber);
+
       // Verify the SMS code
       const firebaseUser = await this.verifyPhoneCode(confirmationResult, verificationCode);
+      console.log('✅ [AUTH-SERVICE] Phone verified! Firebase UID:', firebaseUser.uid);
 
       // Check if user document exists
+      console.log('📄 [AUTH-SERVICE] Checking if user document exists...');
       let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      console.log('📄 [AUTH-SERVICE] User document exists:', userDoc.exists());
 
       if (userDoc.exists()) {
         // Existing user - update last login
@@ -379,7 +384,10 @@ export class AuthService {
         lastLoginAt: now
       };
 
+      console.log('💾 [AUTH-SERVICE] Creating new user with phone:', phoneNumber);
+      console.log('💾 [AUTH-SERVICE] Phone hash:', phoneHash);
       await setDoc(doc(db, 'users', firebaseUser.uid), user);
+      console.log('✅ [AUTH-SERVICE] User document created successfully');
 
       // Create phone index for trial enforcement
       await setDoc(doc(db, 'phone_index', phoneHash), {

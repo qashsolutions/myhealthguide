@@ -40,8 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (firebaseUser) {
         try {
+          console.log('🔄 [AUTH-CONTEXT] Firebase user authenticated:', firebaseUser.uid);
+          console.log('🔄 [AUTH-CONTEXT] Phone number from Firebase:', firebaseUser.phoneNumber);
+          console.log('🔄 [AUTH-CONTEXT] Provider data:', firebaseUser.providerData);
+
           // Fetch user data from Firestore
           const userData = await AuthService.getCurrentUserData();
+          console.log('✅ [AUTH-CONTEXT] User data fetched successfully:', userData?.id);
           setUser(userData);
 
           // Initialize/associate session with user
@@ -49,10 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             associateSessionWithUser(userData.id);
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error('❌ [AUTH-CONTEXT] Error fetching user data:', error);
+          console.error('❌ [AUTH-CONTEXT] Firebase user UID:', firebaseUser.uid);
           setUser(null);
         }
       } else {
+        console.log('🔄 [AUTH-CONTEXT] No Firebase user authenticated');
         setUser(null);
       }
 
