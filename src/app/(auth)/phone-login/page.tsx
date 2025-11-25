@@ -48,8 +48,15 @@ export default function PhoneLoginPage() {
         throw new Error('Please enter a phone number');
       }
 
-      // Send verification code
-      const result = await AuthService.sendPhoneVerification(phoneNumber, recaptchaVerifier);
+      // Validate 10-digit format
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+      if (digitsOnly.length !== 10) {
+        throw new Error('Please enter a valid 10-digit phone number');
+      }
+
+      // Send verification code (automatically prepend +1 for US numbers)
+      const formattedPhone = `+1${digitsOnly}`;
+      const result = await AuthService.sendPhoneVerification(formattedPhone, recaptchaVerifier);
       setConfirmationResult(result);
       setStep('code');
     } catch (err: any) {
@@ -84,10 +91,12 @@ export default function PhoneLoginPage() {
         throw new Error('Please enter a valid 6-digit code');
       }
 
-      // Verify code and sign in
+      // Verify code and sign in (automatically prepend +1 for US numbers)
       // Note: For existing users, this will work. For new users, they need to sign up first
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+      const formattedPhone = `+1${digitsOnly}`;
       await AuthService.signInWithPhone(
-        phoneNumber,
+        formattedPhone,
         verificationCode,
         confirmationResult
       );
@@ -98,8 +107,10 @@ export default function PhoneLoginPage() {
       console.error('Error verifying code:', err);
 
       if (err.message.includes('User data required')) {
-        // New user - redirect to signup with phone
-        router.push(`/phone-signup?phone=${encodeURIComponent(phoneNumber)}&code=${verificationCode}`);
+        // New user - redirect to signup with phone (automatically prepend +1 for US numbers)
+        const digitsOnly = phoneNumber.replace(/\D/g, '');
+        const formattedPhone = `+1${digitsOnly}`;
+        router.push(`/phone-signup?phone=${encodeURIComponent(formattedPhone)}&code=${verificationCode}`);
       } else {
         setError(err.message || 'Invalid verification code. Please try again.');
       }
@@ -139,17 +150,28 @@ export default function PhoneLoginPage() {
           <form onSubmit={handleSendCode} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number (US only)</Label>
-              <Input
-                id="phoneNumber"
-                type="tel"
-                placeholder="+1 (555) 123-4567"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="flex">
+                <div className="flex items-center px-3 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md">
+                  <span className="text-gray-600 dark:text-gray-400">+1</span>
+                </div>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={phoneNumber}
+                  onChange={(e) => {
+                    // Only allow digits, limit to 10 characters
+                    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setPhoneNumber(cleaned);
+                  }}
+                  required
+                  disabled={loading}
+                  className="rounded-l-none"
+                  maxLength={10}
+                />
+              </div>
               <p className="text-xs text-gray-500">
-                Format: +1 followed by 10 digits
+                Enter 10-digit US phone number
               </p>
             </div>
 
@@ -189,7 +211,7 @@ export default function PhoneLoginPage() {
                 className="text-center text-2xl tracking-widest"
               />
               <p className="text-xs text-gray-500">
-                Enter the 6-digit code sent to {phoneNumber}
+                Enter the 6-digit code sent to +1 {phoneNumber}
               </p>
             </div>
 

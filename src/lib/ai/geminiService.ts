@@ -98,7 +98,7 @@ Format: Return valid JSON matching the DailySummary TypeScript interface.
     });
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -115,6 +115,9 @@ Format: Return valid JSON matching the DailySummary TypeScript interface.
             topK: 32,
             topP: 1,
             maxOutputTokens: 1024,
+            thinking_config: {
+              include_thoughts: true // Enable thinking mode for complex analysis
+            }
           },
         }),
       }
@@ -209,7 +212,7 @@ Format: Return valid JSON matching the DietAnalysis TypeScript interface.
     });
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -226,6 +229,9 @@ Format: Return valid JSON matching the DietAnalysis TypeScript interface.
             topK: 32,
             topP: 1,
             maxOutputTokens: 512,
+            thinking_config: {
+              include_thoughts: false // Diet analysis doesn't need deep thinking
+            }
           },
         }),
       }
@@ -311,7 +317,7 @@ Format: Return JSON with patterns and recommendations arrays.
     });
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
@@ -323,6 +329,11 @@ Format: Return JSON with patterns and recommendations arrays.
               text: prompt
             }]
           }],
+          generationConfig: {
+            thinking_config: {
+              include_thoughts: true // Pattern detection benefits from reasoning
+            }
+          },
         }),
       }
     );

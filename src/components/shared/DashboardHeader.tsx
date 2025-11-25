@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Moon, Sun } from 'lucide-react';
+import { Bell, Moon, Sun, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -16,7 +16,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ElderSelector } from '@/components/dashboard/ElderSelector';
 import { QuickSearch } from '@/components/dashboard/QuickSearch';
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { signOut, user } = useAuth();
@@ -36,28 +40,41 @@ export function DashboardHeader() {
     : 'JD';
 
   return (
-    <header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-6 gap-6">
-      <div className="flex items-center gap-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+    <header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-4 lg:px-6 gap-2 lg:gap-6">
+      <div className="flex items-center gap-2 lg:gap-4">
+        {/* Hamburger Menu - Mobile Only */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onMenuClick}
+          className="lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="w-6 h-6" />
+        </Button>
+
+        <h2 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">
           Dashboard
         </h2>
-        {/* Elder Selector */}
-        <div className="ml-4 border-l border-gray-300 dark:border-gray-700 pl-4">
+
+        {/* Elder Selector - Hidden on small mobile */}
+        <div className="hidden sm:block ml-2 lg:ml-4 border-l border-gray-300 dark:border-gray-700 pl-2 lg:pl-4">
           <ElderSelector />
         </div>
       </div>
 
-      {/* Quick Search - Center */}
-      <div className="flex-1 max-w-md">
+      {/* Quick Search - Hidden on mobile, shown on tablet+ */}
+      <div className="hidden md:block flex-1 max-w-md">
         <QuickSearch />
       </div>
 
-      <div className="flex items-center gap-4">
-        {/* Theme Toggle */}
+      <div className="flex items-center gap-2 lg:gap-4">
+        {/* Theme Toggle - Hidden on small mobile */}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="hidden sm:flex"
         >
           {theme === 'dark' ? (
             <Sun className="w-5 h-5" />
@@ -66,8 +83,8 @@ export function DashboardHeader() {
           )}
         </Button>
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon">
+        {/* Notifications - Hidden on small mobile */}
+        <Button variant="ghost" size="icon" className="hidden sm:flex">
           <Bell className="w-5 h-5" />
         </Button>
 

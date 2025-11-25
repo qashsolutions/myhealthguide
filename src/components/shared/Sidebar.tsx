@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useElder } from '@/contexts/ElderContext';
@@ -24,7 +24,8 @@ import {
   ChevronRight,
   FolderOpen,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -84,7 +85,12 @@ const elderCentricSections = [
 // Import Heart icon
 import { Heart } from 'lucide-react';
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { selectedElder, availableElders, setSelectedElder } = useElder();
@@ -100,6 +106,13 @@ export function Sidebar() {
     'care-management': true
   });
 
+  // Close sidebar on route change (mobile only)
+  useEffect(() => {
+    if (onClose && window.innerWidth < 1024) {
+      onClose();
+    }
+  }, [pathname, onClose]);
+
   const toggleSection = (sectionId: string) => {
     setCollapsedSections(prev => ({
       ...prev,
@@ -108,18 +121,44 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen">
-      {/* Logo */}
-      <div className="pt-6 pr-6 pb-4 pl-4">
-        <Link href="/dashboard" className="flex items-center">
-          <h1 className="text-3xl tracking-tight text-slate-900 dark:text-slate-100">
-            <span className="font-bold">Health</span>
-            <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
-          </h1>
-        </Link>
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      {/* Elder Selector */}
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed lg:static inset-y-0 left-0 z-50",
+          "w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700",
+          "flex flex-col h-screen",
+          "transform transition-transform duration-300 ease-in-out lg:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {/* Logo with Close Button (Mobile) */}
+        <div className="pt-6 pr-6 pb-4 pl-4 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center">
+            <h1 className="text-3xl tracking-tight text-slate-900 dark:text-slate-100">
+              <span className="font-bold">Health</span>
+              <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
+            </h1>
+          </Link>
+          {/* Close button - Mobile only */}
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
+        </div>
+
+      {/* Elder Selector - Always visible in sidebar */}
       <div className="px-3 pb-4">
         <div className="px-2">
           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
@@ -141,6 +180,9 @@ export function Sidebar() {
             ))}
           </select>
         </div>
+        <p className="px-2 mt-2 text-xs text-gray-500 dark:text-gray-400 sm:hidden">
+          Use the menu to select an elder and access care features
+        </p>
       </div>
 
       {/* Navigation */}
@@ -334,6 +376,7 @@ export function Sidebar() {
           Settings
         </Link>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

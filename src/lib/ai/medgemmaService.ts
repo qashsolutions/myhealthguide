@@ -66,14 +66,17 @@ function getVertexAI(): VertexAI {
  */
 const MEDGEMMA_CONFIG = {
   model: 'medlm-large', // Will be medgemma-27b when available in Vertex AI
-  // Alternative: Use gemini-2.5-pro with medical system prompt for now
-  fallbackModel: 'gemini-2.5-pro',
+  // Alternative: Use gemini-3-pro-preview with medical system prompt for now
+  fallbackModel: 'gemini-3-pro-preview',
 
   generationConfig: {
     temperature: 0.3, // Lower temperature for medical accuracy
     topP: 0.95,
     topK: 40,
     maxOutputTokens: 8192,
+    thinking_config: {
+      include_thoughts: true // Enable thinking mode for complex medical reasoning
+    }
   },
 
   safetySettings: [

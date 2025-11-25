@@ -16,7 +16,7 @@ export function QuickActions() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-20 sm:bottom-6 sm:right-24 z-50">
       {/* Quick Action Buttons - Show when open */}
       {isOpen && (
         <div className="mb-4 space-y-3 flex flex-col items-end">

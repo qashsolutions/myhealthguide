@@ -64,8 +64,15 @@ function PhoneSignupForm() {
         throw new Error('Please enter a phone number');
       }
 
-      // Send verification code
-      const result = await AuthService.sendPhoneVerification(phoneNumber, recaptchaVerifier);
+      // Validate 10-digit format
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+      if (digitsOnly.length !== 10) {
+        throw new Error('Please enter a valid 10-digit phone number');
+      }
+
+      // Send verification code (automatically prepend +1 for US numbers)
+      const formattedPhone = `+1${digitsOnly}`;
+      const result = await AuthService.sendPhoneVerification(formattedPhone, recaptchaVerifier);
       setConfirmationResult(result);
       setStep('verify');
     } catch (err: any) {
@@ -103,9 +110,11 @@ function PhoneSignupForm() {
         throw new Error('Please verify your phone number first');
       }
 
-      // Complete signup with phone auth
+      // Complete signup with phone auth (automatically prepend +1 for US numbers)
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+      const formattedPhone = `+1${digitsOnly}`;
       await AuthService.signInWithPhone(
-        phoneNumber,
+        formattedPhone,
         verificationCode,
         confirmationResult,
         {
@@ -178,10 +187,15 @@ function PhoneSignupForm() {
                   type="tel"
                   placeholder="(555) 123-4567"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e) => {
+                    // Only allow digits, limit to 10 characters
+                    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setPhoneNumber(cleaned);
+                  }}
                   required
                   disabled={loading}
                   className="rounded-l-none"
+                  maxLength={10}
                 />
               </div>
             </div>
@@ -223,7 +237,7 @@ function PhoneSignupForm() {
                 className="text-center text-2xl tracking-widest placeholder:text-gray-300 dark:placeholder:text-gray-600"
               />
               <p className="text-xs text-gray-500">
-                Enter the 6-digit code sent to {phoneNumber}
+                Enter the 6-digit code sent to +1 {phoneNumber}
               </p>
             </div>
 
