@@ -5,13 +5,17 @@ service cloud.firestore {
     // ============= Helper Functions =============
 
     // Check if request has valid App Check token (bot protection)
+    // App Check provides protection against bots and abuse
     function hasValidAppCheckToken() {
-      return request.auth.token.firebase.sign_in_provider != null;
+      return request.app != null;
     }
 
     // Check if user is authenticated
+    // For phone auth, also check they have a valid sign-in provider
     function isSignedIn() {
-      return request.auth != null && hasValidAppCheckToken();
+      return request.auth != null &&
+             request.auth.token.firebase.sign_in_provider != null &&
+             hasValidAppCheckToken();
     }
 
     // Check if user owns the document
