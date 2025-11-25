@@ -1129,19 +1129,19 @@ service cloud.firestore {
 
     match /sessions/{sessionId} {
       // Users can read their own session data
-      allow read: if isSignedIn() &&
+      allow read: if request.auth != null &&
         resource.data.userId == request.auth.uid;
 
       // Anyone can create a session (for anonymous tracking)
       // Session will be associated with user after login
       allow create: if true;
 
-      // Users can update their own sessions
-      allow update: if request.resource.data.userId == request.auth.uid ||
-        resource.data.sessionId == request.resource.data.sessionId;
+      // Allow updates for session association
+      // When user logs in, we associate their anonymous session with their userId
+      allow update: if request.auth != null;
 
       // Users can delete their own sessions
-      allow delete: if isSignedIn() &&
+      allow delete: if request.auth != null &&
         resource.data.userId == request.auth.uid;
     }
 
