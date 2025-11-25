@@ -29,9 +29,9 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY)
     // Use debug token for localhost development
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    if (isLocalhost) {
-      // For localhost, set self.FIREBASE_APPCHECK_DEBUG_TOKEN before initializing
-      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    if (isLocalhost && process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN) {
+      // For localhost, set the actual debug token from environment
+      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN;
       console.log('⚠️ App Check debug mode enabled for localhost');
     }
 
