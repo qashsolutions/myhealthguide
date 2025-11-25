@@ -41,6 +41,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const trialEndDate = user.trialEndDate ? new Date(user.trialEndDate) : null;
     const now = new Date();
 
+    console.log('🔒 [PROTECTED-ROUTE] Checking access for user:', user.id);
+    console.log('🔒 [PROTECTED-ROUTE] Subscription status:', subscriptionStatus);
+    console.log('🔒 [PROTECTED-ROUTE] Trial end date (raw):', user.trialEndDate);
+    console.log('🔒 [PROTECTED-ROUTE] Trial end date (converted):', trialEndDate);
+    console.log('🔒 [PROTECTED-ROUTE] Current time:', now);
+
     // Calculate if trial is still active
     const isTrialActive = trialEndDate && trialEndDate > now;
 
@@ -49,6 +55,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
     // Check if user has access
     const hasAccess = isTrialActive || hasActiveSubscription;
+
+    console.log('🔒 [PROTECTED-ROUTE] Is trial active?', isTrialActive);
+    console.log('🔒 [PROTECTED-ROUTE] Has active subscription?', hasActiveSubscription);
+    console.log('🔒 [PROTECTED-ROUTE] Has access?', hasAccess);
 
     if (!hasAccess) {
       // Trial expired and no subscription -> redirect to upgrade/pricing

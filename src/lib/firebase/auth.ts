@@ -224,12 +224,33 @@ export class AuthService {
    */
   static async getCurrentUserData(): Promise<User | null> {
     const firebaseUser = auth.currentUser;
-    if (!firebaseUser) return null;
+    console.log('📄 [AUTH-SERVICE] getCurrentUserData called');
+    console.log('📄 [AUTH-SERVICE] Firebase user:', firebaseUser?.uid);
 
-    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-    if (!userDoc.exists()) return null;
+    if (!firebaseUser) {
+      console.log('📄 [AUTH-SERVICE] No Firebase user - returning null');
+      return null;
+    }
 
-    return userDoc.data() as User;
+    try {
+      console.log('📄 [AUTH-SERVICE] Fetching user document from Firestore...');
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      console.log('📄 [AUTH-SERVICE] User document exists:', userDoc.exists());
+
+      if (!userDoc.exists()) {
+        console.error('📄 [AUTH-SERVICE] User document DOES NOT EXIST in Firestore!');
+        return null;
+      }
+
+      const userData = userDoc.data() as User;
+      console.log('📄 [AUTH-SERVICE] Successfully retrieved user data');
+      return userData;
+    } catch (error: any) {
+      console.error('📄 [AUTH-SERVICE] ERROR fetching user document:', error);
+      console.error('📄 [AUTH-SERVICE] Error code:', error?.code);
+      console.error('📄 [AUTH-SERVICE] Error message:', error?.message);
+      throw error;
+    }
   }
 
   // ============= PHONE AUTHENTICATION =============
