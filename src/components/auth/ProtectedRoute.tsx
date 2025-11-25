@@ -38,7 +38,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
     // Check trial and subscription status
     const subscriptionStatus = user.subscriptionStatus;
-    const trialEndDate = user.trialEndDate ? new Date(user.trialEndDate) : null;
+
+    // Convert Firestore Timestamp to JavaScript Date
+    let trialEndDate: Date | null = null;
+    if (user.trialEndDate) {
+      // Check if it's a Firestore Timestamp object
+      if (typeof user.trialEndDate === 'object' && 'seconds' in user.trialEndDate) {
+        trialEndDate = new Date((user.trialEndDate as any).seconds * 1000);
+      } else if (user.trialEndDate instanceof Date) {
+        trialEndDate = user.trialEndDate;
+      } else {
+        trialEndDate = new Date(user.trialEndDate);
+      }
+    }
+
     const now = new Date();
 
     console.log('🔒 [PROTECTED-ROUTE] Checking access for user:', user.id);
@@ -101,7 +114,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Check trial/subscription
   const subscriptionStatus = user.subscriptionStatus;
-  const trialEndDate = user.trialEndDate ? new Date(user.trialEndDate) : null;
+
+  // Convert Firestore Timestamp to JavaScript Date
+  let trialEndDate: Date | null = null;
+  if (user.trialEndDate) {
+    // Check if it's a Firestore Timestamp object
+    if (typeof user.trialEndDate === 'object' && 'seconds' in user.trialEndDate) {
+      trialEndDate = new Date((user.trialEndDate as any).seconds * 1000);
+    } else if (user.trialEndDate instanceof Date) {
+      trialEndDate = user.trialEndDate;
+    } else {
+      trialEndDate = new Date(user.trialEndDate);
+    }
+  }
+
   const now = new Date();
   const isTrialActive = trialEndDate && trialEndDate > now;
   const hasActiveSubscription = subscriptionStatus === 'active';
