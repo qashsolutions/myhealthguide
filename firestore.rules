@@ -1145,6 +1145,24 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
+    // ============= Session Events Collection =============
+
+    match /sessionEvents/{eventId} {
+      // Users can read their own session events
+      allow read: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+
+      // Anyone can create session events (login, page views, etc.)
+      allow create: if true;
+
+      // No updates needed for events (immutable audit trail)
+      allow update: if false;
+
+      // Users can delete their own events
+      allow delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
