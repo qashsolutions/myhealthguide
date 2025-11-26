@@ -58,6 +58,9 @@ ui-debug.log
 .vscode/
 .idea/
 
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
 # Google Cloud SDK (local installation)
 y/
 google-cloud-sdk/
