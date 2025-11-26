@@ -33,6 +33,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { uploadFileWithQuota } from '@/lib/firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { SubscriptionSettings as RealSubscriptionSettings } from '@/components/subscription/SubscriptionSettings';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -141,7 +142,7 @@ export default function SettingsPage() {
         <div className="md:col-span-3 space-y-6">
           {activeTab === 'profile' && <ProfileSettings />}
           {activeTab === 'security' && <SecurityActivitySettings />}
-          {activeTab === 'subscription' && <SubscriptionSettings />}
+          {activeTab === 'subscription' && <RealSubscriptionSettings />}
           {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'group' && <GroupSettings />}
           {activeTab === 'ai' && <AISettings />}
@@ -663,59 +664,6 @@ function AISettings() {
       isAdmin={isAdmin}
       onSave={handleSave}
     />
-  );
-}
-
-function SubscriptionSettings() {
-  return (
-    <div className="space-y-4">
-      <Card className="bg-white dark:bg-gray-900">
-        <CardHeader>
-          <CardTitle>Current Plan</CardTitle>
-          <CardDescription>Manage your subscription</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-lg">Single Plan</h3>
-              <Badge>Trial</Badge>
-            </div>
-            <p className="text-2xl font-bold mb-1">$8.99<span className="text-sm font-normal">/month</span></p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Trial ends in 7 days
-            </p>
-            <Button size="sm">Upgrade Plan</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gray-50 dark:bg-gray-800/50">
-        <CardHeader>
-          <CardTitle>Billing Information</CardTitle>
-          <CardDescription>Manage payment methods</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            No payment method on file
-          </p>
-          <Button variant="outline" size="sm">
-            Add Payment Method
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-white dark:bg-gray-900">
-        <CardHeader>
-          <CardTitle>Billing History</CardTitle>
-          <CardDescription>View past invoices and payments</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            No invoices yet
-          </p>
-        </CardContent>
-      </Card>
-    </div>
   );
 }
 

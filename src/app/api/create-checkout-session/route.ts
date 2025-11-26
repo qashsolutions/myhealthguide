@@ -14,7 +14,7 @@ function getStripe(): Stripe {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { priceId, userId, userEmail, planName } = body;
+    const { priceId, userId, userEmail, planName, skipTrial } = body;
 
     if (!priceId || !userId || !userEmail) {
       return NextResponse.json(
@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
 
     const stripe = getStripe();
 
-    // Create Checkout Session with 14-day trial
-    const session = await stripe.checkout.sessions.create({
+    // Create Checkout Session
+    // Only add trial if user is not already in trial (skipTrial = true means user is in trial)
+    const sessionConfig: any = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [
@@ -35,9 +36,9 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      // 14-day free trial
       subscription_data: {
-        trial_period_days: 14,
+        // Don't add trial if user already had their trial
+        ...(skipTrial ? {} : { trial_period_days: 14 }),
         metadata: {
           userId,
           planName,
@@ -53,7 +54,9 @@ export async function POST(req: NextRequest) {
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
       // Allow promotion codes
       allow_promotion_codes: true,
-    });
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error) {

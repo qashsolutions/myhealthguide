@@ -51,9 +51,9 @@ export const checkExpiredTrials = functions.pubsub
         if (trialEndDate && trialEndDate < now) {
           console.log(`Expiring trial for user: ${userDoc.id}`);
 
-          // Calculate grace period end (48 hours from now)
+          // Calculate grace period end (24 hours from now)
           const gracePeriodEnd = new Date(now);
-          gracePeriodEnd.setHours(gracePeriodEnd.getHours() + 48);
+          gracePeriodEnd.setHours(gracePeriodEnd.getHours() + 24);
 
           // Update user to expired status with grace period
           batch.update(userDoc.ref, {
@@ -130,11 +130,11 @@ export const sendTrialExpirationWarnings = functions.pubsub
         } else if (daysRemaining === 1) {
           shouldNotify = true;
           title = '⚠️ Trial Ending Tomorrow';
-          body = 'Your trial ends tomorrow! Subscribe now or download your data before it\'s deleted in 48 hours.';
+          body = 'Your trial ends tomorrow! Subscribe now or download your data before it\'s deleted after the trial ends.';
         } else if (daysRemaining === 0) {
           shouldNotify = true;
           title = '🚨 Trial Expires Today';
-          body = 'Your trial expires tonight at midnight. Subscribe now or export your data - it will be deleted in 48 hours!';
+          body = 'Your trial expires tonight at midnight. Subscribe now or export your data - it will be deleted in 24 hours!';
         }
 
         if (shouldNotify) {
