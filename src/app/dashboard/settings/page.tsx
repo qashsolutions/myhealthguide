@@ -29,6 +29,9 @@ import { AIFeaturesSettings } from '@/components/settings/AIFeaturesSettings';
 import { ActivityHistory } from '@/components/settings/ActivityHistory';
 import { AlertPreferencesSettings } from '@/components/settings/AlertPreferencesSettings';
 import { useAuth } from '@/contexts/AuthContext';
+import { uploadFileWithQuota } from '@/lib/firebase/storage';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -150,7 +153,7 @@ export default function SettingsPage() {
 }
 
 function ProfileSettings() {
-  const { user, updateProfile } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [profileImage, setProfileImage] = useState<string | undefined>(user?.profileImage);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -162,7 +165,7 @@ function ProfileSettings() {
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
@@ -180,17 +183,35 @@ function ProfileSettings() {
     try {
       setUploading(true);
 
-      // Convert to base64 for preview (in production, upload to storage)
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-        setProfileImage(base64String);
+      // Upload to Firebase Storage
+      const timestamp = Date.now();
+      const fileName = `profile_${user.id}_${timestamp}.${file.name.split('.').pop()}`;
+      const filePath = `users/${user.id}/profile/${fileName}`;
 
-        // In production, upload to Firebase Storage and get URL
-        // For now, just update the local state
-        // await updateProfile({ profileImage: uploadedUrl });
-      };
-      reader.readAsDataURL(file);
+      const uploadResult = await uploadFileWithQuota(
+        user.id,
+        file,
+        filePath,
+        'profile'
+      );
+
+      if (uploadResult.success && uploadResult.url) {
+        // Update user profile in Firestore
+        const userRef = doc(db, 'users', user.id);
+        await updateDoc(userRef, {
+          profileImage: uploadResult.url
+        });
+
+        // Update local state
+        setProfileImage(uploadResult.url);
+
+        // Refresh user data in auth context
+        await refreshUser();
+
+        alert('Profile photo updated successfully!');
+      } else {
+        alert(uploadResult.error || 'Failed to upload photo. Please try again.');
+      }
     } catch (error) {
       console.error('Error uploading photo:', error);
       alert('Failed to upload photo. Please try again.');
