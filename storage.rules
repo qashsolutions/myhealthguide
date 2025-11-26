@@ -18,10 +18,9 @@ service firebase.storage {
     }
 
     // Storage Quota Limits (enforced at application level):
-    // - Trial: 25 MB total storage
-    // - Basic (Single): 25 MB total storage
-    // - Family: 50 MB total storage
-    // - Agency: 200 MB total storage
+    // - Family: 25 MB total storage (also used during trial)
+    // - Single Agency: 50 MB total storage
+    // - Multi Agency: 500 MB total storage
     //
     // Note: Storage Rules cannot access Firestore to check total usage.
     // Total quota enforcement is done in src/lib/firebase/storage.ts

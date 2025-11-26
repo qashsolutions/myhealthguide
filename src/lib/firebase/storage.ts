@@ -29,9 +29,9 @@ export function getStorageLimitForTier(
   subscriptionStatus: 'trial' | 'active' | 'expired' | 'canceled',
   subscriptionTier: 'family' | 'single_agency' | 'multi_agency' | null
 ): number {
-  // During trial or if no tier, always 25 MB
+  // During trial or if no tier, use FAMILY limit (25 MB)
   if (subscriptionStatus === 'trial' || !subscriptionTier) {
-    return STORAGE_LIMITS.TRIAL;
+    return STORAGE_LIMITS.FAMILY;
   }
 
   // If expired or canceled, still return their tier limit (but they can't upload)
@@ -43,7 +43,7 @@ export function getStorageLimitForTier(
     case 'multi_agency':
       return STORAGE_LIMITS.MULTI_AGENCY;
     default:
-      return STORAGE_LIMITS.TRIAL;
+      return STORAGE_LIMITS.FAMILY; // Default to family limit
   }
 }
 
@@ -65,7 +65,7 @@ export async function checkStorageQuota(
 
     const userData = userSnap.data();
     const storageUsed = userData.storageUsed || 0;
-    const storageLimit = userData.storageLimit || STORAGE_LIMITS.TRIAL;
+    const storageLimit = userData.storageLimit || STORAGE_LIMITS.FAMILY; // Default to family limit
 
     // Check if adding this file would exceed the limit
     if (storageUsed + fileSize > storageLimit) {
@@ -272,7 +272,7 @@ export async function initializeUserStorage(userId: string): Promise<void> {
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
       storageUsed: 0,
-      storageLimit: STORAGE_LIMITS.TRIAL,
+      storageLimit: STORAGE_LIMITS.FAMILY, // Initialize with family limit (25 MB)
       subscriptionTier: null,
     });
   } catch (error) {

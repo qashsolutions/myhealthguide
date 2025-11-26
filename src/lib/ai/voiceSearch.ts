@@ -81,7 +81,7 @@ const SEARCH_KNOWLEDGE_BASE = {
     multi: {
       title: 'Multi Agency Plan',
       price: PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE,
-      description: `The Multi Agency plan costs $${PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE} per elder per month. It includes up to ${PRICING.MULTI_AGENCY.MAX_CAREGIVERS} caregivers, up to ${PRICING.MULTI_AGENCY.MAX_ELDERS} elders total, ${PRICING.MULTI_AGENCY.BILLING_CYCLE_DAYS}-day billing cycles, 200 MB storage, agency dashboard and analytics, and compliance tracking. Perfect for professional caregivers.`,
+      description: `The Multi Agency plan costs $${PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE} per elder per month. It includes up to ${PRICING.MULTI_AGENCY.MAX_CAREGIVERS} caregivers, up to ${PRICING.MULTI_AGENCY.MAX_ELDERS} elders total, ${PRICING.MULTI_AGENCY.BILLING_CYCLE_DAYS}-day billing cycles, 500 MB storage, agency dashboard and analytics, and compliance tracking. Perfect for professional caregivers.`,
       url: '/pricing',
     },
     trial: {

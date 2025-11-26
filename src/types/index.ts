@@ -442,11 +442,11 @@ export interface StorageMetadata {
 }
 
 // Storage limits in bytes
+// Note: No separate TRIAL limit - trial users get FAMILY limit (25 MB)
 export const STORAGE_LIMITS = {
-  TRIAL: 25 * 1024 * 1024, // 25 MB
   FAMILY: 25 * 1024 * 1024, // 25 MB (1 admin + 1 member, max 2 elders)
   SINGLE_AGENCY: 50 * 1024 * 1024, // 50 MB (1 caregiver + 3 members, max 4 elders)
-  MULTI_AGENCY: 200 * 1024 * 1024, // 200 MB (10 groups, 40 users, max 30 elders)
+  MULTI_AGENCY: 500 * 1024 * 1024, // 500 MB (10 groups, 40 users, max 30 elders)
 } as const;
 
 // Plan limits

@@ -73,7 +73,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li><strong>Family Plan ($8.99/month):</strong> 1 admin + 1 member, 2 elders max, 25MB storage</li>
               <li><strong>Single Agency Plan ($14.99/month):</strong> 1 caregiver + 3 members, 4 elders max, 50MB storage</li>
-              <li><strong>Multi Agency Plan ($144/month):</strong> 10 groups (each with 1 caregiver + 3 elders), 200MB storage</li>
+              <li><strong>Multi Agency Plan ($144/month):</strong> 10 groups (each with 1 caregiver + 3 elders), 500MB storage</li>
             </ul>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4.2 Billing</h3>

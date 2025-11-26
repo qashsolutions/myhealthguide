@@ -155,7 +155,7 @@ export function PricingCards({
         `Up to ${PRICING.MULTI_AGENCY.MAX_CAREGIVERS} caregivers`,
         `Up to ${PRICING.MULTI_AGENCY.MAX_ELDERS} elders total`,
         `${PRICING.MULTI_AGENCY.BILLING_CYCLE_DAYS}-day billing cycles`,
-        '200 MB storage',
+        '500 MB storage',
         'Agency dashboard & analytics',
         'Compliance & burnout tracking',
       ],
