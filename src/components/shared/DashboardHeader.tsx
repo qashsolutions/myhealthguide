@@ -14,7 +14,7 @@ import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ElderSelector } from '@/components/dashboard/ElderSelector';
-import { QuickSearch } from '@/components/dashboard/QuickSearch';
+import { UnifiedSearch } from '@/components/shared/UnifiedSearch';
 
 interface DashboardHeaderProps {
   onMenuClick?: () => void;
@@ -63,12 +63,12 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         </div>
       </div>
 
-      {/* Quick Search - Hidden on mobile, shown on tablet+ */}
-      <div className="hidden md:block flex-1 max-w-md">
-        <QuickSearch />
-      </div>
+      {/* Center spacer for desktop */}
+      <div className="hidden md:block flex-1" />
 
       <div className="flex items-center gap-2 lg:gap-4">
+        {/* Unified Search - Always visible */}
+        <UnifiedSearch />
         {/* Theme Toggle - Hidden on small mobile */}
         <Button
           variant="ghost"

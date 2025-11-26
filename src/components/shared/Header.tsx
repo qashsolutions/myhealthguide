@@ -7,6 +7,7 @@ import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { UnifiedSearch } from './UnifiedSearch';
 
 const navigation = [
   { name: 'Features', href: '/features' },
@@ -38,8 +39,9 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Mobile menu button */}
-        <div className="flex lg:hidden">
+        {/* Mobile menu button and search */}
+        <div className="flex lg:hidden gap-2 items-center">
+          <UnifiedSearch />
           <button
             type="button"
             className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700 dark:text-gray-300"
@@ -73,7 +75,8 @@ export function Header() {
         </div>
 
         {/* Desktop CTA buttons */}
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-2">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-2 lg:items-center">
+          <UnifiedSearch />
           <Button
             variant="ghost"
             size="icon"

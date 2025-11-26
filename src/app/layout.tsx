@@ -4,7 +4,6 @@ import { Providers } from './providers';
 import { Footer } from '@/components/shared/Footer';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { CookieConsent } from '@/components/cookies/CookieConsent';
-import { VoiceSearch } from '@/components/voice-search/VoiceSearch';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -107,8 +106,6 @@ export default function RootLayout({
           {children}
           <Footer />
           <CookieConsent />
-          {/* Global Voice Search - Available on all pages for verified users */}
-          <VoiceSearch />
         </Providers>
       </body>
     </html>
