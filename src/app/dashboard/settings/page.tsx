@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ import { DataDeletionPanel } from '@/components/admin/DataDeletionPanel';
 import { AIFeaturesSettings } from '@/components/settings/AIFeaturesSettings';
 import { ActivityHistory } from '@/components/settings/ActivityHistory';
 import { AlertPreferencesSettings } from '@/components/settings/AlertPreferencesSettings';
-import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -150,24 +150,85 @@ export default function SettingsPage() {
 }
 
 function ProfileSettings() {
+  const { user, updateProfile } = useAuth();
+  const [profileImage, setProfileImage] = useState<string | undefined>(user?.profileImage);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get user initials for avatar fallback
+  const userInitials = user
+    ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
+    : '';
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please select a JPG, PNG or GIF image.');
+      return;
+    }
+
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image size must be less than 2MB.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      // Convert to base64 for preview (in production, upload to storage)
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        setProfileImage(base64String);
+
+        // In production, upload to Firebase Storage and get URL
+        // For now, just update the local state
+        // await updateProfile({ profileImage: uploadedUrl });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      alert('Failed to upload photo. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Profile Settings</CardTitle>
         <CardDescription>
-          Update your personal information
+          View your personal information
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Avatar */}
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
-            <AvatarImage src="/placeholder-avatar.png" />
-            <AvatarFallback className="text-2xl">JD</AvatarFallback>
+            <AvatarImage src={profileImage} />
+            <AvatarFallback className="text-2xl">{userInitials}</AvatarFallback>
           </Avatar>
           <div>
-            <Button variant="outline" size="sm">
-              Change Photo
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? 'Uploading...' : 'Change Photo'}
             </Button>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               JPG, PNG or GIF. Max size 2MB.
@@ -177,35 +238,71 @@ function ProfileSettings() {
 
         <Separator />
 
-        {/* Form */}
+        {/* Form - All fields read-only */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name</Label>
-            <Input id="firstName" placeholder="John" />
+            <Input
+              id="firstName"
+              value={user?.firstName || ''}
+              disabled
+              className="bg-gray-50 dark:bg-gray-900"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="lastName">Last Name</Label>
-            <Input id="lastName" placeholder="Doe" />
+            <Input
+              id="lastName"
+              value={user?.lastName || ''}
+              disabled
+              className="bg-gray-50 dark:bg-gray-900"
+            />
           </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="john@example.com" disabled />
+          <Input
+            id="email"
+            type="email"
+            value={user?.email || ''}
+            disabled
+            className="bg-gray-50 dark:bg-gray-900"
+          />
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Email cannot be changed. Contact support if needed.
+            {user?.emailVerified ? (
+              <span className="text-green-600 dark:text-green-400">✓ Verified</span>
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400">⚠ Not verified</span>
+            )}
           </p>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="phone">Phone Number</Label>
-          <Input id="phone" type="tel" placeholder="(555) 123-4567" />
+          <Input
+            id="phone"
+            type="tel"
+            value={user?.phoneNumber || ''}
+            disabled
+            className="bg-gray-50 dark:bg-gray-900"
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {user?.phoneVerified ? (
+              <span className="text-green-600 dark:text-green-400">✓ Verified</span>
+            ) : (
+              <span className="text-amber-600 dark:text-amber-400">⚠ Not verified</span>
+            )}
+          </p>
         </div>
 
         <Separator />
 
-        <div className="flex justify-end">
-          <Button>Save Changes</Button>
+        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Note:</strong> Name, email, and phone cannot be changed as they are used for authentication and verification.
+            Contact support at support@myguide.health if you need assistance.
+          </p>
         </div>
       </CardContent>
     </Card>
