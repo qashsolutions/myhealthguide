@@ -1,5 +1,5 @@
 - review the documents. build prod ready files, do not add To-Dos. do not assume-ask me when in doubt.
-- today is nov 13,2025.
+- today is Nov 25, 2025.
 
 ## CRITICAL: Authentication & Firestore Best Practices
 
@@ -170,3 +170,4 @@ match /sessionEvents/{eventId} {
 - `src/app/(auth)/phone-login/page.tsx`
 
 **Do NOT remove** the +1 prefix logic - it's required for Firebase phone authentication to work correctly for US numbers.
+- Today is Nov 25,2025
