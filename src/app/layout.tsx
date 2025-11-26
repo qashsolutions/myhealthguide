@@ -100,6 +100,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <StructuredData />
+        {/* PWA meta tags for cross-platform compatibility */}
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={inter.className}>
         <Providers>

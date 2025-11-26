@@ -171,3 +171,4 @@ match /sessionEvents/{eventId} {
 
 **Do NOT remove** the +1 prefix logic - it's required for Firebase phone authentication to work correctly for US numbers.
 - Today is Nov 25,2025
+- the firebase config will not work in local
