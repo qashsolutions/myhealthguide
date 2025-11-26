@@ -642,7 +642,7 @@ function SecurityActivitySettings() {
           </Card>
         </div>
       ) : (
-        <ActivityHistory userId={currentUser.id} />
+        <ActivityHistory userId={user?.id || ''} />
       )}
     </div>
   );
