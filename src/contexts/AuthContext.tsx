@@ -40,27 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (firebaseUser) {
         try {
-          console.log('🔄 [AUTH-CONTEXT] Firebase user authenticated:', firebaseUser.uid);
-          console.log('🔄 [AUTH-CONTEXT] Email:', firebaseUser.email);
-          console.log('🔄 [AUTH-CONTEXT] Phone number from Firebase:', firebaseUser.phoneNumber);
-          console.log('🔄 [AUTH-CONTEXT] Email verified:', firebaseUser.emailVerified);
-          console.log('🔄 [AUTH-CONTEXT] Provider data:', firebaseUser.providerData);
-
-          // Get ID token to check claims
-          const idTokenResult = await firebaseUser.getIdTokenResult();
-          console.log('🔄 [AUTH-CONTEXT] Sign in provider:', idTokenResult.signInProvider);
-          console.log('🔄 [AUTH-CONTEXT] Token claims:', idTokenResult.claims);
-
           // Fetch user data from Firestore
-          console.log('🔄 [AUTH-CONTEXT] Attempting to fetch user data from Firestore...');
           const userData = await AuthService.getCurrentUserData();
 
           if (userData) {
-            console.log('✅ [AUTH-CONTEXT] User data fetched successfully:', userData.id);
-            console.log('✅ [AUTH-CONTEXT] User email:', userData.email);
-            console.log('✅ [AUTH-CONTEXT] User phone:', userData.phoneNumber);
-            console.log('✅ [AUTH-CONTEXT] Subscription status:', userData.subscriptionStatus);
-            console.log('✅ [AUTH-CONTEXT] Trial end date:', userData.trialEndDate);
             setUser(userData);
 
             // Initialize/associate session with user
@@ -68,18 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               associateSessionWithUser(userData.id);
             }
           } else {
-            console.error('❌ [AUTH-CONTEXT] User data is NULL - Firestore document may not exist or can\'t be read');
+            console.error('User data not found in Firestore for UID:', firebaseUser.uid);
             setUser(null);
           }
         } catch (error: any) {
-          console.error('❌ [AUTH-CONTEXT] Error fetching user data:', error);
-          console.error('❌ [AUTH-CONTEXT] Error message:', error?.message);
-          console.error('❌ [AUTH-CONTEXT] Error code:', error?.code);
-          console.error('❌ [AUTH-CONTEXT] Firebase user UID:', firebaseUser.uid);
+          console.error('Error fetching user data:', error?.message || error);
           setUser(null);
         }
       } else {
-        console.log('🔄 [AUTH-CONTEXT] No Firebase user authenticated');
         setUser(null);
       }
 

@@ -224,31 +224,15 @@ export class AuthService {
    */
   static async getCurrentUserData(): Promise<User | null> {
     const firebaseUser = auth.currentUser;
-    console.log('📄 [AUTH-SERVICE] getCurrentUserData called');
-    console.log('📄 [AUTH-SERVICE] Firebase user:', firebaseUser?.uid);
-
-    if (!firebaseUser) {
-      console.log('📄 [AUTH-SERVICE] No Firebase user - returning null');
-      return null;
-    }
+    if (!firebaseUser) return null;
 
     try {
-      console.log('📄 [AUTH-SERVICE] Fetching user document from Firestore...');
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-      console.log('📄 [AUTH-SERVICE] User document exists:', userDoc.exists());
+      if (!userDoc.exists()) return null;
 
-      if (!userDoc.exists()) {
-        console.error('📄 [AUTH-SERVICE] User document DOES NOT EXIST in Firestore!');
-        return null;
-      }
-
-      const userData = userDoc.data() as User;
-      console.log('📄 [AUTH-SERVICE] Successfully retrieved user data');
-      return userData;
+      return userDoc.data() as User;
     } catch (error: any) {
-      console.error('📄 [AUTH-SERVICE] ERROR fetching user document:', error);
-      console.error('📄 [AUTH-SERVICE] Error code:', error?.code);
-      console.error('📄 [AUTH-SERVICE] Error message:', error?.message);
+      console.error('Error fetching user data:', error?.message || error);
       throw error;
     }
   }

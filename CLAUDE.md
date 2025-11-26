@@ -1,2 +1,172 @@
 - review the documents. build prod ready files, do not add To-Dos. do not assume-ask me when in doubt.
 - today is nov 13,2025.
+
+## CRITICAL: Authentication & Firestore Best Practices
+
+### 1. Firestore Timestamp Conversion (CRITICAL BUG FIXED: Nov 25, 2025)
+
+**Problem:**
+Firestore returns date fields as Timestamp objects with structure `{seconds: number, nanoseconds: number}`, NOT as JavaScript Date objects or date strings. Using `new Date(firestoreTimestamp)` directly returns "Invalid Date".
+
+**Example of the bug:**
+```typescript
+// ❌ WRONG - Returns "Invalid Date"
+const trialEndDate = new Date(user.trialEndDate);
+
+// ✅ CORRECT - Properly converts Firestore Timestamp
+let trialEndDate: Date | null = null;
+if (user.trialEndDate) {
+  if (typeof user.trialEndDate === 'object' && 'seconds' in user.trialEndDate) {
+    trialEndDate = new Date((user.trialEndDate as any).seconds * 1000);
+  } else if (user.trialEndDate instanceof Date) {
+    trialEndDate = user.trialEndDate;
+  } else {
+    trialEndDate = new Date(user.trialEndDate);
+  }
+}
+```
+
+**Files affected:**
+- `src/components/auth/ProtectedRoute.tsx` (lines 43-53, 119-129) - FIXED
+- Any other file that reads date fields from Firestore (medications, appointments, etc.)
+
+**Impact:**
+This bug caused authenticated users with active trials to be incorrectly redirected to the pricing page because trial validation failed.
+
+**Prevention:**
+- ALWAYS check if a Firestore field is a Timestamp object before converting to Date
+- NEVER assume date fields from Firestore are Date objects
+- Use the helper pattern above for ALL date conversions from Firestore
+
+### 2. Environment Variables for Production
+
+**CRITICAL:** Environment variables in `.env.local` only work in local development. For production deployment on Vercel, you MUST add all `NEXT_PUBLIC_*` variables to Vercel's environment variables.
+
+**Required environment variables for production:**
+- `NEXT_PUBLIC_FIREBASE_VAPID_KEY` - Required for FCM push notifications
+- All `NEXT_PUBLIC_FIREBASE_*` config variables
+- `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` - Required for App Check
+
+**How to add to Vercel:**
+1. Go to Vercel Dashboard → Project → Settings → Environment Variables
+2. Add each variable with the same name and value as in `.env.local`
+3. Select all environments: Production, Preview, Development
+4. Click "Redeploy" after adding variables
+
+**Missing this will cause:**
+- "VAPID key not configured" errors in production
+- FCM push notifications fail
+- reCAPTCHA/App Check failures
+
+### 3. Firestore Security Rules - Session Management
+
+**IMPORTANT:** The session management system writes to TWO collections:
+1. `sessions` - User session tracking
+2. `sessionEvents` - Event logs for each session
+
+**Both collections need Firestore rules:**
+```javascript
+// sessions collection
+match /sessions/{sessionId} {
+  allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+  allow create: if true; // Anonymous users need to create sessions
+  allow update: if request.auth != null;
+  allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+
+// sessionEvents collection
+match /sessionEvents/{eventId} {
+  allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+  allow create: if true; // Anonymous users need to log events
+  allow update: if false; // Immutable audit trail
+  allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+}
+```
+
+**Missing these rules causes:**
+- "Missing or insufficient permissions" errors on sign-in
+- Session association failures
+- Event logging failures
+
+### 4. Before Making Auth/Session Updates
+
+**CHECKLIST - MUST verify before any changes to authentication or session code:**
+
+1. **Check Firestore Timestamp handling:**
+   - Are you reading any date fields from Firestore?
+   - Are you properly converting Timestamps to Dates?
+   - Test with console logs to verify date values
+
+2. **Check Firestore rules:**
+   - Do new collections have proper security rules?
+   - Are you writing to any new collections?
+   - Test rules with Firebase Console
+
+3. **Check environment variables:**
+   - Are new env vars added to `.env.local`?
+   - Are they added to Vercel environment variables?
+   - Do they start with `NEXT_PUBLIC_` if used in client code?
+
+4. **Test authentication flow:**
+   - Can users sign up with email?
+   - Can users sign up with phone?
+   - Can users access dashboard after sign-in?
+   - Check browser console for errors
+   - Verify trial/subscription validation works
+
+5. **Check session management:**
+   - Does session initialize correctly?
+   - Does session associate with user after login?
+   - Are session events being logged?
+   - Check Firestore for session/sessionEvents documents
+
+### 5. Debugging Authentication Issues
+
+**Step-by-step debugging approach:**
+
+1. **Check Firebase Authentication:**
+   ```typescript
+   const idTokenResult = await firebaseUser.getIdTokenResult();
+   console.log('Sign in provider:', idTokenResult.signInProvider);
+   console.log('Token claims:', idTokenResult.claims);
+   ```
+
+2. **Check Firestore User Document:**
+   ```typescript
+   const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+   console.log('User document exists:', userDoc.exists());
+   console.log('User data:', userDoc.data());
+   ```
+
+3. **Check Trial/Subscription Status:**
+   ```typescript
+   console.log('Subscription status:', user.subscriptionStatus);
+   console.log('Trial end date (raw):', user.trialEndDate);
+   // Check if it's a Timestamp object
+   console.log('Is Timestamp?', typeof user.trialEndDate === 'object' && 'seconds' in user.trialEndDate);
+   ```
+
+4. **Check Firestore Rules:**
+   - Deploy rules: `firebase deploy --only firestore:rules`
+   - Check for compilation errors
+   - Test specific rules in Firebase Console
+
+**Common error patterns:**
+- "Invalid Date" → Firestore Timestamp conversion issue
+- "Missing or insufficient permissions" → Firestore rules missing
+- "VAPID key not configured" → Environment variable missing
+- "User data is NULL" → Firestore document doesn't exist or can't be read
+
+### 6. Phone Authentication +1 Prefix
+
+**Implementation:** Phone numbers are automatically prefixed with +1 for US numbers.
+- UI shows "+1" prefix in a disabled input element
+- Input field only accepts 10 digits
+- Code automatically prepends "+1" before sending to Firebase
+- This simplifies UX and ensures consistency
+
+**Files:**
+- `src/app/(auth)/phone-signup/page.tsx` (lines 67-78, 115-117)
+- `src/app/(auth)/phone-login/page.tsx`
+
+**Do NOT remove** the +1 prefix logic - it's required for Firebase phone authentication to work correctly for US numbers.
