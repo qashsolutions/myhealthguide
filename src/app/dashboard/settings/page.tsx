@@ -514,7 +514,10 @@ function SecurityActivitySettings() {
                       <p className="text-sm text-gray-500">{user?.email}</p>
                     </div>
                   </div>
-                  <Badge variant={user?.emailVerified ? 'success' : 'secondary'}>
+                  <Badge
+                    variant={user?.emailVerified ? 'default' : 'secondary'}
+                    className={user?.emailVerified ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' : ''}
+                  >
                     {user?.emailVerified ? 'Verified' : 'Not Verified'}
                   </Badge>
                 </div>
@@ -527,7 +530,10 @@ function SecurityActivitySettings() {
                       <p className="text-sm text-gray-500">{user?.phoneNumber}</p>
                     </div>
                   </div>
-                  <Badge variant={user?.phoneVerified ? 'success' : 'secondary'}>
+                  <Badge
+                    variant={user?.phoneVerified ? 'default' : 'secondary'}
+                    className={user?.phoneVerified ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' : ''}
+                  >
                     {user?.phoneVerified ? 'Verified' : 'Not Verified'}
                   </Badge>
                 </div>
