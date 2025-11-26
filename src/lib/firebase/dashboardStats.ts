@@ -139,9 +139,10 @@ function filterLogsByElder<T extends { elderId: string }>(
 }
 
 /**
- * Filter active medications/supplements (no end date or end date in future)
+ * Filter active medications (no end date or end date in future)
+ * Supplements don't have endDate so they're always considered active
  */
-function filterActive<T extends { endDate?: Date }>(items: T[]): T[] {
+function filterActiveMedications<T extends { endDate?: Date }>(items: T[]): T[] {
   const now = new Date();
   return items.filter(item => !item.endDate || item.endDate > now);
 }
@@ -268,8 +269,9 @@ export class DashboardStatsService {
       const elderDietEntries = filterByElder(allDietEntries, elder.id);
 
       // Active counts
-      const activeMedications = filterActive(elderMedications);
-      const activeSupplements = filterActive(elderSupplements);
+      // Medications have endDate, supplements are always active (no endDate field)
+      const activeMedications = filterActiveMedications(elderMedications);
+      const activeSupplementsCount = elderSupplements.length; // All supplements are active
 
       // Compliance calculations
       const medicationCompliance = calculateComplianceFromLogs(elderMedicationLogs);
@@ -290,7 +292,7 @@ export class DashboardStatsService {
         groupId: elder.groupId,
         activeMedicationsCount: activeMedications.length,
         medicationCompliance,
-        activeSupplementsCount: activeSupplements.length,
+        activeSupplementsCount,
         supplementCompliance,
         dietStats: {
           mealsLoggedToday,
