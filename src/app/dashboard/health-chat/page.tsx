@@ -204,13 +204,10 @@ export default function HealthChatPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
               <Brain className="h-8 w-8 text-purple-600" />
-              Health Chat
-              <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full">
-                Powered by MedGemma
-              </span>
+              Ask a Question
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Ask questions about health data in natural language
+              Ask about medications, meals, or how your loved one is doing - in your own words
             </p>
           </div>
         </div>
@@ -238,9 +235,9 @@ export default function HealthChatPage() {
         <div className="flex items-start gap-3">
           <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold text-blue-900 dark:text-blue-100">Powered by MedGemma 27B</p>
+            <p className="font-semibold text-blue-900 dark:text-blue-100">Your Health Assistant</p>
             <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-              Ask questions about medications, diet, and compliance in plain English. The AI will retrieve and analyze your data.
+              Ask questions like "How did Mom do this week?" or "Did Dad take his heart medication?" and get instant answers.
             </p>
           </div>
         </div>

@@ -153,7 +153,7 @@ export default function HelpPage() {
   const categories: { value: HelpCategory | 'all'; label: string }[] = [
     { value: 'all', label: 'All' },
     { value: 'voice', label: 'Voice' },
-    { value: 'ai', label: 'AI Features' },
+    { value: 'ai', label: 'Health Assistant' },
     { value: 'tracking', label: 'Tracking' },
     { value: 'safety', label: 'Safety' },
     { value: 'notifications', label: 'Notifications' },

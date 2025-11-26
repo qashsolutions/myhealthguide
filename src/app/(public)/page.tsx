@@ -21,11 +21,11 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Intelligent Caregiving Made Simple
+              Caregiving Without the Guesswork
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Voice-powered medication tracking, AI-driven insights, and real-time collaboration
-              for families and caregiving agencies.
+              Track medications by voice. Get daily summaries. Never wonder if a dose was missed.
+              Built for families and caregiving agencies.
             </p>
             <div className="mt-10 flex items-center justify-center">
               <Link href="/features">
@@ -132,7 +132,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              {/* Feature 2: AI Insights */}
+              {/* Feature 2: Daily Summaries */}
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4 mb-4">
@@ -140,17 +140,17 @@ export default function LandingPage() {
                       <Brain className="h-6 w-6 text-white" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      AI-Driven Insights
+                      Daily Health Summaries
                     </h3>
                   </div>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Get daily summaries and pattern detection to spot missed doses and
-                    improve medication compliance.
+                    See how your loved one is doing at a glance. We'll alert you when
+                    something looks off so you never miss a beat.
                   </p>
                 </CardContent>
               </Card>
 
-              {/* Feature 3: SMS Alerts */}
+              {/* Feature 3: Timely Reminders */}
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4 mb-4">
@@ -158,12 +158,12 @@ export default function LandingPage() {
                       <Bell className="h-6 w-6 text-white" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Smart Notifications
+                      Timely Reminders
                     </h3>
                   </div>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Receive SMS alerts for missed doses. Customizable frequency and content
-                    to fit your needs.
+                    Get SMS alerts when doses are missed. Set up reminders that work
+                    for your schedule.
                   </p>
                 </CardContent>
               </Card>

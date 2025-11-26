@@ -63,7 +63,7 @@ const elderCentricSections = [
     items: [
       { href: '/dashboard/medication-adherence', label: 'Medication Adherence', icon: TrendingUp },
       { href: '/dashboard/nutrition-analysis', label: 'Nutrition Analysis', icon: Apple },
-      { href: '/dashboard/insights', label: 'AI Insights', icon: Sparkles }
+      { href: '/dashboard/insights', label: 'Health Trends', icon: Sparkles }
     ]
   },
   {
@@ -231,17 +231,17 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           </Link>
         )}
 
-        {/* MedGemma AI Section - Always visible, prominent */}
+        {/* Health Assistant Section - Always visible, prominent */}
         <div className="pt-4 pb-2">
           <div className="px-3">
             <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
-              AI-Powered
+              Ask Questions
             </p>
           </div>
         </div>
 
-        {/* MedGemma Hub */}
+        {/* Health Assistant Hub */}
         <Link
           href="/dashboard/medgemma"
           className={cn(
@@ -252,13 +252,13 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           )}
         >
           <Brain className="w-5 h-5" />
-          MedGemma AI
+          Health Assistant
           <span className="ml-auto text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-semibold">
             NEW
           </span>
         </Link>
 
-        {/* MedGemma Features */}
+        {/* Health Assistant Features */}
         <Link
           href="/dashboard/health-chat"
           className={cn(
@@ -269,7 +269,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           )}
         >
           <MessageSquare className="w-4 h-4" />
-          Health Chat
+          Ask a Question
         </Link>
 
         <Link

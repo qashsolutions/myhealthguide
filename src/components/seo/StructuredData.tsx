@@ -10,7 +10,7 @@ export function StructuredData() {
     name: 'myguide.health',
     url: 'https://www.myguide.health',
     logo: 'https://www.myguide.health/logo.png',
-    description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking and intelligent insights for eldercare management.',
+    description: 'Caregiving made simple. Track medications by voice, get daily health summaries, and never miss a dose. Built for families and agencies.',
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'Customer Support',
@@ -26,7 +26,7 @@ export function StructuredData() {
     '@type': 'WebSite',
     name: 'myguide.health',
     url: 'https://www.myguide.health',
-    description: 'AI-powered eldercare and caregiver management platform',
+    description: 'Eldercare and caregiver management made simple',
     potentialAction: {
       '@type': 'SearchAction',
       target: 'https://www.myguide.health/search?q={search_term_string}',
@@ -46,15 +46,15 @@ export function StructuredData() {
       priceCurrency: 'USD',
       priceValidUntil: '2025-12-31',
     },
-    description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking, voice-enabled logging, and intelligent insights for eldercare management.',
+    description: 'Track medications by voice. Get daily health summaries. Never miss a dose. Built for families and caregiving agencies.',
     featureList: [
-      'Automated medication tracking',
-      'Voice-enabled logging',
-      'AI-driven insights',
-      'Real-time collaboration',
-      'Caregiver workflow automation',
-      'Emergency alerts',
-      'Compliance monitoring',
+      'Voice medication logging',
+      'Daily health summaries',
+      'Missed dose alerts',
+      'Family collaboration',
+      'Caregiver shift handoffs',
+      'Emergency notifications',
+      'Medication compliance tracking',
     ],
   };
 

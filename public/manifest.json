@@ -1,7 +1,7 @@
 {
-  "name": "HealthGuide - AI-Powered Caregiving Platform",
+  "name": "HealthGuide - Caregiving Made Simple",
   "short_name": "HealthGuide",
-  "description": "AI-powered caregiving platform for families and agencies. Automated medication tracking, voice-enabled logging, and intelligent insights for eldercare management.",
+  "description": "Track medications by voice. Get daily summaries. Never wonder if a dose was missed. Built for families and caregiving agencies.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

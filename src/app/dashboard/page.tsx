@@ -455,7 +455,7 @@ export default function DashboardPage() {
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Get started by adding your first elder profile. You'll be able to track medications,
-              diet, activities, and get AI-powered insights to improve care quality.
+              diet, and activities - and we'll help you spot anything that needs attention.
             </p>
             <Link href="/dashboard/elders/new">
               <Button size="lg">
@@ -504,10 +504,10 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h5 className="font-semibold text-gray-900 dark:text-white mb-1">
-                    AI-Powered Insights
+                    Daily Health Summaries
                   </h5>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Get intelligent health summaries and pattern detection
+                    See how your loved one is doing at a glance
                   </p>
                 </div>
               </div>
