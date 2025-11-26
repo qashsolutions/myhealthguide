@@ -13,8 +13,17 @@ import { format, differenceInDays } from 'date-fns';
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
+// Plan type definition
+interface Plan {
+  name: string;
+  price: number;
+  priceId: string | undefined;
+  priceText?: string;
+  features: string[];
+}
+
 // Plan configuration
-const PLANS = {
+const PLANS: Record<string, Plan> = {
   family: {
     name: 'Family Plan',
     price: 8.99,
