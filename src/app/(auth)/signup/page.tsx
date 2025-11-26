@@ -25,27 +25,27 @@ export default function SignupPage() {
   const validatePassword = (password: string): boolean => {
     setPasswordError('');
 
-    // At least 7 characters
-    if (password.length < 7) {
-      setPasswordError('Password must be at least 7 characters long');
+    // Exactly 8 or more characters
+    if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters long');
       return false;
     }
 
     // Must contain at least one letter
     if (!/[a-zA-Z]/.test(password)) {
-      setPasswordError('Password must contain at least one letter (a-z, A-Z)');
+      setPasswordError('Password must contain at least one letter');
       return false;
     }
 
     // Must contain at least one number
     if (!/[0-9]/.test(password)) {
-      setPasswordError('Password must contain at least one number (0-9)');
+      setPasswordError('Password must contain at least one number');
       return false;
     }
 
-    // Must contain at least one special character
-    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(password)) {
-      setPasswordError("Password must contain at least one special character (!@#$%^&*(),.?\":{}<>_-+=[]\\/;'`~)");
+    // Only alphanumeric characters allowed
+    if (!/^[a-zA-Z0-9]+$/.test(password)) {
+      setPasswordError('Password must contain only letters and numbers');
       return false;
     }
 
@@ -147,14 +147,14 @@ export default function SignupPage() {
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="8+ alphanumeric characters"
               value={formData.password}
               onChange={handlePasswordChange}
               required
               className={passwordError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              7 characters minimum: a-z, A-Z, 0-9 and a special character (!@#$%^&amp;*(),.?&quot;:&#123;&#125;&lt;&gt;_-+=[]\/;&apos;&#96;~)
+              Minimum 8 characters using only letters and numbers
             </p>
             {passwordError && (
               <div className="text-sm text-red-600 dark:text-red-400">

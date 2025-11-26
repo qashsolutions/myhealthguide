@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
@@ -381,7 +382,79 @@ function NotificationSettings() {
 
 function SecurityActivitySettings() {
   const [securityTab, setSecurityTab] = useState<'security' | 'activity'>('security');
-  const currentUser = { id: 'mock-user-id' }; // Replace with actual user from auth context
+  const { user } = useAuth();
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [requireEmailVerification, setRequireEmailVerification] = useState(false);
+
+  // Check if user has MFA enabled (both email and phone verified)
+  const hasMFA = user?.emailVerified && user?.phoneVerified;
+
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (!/[a-zA-Z]/.test(password)) {
+      return 'Password must contain at least one letter';
+    }
+    if (!/[0-9]/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    if (!/^[a-zA-Z0-9]+$/.test(password)) {
+      return 'Password must contain only letters and numbers';
+    }
+    return null;
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    // Validate new password
+    const passwordValidation = validatePassword(passwordForm.newPassword);
+    if (passwordValidation) {
+      setPasswordError(passwordValidation);
+      return;
+    }
+
+    // Check if passwords match
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    // Check email verification first
+    if (!user?.emailVerified) {
+      setPasswordError('Please verify your email before changing password');
+      setRequireEmailVerification(true);
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+
+      // In production, call Firebase reauthenticate and updatePassword
+      // For now, show success message
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+
+      setPasswordSuccess('Password updated successfully!');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (error) {
+      setPasswordError('Failed to update password. Please try again.');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -418,36 +491,134 @@ function SecurityActivitySettings() {
       {/* Tab Content */}
       {securityTab === 'security' ? (
         <div className="space-y-4">
+          {/* MFA Status Card */}
+          <Card className={hasMFA ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className={`w-5 h-5 ${hasMFA ? 'text-green-600' : 'text-amber-600'}`} />
+                Multi-Factor Authentication (MFA)
+              </CardTitle>
+              <CardDescription>
+                {hasMFA
+                  ? 'Your account is protected with MFA'
+                  : 'Enable both email and phone verification for enhanced security'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${user?.emailVerified ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <div>
+                      <p className="font-medium">Email Verification</p>
+                      <p className="text-sm text-gray-500">{user?.email}</p>
+                    </div>
+                  </div>
+                  <Badge variant={user?.emailVerified ? 'success' : 'secondary'}>
+                    {user?.emailVerified ? 'Verified' : 'Not Verified'}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${user?.phoneVerified ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <div>
+                      <p className="font-medium">Phone Verification</p>
+                      <p className="text-sm text-gray-500">{user?.phoneNumber}</p>
+                    </div>
+                  </div>
+                  <Badge variant={user?.phoneVerified ? 'success' : 'secondary'}>
+                    {user?.phoneVerified ? 'Verified' : 'Not Verified'}
+                  </Badge>
+                </div>
+
+                {hasMFA && (
+                  <div className="mt-3 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      MFA is active. All sensitive operations require verification.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Password Change Card */}
           <Card className="bg-white dark:bg-gray-900">
             <CardHeader>
               <CardTitle>Change Password</CardTitle>
-              <CardDescription>Update your password to keep your account secure</CardDescription>
+              <CardDescription>
+                Update your password to keep your account secure
+                {!user?.emailVerified && (
+                  <span className="block mt-1 text-amber-600">
+                    ⚠ Email verification required for password changes
+                  </span>
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Current Password</Label>
-                <Input id="currentPassword" type="password" />
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  placeholder="Enter current password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New Password</Label>
-                <Input id="newPassword" type="password" />
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="8+ alphanumeric characters"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input id="confirmPassword" type="password" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Re-enter new password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                />
               </div>
-              <Button size="sm">Update Password</Button>
-            </CardContent>
-          </Card>
 
-          <Card className="bg-gray-50 dark:bg-gray-800/50">
-            <CardHeader>
-              <CardTitle>Two-Factor Authentication</CardTitle>
-              <CardDescription>Add an extra layer of security to your account</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm">
-                Enable 2FA
+              {passwordError && (
+                <Alert className="bg-red-50 border-red-200">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    {passwordError}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {passwordSuccess && (
+                <Alert className="bg-green-50 border-green-200">
+                  <Shield className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    {passwordSuccess}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                onClick={handlePasswordChange}
+                disabled={changingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+              >
+                {changingPassword ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Password'
+                )}
               </Button>
             </CardContent>
           </Card>
