@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Mic, X, Search, Loader2, Volume2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Mic, MicOff, X, Search, Loader2, Volume2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
+import { MicrophonePermissionDialog } from '@/components/voice/MicrophonePermissionDialog';
+import { checkVoiceInputSupport } from '@/lib/voice/browserSupport';
 import type { VoiceSearchResult } from '@/lib/ai/voiceSearch';
 
 /**
@@ -14,11 +18,13 @@ import type { VoiceSearchResult } from '@/lib/ai/voiceSearch';
  * Accessible from anywhere in the webapp
  *
  * Features:
- * - Voice input via Web Speech API
+ * - Voice input via Web Speech API with GDPR consent
  * - Real-time transcription
- * - Semantic search with Gemini 3 Pro
+ * - Semantic search
  * - Quick action buttons
  * - Keyboard shortcut (Cmd/Ctrl + K)
+ * - Mobile-first responsive design
+ * - Browser compatibility detection (Chrome, Safari, Edge)
  */
 
 export function VoiceSearch() {
@@ -29,8 +35,79 @@ export function VoiceSearch() {
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<VoiceSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [browserSupport, setBrowserSupport] = useState<{ isSupported: boolean; browserName: string; recommendation?: string } | null>(null);
+  const [pendingVoiceStart, setPendingVoiceStart] = useState(false);
 
   const recognitionRef = useRef<any>(null);
+
+  // GDPR-compliant microphone permission management
+  const {
+    permissionStatus,
+    consentStatus,
+    showConsentDialog,
+    requestPermission,
+    handleConsent,
+    handleDeny
+  } = useMicrophonePermission();
+
+  // Check browser support on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const support = checkVoiceInputSupport();
+      setBrowserSupport(support);
+    }
+  }, []);
+
+  // Search handler - moved up to avoid dependency issues
+  const handleSearch = useCallback(async (query: string) => {
+    if (!query.trim()) return;
+
+    setIsSearching(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/voice-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          userId: user?.id || 'public',
+          context: {
+            currentPage: typeof window !== 'undefined' ? window.location.pathname : '/',
+            userPermissions: user ? {
+              subscriptionStatus: user.subscriptionStatus,
+              subscriptionTier: user.subscriptionTier,
+              emailVerified: user.emailVerified,
+              phoneVerified: user.phoneVerified,
+              groups: user.groups?.map(g => ({
+                groupId: g.groupId,
+                role: g.role,
+              })) || [],
+              agencies: user.agencies?.map(a => ({
+                agencyId: a.agencyId,
+                role: a.role,
+                assignedElderIds: a.assignedElderIds,
+              })) || [],
+            } : undefined,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Search request failed');
+      }
+
+      const searchResult = await response.json();
+      setResult(searchResult);
+    } catch (err) {
+      console.error('Search error:', err);
+      setError('Failed to process search. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  }, [user]);
 
   // Initialize Web Speech API
   useEffect(() => {
@@ -40,6 +117,7 @@ export function VoiceSearch() {
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = 'en-US';
+      recognitionRef.current.maxAlternatives = 1;
 
       recognitionRef.current.onresult = (event: any) => {
         const current = event.resultIndex;
@@ -54,8 +132,32 @@ export function VoiceSearch() {
 
       recognitionRef.current.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
-        setError('Could not recognize speech. Please try again.');
         setIsListening(false);
+
+        // Provide specific error messages
+        switch (event.error) {
+          case 'not-allowed':
+            setError('Microphone access denied. Please allow microphone access in your browser settings.');
+            break;
+          case 'no-speech':
+            setError('No speech detected. Please speak clearly and try again.');
+            break;
+          case 'audio-capture':
+            setError('No microphone found. Please check your microphone connection.');
+            break;
+          case 'network':
+            setError('Network error occurred. Please check your internet connection.');
+            break;
+          case 'aborted':
+            // User cancelled - don't show error
+            break;
+          case 'service-not-allowed':
+            // Edge browser specific error
+            setError('Voice input is not available. Please try Chrome or Safari, or use text search.');
+            break;
+          default:
+            setError(`Voice recognition error: ${event.error}. Please try typing instead.`);
+        }
       };
 
       recognitionRef.current.onend = () => {
@@ -73,11 +175,29 @@ export function VoiceSearch() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [handleSearch]);
 
-  const startListening = () => {
+  const startListening = useCallback(() => {
+    // Check browser support first
+    if (!browserSupport?.isSupported) {
+      setError(browserSupport?.recommendation || 'Voice input is not supported in your browser. Please try Chrome, Safari, or Edge.');
+      return;
+    }
+
     if (!recognitionRef.current) {
-      setError('Voice recognition not supported in your browser.');
+      setError('Voice recognition not available. Please try typing instead.');
+      return;
+    }
+
+    // Check GDPR consent and permission
+    if (permissionStatus !== 'granted') {
+      if (consentStatus === 'denied' || permissionStatus === 'denied') {
+        setError('Microphone access denied. Please use text search or change your browser settings.');
+        return;
+      }
+      // Set pending flag and request permission (will show GDPR consent dialog)
+      setPendingVoiceStart(true);
+      requestPermission();
       return;
     }
 
@@ -88,73 +208,36 @@ export function VoiceSearch() {
 
     try {
       recognitionRef.current.start();
-    } catch (error) {
-      console.error('Failed to start recognition:', error);
-      setError('Failed to start voice recognition. Please try again.');
+    } catch (err: any) {
+      console.error('Failed to start recognition:', err);
+      if (err.message?.includes('already started')) {
+        setError('Recording already in progress. Please wait.');
+      } else {
+        setError('Failed to start voice recognition. Please try again.');
+      }
       setIsListening(false);
     }
-  };
+  }, [browserSupport, permissionStatus, consentStatus, requestPermission]);
+
+  // Auto-start listening when permission is granted after consent
+  useEffect(() => {
+    if (pendingVoiceStart && permissionStatus === 'granted' && consentStatus === 'consented') {
+      setPendingVoiceStart(false);
+      // Small delay to ensure dialog has closed
+      const timer = setTimeout(() => {
+        if (!isListening && !isSearching) {
+          startListening();
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingVoiceStart, permissionStatus, consentStatus, isListening, isSearching, startListening]);
 
   const stopListening = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
     setIsListening(false);
-  };
-
-  const handleSearch = async (query: string) => {
-    if (!query.trim() || !user) return;
-
-    setIsSearching(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/voice-search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          userId: user?.id || 'public',
-          context: {
-            currentPage: window.location.pathname,
-            userPermissions: user ? {
-              // Subscription info
-              subscriptionStatus: user.subscriptionStatus,
-              subscriptionTier: user.subscriptionTier,
-              emailVerified: user.emailVerified,
-              phoneVerified: user.phoneVerified,
-
-              // Group permissions with roles
-              groups: user.groups?.map(g => ({
-                groupId: g.groupId,
-                role: g.role,
-              })) || [],
-
-              // Agency permissions with roles and assigned elders
-              agencies: user.agencies?.map(a => ({
-                agencyId: a.agencyId,
-                role: a.role,
-                assignedElderIds: a.assignedElderIds,
-              })) || [],
-            } : undefined, // No permissions for public users
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Voice search request failed');
-      }
-
-      const searchResult = await response.json();
-      setResult(searchResult);
-    } catch (error) {
-      console.error('Search error:', error);
-      setError('Failed to process search. Please try again.');
-    } finally {
-      setIsSearching(false);
-    }
   };
 
   const handleTextSearch = () => {
@@ -171,78 +254,120 @@ export function VoiceSearch() {
     setError(null);
   };
 
-  // Show for everyone (public + authenticated)
-  // But filter results based on authentication status
+  const handleVoiceButtonClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  // Voice is not supported - show warning
+  const voiceNotSupported = browserSupport && !browserSupport.isSupported;
 
   return (
     <>
-      {/* Floating Voice Search Button - Responsive */}
+      {/* Floating Voice Search Button - Mobile optimized */}
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all hover:scale-110"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 h-14 w-14 sm:h-14 sm:w-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all hover:scale-105 active:scale-95"
         aria-label="Open voice search"
         title="Voice Search (Cmd/Ctrl + K)"
       >
-        <Search className="h-5 w-5 sm:h-6 sm:w-6" />
+        <Search className="h-6 w-6" />
       </Button>
 
-      {/* Voice Search Modal - Responsive */}
+      {/* Voice Search Modal - Mobile-first responsive */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <CardContent className="pt-4 sm:pt-6">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
+          <Card className="w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl rounded-t-2xl sm:rounded-2xl sm:m-4">
+            <CardContent className="pt-4 pb-6 sm:pt-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  Voice Search
-                </h2>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                    Search
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Ask a question or search for features
+                  </p>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleClose}
                   aria-label="Close"
+                  className="h-10 w-10"
                 >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
 
-              {/* Voice Input Section - Responsive */}
+              {/* Browser Support Warning */}
+              {voiceNotSupported && (
+                <Alert className="mb-4 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="ml-2 text-sm text-amber-800 dark:text-amber-200">
+                    {browserSupport.recommendation || 'Voice input is not supported in your browser. Please use text search.'}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Voice Input Section - Mobile optimized */}
               <div className="mb-4 sm:mb-6">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                {/* Text input with search button */}
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={transcript}
+                    onChange={(e) => setTranscript(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
+                    placeholder="Type your question..."
+                    className="flex-1 px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white text-base"
+                    autoFocus
+                  />
                   <Button
-                    onClick={isListening ? stopListening : startListening}
-                    variant={isListening ? 'destructive' : 'default'}
+                    onClick={handleTextSearch}
+                    disabled={!transcript.trim() || isSearching}
                     size="lg"
-                    className="w-full sm:w-auto flex-shrink-0"
+                    className="h-12 w-12 rounded-xl flex-shrink-0"
                   >
-                    <Mic className={`h-5 w-5 mr-2 ${isListening ? 'animate-pulse' : ''}`} />
-                    {isListening ? 'Stop Listening' : 'Start Voice'}
+                    <Search className="h-5 w-5" />
                   </Button>
-
-                  <div className="flex items-center gap-2 flex-1">
-                    <input
-                      type="text"
-                      value={transcript}
-                      onChange={(e) => setTranscript(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
-                      placeholder="Speak or type your question..."
-                      className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm sm:text-base"
-                    />
-
-                    <Button
-                      onClick={handleTextSearch}
-                      disabled={!transcript.trim() || isSearching}
-                      size="lg"
-                      className="flex-shrink-0"
-                    >
-                      <Search className="h-5 w-5" />
-                    </Button>
-                  </div>
                 </div>
 
+                {/* Voice button - prominent on mobile */}
+                {!voiceNotSupported && (
+                  <Button
+                    onClick={handleVoiceButtonClick}
+                    variant={isListening ? 'destructive' : 'outline'}
+                    size="lg"
+                    className="w-full h-12 rounded-xl"
+                    disabled={permissionStatus === 'checking'}
+                  >
+                    {permissionStatus === 'checking' ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Checking permissions...
+                      </>
+                    ) : isListening ? (
+                      <>
+                        <MicOff className="h-5 w-5 mr-2" />
+                        Stop Listening
+                        <span className="ml-2 h-2 w-2 rounded-full bg-white animate-pulse" />
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="h-5 w-5 mr-2" />
+                        Tap to speak
+                      </>
+                    )}
+                  </Button>
+                )}
+
                 {isListening && (
-                  <p className="mt-2 text-sm text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                    <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  <p className="mt-3 text-sm text-blue-600 dark:text-blue-400 flex items-center justify-center gap-2">
+                    <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                     Listening... Speak now
                   </p>
                 )}
@@ -260,16 +385,19 @@ export function VoiceSearch() {
 
               {/* Error State */}
               {error && (
-                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-red-800 dark:text-red-200">{error}</p>
-                </div>
+                <Alert className="mb-4 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="ml-2 text-sm text-red-800 dark:text-red-200">
+                    {error}
+                  </AlertDescription>
+                </Alert>
               )}
 
               {/* Search Results */}
               {result && !isSearching && (
                 <div className="space-y-4">
                   {/* Answer */}
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
                     <div className="flex items-start gap-3">
                       <Volume2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
@@ -293,7 +421,7 @@ export function VoiceSearch() {
                         {result.sources.map((source, index) => (
                           <div
                             key={index}
-                            className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                            className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700"
                           >
                             <h4 className="font-medium text-gray-900 dark:text-white text-sm">
                               {source.title}
@@ -327,6 +455,7 @@ export function VoiceSearch() {
                             key={index}
                             variant="outline"
                             size="sm"
+                            className="rounded-full"
                             onClick={() => {
                               if (action.url) {
                                 window.location.href = action.url;
@@ -344,16 +473,38 @@ export function VoiceSearch() {
 
               {/* Help Text */}
               {!result && !isSearching && !error && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <p className="text-sm">
+                <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-medium mb-3">
                     Try asking questions like:
                   </p>
-                  <ul className="mt-3 space-y-1 text-xs">
-                    <li>&quot;How much does the family plan cost?&quot;</li>
-                    <li>&quot;What features are included?&quot;</li>
-                    <li>&quot;How do I add a medication?&quot;</li>
-                    {user && <li>&quot;Show me my medications&quot;</li>}
-                  </ul>
+                  <div className="space-y-2 text-sm">
+                    <button
+                      onClick={() => setTranscript('How much does the family plan cost?')}
+                      className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      &quot;How much does the family plan cost?&quot;
+                    </button>
+                    <button
+                      onClick={() => setTranscript('What features are included?')}
+                      className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      &quot;What features are included?&quot;
+                    </button>
+                    <button
+                      onClick={() => setTranscript('How do I add a medication?')}
+                      className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      &quot;How do I add a medication?&quot;
+                    </button>
+                    {user && (
+                      <button
+                        onClick={() => setTranscript('Show me my medications')}
+                        className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        &quot;Show me my medications&quot;
+                      </button>
+                    )}
+                  </div>
                   {!user && (
                     <p className="mt-4 text-xs text-blue-600 dark:text-blue-400">
                       <a href="/signup" className="hover:underline">Sign up</a> to search your personal health data
@@ -365,6 +516,13 @@ export function VoiceSearch() {
           </Card>
         </div>
       )}
+
+      {/* GDPR-compliant microphone permission dialog */}
+      <MicrophonePermissionDialog
+        open={showConsentDialog}
+        onAllow={handleConsent}
+        onDeny={handleDeny}
+      />
     </>
   );
 }
