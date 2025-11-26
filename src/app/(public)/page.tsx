@@ -66,7 +66,7 @@ export default function LandingPage() {
 
         The old duplicated code has been commented out below for reference.
       */}
-      <PricingCards showHeader={true} showTrialInfo={true} defaultSelectedPlan="single" />
+      <PricingCards showHeader={true} showTrialInfo={true} defaultSelectedPlan="single_agency" />
 
       {/*
         ========================================

@@ -45,7 +45,7 @@ export default function PricingPage() {
       </div>
 
       {/* Shared Pricing Component */}
-      <PricingCards showHeader={false} showTrialInfo={true} defaultSelectedPlan="single" />
+      <PricingCards showHeader={false} showTrialInfo={true} defaultSelectedPlan="single_agency" />
     </div>
   );
 }

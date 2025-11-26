@@ -29,31 +29,31 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 export interface PricingCardsProps {
   showHeader?: boolean;
   showTrialInfo?: boolean;
-  defaultSelectedPlan?: 'family' | 'single' | 'multi';
+  defaultSelectedPlan?: 'family' | 'single_agency' | 'multi_agency';
 }
 
 export function PricingCards({
   showHeader = true,
   showTrialInfo = true,
-  defaultSelectedPlan = 'single',
+  defaultSelectedPlan = 'single_agency',
 }: PricingCardsProps) {
-  const [selectedPlan, setSelectedPlan] = useState<'family' | 'single' | 'multi'>(defaultSelectedPlan);
+  const [selectedPlan, setSelectedPlan] = useState<'family' | 'single_agency' | 'multi_agency'>(defaultSelectedPlan);
   const [loading, setLoading] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Map plan IDs to Stripe Price IDs
-  const getPriceId = (planId: 'family' | 'single' | 'multi'): string => {
+  // Map plan IDs to Stripe Price IDs (matching Vercel env variable names)
+  const getPriceId = (planId: 'family' | 'single_agency' | 'multi_agency'): string => {
     switch (planId) {
       case 'family':
         return process.env.NEXT_PUBLIC_STRIPE_FAMILY_PRICE_ID || process.env.STRIPE_FAMILY_PRICE_ID || '';
-      case 'single':
+      case 'single_agency':
         return process.env.NEXT_PUBLIC_STRIPE_SINGLE_AGENCY_PRICE_ID || process.env.STRIPE_SINGLE_AGENCY_PRICE_ID || '';
-      case 'multi':
+      case 'multi_agency':
         return process.env.NEXT_PUBLIC_STRIPE_MULTI_AGENCY_PRICE_ID || process.env.STRIPE_MULTI_AGENCY_PRICE_ID || '';
     }
   };
 
-  const handleSubscribe = async (planId: 'family' | 'single' | 'multi', planName: string) => {
+  const handleSubscribe = async (planId: 'family' | 'single_agency' | 'multi_agency', planName: string) => {
     // If not logged in, redirect to signup
     if (!user) {
       window.location.href = '/signup';
@@ -123,7 +123,7 @@ export function PricingCards({
       ],
     },
     {
-      id: 'single' as const,
+      id: 'single_agency' as const,
       name: 'Single Agency',
       subtitle: 'For families & caregivers',
       price: PRICING.SINGLE_AGENCY.MONTHLY_RATE,
@@ -142,7 +142,7 @@ export function PricingCards({
       ],
     },
     {
-      id: 'multi' as const,
+      id: 'multi_agency' as const,
       name: 'Multi Agency',
       subtitle: 'For professional caregivers',
       price: PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE,

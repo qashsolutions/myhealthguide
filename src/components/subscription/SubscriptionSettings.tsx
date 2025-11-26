@@ -285,7 +285,7 @@ export function SubscriptionSettings() {
                   <Button
                     className="w-full"
                     variant={selectedPlan === key ? 'default' : 'outline'}
-                    onClick={() => handleUpgrade(key as keyof typeof PLANS)}
+                    onClick={() => handleUpgrade(key as 'family' | 'single_agency' | 'multi_agency')}
                     disabled={loading || isActive}
                   >
                     {loading && selectedPlan === key ? 'Processing...' : 'Select Plan'}
