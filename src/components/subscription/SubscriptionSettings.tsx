@@ -133,8 +133,18 @@ export function SubscriptionSettings() {
 
     try {
       const plan = PLANS[planKey];
+
+      // Validate required fields before making API call
       if (!plan.priceId) {
-        throw new Error('Price ID not configured for this plan');
+        throw new Error('Price ID not configured for this plan. Please contact support.');
+      }
+      if (!user?.id) {
+        throw new Error('Please sign in to subscribe to a plan.');
+      }
+      // Stripe requires email for checkout - check if user has one
+      const userEmail = user?.email?.trim();
+      if (!userEmail) {
+        throw new Error('An email address is required for billing. Please add your email in Profile settings before subscribing.');
       }
 
       const response = await fetch('/api/create-checkout-session', {
@@ -142,8 +152,8 @@ export function SubscriptionSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           priceId: plan.priceId,
-          userId: user?.id,
-          userEmail: user?.email,
+          userId: user.id,
+          userEmail: userEmail,
           planName: plan.name,
           skipTrial: isTrialActive
         }),
