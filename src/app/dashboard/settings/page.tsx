@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2 } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
@@ -32,8 +32,42 @@ import { AlertPreferencesSettings } from '@/components/settings/AlertPreferences
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadFileWithQuota } from '@/lib/firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { db, auth } from '@/lib/firebase/config';
+import { sendEmailVerification } from 'firebase/auth';
 import { SubscriptionSettings as RealSubscriptionSettings } from '@/components/subscription/SubscriptionSettings';
+import { useRouter } from 'next/navigation';
+
+/**
+ * Obfuscates an email address for privacy
+ * e.g., "john.doe@example.com" -> "j***e@e***.com"
+ */
+function obfuscateEmail(email: string): string {
+  if (!email || !email.includes('@')) return '***@***.***';
+
+  const [localPart, domain] = email.split('@');
+  const [domainName, ...domainExt] = domain.split('.');
+
+  // Obfuscate local part: show first and last char
+  let obfuscatedLocal = localPart;
+  if (localPart.length <= 2) {
+    obfuscatedLocal = localPart[0] + '***';
+  } else {
+    obfuscatedLocal = localPart[0] + '***' + localPart[localPart.length - 1];
+  }
+
+  // Obfuscate domain name: show first char only
+  let obfuscatedDomain = domainName;
+  if (domainName.length <= 2) {
+    obfuscatedDomain = domainName[0] + '***';
+  } else {
+    obfuscatedDomain = domainName[0] + '***';
+  }
+
+  // Keep the extension (com, org, etc.)
+  const extension = domainExt.join('.');
+
+  return `${obfuscatedLocal}@${obfuscatedDomain}.${extension}`;
+}
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -156,14 +190,53 @@ export default function SettingsPage() {
 
 function ProfileSettings() {
   const { user, refreshUser } = useAuth();
+  const router = useRouter();
   const [profileImage, setProfileImage] = useState<string | undefined>(user?.profileImage);
   const [uploading, setUploading] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [emailResendStatus, setEmailResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [emailResendMessage, setEmailResendMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const hasEmail = user?.email && user.email.trim() !== '';
 
   // Get user initials for avatar fallback
   const userInitials = user
     ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
     : '';
+
+  const handleResendVerificationEmail = async () => {
+    if (!auth.currentUser || resendingEmail) return;
+
+    setResendingEmail(true);
+    setEmailResendStatus('idle');
+    setEmailResendMessage('');
+
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setEmailResendStatus('success');
+      setEmailResendMessage('Verification email sent!');
+      // Clear success after 5 seconds
+      setTimeout(() => {
+        setEmailResendStatus('idle');
+        setEmailResendMessage('');
+      }, 5000);
+    } catch (error: any) {
+      setEmailResendStatus('error');
+      if (error.code === 'auth/too-many-requests') {
+        setEmailResendMessage('Too many requests. Please wait a few minutes.');
+      } else {
+        setEmailResendMessage('Failed to send email. Try again later.');
+      }
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setEmailResendStatus('idle');
+        setEmailResendMessage('');
+      }, 5000);
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -285,20 +358,89 @@ function ProfileSettings() {
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={user?.email || ''}
-            disabled
-            className="bg-gray-50 dark:bg-gray-900"
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {user?.emailVerified ? (
-              <span className="text-green-600 dark:text-green-400">✓ Verified</span>
-            ) : (
-              <span className="text-amber-600 dark:text-amber-400">⚠ Not verified</span>
-            )}
-          </p>
+          {hasEmail ? (
+            <>
+              <Input
+                id="email"
+                type="email"
+                value={obfuscateEmail(user?.email || '')}
+                disabled
+                className="bg-gray-50 dark:bg-gray-900"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {user?.emailVerified ? (
+                    <span className="text-green-600 dark:text-green-400">✓ Verified</span>
+                  ) : (
+                    <span className="text-amber-600 dark:text-amber-400">⚠ Not verified</span>
+                  )}
+                  {emailResendStatus === 'success' && (
+                    <span className="text-green-600 dark:text-green-400 ml-2">{emailResendMessage}</span>
+                  )}
+                  {emailResendStatus === 'error' && (
+                    <span className="text-red-600 dark:text-red-400 ml-2">{emailResendMessage}</span>
+                  )}
+                </p>
+                {!user?.emailVerified && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResendVerificationEmail}
+                      disabled={resendingEmail || emailResendStatus === 'success'}
+                      className="text-xs h-7 px-2"
+                    >
+                      {resendingEmail ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                          Sending...
+                        </>
+                      ) : emailResendStatus === 'success' ? (
+                        'Sent!'
+                      ) : (
+                        <>
+                          <Mail className="w-3 h-3 mr-1" />
+                          Resend
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => router.push('/verify')}
+                      className="text-xs h-7 px-2 text-blue-600"
+                    >
+                      Verify now
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="email"
+                  type="email"
+                  value="No email added"
+                  disabled
+                  className="bg-gray-50 dark:bg-gray-900 text-gray-400"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push('/verify')}
+                  className="whitespace-nowrap"
+                >
+                  <Mail className="w-4 h-4 mr-1" />
+                  Add Email
+                </Button>
+              </div>
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                ⚠ Add an email for account recovery and important notifications
+              </p>
+            </>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -384,6 +526,7 @@ function NotificationSettings() {
 function SecurityActivitySettings() {
   const [securityTab, setSecurityTab] = useState<'security' | 'activity'>('security');
   const { user } = useAuth();
+  const router = useRouter();
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -393,9 +536,44 @@ function SecurityActivitySettings() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
   const [requireEmailVerification, setRequireEmailVerification] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [emailResendStatus, setEmailResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [emailResendMessage, setEmailResendMessage] = useState('');
 
   // Check if user has MFA enabled (both email and phone verified)
   const hasMFA = user?.emailVerified && user?.phoneVerified;
+  const hasEmail = user?.email && user.email.trim() !== '';
+
+  const handleResendVerificationEmail = async () => {
+    if (!auth.currentUser || resendingEmail) return;
+
+    setResendingEmail(true);
+    setEmailResendStatus('idle');
+    setEmailResendMessage('');
+
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setEmailResendStatus('success');
+      setEmailResendMessage('Verification email sent!');
+      setTimeout(() => {
+        setEmailResendStatus('idle');
+        setEmailResendMessage('');
+      }, 5000);
+    } catch (error: any) {
+      setEmailResendStatus('error');
+      if (error.code === 'auth/too-many-requests') {
+        setEmailResendMessage('Too many requests. Wait a few minutes.');
+      } else {
+        setEmailResendMessage('Failed to send. Try again.');
+      }
+      setTimeout(() => {
+        setEmailResendStatus('idle');
+        setEmailResendMessage('');
+      }, 5000);
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   const validatePassword = (password: string): string | null => {
     if (password.length < 8) {
@@ -512,15 +690,64 @@ function SecurityActivitySettings() {
                     <div className={`w-3 h-3 rounded-full ${user?.emailVerified ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <div>
                       <p className="font-medium">Email Verification</p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
+                      <p className="text-sm text-gray-500">
+                        {hasEmail ? obfuscateEmail(user?.email || '') : 'No email added'}
+                      </p>
+                      {emailResendStatus === 'success' && (
+                        <p className="text-xs text-green-600 dark:text-green-400">{emailResendMessage}</p>
+                      )}
+                      {emailResendStatus === 'error' && (
+                        <p className="text-xs text-red-600 dark:text-red-400">{emailResendMessage}</p>
+                      )}
                     </div>
                   </div>
-                  <Badge
-                    variant={user?.emailVerified ? 'default' : 'secondary'}
-                    className={user?.emailVerified ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' : ''}
-                  >
-                    {user?.emailVerified ? 'Verified' : 'Not Verified'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {!user?.emailVerified && hasEmail && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleResendVerificationEmail}
+                          disabled={resendingEmail || emailResendStatus === 'success'}
+                          className="h-7 px-2 text-xs"
+                        >
+                          {resendingEmail ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Mail className="w-3 h-3 mr-1" />
+                              Resend
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push('/verify')}
+                          className="h-7 px-2 text-xs"
+                        >
+                          Verify
+                        </Button>
+                      </>
+                    )}
+                    {!user?.emailVerified && !hasEmail && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push('/verify')}
+                        className="h-7 px-2 text-xs"
+                      >
+                        <Mail className="w-3 h-3 mr-1" />
+                        Add Email
+                      </Button>
+                    )}
+                    <Badge
+                      variant={user?.emailVerified ? 'default' : 'secondary'}
+                      className={user?.emailVerified ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' : ''}
+                    >
+                      {user?.emailVerified ? 'Verified' : 'Not Verified'}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg">
