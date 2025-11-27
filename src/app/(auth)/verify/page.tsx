@@ -198,33 +198,61 @@ export default function VerifyPage() {
 
       if (auth.currentUser) {
         console.log('Current user UID:', auth.currentUser.uid);
-        console.log('Current user email:', auth.currentUser.email);
+        console.log('Current user email (from auth.currentUser):', auth.currentUser.email);
         console.log('Current user emailVerified:', auth.currentUser.emailVerified);
-        console.log('Providers:', auth.currentUser.providerData.map(p => `${p.providerId}: ${p.email}`));
+        console.log('Provider count:', auth.currentUser.providerData.length);
+        auth.currentUser.providerData.forEach((p, i) => {
+          console.log(`Provider ${i}: providerId=${p.providerId}, email=${p.email}, uid=${p.uid}`);
+        });
 
         // Reload user first to get latest state
+        console.log('Reloading user...');
         await reload(auth.currentUser);
         console.log('After reload - email:', auth.currentUser.email);
+        console.log('After reload - providers:', auth.currentUser.providerData.length);
+        auth.currentUser.providerData.forEach((p, i) => {
+          console.log(`After reload - Provider ${i}: providerId=${p.providerId}, email=${p.email}`);
+        });
+
+        // Check if email provider exists
+        const emailProvider = auth.currentUser.providerData.find(p => p.providerId === 'password');
+        console.log('Email provider found:', emailProvider ? 'YES' : 'NO');
+        if (emailProvider) {
+          console.log('Email from provider:', emailProvider.email);
+        }
 
         if (!auth.currentUser.email) {
-          setError('No email linked to your account. Please add email first.');
+          console.error('No email in Firebase Auth!');
+          console.log('This means linkWithCredential did not work properly.');
+          console.log('The email in Firestore is only for display, Firebase Auth needs it for verification.');
+          setError('Email not linked to Firebase Auth. Please sign out and try adding email again.');
           return;
         }
 
-        await sendEmailVerification(auth.currentUser);
-        console.log('Verification email sent successfully');
+        console.log('Calling sendEmailVerification...');
+        const actionCodeSettings = {
+          url: process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health',
+          handleCodeInApp: false
+        };
+        console.log('ActionCodeSettings:', actionCodeSettings);
+        await sendEmailVerification(auth.currentUser, actionCodeSettings);
+        console.log('Verification email sent successfully!');
         setEmailLinkSent(true);
         setTimeout(() => setEmailLinkSent(false), 5000);
+      } else {
+        console.error('No current user!');
+        setError('Not signed in. Please refresh the page.');
       }
       console.log('=== handleResendEmailVerification END ===');
     } catch (err: any) {
       console.error('Resend verification error:', err);
       console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
 
       if (err.code === 'auth/too-many-requests') {
         setError('Too many requests. Please wait a few minutes.');
       } else {
-        setError(`Failed to send verification email: ${err.message || err.code || 'Unknown error'}`);
+        setError(`Failed to send: ${err.code || 'unknown'} - ${err.message || 'Check console for details'}`);
       }
     }
   };

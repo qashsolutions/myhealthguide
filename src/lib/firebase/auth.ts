@@ -605,7 +605,14 @@ export class AuthService {
       }
 
       if (linkedUser.email) {
-        await sendEmailVerification(linkedUser);
+        // Action code settings for the verification email
+        const actionCodeSettings = {
+          url: process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health',
+          handleCodeInApp: false
+        };
+        console.log('ActionCodeSettings:', actionCodeSettings);
+
+        await sendEmailVerification(linkedUser, actionCodeSettings);
         console.log('Verification email sent successfully');
       } else {
         console.error('No email found even after reload');
