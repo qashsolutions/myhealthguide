@@ -65,6 +65,9 @@ export function ElderSelector() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={selectedElder ? `Selected elder: ${selectedElder.name}. Click to change` : 'Select an elder'}
         className={cn(
           'flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors',
           'hover:bg-gray-50 dark:hover:bg-gray-800',
@@ -108,10 +111,16 @@ export function ElderSelector() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-full min-w-[240px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto">
+        <div
+          role="listbox"
+          aria-label="Select an elder"
+          className="absolute top-full left-0 mt-2 w-full min-w-[240px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto"
+        >
           {availableElders.map((elder) => (
             <button
               key={elder.id}
+              role="option"
+              aria-selected={selectedElder?.id === elder.id}
               onClick={() => {
                 setSelectedElder(elder);
                 setIsOpen(false);

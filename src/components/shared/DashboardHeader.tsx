@@ -91,9 +91,9 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full" aria-label="User menu">
               <Avatar>
-                <AvatarImage src={user?.profileImage} />
+                <AvatarImage src={user?.profileImage} alt={`${user?.firstName || 'User'}'s profile photo`} />
                 <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>
             </Button>

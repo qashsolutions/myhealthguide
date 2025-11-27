@@ -417,7 +417,7 @@ function ProfileSettings() {
         {/* Avatar */}
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={profileImage} />
+            <AvatarImage src={profileImage} alt={`${user?.firstName || 'User'}'s profile photo`} />
             <AvatarFallback className="text-2xl">{userInitials}</AvatarFallback>
           </Avatar>
           <div>
@@ -427,6 +427,9 @@ function ProfileSettings() {
               accept="image/jpeg,image/png,image/gif"
               onChange={handlePhotoChange}
               className="hidden"
+              id="profile-photo-upload"
+              name="profile-photo"
+              aria-label="Upload profile photo"
             />
             <Button
               variant="outline"
@@ -474,12 +477,14 @@ function ProfileSettings() {
               <div className="flex items-center gap-2">
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="Enter your email address"
                   className="flex-1"
                   autoFocus
+                  autoComplete="email"
                 />
                 <Button
                   variant="default"
@@ -972,30 +977,36 @@ function SecurityActivitySettings({ onSwitchToProfile }: { onSwitchToProfile: ()
                 <Label htmlFor="currentPassword">Current Password</Label>
                 <Input
                   id="currentPassword"
+                  name="currentPassword"
                   type="password"
                   placeholder="Enter current password"
                   value={passwordForm.currentPassword}
                   onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                  autoComplete="current-password"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New Password</Label>
                 <Input
                   id="newPassword"
+                  name="newPassword"
                   type="password"
                   placeholder="8+ alphanumeric characters"
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                  autoComplete="new-password"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <Input
                   id="confirmPassword"
+                  name="confirmPassword"
                   type="password"
                   placeholder="Re-enter new password"
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                  autoComplete="new-password"
                 />
               </div>
 
