@@ -28,7 +28,23 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Sign in error:', err);
-      setError(err.message || 'Failed to sign in. Please try again.');
+
+      // Map Firebase error codes to user-friendly messages
+      let errorMessage = 'Failed to sign in. Please try again.';
+
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        errorMessage = 'Invalid email or password. Please check your credentials or create an account.';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (err.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled. Please contact support.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later or reset your password.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

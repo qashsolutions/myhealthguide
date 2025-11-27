@@ -44,6 +44,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = await AuthService.getCurrentUserData();
 
           if (userData) {
+            // Sync Firebase Auth email verification status to Firestore
+            // This ensures Firestore is updated if user verified via Firebase's default page
+            if (firebaseUser.emailVerified && !userData.emailVerified) {
+              try {
+                await AuthService.markEmailVerified(firebaseUser.uid);
+                userData.emailVerified = true;
+                userData.emailVerifiedAt = new Date();
+              } catch (syncError) {
+                console.error('Failed to sync email verification status:', syncError);
+              }
+            }
+
             setUser(userData);
 
             // Initialize/associate session with user
@@ -51,7 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               associateSessionWithUser(userData.id);
             }
           } else {
-            console.error('User data not found in Firestore for UID:', firebaseUser.uid);
+            // This can happen briefly during signup before Firestore document is created
+            // Not an error - just a timing issue that resolves quickly
             setUser(null);
           }
         } catch (error: any) {

@@ -147,15 +147,29 @@ export default function SignupPage() {
             <Input
               id="password"
               type="password"
-              placeholder="8+ alphanumeric characters"
+              placeholder="Enter password"
               value={formData.password}
               onChange={handlePasswordChange}
               required
               className={passwordError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Minimum 8 characters using only letters and numbers
-            </p>
+            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+              <p>Password requirements:</p>
+              <ul className="list-disc list-inside pl-1 space-y-0.5">
+                <li className={formData.password.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
+                  At least 8 characters
+                </li>
+                <li className={/[a-zA-Z]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                  At least one letter (a-z, A-Z)
+                </li>
+                <li className={/[0-9]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                  At least one number (0-9)
+                </li>
+                <li className={formData.password.length > 0 && /^[a-zA-Z0-9]+$/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                  Only letters and numbers (no special characters)
+                </li>
+              </ul>
+            </div>
             {passwordError && (
               <div className="text-sm text-red-600 dark:text-red-400">
                 {passwordError}

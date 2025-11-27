@@ -41,8 +41,13 @@ export class AuthService {
 
     const firebaseUser = userCredential.user;
 
-    // Send email verification
-    await sendEmailVerification(firebaseUser);
+    // Send email verification with custom action handler
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
+    const actionCodeSettings = {
+      url: `${baseUrl}/auth/action`,
+      handleCodeInApp: false
+    };
+    await sendEmailVerification(firebaseUser, actionCodeSettings);
 
     // Create user document in Firestore
     const phoneHash = userData.phoneNumber ? hashPhoneNumber(userData.phoneNumber) : '';
@@ -606,8 +611,10 @@ export class AuthService {
 
       if (linkedUser.email) {
         // Action code settings for the verification email
+        // Redirect to our custom auth action handler after verification
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
         const actionCodeSettings = {
-          url: process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health',
+          url: `${baseUrl}/auth/action`,
           handleCodeInApp: false
         };
         console.log('ActionCodeSettings:', actionCodeSettings);

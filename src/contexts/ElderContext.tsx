@@ -76,8 +76,15 @@ export function ElderProvider({ children }: { children: ReactNode }) {
       } else {
         setSelectedElderState(null);
       }
-    } catch (error) {
-      console.error('Error loading elders:', error);
+    } catch (error: any) {
+      // Handle specific Firestore permission errors gracefully
+      // This can happen for new users who don't have any elders assigned yet
+      if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
+        // This is expected for new users - not an error
+        console.log('No elders found for user (this is normal for new accounts)');
+      } else {
+        console.error('Error loading elders:', error);
+      }
       setAvailableElders([]);
     } finally {
       setIsLoading(false);

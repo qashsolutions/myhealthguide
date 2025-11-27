@@ -254,8 +254,10 @@ export default function VerifyPage() {
         }
 
         console.log('Calling sendEmailVerification...');
+        // Redirect to our custom auth action handler after verification
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
         const actionCodeSettings = {
-          url: process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health',
+          url: `${baseUrl}/auth/action`,
           handleCodeInApp: false
         };
         console.log('ActionCodeSettings:', actionCodeSettings);
