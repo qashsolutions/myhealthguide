@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase/config';
-import { sendEmailVerification, onAuthStateChanged, reload } from 'firebase/auth';
+import { sendEmailVerification, onAuthStateChanged, reload, getAuth } from 'firebase/auth';
 import { CheckCircle, AlertCircle, RefreshCw, Mail, Smartphone, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -194,16 +194,37 @@ export default function VerifyPage() {
   const handleResendEmailVerification = async () => {
     try {
       setError('');
+      console.log('=== handleResendEmailVerification START ===');
+
       if (auth.currentUser) {
+        console.log('Current user UID:', auth.currentUser.uid);
+        console.log('Current user email:', auth.currentUser.email);
+        console.log('Current user emailVerified:', auth.currentUser.emailVerified);
+        console.log('Providers:', auth.currentUser.providerData.map(p => `${p.providerId}: ${p.email}`));
+
+        // Reload user first to get latest state
+        await reload(auth.currentUser);
+        console.log('After reload - email:', auth.currentUser.email);
+
+        if (!auth.currentUser.email) {
+          setError('No email linked to your account. Please add email first.');
+          return;
+        }
+
         await sendEmailVerification(auth.currentUser);
+        console.log('Verification email sent successfully');
         setEmailLinkSent(true);
         setTimeout(() => setEmailLinkSent(false), 5000);
       }
+      console.log('=== handleResendEmailVerification END ===');
     } catch (err: any) {
+      console.error('Resend verification error:', err);
+      console.error('Error code:', err.code);
+
       if (err.code === 'auth/too-many-requests') {
         setError('Too many requests. Please wait a few minutes.');
       } else {
-        setError('Failed to send verification email');
+        setError(`Failed to send verification email: ${err.message || err.code || 'Unknown error'}`);
       }
     }
   };

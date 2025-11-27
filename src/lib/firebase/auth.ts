@@ -558,10 +558,17 @@ export class AuthService {
         throw new Error('No user signed in');
       }
 
+      console.log('=== linkEmailToAccount START ===');
+      console.log('Current user UID:', auth.currentUser.uid);
+      console.log('Current user email:', auth.currentUser.email);
+      console.log('Current providers:', auth.currentUser.providerData.map(p => p.providerId));
+
       // Check if email provider is already linked
       const hasEmailProvider = auth.currentUser.providerData.some(
         p => p.providerId === 'password'
       );
+
+      let linkedUser = auth.currentUser;
 
       if (!hasEmailProvider) {
         // Create email/password credential
@@ -569,35 +576,48 @@ export class AuthService {
 
         // Link the credential to the current user
         console.log('Linking email credential to phone account...');
-        await linkWithCredential(auth.currentUser, credential);
+        const userCredential = await linkWithCredential(auth.currentUser, credential);
+        linkedUser = userCredential.user;
         console.log('Email credential linked successfully');
+        console.log('Linked user email:', linkedUser.email);
+        console.log('Linked user providers:', linkedUser.providerData.map(p => p.providerId));
       } else {
         console.log('Email provider already linked, skipping linkWithCredential');
       }
 
       // Update user document with email
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+      await updateDoc(doc(db, 'users', linkedUser.uid), {
         email: email,
         emailVerified: false // Will be set to true after email verification
       });
+      console.log('Firestore updated with email');
 
-      // Reload the current user to get updated state with the new email
-      console.log('Reloading user...');
-      await reload(auth.currentUser);
-      console.log('User reloaded. Email in Firebase Auth:', auth.currentUser.email);
+      // Use the linkedUser directly (from linkWithCredential result) instead of reloading
+      // The linkedUser should already have the email set
+      console.log('Sending verification email to:', linkedUser.email);
 
-      // Now send verification email - the user should have the email in Firebase Auth
-      if (auth.currentUser.email) {
-        console.log('Sending verification email to:', auth.currentUser.email);
-        await sendEmailVerification(auth.currentUser);
+      if (!linkedUser.email) {
+        // Try reloading as fallback
+        console.log('Email not found on linkedUser, trying reload...');
+        await reload(auth.currentUser);
+        linkedUser = auth.currentUser;
+        console.log('After reload, email:', linkedUser.email);
+      }
+
+      if (linkedUser.email) {
+        await sendEmailVerification(linkedUser);
         console.log('Verification email sent successfully');
       } else {
-        console.error('No email found in Firebase Auth after reload');
-        throw new Error('Email was not properly linked. Please try again.');
+        console.error('No email found even after reload');
+        // Don't throw - the linking worked, just verification email failed
+        // User can use Resend button
       }
+
+      console.log('=== linkEmailToAccount END ===');
     } catch (error: any) {
       console.error('Error linking email:', error);
       console.error('Error code:', error.code);
+      console.error('Full error:', JSON.stringify(error, null, 2));
 
       // Provide user-friendly error messages
       if (error.code === 'auth/email-already-in-use') {
@@ -609,8 +629,21 @@ export class AuthService {
       } else if (error.code === 'auth/requires-recent-login') {
         throw new Error('For security, please sign out and sign back in before adding email');
       } else if (error.code === 'auth/provider-already-linked') {
-        // Provider already linked - this shouldn't happen with our check, but handle it
-        throw new Error('Email is already linked to this account. Please use Resend to get a new verification email.');
+        // Provider already linked - just need to send verification
+        console.log('Provider already linked, will try to send verification email');
+        try {
+          if (auth.currentUser) {
+            await reload(auth.currentUser);
+            if (auth.currentUser.email) {
+              await sendEmailVerification(auth.currentUser);
+              console.log('Verification email sent for already-linked provider');
+              return; // Success!
+            }
+          }
+        } catch (resendError) {
+          console.error('Failed to resend for already-linked provider:', resendError);
+        }
+        throw new Error('Email is already linked. Click "Resend verification email" to get a new link.');
       } else if (error.code === 'auth/credential-already-in-use') {
         throw new Error('This email is already used by another account');
       } else {
