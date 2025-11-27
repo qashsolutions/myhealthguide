@@ -7,6 +7,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   PhoneAuthProvider,
+  EmailAuthProvider,
   linkWithCredential,
   ConfirmationResult
 } from 'firebase/auth';
@@ -540,6 +541,51 @@ export class AuthService {
     } catch (error: any) {
       console.error('Error linking phone:', error);
       throw new Error(error.message || 'Failed to link phone number');
+    }
+  }
+
+  /**
+   * Link email/password to existing phone-auth account
+   * This allows phone-auth users to add email as a second auth method
+   */
+  static async linkEmailToAccount(
+    email: string,
+    password: string
+  ): Promise<void> {
+    try {
+      if (!auth.currentUser) {
+        throw new Error('No user signed in');
+      }
+
+      // Create email/password credential
+      const credential = EmailAuthProvider.credential(email, password);
+
+      // Link the credential to the current user
+      await linkWithCredential(auth.currentUser, credential);
+
+      // Update user document with email
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        email: email,
+        emailVerified: false // Will be set to true after email verification
+      });
+
+      // Send verification email
+      await sendEmailVerification(auth.currentUser);
+    } catch (error: any) {
+      console.error('Error linking email:', error);
+
+      // Provide user-friendly error messages
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('This email is already associated with another account');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('Password is too weak. Please use at least 8 characters with letters and numbers');
+      } else if (error.code === 'auth/requires-recent-login') {
+        throw new Error('For security, please sign out and sign back in before adding email');
+      } else {
+        throw new Error(error.message || 'Failed to link email to account');
+      }
     }
   }
 

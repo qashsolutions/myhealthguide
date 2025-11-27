@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, RefreshCw, Pencil, Check, X as XIcon } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
@@ -32,8 +32,7 @@ import { AlertPreferencesSettings } from '@/components/settings/AlertPreferences
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadFileWithQuota } from '@/lib/firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase/config';
-import { sendEmailVerification, verifyBeforeUpdateEmail } from 'firebase/auth';
+import { db } from '@/lib/firebase/config';
 import { SubscriptionSettings as RealSubscriptionSettings } from '@/components/subscription/SubscriptionSettings';
 import { useRouter } from 'next/navigation';
 
@@ -184,7 +183,7 @@ export default function SettingsPage() {
         {/* Content Area */}
         <div className="md:col-span-3 space-y-6">
           {activeTab === 'profile' && <ProfileSettings />}
-          {activeTab === 'security' && <SecurityActivitySettings onSwitchToProfile={() => setActiveTab('profile')} />}
+          {activeTab === 'security' && <SecurityActivitySettings />}
           {activeTab === 'subscription' && <RealSubscriptionSettings />}
           {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'group' && <GroupSettings />}
@@ -202,13 +201,6 @@ function ProfileSettings() {
   const router = useRouter();
   const [profileImage, setProfileImage] = useState<string | undefined>(user?.profileImage);
   const [uploading, setUploading] = useState(false);
-  const [resendingEmail, setResendingEmail] = useState(false);
-  const [emailResendStatus, setEmailResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [emailResendMessage, setEmailResendMessage] = useState('');
-  const [isEditingEmail, setIsEditingEmail] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [savingEmail, setSavingEmail] = useState(false);
-  const [emailError, setEmailError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasEmail = user?.email && user.email.trim() !== '';
@@ -217,136 +209,6 @@ function ProfileSettings() {
   const userInitials = user
     ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
     : '';
-
-  const handleResendVerificationEmail = async () => {
-    if (!auth.currentUser || resendingEmail || !user) return;
-
-    setResendingEmail(true);
-    setEmailResendStatus('idle');
-    setEmailResendMessage('');
-
-    try {
-      // Check if Firebase Auth has the email
-      const hasFirebaseEmail = auth.currentUser.email && auth.currentUser.email.trim() !== '';
-
-      if (hasFirebaseEmail) {
-        // Firebase Auth has email - use standard sendEmailVerification
-        await sendEmailVerification(auth.currentUser);
-      } else if (user.email && user.email.trim() !== '') {
-        // Firestore has email but Firebase Auth doesn't - use verifyBeforeUpdateEmail
-        await verifyBeforeUpdateEmail(auth.currentUser, user.email);
-      } else {
-        throw new Error('No email address to verify');
-      }
-
-      setEmailResendStatus('success');
-      setEmailResendMessage('Verification email sent!');
-      setTimeout(() => {
-        setEmailResendStatus('idle');
-        setEmailResendMessage('');
-      }, 5000);
-    } catch (error: any) {
-      setEmailResendStatus('error');
-      if (error.code === 'auth/too-many-requests') {
-        setEmailResendMessage('Too many requests. Please wait a few minutes.');
-      } else if (error.code === 'auth/missing-email') {
-        setEmailResendMessage('Please add an email address first.');
-      } else {
-        setEmailResendMessage('Failed to send email. Try again later.');
-      }
-      setTimeout(() => {
-        setEmailResendStatus('idle');
-        setEmailResendMessage('');
-      }, 5000);
-    } finally {
-      setResendingEmail(false);
-    }
-  };
-
-  const handleSaveEmail = async () => {
-    if (!user || !newEmail.trim()) return;
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail.trim())) {
-      setEmailError('Please enter a valid email address');
-      return;
-    }
-
-    setSavingEmail(true);
-    setEmailError('');
-
-    try {
-      if (!auth.currentUser) {
-        throw new Error('Not authenticated');
-      }
-
-      // Check if this is a phone-auth user (no email in Firebase Auth)
-      const hasFirebaseEmail = auth.currentUser.email && auth.currentUser.email.trim() !== '';
-
-      if (hasFirebaseEmail) {
-        // User already has email in Firebase Auth - use verifyBeforeUpdateEmail
-        // This sends a verification email and updates Firebase Auth email upon confirmation
-        await verifyBeforeUpdateEmail(auth.currentUser, newEmail.trim());
-
-        // Also update Firestore (will be marked verified when user clicks link)
-        const userRef = doc(db, 'users', user.id);
-        await updateDoc(userRef, {
-          email: newEmail.trim(),
-          emailVerified: false
-        });
-
-        setEmailResendStatus('success');
-        setEmailResendMessage('Verification email sent! Check your inbox.');
-      } else {
-        // Phone-auth user with no email in Firebase Auth
-        // Use verifyBeforeUpdateEmail to add email to Firebase Auth
-        await verifyBeforeUpdateEmail(auth.currentUser, newEmail.trim());
-
-        // Update Firestore with the new email
-        const userRef = doc(db, 'users', user.id);
-        await updateDoc(userRef, {
-          email: newEmail.trim(),
-          emailVerified: false
-        });
-
-        setEmailResendStatus('success');
-        setEmailResendMessage('Verification email sent! Click the link to verify.');
-      }
-
-      // Refresh user data
-      await refreshUser();
-
-      setTimeout(() => {
-        setEmailResendStatus('idle');
-        setEmailResendMessage('');
-      }, 5000);
-
-      setIsEditingEmail(false);
-      setNewEmail('');
-    } catch (error: any) {
-      console.error('Error saving email:', error);
-
-      // Handle specific Firebase errors
-      if (error.code === 'auth/email-already-in-use') {
-        setEmailError('This email is already in use by another account.');
-      } else if (error.code === 'auth/invalid-email') {
-        setEmailError('Please enter a valid email address.');
-      } else if (error.code === 'auth/requires-recent-login') {
-        setEmailError('Please sign out and sign back in to update your email.');
-      } else {
-        setEmailError(error.message || 'Failed to update email. Please try again.');
-      }
-    } finally {
-      setSavingEmail(false);
-    }
-  };
-
-  const handleCancelEditEmail = () => {
-    setIsEditingEmail(false);
-    setNewEmail('');
-    setEmailError('');
-  };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -471,55 +333,8 @@ function ProfileSettings() {
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          {isEditingEmail ? (
-            // Editing mode - show input field for new email
-            <>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="flex-1"
-                  autoFocus
-                  autoComplete="email"
-                />
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleSaveEmail}
-                  disabled={savingEmail || !newEmail.trim()}
-                  className="whitespace-nowrap"
-                >
-                  {savingEmail ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 mr-1" />
-                      Save
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCancelEditEmail}
-                  disabled={savingEmail}
-                >
-                  <XIcon className="w-4 h-4" />
-                </Button>
-              </div>
-              {emailError && (
-                <p className="text-xs text-red-600 dark:text-red-400">{emailError}</p>
-              )}
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                A verification email will be sent to the new address
-              </p>
-            </>
-          ) : hasEmail ? (
-            // Has email - show obfuscated with options
+          {hasEmail ? (
+            // Has email - show obfuscated with verification status
             <>
               <div className="flex items-center gap-2">
                 <Input
@@ -533,57 +348,24 @@ function ProfileSettings() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsEditingEmail(true)}
+                    onClick={() => router.push('/verify')}
                     className="whitespace-nowrap"
                   >
-                    <Pencil className="w-3 h-3 mr-1" />
-                    Change
+                    <Mail className="w-3 h-3 mr-1" />
+                    Verify
                   </Button>
                 )}
               </div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user?.emailVerified ? (
-                    <span className="text-green-600 dark:text-green-400">✓ Verified</span>
-                  ) : (
-                    <span className="text-amber-600 dark:text-amber-400">⚠ Not verified</span>
-                  )}
-                  {emailResendStatus === 'success' && (
-                    <span className="text-green-600 dark:text-green-400 ml-2">{emailResendMessage}</span>
-                  )}
-                  {emailResendStatus === 'error' && (
-                    <span className="text-red-600 dark:text-red-400 ml-2">{emailResendMessage}</span>
-                  )}
-                </p>
-                {!user?.emailVerified && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleResendVerificationEmail}
-                      disabled={resendingEmail || emailResendStatus === 'success'}
-                      className="text-xs h-7 px-2"
-                    >
-                      {resendingEmail ? (
-                        <>
-                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                          Sending...
-                        </>
-                      ) : emailResendStatus === 'success' ? (
-                        'Sent!'
-                      ) : (
-                        <>
-                          <Mail className="w-3 h-3 mr-1" />
-                          Resend Verification
-                        </>
-                      )}
-                    </Button>
-                  </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {user?.emailVerified ? (
+                  <span className="text-green-600 dark:text-green-400">✓ Verified</span>
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400">⚠ Not verified</span>
                 )}
-              </div>
+              </p>
             </>
           ) : (
-            // No email - show add email option
+            // No email - prompt to add via /verify
             <>
               <div className="flex items-center gap-2">
                 <Input
@@ -596,7 +378,7 @@ function ProfileSettings() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsEditingEmail(true)}
+                  onClick={() => router.push('/verify')}
                   className="whitespace-nowrap"
                 >
                   <Mail className="w-4 h-4 mr-1" />
@@ -690,9 +472,10 @@ function NotificationSettings() {
   );
 }
 
-function SecurityActivitySettings({ onSwitchToProfile }: { onSwitchToProfile: () => void }) {
+function SecurityActivitySettings() {
   const [securityTab, setSecurityTab] = useState<'security' | 'activity'>('security');
   const { user } = useAuth();
+  const router = useRouter();
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -702,58 +485,10 @@ function SecurityActivitySettings({ onSwitchToProfile }: { onSwitchToProfile: ()
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
   const [requireEmailVerification, setRequireEmailVerification] = useState(false);
-  const [resendingEmail, setResendingEmail] = useState(false);
-  const [emailResendStatus, setEmailResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [emailResendMessage, setEmailResendMessage] = useState('');
 
   // Check if user has MFA enabled (both email and phone verified)
   const hasMFA = user?.emailVerified && user?.phoneVerified;
   const hasEmail = user?.email && user.email.trim() !== '';
-
-  const handleResendVerificationEmail = async () => {
-    if (!auth.currentUser || resendingEmail || !user) return;
-
-    setResendingEmail(true);
-    setEmailResendStatus('idle');
-    setEmailResendMessage('');
-
-    try {
-      // Check if Firebase Auth has the email
-      const hasFirebaseEmail = auth.currentUser.email && auth.currentUser.email.trim() !== '';
-
-      if (hasFirebaseEmail) {
-        // Firebase Auth has email - use standard sendEmailVerification
-        await sendEmailVerification(auth.currentUser);
-      } else if (user.email && user.email.trim() !== '') {
-        // Firestore has email but Firebase Auth doesn't - use verifyBeforeUpdateEmail
-        await verifyBeforeUpdateEmail(auth.currentUser, user.email);
-      } else {
-        throw new Error('No email address to verify');
-      }
-
-      setEmailResendStatus('success');
-      setEmailResendMessage('Verification email sent!');
-      setTimeout(() => {
-        setEmailResendStatus('idle');
-        setEmailResendMessage('');
-      }, 5000);
-    } catch (error: any) {
-      setEmailResendStatus('error');
-      if (error.code === 'auth/too-many-requests') {
-        setEmailResendMessage('Too many requests. Wait a few minutes.');
-      } else if (error.code === 'auth/missing-email') {
-        setEmailResendMessage('Please add an email first.');
-      } else {
-        setEmailResendMessage('Failed to send. Try again.');
-      }
-      setTimeout(() => {
-        setEmailResendStatus('idle');
-        setEmailResendMessage('');
-      }, 5000);
-    } finally {
-      setResendingEmail(false);
-    }
-  };
 
   const validatePassword = (password: string): string | null => {
     if (password.length < 8) {
@@ -873,53 +608,18 @@ function SecurityActivitySettings({ onSwitchToProfile }: { onSwitchToProfile: ()
                       <p className="text-sm text-gray-500">
                         {hasEmail ? obfuscateEmail(user?.email || '') : 'No email added'}
                       </p>
-                      {emailResendStatus === 'success' && (
-                        <p className="text-xs text-green-600 dark:text-green-400">{emailResendMessage}</p>
-                      )}
-                      {emailResendStatus === 'error' && (
-                        <p className="text-xs text-red-600 dark:text-red-400">{emailResendMessage}</p>
-                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!user?.emailVerified && hasEmail && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleResendVerificationEmail}
-                          disabled={resendingEmail || emailResendStatus === 'success'}
-                          className="h-7 px-2 text-xs"
-                        >
-                          {resendingEmail ? (
-                            <RefreshCw className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <>
-                              <Mail className="w-3 h-3 mr-1" />
-                              Resend
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={onSwitchToProfile}
-                          className="h-7 px-2 text-xs"
-                        >
-                          <Pencil className="w-3 h-3 mr-1" />
-                          Change
-                        </Button>
-                      </>
-                    )}
-                    {!user?.emailVerified && !hasEmail && (
+                    {!user?.emailVerified && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={onSwitchToProfile}
+                        onClick={() => router.push('/verify')}
                         className="h-7 px-2 text-xs"
                       >
                         <Mail className="w-3 h-3 mr-1" />
-                        Add Email
+                        {hasEmail ? 'Verify' : 'Add Email'}
                       </Button>
                     )}
                     <Badge
@@ -936,15 +636,27 @@ function SecurityActivitySettings({ onSwitchToProfile }: { onSwitchToProfile: ()
                     <div className={`w-3 h-3 rounded-full ${user?.phoneVerified ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <div>
                       <p className="font-medium">Phone Verification</p>
-                      <p className="text-sm text-gray-500">{user?.phoneNumber}</p>
+                      <p className="text-sm text-gray-500">{user?.phoneNumber || 'No phone added'}</p>
                     </div>
                   </div>
-                  <Badge
-                    variant={user?.phoneVerified ? 'default' : 'secondary'}
-                    className={user?.phoneVerified ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' : ''}
-                  >
-                    {user?.phoneVerified ? 'Verified' : 'Not Verified'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {!user?.phoneVerified && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push('/verify')}
+                        className="h-7 px-2 text-xs"
+                      >
+                        {user?.phoneNumber ? 'Verify' : 'Add Phone'}
+                      </Button>
+                    )}
+                    <Badge
+                      variant={user?.phoneVerified ? 'default' : 'secondary'}
+                      className={user?.phoneVerified ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' : ''}
+                    >
+                      {user?.phoneVerified ? 'Verified' : 'Not Verified'}
+                    </Badge>
+                  </div>
                 </div>
 
                 {hasMFA && (

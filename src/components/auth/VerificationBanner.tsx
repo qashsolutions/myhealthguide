@@ -2,52 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, X, Mail, RefreshCw } from 'lucide-react';
+import { AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { auth } from '@/lib/firebase/config';
-import { sendEmailVerification, verifyBeforeUpdateEmail } from 'firebase/auth';
 
 /**
- * Obfuscates an email address for privacy
- * e.g., "john.doe@example.com" -> "j***e@e***.com"
+ * Verification Banner
+ *
+ * Shows a banner prompting users to verify their email and/or phone.
+ * All verification actions redirect to /verify which is the single
+ * source of truth for verification flows.
  */
-function obfuscateEmail(email: string): string {
-  if (!email || !email.includes('@')) return '***@***.***';
-
-  const [localPart, domain] = email.split('@');
-  const [domainName, ...domainExt] = domain.split('.');
-
-  // Obfuscate local part: show first and last char
-  let obfuscatedLocal = localPart;
-  if (localPart.length <= 2) {
-    obfuscatedLocal = localPart[0] + '***';
-  } else {
-    obfuscatedLocal = localPart[0] + '***' + localPart[localPart.length - 1];
-  }
-
-  // Obfuscate domain name: show first char only
-  let obfuscatedDomain = domainName;
-  if (domainName.length <= 2) {
-    obfuscatedDomain = domainName[0] + '***';
-  } else {
-    obfuscatedDomain = domainName[0] + '***';
-  }
-
-  // Keep the extension (com, org, etc.)
-  const extension = domainExt.join('.');
-
-  return `${obfuscatedLocal}@${obfuscatedDomain}.${extension}`;
-}
-
 export function VerificationBanner() {
   const router = useRouter();
   const { user } = useAuth();
   const [dismissed, setDismissed] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
-  const [resendError, setResendError] = useState('');
 
   useEffect(() => {
     if (user && (!user.emailVerified || !user.phoneVerified)) {
@@ -76,50 +46,27 @@ export function VerificationBanner() {
     router.push('/verify');
   };
 
-  const handleResendEmail = async () => {
-    if (!auth.currentUser || resending || !user) return;
-
-    setResending(true);
-    setResendError('');
-    setResendSuccess(false);
-
-    try {
-      // Check if Firebase Auth has the email
-      const hasFirebaseEmail = auth.currentUser.email && auth.currentUser.email.trim() !== '';
-
-      if (hasFirebaseEmail) {
-        // Firebase Auth has email - use standard sendEmailVerification
-        await sendEmailVerification(auth.currentUser);
-      } else if (user.email && user.email.trim() !== '') {
-        // Firestore has email but Firebase Auth doesn't - use verifyBeforeUpdateEmail
-        await verifyBeforeUpdateEmail(auth.currentUser, user.email);
-      } else {
-        throw new Error('No email address to verify');
-      }
-
-      setResendSuccess(true);
-      setTimeout(() => setResendSuccess(false), 5000);
-    } catch (error: any) {
-      if (error.code === 'auth/too-many-requests') {
-        setResendError('Too many requests. Please wait a few minutes.');
-      } else if (error.code === 'auth/missing-email') {
-        setResendError('Please add an email address first.');
-      } else {
-        setResendError('Failed to send. Try again later.');
-      }
-      setTimeout(() => setResendError(''), 5000);
-    } finally {
-      setResending(false);
-    }
-  };
-
   if (!showBanner || dismissed || !user) {
     return null;
   }
 
   const needsEmail = !user.emailVerified;
   const needsPhone = !user.phoneVerified;
-  const hasEmail = user.email && user.email.trim() !== '';
+
+  // Determine the message to show
+  let title = '';
+  let subtitle = '';
+
+  if (needsEmail && needsPhone) {
+    title = 'Please verify your email and phone number';
+    subtitle = 'Required for account security, emergency alerts, and legal notices';
+  } else if (needsEmail) {
+    title = 'Please verify your email address';
+    subtitle = 'Required for account recovery and legal notices';
+  } else if (needsPhone) {
+    title = 'Please verify your phone number';
+    subtitle = 'Required for emergency alerts and prescription reminders';
+  }
 
   return (
     <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
@@ -129,47 +76,14 @@ export function VerificationBanner() {
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
             <div className="min-w-0">
               <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                {needsEmail && needsPhone && 'Please verify your email and phone number'}
-                {needsEmail && !needsPhone && 'Please verify your email address'}
-                {!needsEmail && needsPhone && 'Please verify your phone number'}
+                {title}
               </p>
               <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                {needsEmail && hasEmail && (
-                  <>
-                    Verification email sent to <span className="font-medium">{obfuscateEmail(user.email)}</span>
-                    {resendSuccess && <span className="text-green-600 dark:text-green-400 ml-2">✓ Email sent!</span>}
-                    {resendError && <span className="text-red-600 dark:text-red-400 ml-2">{resendError}</span>}
-                  </>
-                )}
-                {needsEmail && !hasEmail && 'Add an email address for account recovery and legal notices'}
-                {needsPhone && !needsEmail && 'Phone verification required for emergency alerts and prescription reminders'}
+                {subtitle}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {needsEmail && hasEmail && (
-              <Button
-                onClick={handleResendEmail}
-                size="sm"
-                variant="outline"
-                disabled={resending || resendSuccess}
-                className="border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800"
-              >
-                {resending ? (
-                  <>
-                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                    Sending...
-                  </>
-                ) : resendSuccess ? (
-                  'Sent!'
-                ) : (
-                  <>
-                    <Mail className="w-3 h-3 mr-1" />
-                    Resend
-                  </>
-                )}
-              </Button>
-            )}
             <Button
               onClick={handleVerify}
               size="sm"

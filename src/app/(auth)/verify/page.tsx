@@ -4,56 +4,95 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase/config';
 import { sendEmailVerification, onAuthStateChanged, reload } from 'firebase/auth';
-import { CheckCircle, AlertCircle, RefreshCw, Mail, Smartphone } from 'lucide-react';
+import { CheckCircle, AlertCircle, RefreshCw, Mail, Smartphone, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthService } from '@/lib/firebase/auth';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 
+/**
+ * Unified Verification Page
+ *
+ * This is the SINGLE source of truth for all email/phone verification and linking.
+ *
+ * Handles two scenarios:
+ * 1. Phone-auth user adding email: Uses linkWithCredential(EmailAuthProvider)
+ * 2. Email-auth user adding phone: Uses linkWithCredential(PhoneAuthProvider)
+ *
+ * All other pages (Settings, VerificationBanner) should redirect here.
+ */
 export default function VerifyPage() {
   const router = useRouter();
+
+  // User state
+  const [userId, setUserId] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
-  const [userId, setUserId] = useState('');
+  const [authProvider, setAuthProvider] = useState<'phone' | 'email' | null>(null);
 
+  // Verification status
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
 
-  const [emailSent, setEmailSent] = useState(false);
-  const [phoneSent, setPhoneSent] = useState(false);
-
-  const [phoneCode, setPhoneCode] = useState('');
-  const [phoneInput, setPhoneInput] = useState('');
+  // Email linking state (for phone-auth users)
   const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [linkingEmail, setLinkingEmail] = useState(false);
+  const [emailLinkSent, setEmailLinkSent] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
-  const [verifyingPhone, setVerifyingPhone] = useState(false);
-  const [addingPhone, setAddingPhone] = useState(false);
-  const [addingEmail, setAddingEmail] = useState(false);
 
-  const [error, setError] = useState('');
+  // Phone linking state (for email-auth users)
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneSent, setPhoneSent] = useState(false);
+  const [verifyingPhone, setVerifyingPhone] = useState(false);
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUserEmail(user.email || '');
-        setUserId(user.uid);
+  // Error state
+  const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
+  // Load user data on mount
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUserId(firebaseUser.uid);
+
+        // Determine auth provider
+        const providerData = firebaseUser.providerData;
+        const hasEmailProvider = providerData.some(p => p.providerId === 'password');
+        const hasPhoneProvider = providerData.some(p => p.providerId === 'phone');
+
+        if (hasPhoneProvider && !hasEmailProvider) {
+          setAuthProvider('phone');
+        } else if (hasEmailProvider && !hasPhoneProvider) {
+          setAuthProvider('email');
+        } else if (hasEmailProvider && hasPhoneProvider) {
+          // Both providers linked - user has full verification
+          setAuthProvider('email'); // Default to email for display
+        }
+
+        // Get user data from Firestore
         const userData = await AuthService.getCurrentUserData();
         if (userData) {
-          setUserPhone(userData.phoneNumber);
-          setEmailVerified(userData.emailVerified);
-          setPhoneVerified(userData.phoneVerified);
+          setUserEmail(userData.email || firebaseUser.email || '');
+          setUserPhone(userData.phoneNumber || '');
+          setEmailVerified(userData.emailVerified || false);
+          setPhoneVerified(userData.phoneVerified || false);
 
-          if (userData.emailVerified && user.emailVerified) {
+          // If Firebase Auth says email is verified, sync to Firestore
+          if (firebaseUser.emailVerified && !userData.emailVerified) {
+            await AuthService.markEmailVerified(firebaseUser.uid);
             setEmailVerified(true);
           }
 
-          if (userData.emailVerified && userData.phoneVerified) {
+          // If both are verified, redirect to dashboard
+          if ((userData.emailVerified || firebaseUser.emailVerified) && userData.phoneVerified) {
             setTimeout(() => router.push('/dashboard'), 2000);
           }
         }
@@ -65,65 +104,111 @@ export default function VerifyPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Initialize reCAPTCHA when needed
   useEffect(() => {
-    if (!emailVerified || !phoneVerified) {
-      if (!recaptchaVerifier) {
+    if (authProvider === 'email' && !phoneVerified && !recaptchaVerifier) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
         try {
-          const verifier = AuthService.setupRecaptchaVerifier('recaptcha-container');
-          setRecaptchaVerifier(verifier);
+          const container = document.getElementById('recaptcha-container');
+          if (container) {
+            const verifier = AuthService.setupRecaptchaVerifier('recaptcha-container');
+            setRecaptchaVerifier(verifier);
+          }
         } catch (err) {
           console.error('Error setting up reCAPTCHA:', err);
         }
-      }
-    }
-  }, [emailVerified, phoneVerified, recaptchaVerifier]);
+      }, 100);
 
-  const addEmail = async () => {
+      return () => clearTimeout(timer);
+    }
+  }, [authProvider, phoneVerified, recaptchaVerifier]);
+
+  // Password validation
+  const validatePassword = (password: string): boolean => {
+    setPasswordError('');
+
+    if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      return false;
+    }
+    if (!/[a-zA-Z]/.test(password)) {
+      setPasswordError('Password must contain at least one letter');
+      return false;
+    }
+    if (!/[0-9]/.test(password)) {
+      setPasswordError('Password must contain at least one number');
+      return false;
+    }
+    if (!/^[a-zA-Z0-9]+$/.test(password)) {
+      setPasswordError('Password must contain only letters and numbers');
+      return false;
+    }
+    return true;
+  };
+
+  // ==========================================
+  // EMAIL LINKING (for phone-auth users)
+  // ==========================================
+
+  const handleLinkEmail = async () => {
     try {
-      setAddingEmail(true);
       setError('');
+      setPasswordError('');
 
       if (!emailInput) {
-        throw new Error('Please enter an email address');
+        setError('Please enter an email address');
+        return;
       }
 
-      await updateDoc(doc(db, 'users', userId), {
-        email: emailInput
-      });
+      if (!passwordInput) {
+        setError('Please create a password');
+        return;
+      }
+
+      if (!validatePassword(passwordInput)) {
+        return;
+      }
+
+      if (passwordInput !== confirmPasswordInput) {
+        setPasswordError('Passwords do not match');
+        return;
+      }
+
+      setLinkingEmail(true);
+
+      // Link email/password to phone account
+      await AuthService.linkEmailToAccount(emailInput, passwordInput);
 
       setUserEmail(emailInput);
-      setAddingEmail(false);
+      setEmailLinkSent(true);
 
-      // Send verification email
-      if (auth.currentUser) {
-        await sendEmailVerification(auth.currentUser);
-        setEmailSent(true);
-      }
     } catch (err: any) {
-      console.error('Error adding email:', err);
-      setError(err.message || 'Failed to add email');
-      setAddingEmail(false);
+      console.error('Error linking email:', err);
+      setError(err.message || 'Failed to link email');
+    } finally {
+      setLinkingEmail(false);
     }
   };
 
-  const resendEmailVerification = async () => {
+  const handleResendEmailVerification = async () => {
     try {
       setError('');
       if (auth.currentUser) {
         await sendEmailVerification(auth.currentUser);
-        setEmailSent(true);
-        setTimeout(() => setEmailSent(false), 5000);
+        setEmailLinkSent(true);
+        setTimeout(() => setEmailLinkSent(false), 5000);
       }
     } catch (err: any) {
       if (err.code === 'auth/too-many-requests') {
-        setError('Too many requests. Please wait a few minutes before trying again.');
+        setError('Too many requests. Please wait a few minutes.');
       } else {
-        setError('Failed to send email. Please try again.');
+        setError('Failed to send verification email');
       }
     }
   };
 
-  const checkEmailVerification = async () => {
+  const handleCheckEmailVerification = async () => {
     try {
       setCheckingEmail(true);
       setError('');
@@ -143,85 +228,102 @@ export default function VerifyPage() {
         }
       }
     } catch (err) {
-      setError('Failed to check verification status.');
+      setError('Failed to check verification status');
     } finally {
       setCheckingEmail(false);
     }
   };
 
-  const addPhoneNumber = async () => {
-    try {
-      setAddingPhone(true);
-      setError('');
+  // ==========================================
+  // PHONE LINKING (for email-auth users)
+  // ==========================================
 
-      if (!phoneInput) {
-        throw new Error('Please enter a phone number');
-      }
-
-      await AuthService.addPhoneNumber(userId, phoneInput);
-      setUserPhone(phoneInput);
-      setAddingPhone(false);
-    } catch (err: any) {
-      console.error('Error adding phone:', err);
-      setError(err.message || 'Failed to add phone number');
-      setAddingPhone(false);
-    }
-  };
-
-  const sendPhoneCode = async () => {
+  const handleSendPhoneCode = async () => {
     try {
       setError('');
+
       if (!recaptchaVerifier) {
-        throw new Error('reCAPTCHA not initialized');
+        setError('reCAPTCHA not initialized. Please refresh the page.');
+        return;
       }
 
       const phoneToVerify = userPhone || phoneInput;
       if (!phoneToVerify) {
-        throw new Error('Please enter a phone number');
+        setError('Please enter a phone number');
+        return;
       }
 
-      // If user hasn't added phone yet, add it first
-      if (!userPhone && phoneInput) {
-        await addPhoneNumber();
+      // Format phone number
+      const digitsOnly = phoneToVerify.replace(/\D/g, '');
+      if (digitsOnly.length !== 10) {
+        setError('Please enter a valid 10-digit phone number');
+        return;
       }
 
-      const result = await AuthService.sendPhoneVerificationCode(phoneToVerify, recaptchaVerifier);
+      const formattedPhone = `+1${digitsOnly}`;
+
+      // Send verification code
+      const result = await AuthService.sendPhoneVerificationCode(formattedPhone, recaptchaVerifier);
       setConfirmationResult(result);
       setPhoneSent(true);
+
+      // Save phone to user profile if not already saved
+      if (!userPhone && phoneInput) {
+        await AuthService.addPhoneNumber(userId, formattedPhone);
+        setUserPhone(formattedPhone);
+      }
+
     } catch (err: any) {
       console.error('Error sending phone code:', err);
       setError(err.message || 'Failed to send verification code');
 
-      if (recaptchaVerifier) {
-        try {
-          const verifier = AuthService.setupRecaptchaVerifier('recaptcha-container');
-          setRecaptchaVerifier(verifier);
-        } catch (resetErr) {
-          console.error('Error resetting reCAPTCHA:', resetErr);
-        }
+      // Reset reCAPTCHA on error
+      try {
+        const verifier = AuthService.setupRecaptchaVerifier('recaptcha-container');
+        setRecaptchaVerifier(verifier);
+      } catch (resetErr) {
+        console.error('Error resetting reCAPTCHA:', resetErr);
       }
     }
   };
 
-  const verifyPhoneCode = async () => {
+  const handleVerifyPhoneCode = async () => {
     try {
       setVerifyingPhone(true);
       setError('');
 
       if (!confirmationResult) {
-        throw new Error('Please request a verification code first');
+        setError('Please request a verification code first');
+        return;
       }
 
       if (!phoneCode || phoneCode.length !== 6) {
-        throw new Error('Please enter a valid 6-digit code');
+        setError('Please enter a valid 6-digit code');
+        return;
       }
 
-      await AuthService.verifyPhoneCodeAndUpdate(confirmationResult, phoneCode, userId);
+      // For email-auth users, we need to LINK the phone credential
+      // For phone-auth users who already have phone, just verify
+      const hasPhoneProvider = auth.currentUser?.providerData.some(p => p.providerId === 'phone');
+
+      if (!hasPhoneProvider) {
+        // Link phone to email account
+        await AuthService.linkPhoneToAccount(
+          userPhone || `+1${phoneInput.replace(/\D/g, '')}`,
+          phoneCode,
+          confirmationResult
+        );
+      } else {
+        // Just verify the code
+        await AuthService.verifyPhoneCodeAndUpdate(confirmationResult, phoneCode, userId);
+      }
+
       setPhoneVerified(true);
 
       if (emailVerified) {
         setTimeout(() => router.push('/dashboard'), 2000);
       }
+
     } catch (err: any) {
       console.error('Error verifying phone:', err);
       setError(err.message || 'Invalid verification code');
@@ -230,6 +332,11 @@ export default function VerifyPage() {
     }
   };
 
+  // ==========================================
+  // RENDER
+  // ==========================================
+
+  // Both verified - success screen
   if (emailVerified && phoneVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
@@ -238,15 +345,11 @@ export default function VerifyPage() {
             <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">
-              All Set!
-            </h1>
+            <h1 className="text-2xl font-bold mb-2">All Set!</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Your email and phone are both verified.
             </p>
-            <p className="text-sm text-gray-500">
-              Redirecting to dashboard...
-            </p>
+            <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
           </CardContent>
         </Card>
       </div>
@@ -260,7 +363,7 @@ export default function VerifyPage() {
           Verify Your Contact Information
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Please verify both your email and phone number to access all features
+          For your security and HIPAA compliance, please verify both your email and phone number
         </p>
       </div>
 
@@ -275,40 +378,104 @@ export default function VerifyPage() {
             {emailVerified && <CheckCircle className="w-7 h-7 text-green-600 dark:text-green-400 ml-auto" />}
           </CardTitle>
           <CardDescription className="text-base">
-            Add your email for account recovery and legal notices
+            {authProvider === 'phone'
+              ? 'Add an email address for account recovery and legal notices'
+              : 'Verify your email address'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-
           {!emailVerified ? (
             <>
-              {!userEmail ? (
-                <>
-                  <div className="space-y-3">
+              {/* Phone-auth user: needs to ADD email with password */}
+              {authProvider === 'phone' && !userEmail && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
                     <Input
+                      id="email"
                       type="email"
                       placeholder="you@example.com"
                       value={emailInput}
                       onChange={(e) => setEmailInput(e.target.value)}
-                      className="text-lg h-12"
+                      className="h-12"
+                      disabled={linkingEmail}
                     />
-                    <Button
-                      onClick={addEmail}
-                      className="w-full h-12 text-lg"
-                      disabled={addingEmail || !emailInput}
-                      size="lg"
-                    >
-                      {addingEmail ? 'Adding email...' : 'Add and verify email'}
-                    </Button>
                   </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-base text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                    We sent a verification link to <strong>{userEmail}</strong>
-                  </p>
 
-                  {emailSent && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Create Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="8+ alphanumeric characters"
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        className="h-12 pr-10"
+                        disabled={linkingEmail}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Minimum 8 characters using only letters and numbers
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Re-enter password"
+                      value={confirmPasswordInput}
+                      onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                      className="h-12"
+                      disabled={linkingEmail}
+                    />
+                  </div>
+
+                  {passwordError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>
+                  )}
+
+                  <Button
+                    onClick={handleLinkEmail}
+                    className="w-full h-12 text-lg"
+                    disabled={linkingEmail || !emailInput || !passwordInput}
+                  >
+                    {linkingEmail ? (
+                      <>
+                        <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                        Adding email...
+                      </>
+                    ) : (
+                      'Add Email & Send Verification'
+                    )}
+                  </Button>
+
+                  <p className="text-xs text-gray-500 text-center">
+                    This password will allow you to sign in with email in addition to phone
+                  </p>
+                </div>
+              )}
+
+              {/* Has email but not verified - show verification options */}
+              {userEmail && (
+                <>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-base text-gray-600 dark:text-gray-400">
+                      Verification email sent to <strong>{userEmail}</strong>
+                    </p>
+                  </div>
+
+                  {emailLinkSent && (
                     <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                       <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
                       <p className="text-base text-green-600 dark:text-green-400 font-medium">
@@ -319,10 +486,9 @@ export default function VerifyPage() {
 
                   <div className="space-y-3">
                     <Button
-                      onClick={checkEmailVerification}
+                      onClick={handleCheckEmailVerification}
                       disabled={checkingEmail}
                       className="w-full h-12 text-lg"
-                      size="lg"
                     >
                       {checkingEmail ? (
                         <>
@@ -338,13 +504,12 @@ export default function VerifyPage() {
                     </Button>
 
                     <Button
-                      onClick={resendEmailVerification}
+                      onClick={handleResendEmailVerification}
                       variant="outline"
                       className="w-full h-12 text-lg"
-                      size="lg"
-                      disabled={emailSent}
+                      disabled={emailLinkSent}
                     >
-                      {emailSent ? 'Email sent!' : 'Resend email'}
+                      {emailLinkSent ? 'Email sent!' : 'Resend verification email'}
                     </Button>
                   </div>
                 </>
@@ -372,66 +537,78 @@ export default function VerifyPage() {
             {phoneVerified && <CheckCircle className="w-7 h-7 text-green-600 dark:text-green-400 ml-auto" />}
           </CardTitle>
           <CardDescription className="text-base">
-            Add your phone number to enable emergency alerts
+            {authProvider === 'email'
+              ? 'Add your phone number for emergency alerts and two-factor authentication'
+              : 'Your phone is your primary sign-in method'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-
           {!phoneVerified ? (
             <>
-              {!userPhone ? (
-                <>
-                  <div className="space-y-3">
-                    <div className="flex">
-                      <div className="flex items-center px-4 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md h-12">
-                        <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">+1</span>
-                      </div>
-                      <Input
-                        type="tel"
-                        placeholder="(555) 123-4567"
-                        value={phoneInput}
-                        onChange={(e) => setPhoneInput(e.target.value)}
-                        className="rounded-l-none text-lg h-12"
-                      />
+              {/* Email-auth user: needs to ADD phone */}
+              {authProvider === 'email' && !userPhone && (
+                <div className="space-y-3">
+                  <Label htmlFor="phone">Phone Number (US only)</Label>
+                  <div className="flex">
+                    <div className="flex items-center px-4 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md h-12">
+                      <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">+1</span>
                     </div>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="(555) 123-4567"
+                      value={phoneInput}
+                      onChange={(e) => {
+                        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setPhoneInput(cleaned);
+                      }}
+                      className="rounded-l-none h-12 text-lg"
+                      maxLength={10}
+                    />
                   </div>
-                </>
-              ) : (
-                <p className="text-base text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                  Verify <strong>{userPhone}</strong> to enable emergency alerts
-                </p>
+                </div>
+              )}
+
+              {/* Has phone - show verification */}
+              {(userPhone || phoneInput) && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <p className="text-base text-gray-600 dark:text-gray-400">
+                    Verify <strong>{userPhone || `+1${phoneInput}`}</strong> to enable emergency alerts
+                  </p>
+                </div>
               )}
 
               {!phoneSent ? (
                 <>
                   <div id="recaptcha-container" className="flex justify-center"></div>
                   <Button
-                    onClick={sendPhoneCode}
+                    onClick={handleSendPhoneCode}
                     className="w-full h-12 text-lg"
-                    size="lg"
-                    disabled={!userPhone && !phoneInput}
+                    disabled={authProvider === 'email' && !userPhone && !phoneInput}
                   >
-                    {!userPhone ? 'Add and verify phone' : 'Send code to phone'}
+                    {authProvider === 'phone' ? 'Phone already verified via sign-in' : 'Send verification code'}
                   </Button>
                 </>
               ) : (
                 <div className="space-y-3">
+                  <Label htmlFor="code">Enter 6-digit code</Label>
                   <Input
+                    id="code"
                     type="text"
-                    placeholder="Enter 6-digit code"
+                    placeholder="123456"
                     value={phoneCode}
                     onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     maxLength={6}
                     className="text-center text-3xl tracking-widest h-16 font-mono"
                   />
                   <p className="text-sm text-gray-500 text-center">
-                    Enter the code sent to {userPhone}
+                    Code sent to {userPhone || `+1${phoneInput}`}
                   </p>
                   <Button
-                    onClick={verifyPhoneCode}
+                    onClick={handleVerifyPhoneCode}
                     disabled={verifyingPhone || phoneCode.length !== 6}
                     className="w-full h-12 text-lg"
-                    size="lg"
                   >
                     {verifyingPhone ? (
                       <>
@@ -443,13 +620,22 @@ export default function VerifyPage() {
                     )}
                   </Button>
                   <Button
-                    onClick={sendPhoneCode}
+                    onClick={handleSendPhoneCode}
                     variant="outline"
                     className="w-full h-12 text-lg"
-                    size="lg"
                   >
                     Resend code
                   </Button>
+                </div>
+              )}
+
+              {/* Phone-auth users already have phone verified */}
+              {authProvider === 'phone' && (
+                <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <p className="text-base text-blue-600 dark:text-blue-400 font-medium">
+                    Phone verified via sign-in
+                  </p>
                 </div>
               )}
             </>
@@ -464,6 +650,7 @@ export default function VerifyPage() {
         </CardContent>
       </Card>
 
+      {/* Error Display */}
       {error && (
         <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-900/20">
           <CardContent className="pt-6">
@@ -475,13 +662,14 @@ export default function VerifyPage() {
         </Card>
       )}
 
+      {/* Continue to Dashboard */}
       <Card className="bg-gray-50 dark:bg-gray-800">
         <CardContent className="pt-6 text-center">
           <p className="text-base text-gray-600 dark:text-gray-400">
             {emailVerified || phoneVerified ? (
-              <>You can access the dashboard with one verified contact method, but both are required for emergency alerts.</>
+              <>You can access the dashboard with one verified method, but both are required for full features.</>
             ) : (
-              <>Verify at least one contact method to continue.</>
+              <>Please verify at least one contact method to continue.</>
             )}
           </p>
           {(emailVerified || phoneVerified) && (
