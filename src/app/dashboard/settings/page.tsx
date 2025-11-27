@@ -33,7 +33,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { uploadFileWithQuota } from '@/lib/firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase/config';
-import { sendEmailVerification } from 'firebase/auth';
+import { sendEmailVerification, verifyBeforeUpdateEmail } from 'firebase/auth';
 import { SubscriptionSettings as RealSubscriptionSettings } from '@/components/subscription/SubscriptionSettings';
 import { useRouter } from 'next/navigation';
 
@@ -219,17 +219,28 @@ function ProfileSettings() {
     : '';
 
   const handleResendVerificationEmail = async () => {
-    if (!auth.currentUser || resendingEmail) return;
+    if (!auth.currentUser || resendingEmail || !user) return;
 
     setResendingEmail(true);
     setEmailResendStatus('idle');
     setEmailResendMessage('');
 
     try {
-      await sendEmailVerification(auth.currentUser);
+      // Check if Firebase Auth has the email
+      const hasFirebaseEmail = auth.currentUser.email && auth.currentUser.email.trim() !== '';
+
+      if (hasFirebaseEmail) {
+        // Firebase Auth has email - use standard sendEmailVerification
+        await sendEmailVerification(auth.currentUser);
+      } else if (user.email && user.email.trim() !== '') {
+        // Firestore has email but Firebase Auth doesn't - use verifyBeforeUpdateEmail
+        await verifyBeforeUpdateEmail(auth.currentUser, user.email);
+      } else {
+        throw new Error('No email address to verify');
+      }
+
       setEmailResendStatus('success');
       setEmailResendMessage('Verification email sent!');
-      // Clear success after 5 seconds
       setTimeout(() => {
         setEmailResendStatus('idle');
         setEmailResendMessage('');
@@ -238,10 +249,11 @@ function ProfileSettings() {
       setEmailResendStatus('error');
       if (error.code === 'auth/too-many-requests') {
         setEmailResendMessage('Too many requests. Please wait a few minutes.');
+      } else if (error.code === 'auth/missing-email') {
+        setEmailResendMessage('Please add an email address first.');
       } else {
         setEmailResendMessage('Failed to send email. Try again later.');
       }
-      // Clear error after 5 seconds
       setTimeout(() => {
         setEmailResendStatus('idle');
         setEmailResendMessage('');
@@ -265,37 +277,66 @@ function ProfileSettings() {
     setEmailError('');
 
     try {
-      // Update email in Firestore
-      const userRef = doc(db, 'users', user.id);
-      await updateDoc(userRef, {
-        email: newEmail.trim(),
-        emailVerified: false // Reset verification status for new email
-      });
+      if (!auth.currentUser) {
+        throw new Error('Not authenticated');
+      }
+
+      // Check if this is a phone-auth user (no email in Firebase Auth)
+      const hasFirebaseEmail = auth.currentUser.email && auth.currentUser.email.trim() !== '';
+
+      if (hasFirebaseEmail) {
+        // User already has email in Firebase Auth - use verifyBeforeUpdateEmail
+        // This sends a verification email and updates Firebase Auth email upon confirmation
+        await verifyBeforeUpdateEmail(auth.currentUser, newEmail.trim());
+
+        // Also update Firestore (will be marked verified when user clicks link)
+        const userRef = doc(db, 'users', user.id);
+        await updateDoc(userRef, {
+          email: newEmail.trim(),
+          emailVerified: false
+        });
+
+        setEmailResendStatus('success');
+        setEmailResendMessage('Verification email sent! Check your inbox.');
+      } else {
+        // Phone-auth user with no email in Firebase Auth
+        // Use verifyBeforeUpdateEmail to add email to Firebase Auth
+        await verifyBeforeUpdateEmail(auth.currentUser, newEmail.trim());
+
+        // Update Firestore with the new email
+        const userRef = doc(db, 'users', user.id);
+        await updateDoc(userRef, {
+          email: newEmail.trim(),
+          emailVerified: false
+        });
+
+        setEmailResendStatus('success');
+        setEmailResendMessage('Verification email sent! Click the link to verify.');
+      }
 
       // Refresh user data
       await refreshUser();
 
-      // Send verification email to the new address
-      if (auth.currentUser) {
-        try {
-          await sendEmailVerification(auth.currentUser);
-          setEmailResendStatus('success');
-          setEmailResendMessage('Verification email sent to new address!');
-          setTimeout(() => {
-            setEmailResendStatus('idle');
-            setEmailResendMessage('');
-          }, 5000);
-        } catch (verifyError) {
-          // Email saved but verification email failed - still success
-          console.error('Failed to send verification:', verifyError);
-        }
-      }
+      setTimeout(() => {
+        setEmailResendStatus('idle');
+        setEmailResendMessage('');
+      }, 5000);
 
       setIsEditingEmail(false);
       setNewEmail('');
     } catch (error: any) {
       console.error('Error saving email:', error);
-      setEmailError('Failed to update email. Please try again.');
+
+      // Handle specific Firebase errors
+      if (error.code === 'auth/email-already-in-use') {
+        setEmailError('This email is already in use by another account.');
+      } else if (error.code === 'auth/invalid-email') {
+        setEmailError('Please enter a valid email address.');
+      } else if (error.code === 'auth/requires-recent-login') {
+        setEmailError('Please sign out and sign back in to update your email.');
+      } else {
+        setEmailError(error.message || 'Failed to update email. Please try again.');
+      }
     } finally {
       setSavingEmail(false);
     }
@@ -665,14 +706,26 @@ function SecurityActivitySettings({ onSwitchToProfile }: { onSwitchToProfile: ()
   const hasEmail = user?.email && user.email.trim() !== '';
 
   const handleResendVerificationEmail = async () => {
-    if (!auth.currentUser || resendingEmail) return;
+    if (!auth.currentUser || resendingEmail || !user) return;
 
     setResendingEmail(true);
     setEmailResendStatus('idle');
     setEmailResendMessage('');
 
     try {
-      await sendEmailVerification(auth.currentUser);
+      // Check if Firebase Auth has the email
+      const hasFirebaseEmail = auth.currentUser.email && auth.currentUser.email.trim() !== '';
+
+      if (hasFirebaseEmail) {
+        // Firebase Auth has email - use standard sendEmailVerification
+        await sendEmailVerification(auth.currentUser);
+      } else if (user.email && user.email.trim() !== '') {
+        // Firestore has email but Firebase Auth doesn't - use verifyBeforeUpdateEmail
+        await verifyBeforeUpdateEmail(auth.currentUser, user.email);
+      } else {
+        throw new Error('No email address to verify');
+      }
+
       setEmailResendStatus('success');
       setEmailResendMessage('Verification email sent!');
       setTimeout(() => {
@@ -683,6 +736,8 @@ function SecurityActivitySettings({ onSwitchToProfile }: { onSwitchToProfile: ()
       setEmailResendStatus('error');
       if (error.code === 'auth/too-many-requests') {
         setEmailResendMessage('Too many requests. Wait a few minutes.');
+      } else if (error.code === 'auth/missing-email') {
+        setEmailResendMessage('Please add an email first.');
       } else {
         setEmailResendMessage('Failed to send. Try again.');
       }

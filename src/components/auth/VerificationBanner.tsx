@@ -6,7 +6,7 @@ import { AlertCircle, X, Mail, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/firebase/config';
-import { sendEmailVerification } from 'firebase/auth';
+import { sendEmailVerification, verifyBeforeUpdateEmail } from 'firebase/auth';
 
 /**
  * Obfuscates an email address for privacy
@@ -77,24 +77,36 @@ export function VerificationBanner() {
   };
 
   const handleResendEmail = async () => {
-    if (!auth.currentUser || resending) return;
+    if (!auth.currentUser || resending || !user) return;
 
     setResending(true);
     setResendError('');
     setResendSuccess(false);
 
     try {
-      await sendEmailVerification(auth.currentUser);
+      // Check if Firebase Auth has the email
+      const hasFirebaseEmail = auth.currentUser.email && auth.currentUser.email.trim() !== '';
+
+      if (hasFirebaseEmail) {
+        // Firebase Auth has email - use standard sendEmailVerification
+        await sendEmailVerification(auth.currentUser);
+      } else if (user.email && user.email.trim() !== '') {
+        // Firestore has email but Firebase Auth doesn't - use verifyBeforeUpdateEmail
+        await verifyBeforeUpdateEmail(auth.currentUser, user.email);
+      } else {
+        throw new Error('No email address to verify');
+      }
+
       setResendSuccess(true);
-      // Reset success message after 5 seconds
       setTimeout(() => setResendSuccess(false), 5000);
     } catch (error: any) {
       if (error.code === 'auth/too-many-requests') {
         setResendError('Too many requests. Please wait a few minutes.');
+      } else if (error.code === 'auth/missing-email') {
+        setResendError('Please add an email address first.');
       } else {
         setResendError('Failed to send. Try again later.');
       }
-      // Clear error after 5 seconds
       setTimeout(() => setResendError(''), 5000);
     } finally {
       setResending(false);
