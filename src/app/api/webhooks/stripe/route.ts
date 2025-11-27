@@ -21,6 +21,25 @@ function getWebhookSecret(): string {
   return process.env.STRIPE_WEBHOOK_SECRET;
 }
 
+// Helper to extract plan key from price ID or plan name
+function extractPlanKey(subscription: Stripe.Subscription): string | null {
+  // Try from metadata first
+  const planName = subscription.metadata.planName;
+  if (planName) {
+    return planName.toLowerCase().replace(' plan', '').replace(' ', '_');
+  }
+
+  // Try from price ID
+  const priceId = subscription.items.data[0]?.price?.id;
+  if (priceId) {
+    if (priceId === process.env.STRIPE_FAMILY_PRICE_ID) return 'family';
+    if (priceId === process.env.STRIPE_SINGLE_AGENCY_PRICE_ID) return 'single_agency';
+    if (priceId === process.env.STRIPE_MULTI_AGENCY_PRICE_ID) return 'multi_agency';
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
@@ -45,6 +64,7 @@ export async function POST(req: NextRequest) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as any;
         if (invoice.subscription) {
+          // Handle elder billing (Multi-Agency)
           await ElderBillingService.handlePaymentSucceeded({
             subscriptionId: invoice.subscription as string,
             invoiceId: invoice.id,
@@ -64,17 +84,22 @@ export async function POST(req: NextRequest) {
       }
 
       case 'customer.subscription.created': {
-        const subscription = event.data.object as Stripe.Subscription;
+        const subscription = event.data.object as any;
         const userId = subscription.metadata.userId;
-        const planName = subscription.metadata.planName;
+        const planKey = extractPlanKey(subscription);
 
         if (userId) {
           // Update user subscription status in Firestore
           await updateDoc(doc(db, 'users', userId), {
             subscriptionStatus: subscription.status === 'trialing' ? 'trial' : 'active',
-            subscriptionTier: planName?.toLowerCase().replace(' plan', '').replace(' ', '_') || 'unknown',
+            subscriptionTier: planKey || 'unknown',
             stripeCustomerId: subscription.customer as string,
             stripeSubscriptionId: subscription.id,
+            // Track subscription start date for refund window calculation
+            subscriptionStartDate: Timestamp.fromDate(new Date(subscription.start_date * 1000)),
+            currentPeriodEnd: Timestamp.fromDate(new Date(subscription.current_period_end * 1000)),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            pendingPlanChange: null,
             trialEndDate: subscription.trial_end
               ? Timestamp.fromDate(new Date(subscription.trial_end * 1000))
               : null,
@@ -86,38 +111,125 @@ export async function POST(req: NextRequest) {
       }
 
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
+        const subscription = event.data.object as any;
         const userId = subscription.metadata.userId;
+        const planKey = extractPlanKey(subscription);
 
         if (userId) {
-          await updateDoc(doc(db, 'users', userId), {
-            subscriptionStatus: subscription.status === 'active' ? 'active' :
-                               subscription.status === 'trialing' ? 'trial' :
-                               subscription.status === 'canceled' ? 'canceled' : 'expired',
+          // Determine subscription status
+          let subscriptionStatus: string;
+          if (subscription.status === 'active') {
+            subscriptionStatus = 'active';
+          } else if (subscription.status === 'trialing') {
+            subscriptionStatus = 'trial';
+          } else if (subscription.status === 'canceled') {
+            subscriptionStatus = 'canceled';
+          } else if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
+            subscriptionStatus = 'expired';
+          } else {
+            subscriptionStatus = 'expired';
+          }
+
+          // Build update object
+          const updateData: Record<string, any> = {
+            subscriptionStatus,
+            currentPeriodEnd: Timestamp.fromDate(new Date(subscription.current_period_end * 1000)),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
             updatedAt: Timestamp.now(),
-          });
-          console.log('Subscription updated:', subscription.id);
+          };
+
+          // Update plan tier if it changed
+          if (planKey) {
+            updateData.subscriptionTier = planKey;
+          }
+
+          // If subscription is no longer set to cancel, clear pending changes
+          if (!subscription.cancel_at_period_end) {
+            updateData.pendingPlanChange = null;
+          }
+
+          // Check for scheduled changes (downgrade)
+          if (subscription.schedule) {
+            // There's a schedule attached - may have pending plan change
+            const scheduleId = subscription.schedule as string;
+            try {
+              const schedule = await stripe.subscriptionSchedules.retrieve(scheduleId);
+              if (schedule.phases && schedule.phases.length > 1) {
+                // Get the next phase's plan
+                const nextPhase = schedule.phases[1];
+                const nextPriceId = nextPhase.items[0]?.price as string;
+                if (nextPriceId) {
+                  if (nextPriceId === process.env.STRIPE_FAMILY_PRICE_ID) {
+                    updateData.pendingPlanChange = 'family';
+                  } else if (nextPriceId === process.env.STRIPE_SINGLE_AGENCY_PRICE_ID) {
+                    updateData.pendingPlanChange = 'single_agency';
+                  } else if (nextPriceId === process.env.STRIPE_MULTI_AGENCY_PRICE_ID) {
+                    updateData.pendingPlanChange = 'multi_agency';
+                  }
+                }
+              }
+            } catch (scheduleError) {
+              console.error('Error fetching subscription schedule:', scheduleError);
+            }
+          }
+
+          await updateDoc(doc(db, 'users', userId), updateData);
+          console.log('Subscription updated:', subscription.id, 'Status:', subscriptionStatus);
         }
         break;
       }
 
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
+        const subscription = event.data.object as any;
         const userId = subscription.metadata.userId;
 
         if (userId) {
           await updateDoc(doc(db, 'users', userId), {
             subscriptionStatus: 'canceled',
+            cancelAtPeriodEnd: false,
+            pendingPlanChange: null,
             updatedAt: Timestamp.now(),
           });
-          console.log('Subscription canceled:', subscription.id);
+          console.log('Subscription deleted:', subscription.id);
+        }
+        break;
+      }
+
+      case 'subscription_schedule.completed': {
+        // A scheduled plan change has been applied
+        const schedule = event.data.object as Stripe.SubscriptionSchedule;
+        const userId = schedule.metadata?.userId;
+
+        if (userId) {
+          // Clear pending plan change since it's now applied
+          await updateDoc(doc(db, 'users', userId), {
+            pendingPlanChange: null,
+            updatedAt: Timestamp.now(),
+          });
+          console.log('Subscription schedule completed for user:', userId);
+        }
+        break;
+      }
+
+      case 'subscription_schedule.canceled':
+      case 'subscription_schedule.released': {
+        // A scheduled change was cancelled
+        const schedule = event.data.object as Stripe.SubscriptionSchedule;
+        const userId = schedule.metadata?.userId;
+
+        if (userId) {
+          await updateDoc(doc(db, 'users', userId), {
+            pendingPlanChange: null,
+            updatedAt: Timestamp.now(),
+          });
+          console.log('Subscription schedule cancelled/released for user:', userId);
         }
         break;
       }
 
       case 'charge.refunded': {
         const charge = event.data.object as Stripe.Charge;
-        console.log('Charge refunded:', charge.id);
+        console.log('Charge refunded:', charge.id, 'Amount:', charge.amount_refunded / 100);
         break;
       }
 

@@ -23,6 +23,13 @@ export interface User {
   dataExportRequested: boolean; // Whether user requested data export during grace period
   subscriptionStatus: 'trial' | 'active' | 'expired' | 'canceled';
   subscriptionTier: 'family' | 'single_agency' | 'multi_agency' | null; // null during trial
+  // Stripe subscription tracking
+  stripeCustomerId: string | null; // Stripe customer ID
+  stripeSubscriptionId: string | null; // Stripe subscription ID
+  subscriptionStartDate: Date | null; // When paid subscription started (for refund calculation)
+  currentPeriodEnd: Date | null; // End of current billing period
+  cancelAtPeriodEnd: boolean; // Whether subscription is set to cancel at period end
+  pendingPlanChange: 'family' | 'single_agency' | 'multi_agency' | null; // Scheduled downgrade plan
   storageUsed: number; // Bytes used
   storageLimit: number; // Bytes allowed based on plan
   createdAt: Date;

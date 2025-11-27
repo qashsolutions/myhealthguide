@@ -76,6 +76,13 @@ export class AuthService {
       dataExportRequested: false,        // User hasn't requested export yet
       subscriptionStatus: 'trial',       // Trial status
       subscriptionTier: null,            // No paid tier during trial
+      // Stripe subscription tracking (null until user subscribes)
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      subscriptionStartDate: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      pendingPlanChange: null,
       storageUsed: 0,                    // No storage used yet
       storageLimit: 25 * 1024 * 1024,    // 25 MB for trial
       createdAt: now,
@@ -383,6 +390,13 @@ export class AuthService {
         dataExportRequested: false,        // User hasn't requested export yet
         subscriptionStatus: 'trial',
         subscriptionTier: null,
+        // Stripe subscription tracking (null until user subscribes)
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        subscriptionStartDate: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        pendingPlanChange: null,
         storageUsed: 0,
         storageLimit: 25 * 1024 * 1024, // 25 MB
         createdAt: now,

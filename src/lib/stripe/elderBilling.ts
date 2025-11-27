@@ -75,7 +75,7 @@ export class ElderBillingService {
     // Create Stripe subscription for this elder
     const billingCycleStart = new Date();
     const billingCycleEnd = new Date(billingCycleStart);
-    billingCycleEnd.setDate(billingCycleEnd.getDate() + PRICING.MULTI_AGENCY.BILLING_CYCLE_DAYS);
+    billingCycleEnd.setDate(billingCycleEnd.getDate() + PRICING.BILLING_CYCLE_DAYS);
 
     const subscription = await stripe.subscriptions.create({
       customer: stripeCustomerId,
@@ -162,7 +162,7 @@ export class ElderBillingService {
       (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    const isWithinRefundWindow = daysSinceCreation <= PRICING.MULTI_AGENCY.REFUND_WINDOW_DAYS;
+    const isWithinRefundWindow = daysSinceCreation <= PRICING.REFUND_WINDOW_DAYS;
 
     // Cancel Stripe subscription
     await stripe.subscriptions.cancel(subscriptionData.stripeSubscriptionId);
@@ -296,7 +296,7 @@ export class ElderBillingService {
       (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    const daysRemaining = PRICING.MULTI_AGENCY.REFUND_WINDOW_DAYS - daysSinceCreation;
+    const daysRemaining = PRICING.REFUND_WINDOW_DAYS - daysSinceCreation;
     const eligible = daysRemaining > 0;
 
     return { eligible, daysRemaining: Math.max(0, daysRemaining) };
@@ -365,7 +365,7 @@ export class ElderBillingService {
       subscriptionData.nextBillingDate?.toDate?.() ||
       new Date(subscriptionData.nextBillingDate);
     const newNextBilling = new Date(currentNextBilling);
-    newNextBilling.setDate(newNextBilling.getDate() + PRICING.MULTI_AGENCY.BILLING_CYCLE_DAYS);
+    newNextBilling.setDate(newNextBilling.getDate() + PRICING.BILLING_CYCLE_DAYS);
 
     await updateDoc(docRef, {
       nextBillingDate: Timestamp.fromDate(newNextBilling),

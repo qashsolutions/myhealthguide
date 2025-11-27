@@ -93,7 +93,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
     const daysSinceCreation = Math.floor(
       (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
     );
-    const daysRemaining = PRICING.MULTI_AGENCY.REFUND_WINDOW_DAYS - daysSinceCreation;
+    const daysRemaining = PRICING.REFUND_WINDOW_DAYS - daysSinceCreation;
     return {
       eligible: daysRemaining > 0,
       daysRemaining: Math.max(0, daysRemaining),
@@ -165,7 +165,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
         <CardHeader>
           <CardTitle className="text-lg">Multi-Agency Pricing</CardTitle>
           <CardDescription>
-            ${PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE} per elder per {PRICING.MULTI_AGENCY.BILLING_CYCLE_DAYS} days • {PRICING.MULTI_AGENCY.REFUND_WINDOW_DAYS}-day full refund window
+            ${PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE} per elder per {PRICING.BILLING_CYCLE_DAYS} days • {PRICING.REFUND_WINDOW_DAYS}-day full refund window
           </CardDescription>
         </CardHeader>
       </Card>
