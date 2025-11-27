@@ -69,19 +69,19 @@ const SEARCH_KNOWLEDGE_BASE = {
     family: {
       title: 'Family Plan',
       price: PRICING.FAMILY.MONTHLY_RATE,
-      description: `The Family plan costs $${PRICING.FAMILY.MONTHLY_RATE} per month. It includes 1 admin plus 1 member, up to ${PRICING.FAMILY.MAX_ELDERS} elders, 25 MB storage, voice-powered logging, medication and diet tracking, and AI health insights. Perfect for small families.`,
+      description: `The Family plan costs $${PRICING.FAMILY.MONTHLY_RATE} per elder per month. It includes 1 admin plus 1 member, up to ${PRICING.FAMILY.MAX_ELDERS} elders, ${PRICING.FAMILY.STORAGE_MB} MB storage. All plans include voice-powered health logging, medication tracking & reminders, diet & nutrition tracking, daily health summaries, AI health insights, and compliance tracking. Perfect for small families.`,
       url: '/pricing',
     },
     single: {
       title: 'Single Agency Plan',
       price: PRICING.SINGLE_AGENCY.MONTHLY_RATE,
-      description: `The Single Agency plan costs $${PRICING.SINGLE_AGENCY.MONTHLY_RATE} per month. It includes 1 admin plus up to ${PRICING.SINGLE_AGENCY.MAX_MEMBERS - 1} members, up to ${PRICING.SINGLE_AGENCY.MAX_ELDERS} elders, 50 MB storage, real-time collaboration, and weekly health reports. Ideal for families and caregivers.`,
+      description: `The Single Agency plan costs $${PRICING.SINGLE_AGENCY.MONTHLY_RATE} per elder per month. It includes 1 caregiver plus up to ${PRICING.SINGLE_AGENCY.MAX_MEMBERS - 1} members, up to ${PRICING.SINGLE_AGENCY.MAX_ELDERS} elders, ${PRICING.SINGLE_AGENCY.STORAGE_MB} MB storage. Includes all core features plus real-time collaboration and agency dashboard. Ideal for families with caregivers.`,
       url: '/pricing',
     },
     multi: {
       title: 'Multi Agency Plan',
       price: PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE,
-      description: `The Multi Agency plan costs $${PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE} per elder per month. It includes up to ${PRICING.MULTI_AGENCY.MAX_CAREGIVERS} caregivers, up to ${PRICING.MULTI_AGENCY.MAX_ELDERS} elders total, ${PRICING.BILLING_CYCLE_DAYS}-day billing cycles, 500 MB storage, agency dashboard and analytics, and compliance tracking. Perfect for professional caregivers.`,
+      description: `The Multi Agency plan costs $${PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE} per elder per month. It includes up to ${PRICING.MULTI_AGENCY.MAX_CAREGIVERS} caregivers, up to ${PRICING.MULTI_AGENCY.MAX_ELDERS} elders total, ${PRICING.MULTI_AGENCY.STORAGE_MB} MB storage. Includes all core features plus real-time collaboration, agency dashboard, multi-caregiver coordination, shift scheduling, and advanced analytics. Perfect for professional caregivers.`,
       url: '/pricing',
     },
     trial: {

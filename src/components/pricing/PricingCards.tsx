@@ -7,7 +7,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Users, Shield, CheckCircle, Loader2 } from 'lucide-react';
-import { PRICING } from '@/lib/constants/pricing';
+import { PRICING, PLAN_FEATURES, CORE_FEATURES } from '@/lib/constants/pricing';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -101,64 +101,46 @@ export function PricingCards({
     }
   };
 
-  // Plan data - using PRICING constants as single source of truth
+  // Plan data - using centralized PLAN_FEATURES as single source of truth
   const plans = [
     {
       id: 'family' as const,
-      name: 'Family',
-      subtitle: 'Perfect for small families',
+      name: PLAN_FEATURES.family.name,
+      subtitle: PLAN_FEATURES.family.subtitle,
       price: PRICING.FAMILY.MONTHLY_RATE,
-      priceNote: 'month',
+      priceNote: 'elder/month',
       icon: Heart,
       iconColor: 'text-blue-600',
       iconBgColor: 'bg-blue-100 dark:bg-blue-900',
       popular: false,
-      features: [
-        `1 admin + 1 member`,
-        `Up to ${PRICING.FAMILY.MAX_ELDERS} elders`,
-        '25 MB storage',
-        'Voice-powered logging',
-        'Medication & diet tracking',
-        'AI health insights',
-      ],
+      limits: PLAN_FEATURES.family.limits,
+      extras: PLAN_FEATURES.family.extras,
     },
     {
       id: 'single_agency' as const,
-      name: 'Single Agency',
-      subtitle: 'For families & caregivers',
+      name: PLAN_FEATURES.single_agency.name,
+      subtitle: PLAN_FEATURES.single_agency.subtitle,
       price: PRICING.SINGLE_AGENCY.MONTHLY_RATE,
-      priceNote: 'month',
+      priceNote: 'elder/month',
       icon: Users,
       iconColor: 'text-white',
       iconBgColor: 'bg-blue-600',
       popular: true,
-      features: [
-        `1 admin + up to ${PRICING.SINGLE_AGENCY.MAX_MEMBERS - 1} members`,
-        `Up to ${PRICING.SINGLE_AGENCY.MAX_ELDERS} elders`,
-        '50 MB storage',
-        'All Basic features',
-        'Real-time collaboration',
-        'Weekly health reports',
-      ],
+      limits: PLAN_FEATURES.single_agency.limits,
+      extras: PLAN_FEATURES.single_agency.extras,
     },
     {
       id: 'multi_agency' as const,
-      name: 'Multi Agency',
-      subtitle: 'For professional caregivers',
+      name: PLAN_FEATURES.multi_agency.name,
+      subtitle: PLAN_FEATURES.multi_agency.subtitle,
       price: PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE,
-      priceNote: 'per elder',
+      priceNote: 'elder/month',
       icon: Shield,
       iconColor: 'text-purple-600 dark:text-purple-400',
       iconBgColor: 'bg-purple-100 dark:bg-purple-900',
       popular: false,
-      features: [
-        `Up to ${PRICING.MULTI_AGENCY.MAX_CAREGIVERS} caregivers`,
-        `Up to ${PRICING.MULTI_AGENCY.MAX_ELDERS} elders total`,
-        `${PRICING.BILLING_CYCLE_DAYS}-day billing cycles`,
-        '500 MB storage',
-        'Agency dashboard & analytics',
-        'Compliance & burnout tracking',
-      ],
+      limits: PLAN_FEATURES.multi_agency.limits,
+      extras: PLAN_FEATURES.multi_agency.extras,
     },
   ];
 
@@ -232,15 +214,30 @@ export function PricingCards({
 
                   {/* Features */}
                   <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-3">
+                    {/* Plan limits */}
+                    {plan.limits.map((limit, index) => (
+                      <li key={`limit-${index}`} className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                          {limit}
+                        </span>
+                      </li>
+                    ))}
+                    {/* Core features (all plans) */}
+                    {CORE_FEATURES.slice(0, 3).map((feature, index) => (
+                      <li key={`core-${index}`} className="flex items-start gap-3">
                         <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {index === 0 && plan.id !== 'family' ? (
-                            <strong>{feature}</strong>
-                          ) : (
-                            feature
-                          )}
+                          {feature}
+                        </span>
+                      </li>
+                    ))}
+                    {/* Plan extras */}
+                    {plan.extras.map((extra, index) => (
+                      <li key={`extra-${index}`} className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {extra}
                         </span>
                       </li>
                     ))}

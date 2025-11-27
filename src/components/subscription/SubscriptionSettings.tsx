@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { CreditCard, Calendar, AlertCircle, CheckCircle, Clock, XCircle, ArrowUp, ArrowDown, Ban } from 'lucide-react';
 import { format } from 'date-fns';
-import { PLAN_HIERARCHY, PRICING } from '@/lib/constants/pricing';
+import { PLAN_HIERARCHY, PRICING, PLAN_FEATURES, CORE_FEATURES } from '@/lib/constants/pricing';
 
 // Helper function to convert Firestore Timestamp to Date
 function convertFirestoreTimestamp(timestamp: any): Date | null {
@@ -35,49 +35,32 @@ interface Plan {
   name: string;
   price: number;
   priceId: string | undefined;
-  features: string[];
+  limits: readonly string[];
+  extras: readonly string[];
 }
 
-// Plan configuration - all plans are per elder/month
+// Plan configuration - using centralized PLAN_FEATURES
 const PLANS: Record<string, Plan> = {
   family: {
-    name: 'Family Plan',
-    price: 8.99,
+    name: PLAN_FEATURES.family.name,
+    price: PRICING.FAMILY.MONTHLY_RATE,
     priceId: process.env.NEXT_PUBLIC_STRIPE_FAMILY_PRICE_ID,
-    features: [
-      'Up to 2 elders',
-      '1 admin + 1 member',
-      '25 MB storage',
-      'Daily health summaries',
-      'Medication reminders',
-      'Voice-based logging'
-    ]
+    limits: PLAN_FEATURES.family.limits,
+    extras: PLAN_FEATURES.family.extras,
   },
   single_agency: {
-    name: 'Single Agency Plan',
-    price: 14.99,
+    name: PLAN_FEATURES.single_agency.name,
+    price: PRICING.SINGLE_AGENCY.MONTHLY_RATE,
     priceId: process.env.NEXT_PUBLIC_STRIPE_SINGLE_AGENCY_PRICE_ID,
-    features: [
-      'Up to 4 elders',
-      '1 caregiver + 3 members',
-      '50 MB storage',
-      'Agency dashboard',
-      'Shift scheduling',
-      'Compliance tracking'
-    ]
+    limits: PLAN_FEATURES.single_agency.limits,
+    extras: PLAN_FEATURES.single_agency.extras,
   },
   multi_agency: {
-    name: 'Multi Agency Plan',
-    price: 30.00,
+    name: PLAN_FEATURES.multi_agency.name,
+    price: PRICING.MULTI_AGENCY.MONTHLY_RATE,
     priceId: process.env.NEXT_PUBLIC_STRIPE_MULTI_AGENCY_PRICE_ID,
-    features: [
-      'Up to 30 elders',
-      'Up to 10 caregivers',
-      '500 MB storage',
-      'Multi-caregiver coordination',
-      'Advanced analytics',
-      'Priority support'
-    ]
+    limits: PLAN_FEATURES.multi_agency.limits,
+    extras: PLAN_FEATURES.multi_agency.extras,
   }
 };
 
@@ -542,10 +525,25 @@ export function SubscriptionSettings() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2 mb-6">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2">
+                      {/* Plan limits */}
+                      {plan.limits.map((limit, index) => (
+                        <li key={`limit-${index}`} className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm font-medium">{limit}</span>
+                        </li>
+                      ))}
+                      {/* Core features (all plans) */}
+                      {CORE_FEATURES.slice(0, 3).map((feature, index) => (
+                        <li key={`core-${index}`} className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                      {/* Plan extras */}
+                      {plan.extras.map((extra, index) => (
+                        <li key={`extra-${index}`} className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{extra}</span>
                         </li>
                       ))}
                     </ul>
@@ -615,10 +613,25 @@ export function SubscriptionSettings() {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2 mb-6">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2">
+                      {/* Plan limits */}
+                      {plan.limits.map((limit, index) => (
+                        <li key={`limit-${index}`} className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm font-medium">{limit}</span>
+                        </li>
+                      ))}
+                      {/* Core features (all plans) */}
+                      {CORE_FEATURES.slice(0, 3).map((feature, index) => (
+                        <li key={`core-${index}`} className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                      {/* Plan extras */}
+                      {plan.extras.map((extra, index) => (
+                        <li key={`extra-${index}`} className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{extra}</span>
                         </li>
                       ))}
                     </ul>

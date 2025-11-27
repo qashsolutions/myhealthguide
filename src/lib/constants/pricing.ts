@@ -9,19 +9,81 @@ export const PRICING = {
     MAX_ELDERS: 30, // Maximum elders per agency
     MAX_CAREGIVERS: 10, // Maximum caregivers per agency
     MAX_ELDERS_PER_CAREGIVER: 3, // Maximum elders per caregiver
+    MAX_GROUPS: 10, // Maximum groups
+    STORAGE_MB: 500,
     PRICE_RANK: 3, // Highest tier
   },
   SINGLE_AGENCY: {
     MONTHLY_RATE: 14.99,
     MAX_ELDERS: 4,
     MAX_MEMBERS: 4,
+    MAX_GROUPS: 1,
+    STORAGE_MB: 50,
     PRICE_RANK: 2, // Middle tier
   },
   FAMILY: {
     MONTHLY_RATE: 8.99,
     MAX_ELDERS: 2,
     MAX_MEMBERS: 2,
+    MAX_GROUPS: 1,
+    STORAGE_MB: 25,
     PRICE_RANK: 1, // Lowest tier
+  },
+} as const;
+
+// Core features available to ALL plans
+export const CORE_FEATURES = [
+  'Voice-powered health logging',
+  'Medication tracking & reminders',
+  'Diet & nutrition tracking',
+  'Daily health summaries',
+  'AI health insights',
+  'Compliance tracking',
+] as const;
+
+// Plan-specific feature configurations (single source of truth)
+export const PLAN_FEATURES = {
+  family: {
+    name: 'Family Plan',
+    subtitle: 'Perfect for small families',
+    priceNote: '/elder/month',
+    limits: [
+      `Up to ${PRICING.FAMILY.MAX_ELDERS} elders`,
+      `1 admin + 1 member`,
+      `${PRICING.FAMILY.STORAGE_MB} MB storage`,
+    ],
+    extras: [] as string[], // No additional features beyond core
+  },
+  single_agency: {
+    name: 'Single Agency Plan',
+    subtitle: 'For families with caregivers',
+    priceNote: '/elder/month',
+    limits: [
+      `Up to ${PRICING.SINGLE_AGENCY.MAX_ELDERS} elders`,
+      `1 caregiver + ${PRICING.SINGLE_AGENCY.MAX_MEMBERS - 1} members`,
+      `${PRICING.SINGLE_AGENCY.STORAGE_MB} MB storage`,
+    ],
+    extras: [
+      'Real-time collaboration',
+      'Agency dashboard',
+    ],
+  },
+  multi_agency: {
+    name: 'Multi Agency Plan',
+    subtitle: 'For professional caregivers',
+    priceNote: '/elder/month',
+    limits: [
+      `Up to ${PRICING.MULTI_AGENCY.MAX_ELDERS} elders`,
+      `Up to ${PRICING.MULTI_AGENCY.MAX_CAREGIVERS} caregivers`,
+      `${PRICING.MULTI_AGENCY.STORAGE_MB} MB storage`,
+    ],
+    extras: [
+      'Real-time collaboration',
+      'Agency dashboard',
+      'Multi-caregiver coordination',
+      'Shift scheduling',
+      'Advanced analytics',
+    ],
   },
 } as const;
 
