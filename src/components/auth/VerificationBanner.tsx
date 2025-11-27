@@ -48,11 +48,11 @@ export function VerificationBanner() {
 
   return (
     <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between py-3">
-          <div className="flex items-center gap-3 flex-1">
+      <div className="px-4 sm:px-6">
+        <div className="flex items-center justify-between py-3 gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-            <div className="flex-1">
+            <div className="min-w-0">
               <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
                 {needsEmail && needsPhone && 'Please verify your email and phone number'}
                 {needsEmail && !needsPhone && 'Please verify your email address'}
@@ -64,7 +64,7 @@ export function VerificationBanner() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 ml-4">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button
               onClick={handleVerify}
               size="sm"
