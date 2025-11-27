@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, RefreshCw } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, RefreshCw, Pencil, Check, X as XIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
@@ -71,6 +71,15 @@ function obfuscateEmail(email: string): string {
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+
+  // Handle tab from URL query parameter
+  useEffect(() => {
+    const tabParam = searchParams?.get('tab');
+    if (tabParam && ['profile', 'security', 'subscription', 'notifications', 'group', 'ai', 'alerts', 'data'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -196,6 +205,10 @@ function ProfileSettings() {
   const [resendingEmail, setResendingEmail] = useState(false);
   const [emailResendStatus, setEmailResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [emailResendMessage, setEmailResendMessage] = useState('');
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailError, setEmailError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasEmail = user?.email && user.email.trim() !== '';
@@ -236,6 +249,62 @@ function ProfileSettings() {
     } finally {
       setResendingEmail(false);
     }
+  };
+
+  const handleSaveEmail = async () => {
+    if (!user || !newEmail.trim()) return;
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim())) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    setSavingEmail(true);
+    setEmailError('');
+
+    try {
+      // Update email in Firestore
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
+        email: newEmail.trim(),
+        emailVerified: false // Reset verification status for new email
+      });
+
+      // Refresh user data
+      await refreshUser();
+
+      // Send verification email to the new address
+      if (auth.currentUser) {
+        try {
+          await sendEmailVerification(auth.currentUser);
+          setEmailResendStatus('success');
+          setEmailResendMessage('Verification email sent to new address!');
+          setTimeout(() => {
+            setEmailResendStatus('idle');
+            setEmailResendMessage('');
+          }, 5000);
+        } catch (verifyError) {
+          // Email saved but verification email failed - still success
+          console.error('Failed to send verification:', verifyError);
+        }
+      }
+
+      setIsEditingEmail(false);
+      setNewEmail('');
+    } catch (error: any) {
+      console.error('Error saving email:', error);
+      setEmailError('Failed to update email. Please try again.');
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleCancelEditEmail = () => {
+    setIsEditingEmail(false);
+    setNewEmail('');
+    setEmailError('');
   };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -358,15 +427,74 @@ function ProfileSettings() {
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          {hasEmail ? (
+          {isEditingEmail ? (
+            // Editing mode - show input field for new email
             <>
-              <Input
-                id="email"
-                type="email"
-                value={obfuscateEmail(user?.email || '')}
-                disabled
-                className="bg-gray-50 dark:bg-gray-900"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="email"
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  className="flex-1"
+                  autoFocus
+                />
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleSaveEmail}
+                  disabled={savingEmail || !newEmail.trim()}
+                  className="whitespace-nowrap"
+                >
+                  {savingEmail ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-1" />
+                      Save
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelEditEmail}
+                  disabled={savingEmail}
+                >
+                  <XIcon className="w-4 h-4" />
+                </Button>
+              </div>
+              {emailError && (
+                <p className="text-xs text-red-600 dark:text-red-400">{emailError}</p>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                A verification email will be sent to the new address
+              </p>
+            </>
+          ) : hasEmail ? (
+            // Has email - show obfuscated with options
+            <>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="email"
+                  type="email"
+                  value={obfuscateEmail(user?.email || '')}
+                  disabled
+                  className="bg-gray-50 dark:bg-gray-900 flex-1"
+                />
+                {!user?.emailVerified && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditingEmail(true)}
+                    className="whitespace-nowrap"
+                  >
+                    <Pencil className="w-3 h-3 mr-1" />
+                    Change
+                  </Button>
+                )}
+              </div>
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {user?.emailVerified ? (
@@ -400,23 +528,16 @@ function ProfileSettings() {
                       ) : (
                         <>
                           <Mail className="w-3 h-3 mr-1" />
-                          Resend
+                          Resend Verification
                         </>
                       )}
-                    </Button>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      onClick={() => router.push('/verify')}
-                      className="text-xs h-7 px-2 text-blue-600"
-                    >
-                      Verify now
                     </Button>
                   </div>
                 )}
               </div>
             </>
           ) : (
+            // No email - show add email option
             <>
               <div className="flex items-center gap-2">
                 <Input
@@ -424,12 +545,12 @@ function ProfileSettings() {
                   type="email"
                   value="No email added"
                   disabled
-                  className="bg-gray-50 dark:bg-gray-900 text-gray-400"
+                  className="bg-gray-50 dark:bg-gray-900 text-gray-400 flex-1"
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => router.push('/verify')}
+                  onClick={() => setIsEditingEmail(true)}
                   className="whitespace-nowrap"
                 >
                   <Mail className="w-4 h-4 mr-1" />
@@ -723,10 +844,11 @@ function SecurityActivitySettings() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => router.push('/verify')}
+                          onClick={() => router.push('/dashboard/settings?tab=profile')}
                           className="h-7 px-2 text-xs"
                         >
-                          Verify
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Change
                         </Button>
                       </>
                     )}
@@ -734,7 +856,7 @@ function SecurityActivitySettings() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push('/verify')}
+                        onClick={() => router.push('/dashboard/settings?tab=profile')}
                         className="h-7 px-2 text-xs"
                       >
                         <Mail className="w-3 h-3 mr-1" />
