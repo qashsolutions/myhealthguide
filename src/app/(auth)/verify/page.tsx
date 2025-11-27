@@ -156,6 +156,8 @@ export default function VerifyPage() {
       setError('');
       setPasswordError('');
 
+      console.log('=== handleLinkEmail START ===');
+
       if (!emailInput) {
         setError('Please enter an email address');
         return;
@@ -177,15 +179,37 @@ export default function VerifyPage() {
 
       setLinkingEmail(true);
 
+      console.log('Calling AuthService.linkEmailToAccount...');
+      console.log('Email:', emailInput);
+
       // Link email/password to phone account
       await AuthService.linkEmailToAccount(emailInput, passwordInput);
+
+      console.log('linkEmailToAccount completed successfully');
+
+      // Verify the email was actually linked to Firebase Auth
+      if (auth.currentUser) {
+        await reload(auth.currentUser);
+        console.log('After link - Firebase Auth email:', auth.currentUser.email);
+        console.log('After link - Providers:', auth.currentUser.providerData.map(p => p.providerId));
+
+        if (!auth.currentUser.email) {
+          throw new Error('Email linking failed - email not found in Firebase Auth after linking');
+        }
+      }
 
       setUserEmail(emailInput);
       setEmailLinkSent(true);
 
+      console.log('=== handleLinkEmail SUCCESS ===');
+
     } catch (err: any) {
+      console.error('=== handleLinkEmail ERROR ===');
       console.error('Error linking email:', err);
-      setError(err.message || 'Failed to link email');
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
+      setError(err.message || 'Failed to link email. Please try again.');
+      // Don't set userEmail or emailLinkSent on error
     } finally {
       setLinkingEmail(false);
     }
