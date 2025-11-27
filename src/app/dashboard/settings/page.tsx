@@ -184,7 +184,7 @@ export default function SettingsPage() {
         {/* Content Area */}
         <div className="md:col-span-3 space-y-6">
           {activeTab === 'profile' && <ProfileSettings />}
-          {activeTab === 'security' && <SecurityActivitySettings />}
+          {activeTab === 'security' && <SecurityActivitySettings onSwitchToProfile={() => setActiveTab('profile')} />}
           {activeTab === 'subscription' && <RealSubscriptionSettings />}
           {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'group' && <GroupSettings />}
@@ -644,10 +644,9 @@ function NotificationSettings() {
   );
 }
 
-function SecurityActivitySettings() {
+function SecurityActivitySettings({ onSwitchToProfile }: { onSwitchToProfile: () => void }) {
   const [securityTab, setSecurityTab] = useState<'security' | 'activity'>('security');
   const { user } = useAuth();
-  const router = useRouter();
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -844,7 +843,7 @@ function SecurityActivitySettings() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => router.push('/dashboard/settings?tab=profile')}
+                          onClick={onSwitchToProfile}
                           className="h-7 px-2 text-xs"
                         >
                           <Pencil className="w-3 h-3 mr-1" />
@@ -856,7 +855,7 @@ function SecurityActivitySettings() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push('/dashboard/settings?tab=profile')}
+                        onClick={onSwitchToProfile}
                         className="h-7 px-2 text-xs"
                       >
                         <Mail className="w-3 h-3 mr-1" />
