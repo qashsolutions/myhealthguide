@@ -4,6 +4,10 @@ import {
   signOut as firebaseSignOut,
   User as FirebaseUser,
   sendEmailVerification,
+  sendPasswordResetEmail,
+  confirmPasswordReset,
+  verifyPasswordResetCode,
+  updatePassword,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   PhoneAuthProvider,
@@ -55,6 +59,8 @@ export class AuthService {
     // Set trial dates - 14 days from now
     const now = new Date();
     const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    // Password expires in 75 days (HIPAA compliance)
+    const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000);
 
     const user: User = {
       id: firebaseUser.uid,
@@ -92,6 +98,10 @@ export class AuthService {
       pendingPlanChange: null,
       storageUsed: 0,                    // No storage used yet
       storageLimit: 25 * 1024 * 1024,    // 25 MB for trial
+      // Password management (HIPAA compliance)
+      lastPasswordChange: now,           // Set to account creation
+      passwordExpiresAt: passwordExpiry, // 75 days from now
+      passwordResetRequired: false,      // No reset required initially
       createdAt: now,
       lastLoginAt: now
     };
@@ -369,6 +379,8 @@ export class AuthService {
 
       const now = new Date();
       const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      // Password expires in 75 days (HIPAA compliance) - for phone signups, set when they add email/password
+      const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000);
 
       const user: User = {
         id: firebaseUser.uid,
@@ -406,6 +418,10 @@ export class AuthService {
         pendingPlanChange: null,
         storageUsed: 0,
         storageLimit: 25 * 1024 * 1024, // 25 MB
+        // Password management (HIPAA compliance)
+        lastPasswordChange: now,           // Set to account creation
+        passwordExpiresAt: passwordExpiry, // 75 days from now
+        passwordResetRequired: false,      // No reset required initially
         createdAt: now,
         lastLoginAt: now
       };
@@ -724,5 +740,150 @@ export class AuthService {
       phoneHash: phoneHash,
       createdAt: new Date()
     });
+  }
+
+  // ============= PASSWORD MANAGEMENT (HIPAA Compliance) =============
+
+  /**
+   * Send password reset email
+   */
+  static async sendPasswordResetEmail(email: string): Promise<void> {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
+    const actionCodeSettings = {
+      url: `${baseUrl}/reset-password`,
+      handleCodeInApp: false
+    };
+    await sendPasswordResetEmail(auth, email, actionCodeSettings);
+  }
+
+  /**
+   * Verify password reset code
+   */
+  static async verifyPasswordResetCode(code: string): Promise<string> {
+    return await verifyPasswordResetCode(auth, code);
+  }
+
+  /**
+   * Confirm password reset with new password
+   */
+  static async confirmPasswordReset(code: string, newPassword: string): Promise<void> {
+    // Validate password strength
+    if (newPassword.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+    if (!/[a-zA-Z]/.test(newPassword)) {
+      throw new Error('Password must contain at least one letter');
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      throw new Error('Password must contain at least one number');
+    }
+
+    // Confirm the password reset with Firebase
+    await confirmPasswordReset(auth, code, newPassword);
+  }
+
+  /**
+   * Change password for logged-in user
+   */
+  static async changePassword(newPassword: string): Promise<void> {
+    if (!auth.currentUser) {
+      throw new Error('No user signed in');
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+    if (!/[a-zA-Z]/.test(newPassword)) {
+      throw new Error('Password must contain at least one letter');
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      throw new Error('Password must contain at least one number');
+    }
+
+    // Update password in Firebase Auth
+    await updatePassword(auth.currentUser, newPassword);
+
+    // Update password tracking in Firestore
+    const now = new Date();
+    const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000); // 75 days
+
+    await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+      lastPasswordChange: now,
+      passwordExpiresAt: passwordExpiry,
+      passwordResetRequired: false
+    });
+  }
+
+  /**
+   * Update password expiration after reset
+   * Called after confirmPasswordReset to update Firestore
+   */
+  static async updatePasswordExpirationByEmail(email: string): Promise<void> {
+    // Find user by email
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', email));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      console.warn('User not found for password expiration update:', email);
+      return;
+    }
+
+    const userDoc = snapshot.docs[0];
+    const now = new Date();
+    const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000); // 75 days
+
+    await updateDoc(doc(db, 'users', userDoc.id), {
+      lastPasswordChange: now,
+      passwordExpiresAt: passwordExpiry,
+      passwordResetRequired: false
+    });
+  }
+
+  /**
+   * Check if password is expired
+   */
+  static isPasswordExpired(user: User): boolean {
+    if (!user.passwordExpiresAt) {
+      return false; // If no expiry set, not expired
+    }
+
+    let expiryDate: Date;
+    // Handle Firestore Timestamp conversion
+    if (typeof user.passwordExpiresAt === 'object' && 'seconds' in user.passwordExpiresAt) {
+      expiryDate = new Date((user.passwordExpiresAt as any).seconds * 1000);
+    } else if (user.passwordExpiresAt instanceof Date) {
+      expiryDate = user.passwordExpiresAt;
+    } else {
+      expiryDate = new Date(user.passwordExpiresAt);
+    }
+
+    return new Date() > expiryDate;
+  }
+
+  /**
+   * Get days until password expires
+   */
+  static getDaysUntilPasswordExpires(user: User): number | null {
+    if (!user.passwordExpiresAt) {
+      return null;
+    }
+
+    let expiryDate: Date;
+    // Handle Firestore Timestamp conversion
+    if (typeof user.passwordExpiresAt === 'object' && 'seconds' in user.passwordExpiresAt) {
+      expiryDate = new Date((user.passwordExpiresAt as any).seconds * 1000);
+    } else if (user.passwordExpiresAt instanceof Date) {
+      expiryDate = user.passwordExpiresAt;
+    } else {
+      expiryDate = new Date(user.passwordExpiresAt);
+    }
+
+    const now = new Date();
+    const diffMs = expiryDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    return diffDays;
   }
 }

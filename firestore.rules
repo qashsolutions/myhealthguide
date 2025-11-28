@@ -167,6 +167,13 @@ service cloud.firestore {
           'email', 'phoneNumber', 'phoneNumberHash'
         ]);
 
+      // Special rule: Allow updating password-related fields (HIPAA compliance)
+      // This allows users to change their password even without active subscription
+      allow update: if isOwner(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'lastPasswordChange', 'passwordExpiresAt', 'passwordResetRequired'
+        ]);
+
       // Only system can create users (via Firebase Auth)
       // Users can create their own account during signup
       allow create: if isOwner(userId) &&

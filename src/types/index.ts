@@ -32,6 +32,10 @@ export interface User {
   pendingPlanChange: 'family' | 'single_agency' | 'multi_agency' | null; // Scheduled downgrade plan
   storageUsed: number; // Bytes used
   storageLimit: number; // Bytes allowed based on plan
+  // Password management (HIPAA compliance)
+  lastPasswordChange: Date | null; // Track password changes for 75-day expiration
+  passwordExpiresAt: Date | null; // 75 days from last change
+  passwordResetRequired: boolean; // Force password reset on next login
   createdAt: Date;
   lastLoginAt: Date;
 }

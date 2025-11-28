@@ -3,6 +3,7 @@
 import { useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { AuthService } from '@/lib/firebase/auth';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -40,6 +41,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const needsVerification = !user.emailVerified || !user.phoneVerified;
     if (needsVerification) {
       router.push('/verify');
+      return;
+    }
+
+    // Check if password is expired (HIPAA requirement - 75 days)
+    // Only check for users who signed up with email/password
+    const isPasswordExpired = AuthService.isPasswordExpired(user);
+    const forcePasswordReset = user.passwordResetRequired;
+
+    if (isPasswordExpired || forcePasswordReset) {
+      router.push('/change-password?reason=expired');
       return;
     }
 
@@ -117,6 +128,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
           <p className="mt-4 text-gray-600 dark:text-gray-400">Redirecting to verification...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check password expiration
+  const isPasswordExpired = AuthService.isPasswordExpired(user);
+  const forcePasswordReset = user.passwordResetRequired;
+  if (isPasswordExpired || forcePasswordReset) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Redirecting to change password...</p>
         </div>
       </div>
     );
