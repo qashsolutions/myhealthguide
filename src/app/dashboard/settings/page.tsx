@@ -894,6 +894,8 @@ function GroupSettings() {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
+  const [showRolePermissions, setShowRolePermissions] = useState(false);
+  const [showMembers, setShowMembers] = useState(true);
 
   // Get actual user and group data from auth context
   const currentUser = {
@@ -1096,67 +1098,33 @@ function GroupSettings() {
         </CardContent>
       </Card>
 
-      {/* Role Permissions Card */}
+      {/* Role Permissions Card - Collapsible */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Role Permissions
-          </CardTitle>
-          <CardDescription>
-            Understanding what each role can do
-          </CardDescription>
+        <CardHeader className="cursor-pointer" onClick={() => setShowRolePermissions(!showRolePermissions)}>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Role Permissions
+              </CardTitle>
+              <CardDescription>
+                Understanding what each role can do
+              </CardDescription>
+            </div>
+            {showRolePermissions ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {/* Admin Permissions */}
-            <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Admin</Badge>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  <Eye className="w-3 h-3" /> Read
-                </span>
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  <Edit3 className="w-3 h-3" /> Edit
-                </span>
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  <Settings className="w-3 h-3" /> Manage
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Full access: view data, edit records, manage members & settings
-              </p>
-            </div>
-
-            {/* Member Permissions */}
-            <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline">Member</Badge>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  <Eye className="w-3 h-3" /> Read
-                </span>
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                  <Edit3 className="w-3 h-3" /> Edit
-                </span>
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                  <Settings className="w-3 h-3" /> Manage
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                View-only access: can see elder info, medications, and schedules
-              </p>
-            </div>
-
-            {/* Caregiver Permissions (shown for agency plans) */}
-            {(subscriptionTier === 'single_agency' || subscriptionTier === 'multi_agency') && (
+        {showRolePermissions && (
+          <CardContent>
+            <div className="space-y-3">
+              {/* Admin Permissions */}
               <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Caregiver</Badge>
-                  <span className="text-xs text-gray-500">(up to 3 elders)</span>
+                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Admin</Badge>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -1165,17 +1133,62 @@ function GroupSettings() {
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                     <Edit3 className="w-3 h-3" /> Edit
                   </span>
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <Settings className="w-3 h-3" /> Manage
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Full access: view data, edit records, manage members & settings
+                </p>
+              </div>
+
+              {/* Member Permissions */}
+              <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline">Member</Badge>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <Eye className="w-3 h-3" /> Read
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <Edit3 className="w-3 h-3" /> Edit
+                  </span>
                   <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                     <Settings className="w-3 h-3" /> Manage
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Can view and edit records for assigned elders only
+                  View-only access: can see elder info, medications, and schedules
                 </p>
               </div>
-            )}
-          </div>
-        </CardContent>
+
+              {/* Caregiver Permissions (shown for agency plans) */}
+              {(subscriptionTier === 'single_agency' || subscriptionTier === 'multi_agency') && (
+                <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Caregiver</Badge>
+                    <span className="text-xs text-gray-500">(up to 3 elders)</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <Eye className="w-3 h-3" /> Read
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <Edit3 className="w-3 h-3" /> Edit
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                      <Settings className="w-3 h-3" /> Manage
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Can view and edit records for assigned elders only
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* Pending Approvals Queue (Admin Only) */}
@@ -1188,9 +1201,9 @@ function GroupSettings() {
         <PermissionManager groupId={groupId} adminId={currentUser.id} />
       )}
 
-      {/* Members */}
+      {/* Members - Collapsible */}
       <Card>
-        <CardHeader>
+        <CardHeader className="cursor-pointer" onClick={() => setShowMembers(!showMembers)}>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
@@ -1203,14 +1216,22 @@ function GroupSettings() {
                 Manage members and their roles
               </CardDescription>
             </div>
-            {!isAtLimit && (
-              <Button onClick={() => setShowInviteDialog(true)}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Invite Member
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {!isAtLimit && showMembers && (
+                <Button onClick={(e) => { e.stopPropagation(); setShowInviteDialog(true); }}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Invite Member
+                </Button>
+              )}
+              {showMembers ? (
+                <ChevronUp className="w-5 h-5 text-gray-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500" />
+              )}
+            </div>
           </div>
         </CardHeader>
+        {showMembers && (
         <CardContent>
           {loading ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -1270,6 +1291,7 @@ function GroupSettings() {
             </div>
           )}
         </CardContent>
+        )}
       </Card>
 
       {/* Invite Dialog */}

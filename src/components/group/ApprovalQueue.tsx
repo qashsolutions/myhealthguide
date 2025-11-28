@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { GroupService } from '@/lib/firebase/groups';
 import { PendingApproval } from '@/types';
-import { CheckCircle, XCircle, Clock, UserPlus, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, UserPlus, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 
 /**
@@ -48,6 +48,7 @@ export function ApprovalQueue({ groupId, adminId }: ApprovalQueueProps) {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {
     loadApprovals();
@@ -128,21 +129,31 @@ export function ApprovalQueue({ groupId, adminId }: ApprovalQueueProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserPlus className="w-5 h-5" />
-          Pending Join Requests
-          {approvals.length > 0 && (
-            <Badge variant="destructive" className="ml-2">
-              {approvals.length}
-            </Badge>
+      <CardHeader className="cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Pending Join Requests
+              {approvals.length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {approvals.length}
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              Review and approve or reject requests to join your group
+            </CardDescription>
+          </div>
+          {isExpanded ? (
+            <ChevronUp className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-500" />
           )}
-        </CardTitle>
-        <CardDescription>
-          Review and approve or reject requests to join your group
-        </CardDescription>
+        </div>
       </CardHeader>
 
+      {isExpanded && (
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
@@ -229,12 +240,13 @@ export function ApprovalQueue({ groupId, adminId }: ApprovalQueueProps) {
           </div>
         )}
 
-        <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500">
+        <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
           <p className="text-xs text-gray-600 dark:text-gray-400">
             <strong className="text-blue-700 dark:text-blue-400">Note:</strong> Approved members will be added with read-only permission by default. You can grant write permission from the Permission Manager.
           </p>
         </div>
       </CardContent>
+      )}
     </Card>
   );
 }
