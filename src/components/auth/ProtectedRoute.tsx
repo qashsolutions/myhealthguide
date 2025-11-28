@@ -36,6 +36,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       return;
     }
 
+    // Check if user has completed BOTH email and phone verification (HIPAA requirement)
+    const needsVerification = !user.emailVerified || !user.phoneVerified;
+    if (needsVerification) {
+      router.push('/verify');
+      return;
+    }
+
     // Check trial and subscription status
     const subscriptionStatus = user.subscriptionStatus;
 
@@ -97,6 +104,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
           <p className="mt-4 text-gray-600 dark:text-gray-400">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check verification status first
+  const needsVerification = !user.emailVerified || !user.phoneVerified;
+  if (needsVerification) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Redirecting to verification...</p>
         </div>
       </div>
     );

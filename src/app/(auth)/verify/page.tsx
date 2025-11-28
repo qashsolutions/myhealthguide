@@ -737,17 +737,17 @@ export default function VerifyPage() {
         </Card>
       )}
 
-      {/* Continue to Dashboard */}
+      {/* Continue to Dashboard - Only when BOTH are verified */}
       <Card className="bg-gray-50 dark:bg-gray-800">
         <CardContent className="pt-6 text-center">
           <p className="text-base text-gray-600 dark:text-gray-400">
-            {emailVerified || phoneVerified ? (
-              <>You can access the dashboard with one verified method, but both are required for full features.</>
+            {emailVerified && phoneVerified ? (
+              <>Both verifications complete! You can now access the app.</>
             ) : (
-              <>Please verify at least one contact method to continue.</>
+              <>Please verify both email and phone to continue. This is required for HIPAA compliance and account security.</>
             )}
           </p>
-          {(emailVerified || phoneVerified) && (
+          {emailVerified && phoneVerified && (
             <Button
               onClick={() => router.push('/dashboard')}
               variant="default"
