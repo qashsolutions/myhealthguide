@@ -150,13 +150,21 @@ service cloud.firestore {
       allow read: if isOwner(userId);
 
       // Users can update their own profile (except protected fields)
-      // Allow updating verification fields only during verification process
+      // Standard updates require active access and exclude protected fields
       allow update: if isOwner(userId) &&
         hasActiveAccess(userId) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'id', 'createdAt', 'trialStartDate', 'trialEndDate',
           'subscriptionStatus', 'phoneNumberHash', 'emailVerified',
           'phoneVerified', 'emailVerifiedAt', 'phoneVerifiedAt'
+        ]);
+
+      // Special rule: Allow updating ONLY verification fields during verification process
+      // This allows users to mark their email/phone as verified even without active subscription
+      allow update: if isOwner(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'emailVerified', 'emailVerifiedAt', 'phoneVerified', 'phoneVerifiedAt',
+          'email', 'phoneNumber', 'phoneNumberHash'
         ]);
 
       // Only system can create users (via Firebase Auth)
