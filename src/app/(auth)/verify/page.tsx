@@ -412,9 +412,10 @@ export default function VerifyPage() {
       setPhoneCode(''); // Clear the code
       setUserPhone(userPhone || `+1${phoneInput.replace(/\D/g, '')}`); // Ensure phone is set
 
+      // If both verified, redirect after a brief delay to ensure Firestore update propagates
       if (emailVerified) {
-        console.log('Both verified, redirecting to dashboard...');
-        setTimeout(() => router.push('/dashboard'), 2000);
+        console.log('Both verified! Will redirect to dashboard in 3 seconds...');
+        // Show success message before redirecting
       }
 
     } catch (err: any) {
@@ -431,7 +432,17 @@ export default function VerifyPage() {
   // RENDER
   // ==========================================
 
-  // Both verified - success screen
+  // Both verified - success screen with redirect
+  useEffect(() => {
+    if (emailVerified && phoneVerified) {
+      console.log('Both verified in render, redirecting in 2 seconds...');
+      const timer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [emailVerified, phoneVerified, router]);
+
   if (emailVerified && phoneVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">

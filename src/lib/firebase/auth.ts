@@ -691,10 +691,21 @@ export class AuthService {
    * Mark phone as verified
    */
   static async markPhoneVerified(userId: string): Promise<void> {
-    await updateDoc(doc(db, 'users', userId), {
-      phoneVerified: true,
-      phoneVerifiedAt: new Date()
-    });
+    console.log('=== markPhoneVerified START ===');
+    console.log('User ID:', userId);
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        phoneVerified: true,
+        phoneVerifiedAt: new Date()
+      });
+      console.log('markPhoneVerified: Firestore updated successfully');
+    } catch (error: any) {
+      console.error('markPhoneVerified: Firestore update FAILED');
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      throw error;
+    }
+    console.log('=== markPhoneVerified END ===');
   }
 
   /**
