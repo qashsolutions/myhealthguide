@@ -527,38 +527,24 @@ export class AuthService {
     verificationCode: string,
     confirmationResult: ConfirmationResult
   ): Promise<void> {
-    try {
-      console.log('=== linkPhoneToAccount START ===');
-      const credential = PhoneAuthProvider.credential(
-        confirmationResult.verificationId,
-        verificationCode
-      );
+    const credential = PhoneAuthProvider.credential(
+      confirmationResult.verificationId,
+      verificationCode
+    );
 
-      if (!auth.currentUser) {
-        throw new Error('No user signed in');
-      }
-
-      console.log('Linking credential to user:', auth.currentUser.uid);
-      await linkWithCredential(auth.currentUser, credential);
-      console.log('Phone credential linked successfully');
-
-      // Update user document with phone number and mark as verified
-      // Note: Only updating verification-related fields as per Firestore rules
-      console.log('Updating Firestore with phone verification...');
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        phoneNumber: phoneNumber,
-        phoneNumberHash: hashPhoneNumber(phoneNumber),
-        phoneVerified: true,
-        phoneVerifiedAt: new Date()
-      });
-      console.log('Firestore updated successfully');
-      console.log('=== linkPhoneToAccount END ===');
-    } catch (error: any) {
-      console.error('Error in linkPhoneToAccount:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      throw error; // Throw original error to preserve error code
+    if (!auth.currentUser) {
+      throw new Error('No user signed in');
     }
+
+    await linkWithCredential(auth.currentUser, credential);
+
+    // Update user document with phone number and mark as verified
+    await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+      phoneNumber: phoneNumber,
+      phoneNumberHash: hashPhoneNumber(phoneNumber),
+      phoneVerified: true,
+      phoneVerifiedAt: new Date()
+    });
   }
 
   /**
@@ -691,21 +677,10 @@ export class AuthService {
    * Mark phone as verified
    */
   static async markPhoneVerified(userId: string): Promise<void> {
-    console.log('=== markPhoneVerified START ===');
-    console.log('User ID:', userId);
-    try {
-      await updateDoc(doc(db, 'users', userId), {
-        phoneVerified: true,
-        phoneVerifiedAt: new Date()
-      });
-      console.log('markPhoneVerified: Firestore updated successfully');
-    } catch (error: any) {
-      console.error('markPhoneVerified: Firestore update FAILED');
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      throw error;
-    }
-    console.log('=== markPhoneVerified END ===');
+    await updateDoc(doc(db, 'users', userId), {
+      phoneVerified: true,
+      phoneVerifiedAt: new Date()
+    });
   }
 
   /**

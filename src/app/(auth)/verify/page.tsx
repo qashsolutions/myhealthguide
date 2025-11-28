@@ -392,36 +392,23 @@ export default function VerifyPage() {
 
       if (!hasPhoneProvider) {
         // Link phone to email account
-        console.log('Calling linkPhoneToAccount...');
         await AuthService.linkPhoneToAccount(
           userPhone || `+1${phoneInput.replace(/\D/g, '')}`,
           phoneCode,
           confirmationResult
         );
-        console.log('linkPhoneToAccount completed successfully');
       } else {
         // Just verify the code
-        console.log('Calling verifyPhoneCodeAndUpdate...');
         await AuthService.verifyPhoneCodeAndUpdate(confirmationResult, phoneCode, userId);
-        console.log('verifyPhoneCodeAndUpdate completed successfully');
       }
 
-      console.log('Setting phoneVerified to true');
       setPhoneVerified(true);
       setPhoneSent(false); // Reset to hide the code input
       setPhoneCode(''); // Clear the code
       setUserPhone(userPhone || `+1${phoneInput.replace(/\D/g, '')}`); // Ensure phone is set
 
-      // If both verified, redirect after a brief delay to ensure Firestore update propagates
-      if (emailVerified) {
-        console.log('Both verified! Will redirect to dashboard in 3 seconds...');
-        // Show success message before redirecting
-      }
-
     } catch (err: any) {
       console.error('Error verifying phone:', err);
-      console.error('Error code:', err.code);
-      console.error('Full error:', JSON.stringify(err, null, 2));
       setError(err.message || err.code || 'Invalid verification code');
     } finally {
       setVerifyingPhone(false);
@@ -432,10 +419,9 @@ export default function VerifyPage() {
   // RENDER
   // ==========================================
 
-  // Both verified - success screen with redirect
+  // Both verified - redirect to dashboard
   useEffect(() => {
     if (emailVerified && phoneVerified) {
-      console.log('Both verified in render, redirecting in 2 seconds...');
       const timer = setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
