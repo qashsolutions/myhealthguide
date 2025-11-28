@@ -82,8 +82,11 @@ export default function VerifyPage() {
         if (userData) {
           setUserEmail(userData.email || firebaseUser.email || '');
           setUserPhone(userData.phoneNumber || '');
-          setEmailVerified(userData.emailVerified || false);
-          setPhoneVerified(userData.phoneVerified || false);
+
+          // Only update verification states if not already verified locally
+          // This prevents race conditions when auth state changes after verification
+          setEmailVerified(prev => prev || userData.emailVerified || false);
+          setPhoneVerified(prev => prev || userData.phoneVerified || false);
 
           // If Firebase Auth says email is verified, sync to Firestore
           if (firebaseUser.emailVerified && !userData.emailVerified) {
@@ -394,6 +397,8 @@ export default function VerifyPage() {
       }
 
       setPhoneVerified(true);
+      setPhoneSent(false); // Reset to hide the code input
+      setPhoneCode(''); // Clear the code
 
       if (emailVerified) {
         setTimeout(() => router.push('/dashboard'), 2000);
