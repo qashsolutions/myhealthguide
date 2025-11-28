@@ -453,9 +453,20 @@ function ProfileSettings() {
 
 function NotificationSettings() {
   const [notificationTab, setNotificationTab] = useState<'settings' | 'history'>('settings');
+  const { user } = useAuth();
 
-  // Mock groupId - replace with actual groupId from auth context
-  const groupId = 'mock-group-id';
+  // Get user's first group ID (users have at least one group after signup)
+  const groupId = user?.groups?.[0]?.groupId || '';
+
+  // Show message if no group found
+  if (!groupId) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
+        <p>No group found. Please create or join a group first.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -807,13 +818,25 @@ function SecurityActivitySettings() {
 }
 
 function AISettings() {
-  const groupId = 'mock-group-id'; // Replace with actual groupId
-  const isAdmin = true; // Replace with actual admin check
+  const { user } = useAuth();
+
+  // Get user's first group ID
+  const groupId = user?.groups?.[0]?.groupId || '';
+  const isAdmin = user?.groups?.[0]?.role === 'admin';
 
   const handleSave = async (settings: any) => {
     console.log('Saving AI settings:', settings);
     // Implement actual save logic here
   };
+
+  if (!groupId) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+        <p>No group found. Please create or join a group first.</p>
+      </div>
+    );
+  }
 
   return (
     <AIFeaturesSettings
@@ -825,20 +848,21 @@ function AISettings() {
 }
 
 function GroupSettings() {
+  const { user } = useAuth();
   const [groupName, setGroupName] = useState('My Family');
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Mock data - replace with actual auth and group context
+  // Get actual user and group data from auth context
   const currentUser = {
-    id: 'mock-user-id',
-    name: 'John Doe',
-    email: 'john@example.com'
+    id: user?.id || '',
+    name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User',
+    email: user?.email || ''
   };
-  const groupId = 'mock-group-id';
-  const isGroupAdmin = true;
+  const groupId = user?.groups?.[0]?.groupId || '';
+  const isGroupAdmin = user?.groups?.[0]?.role === 'admin';
 
   useEffect(() => {
     loadMembers();
@@ -1023,11 +1047,13 @@ function GroupSettings() {
 }
 
 function DataPrivacySettings() {
-  // Mock data - replace with actual user data from auth context
+  const { user } = useAuth();
+
+  // Get actual user data from auth context
   const currentUser = {
-    id: 'mock-user-id',
-    email: 'john@example.com',
-    isAdmin: true // Check if user is admin of any group
+    id: user?.id || '',
+    email: user?.email || '',
+    isAdmin: user?.groups?.[0]?.role === 'admin'
   };
 
   return (

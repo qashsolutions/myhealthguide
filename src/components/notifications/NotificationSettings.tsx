@@ -8,15 +8,74 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { NotificationPreferences, NotificationType } from '@/types';
 import { NotificationService } from '@/lib/firebase/notifications';
-// DISABLED: Using Firebase Auth instead - import { validatePhoneForSMS } from '@/lib/sms/twilioService';
-import { Bell, Plus, X, Check, MessageSquare } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Bell, Plus, X, Check, MessageSquare, User } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface NotificationSettingsProps {
   groupId: string;
 }
 
+/**
+ * Format phone number to E.164 format (+1XXXXXXXXXX)
+ * Accepts: 10 digits, or +1 followed by 10 digits
+ */
+function formatPhoneE164(phone: string): string | null {
+  // Remove all non-digit characters except +
+  const cleaned = phone.replace(/[^\d+]/g, '');
+
+  // Extract just the digits
+  const digitsOnly = cleaned.replace(/\D/g, '');
+
+  // Handle different formats
+  if (digitsOnly.length === 10) {
+    // 10 digits - add +1
+    return `+1${digitsOnly}`;
+  } else if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
+    // 11 digits starting with 1 - add +
+    return `+${digitsOnly}`;
+  } else if (cleaned.startsWith('+1') && digitsOnly.length === 11) {
+    // Already in +1XXXXXXXXXX format
+    return `+${digitsOnly}`;
+  }
+
+  return null; // Invalid format
+}
+
+/**
+ * Display phone number in user-friendly format
+ * +14692039202 -> (469) 203-9202
+ */
+function formatPhoneDisplay(phone: string): string {
+  const cleaned = phone.replace(/\D/g, '');
+  // Remove leading 1 if present
+  const digits = cleaned.startsWith('1') && cleaned.length === 11
+    ? cleaned.slice(1)
+    : cleaned;
+
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return phone;
+}
+
+/**
+ * Get max recipients based on subscription tier
+ */
+function getMaxRecipients(subscriptionTier: string | null | undefined): number {
+  switch (subscriptionTier) {
+    case 'multi_agency':
+      return 10; // SuperAdmin + caregivers + additional
+    case 'single_agency':
+      return 4; // Admin + 3 more
+    case 'family':
+    default:
+      return 2; // Admin + 1 more
+  }
+}
+
 export function NotificationSettings({ groupId }: NotificationSettingsProps) {
+  const { user } = useAuth();
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     enabled: false,
     frequency: 'realtime',
@@ -28,10 +87,27 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [adminPhoneAdded, setAdminPhoneAdded] = useState(false);
+
+  // Get subscription tier for recipient limits
+  const subscriptionTier = user?.subscriptionTier || 'family';
+  const maxRecipients = getMaxRecipients(subscriptionTier);
+
+  // Get admin's phone number (E.164 format)
+  const adminPhone = user?.phoneNumber ? formatPhoneE164(user.phoneNumber) : null;
 
   useEffect(() => {
     loadSettings();
   }, [groupId]);
+
+  // Auto-add admin's phone if no recipients and admin has verified phone
+  useEffect(() => {
+    if (!loading && !adminPhoneAdded && recipients.length === 0 && adminPhone && user?.phoneVerified) {
+      // Auto-populate admin's phone as default recipient
+      setRecipients([adminPhone]);
+      setAdminPhoneAdded(true);
+    }
+  }, [loading, recipients, adminPhone, adminPhoneAdded, user?.phoneVerified]);
 
   const loadSettings = async () => {
     try {
@@ -88,23 +164,24 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
       return;
     }
 
-    // DISABLED: Using Firebase Auth instead of Twilio validation
-    // if (!validatePhoneForSMS(trimmed)) {
-    //   setError('Please enter a valid US phone number');
-    //   return;
-    // }
+    // Validate and format to E.164
+    const formattedPhone = formatPhoneE164(trimmed);
+    if (!formattedPhone) {
+      setError('Please enter a valid 10-digit US phone number');
+      return;
+    }
 
-    if (recipients.includes(trimmed)) {
+    if (recipients.includes(formattedPhone)) {
       setError('This phone number is already added');
       return;
     }
 
-    if (recipients.length >= 2) {
-      setError('Maximum 2 recipients allowed (Admin + 1 optional)');
+    if (recipients.length >= maxRecipients) {
+      setError(`Maximum ${maxRecipients} recipients allowed for your plan`);
       return;
     }
 
-    setRecipients([...recipients, trimmed]);
+    setRecipients([...recipients, formattedPhone]);
     setNewRecipient('');
     setError('');
   };
@@ -190,51 +267,76 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
             SMS Recipients
           </CardTitle>
           <CardDescription>
-            Add phone numbers to receive SMS notifications (max 2)
+            Add US phone numbers to receive SMS notifications (max {maxRecipients} for your plan)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Add Recipient */}
           <div className="flex gap-2">
-            <Input
-              value={newRecipient}
-              onChange={(e) => setNewRecipient(e.target.value)}
-              placeholder="(555) 123-4567"
-              onKeyPress={(e) => e.key === 'Enter' && addRecipient()}
-              disabled={recipients.length >= 2}
-            />
+            <div className="flex flex-1">
+              <div className="flex items-center px-3 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md border-gray-300 dark:border-gray-600">
+                <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">+1</span>
+              </div>
+              <Input
+                value={newRecipient}
+                onChange={(e) => {
+                  // Only allow digits, limit to 10 characters
+                  const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setNewRecipient(cleaned);
+                }}
+                placeholder="(555) 123-4567"
+                onKeyPress={(e) => e.key === 'Enter' && addRecipient()}
+                disabled={recipients.length >= maxRecipients}
+                className="rounded-l-none"
+                maxLength={10}
+              />
+            </div>
             <Button
               onClick={addRecipient}
-              disabled={recipients.length >= 2}
+              disabled={recipients.length >= maxRecipients}
               size="icon"
             >
               <Plus className="w-4 h-4" />
             </Button>
           </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Enter 10-digit US phone number
+          </p>
 
           {/* Recipients List */}
           {recipients.length > 0 && (
             <div className="space-y-2">
-              {recipients.map((phone, idx) => (
-                <div
-                  key={phone}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium">{phone}</span>
-                    {idx === 0 && (
-                      <Badge variant="outline">Primary</Badge>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => removeRecipient(phone)}
-                    className="text-gray-500 hover:text-red-600"
+              {recipients.map((phone, idx) => {
+                const isAdminPhone = phone === adminPhone;
+                return (
+                  <div
+                    key={phone}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      {isAdminPhone ? (
+                        <User className="w-4 h-4 text-blue-500" />
+                      ) : (
+                        <MessageSquare className="w-4 h-4 text-gray-500" />
+                      )}
+                      <span className="font-medium">+1 {formatPhoneDisplay(phone)}</span>
+                      {idx === 0 && (
+                        <Badge variant="outline">Primary</Badge>
+                      )}
+                      {isAdminPhone && (
+                        <Badge variant="secondary" className="text-xs">You</Badge>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => removeRecipient(phone)}
+                      className="text-gray-500 hover:text-red-600"
+                      title={isAdminPhone ? "Remove your number" : "Remove recipient"}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -344,7 +446,8 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
               </p>
               <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
                 <li>• Standard SMS rates may apply</li>
-                <li>• Maximum 2 recipients per group (Admin + 1 optional)</li>
+                <li>• Maximum {maxRecipients} recipients for your {subscriptionTier === 'multi_agency' ? 'Multi-Agency' : subscriptionTier === 'single_agency' ? 'Single Agency' : 'Family'} plan</li>
+                <li>• US phone numbers only (+1 country code)</li>
                 <li>• Reply TAKEN/MISSED/SKIP to confirm medication status</li>
                 <li>• Reply HELP for list of SMS commands</li>
                 <li>• Messages are brief and crisp, containing only essential information</li>
