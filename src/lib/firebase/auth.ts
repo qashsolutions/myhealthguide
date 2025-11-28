@@ -528,6 +528,7 @@ export class AuthService {
     confirmationResult: ConfirmationResult
   ): Promise<void> {
     try {
+      console.log('=== linkPhoneToAccount START ===');
       const credential = PhoneAuthProvider.credential(
         confirmationResult.verificationId,
         verificationCode
@@ -537,19 +538,26 @@ export class AuthService {
         throw new Error('No user signed in');
       }
 
+      console.log('Linking credential to user:', auth.currentUser.uid);
       await linkWithCredential(auth.currentUser, credential);
+      console.log('Phone credential linked successfully');
 
       // Update user document with phone number and mark as verified
       // Note: Only updating verification-related fields as per Firestore rules
+      console.log('Updating Firestore with phone verification...');
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         phoneNumber: phoneNumber,
         phoneNumberHash: hashPhoneNumber(phoneNumber),
         phoneVerified: true,
         phoneVerifiedAt: new Date()
       });
+      console.log('Firestore updated successfully');
+      console.log('=== linkPhoneToAccount END ===');
     } catch (error: any) {
-      console.error('Error linking phone:', error);
-      throw new Error(error.message || 'Failed to link phone number');
+      console.error('Error in linkPhoneToAccount:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      throw error; // Throw original error to preserve error code
     }
   }
 

@@ -386,27 +386,36 @@ export default function VerifyPage() {
 
       if (!hasPhoneProvider) {
         // Link phone to email account
+        console.log('Calling linkPhoneToAccount...');
         await AuthService.linkPhoneToAccount(
           userPhone || `+1${phoneInput.replace(/\D/g, '')}`,
           phoneCode,
           confirmationResult
         );
+        console.log('linkPhoneToAccount completed successfully');
       } else {
         // Just verify the code
+        console.log('Calling verifyPhoneCodeAndUpdate...');
         await AuthService.verifyPhoneCodeAndUpdate(confirmationResult, phoneCode, userId);
+        console.log('verifyPhoneCodeAndUpdate completed successfully');
       }
 
+      console.log('Setting phoneVerified to true');
       setPhoneVerified(true);
       setPhoneSent(false); // Reset to hide the code input
       setPhoneCode(''); // Clear the code
+      setUserPhone(userPhone || `+1${phoneInput.replace(/\D/g, '')}`); // Ensure phone is set
 
       if (emailVerified) {
+        console.log('Both verified, redirecting to dashboard...');
         setTimeout(() => router.push('/dashboard'), 2000);
       }
 
     } catch (err: any) {
       console.error('Error verifying phone:', err);
-      setError(err.message || 'Invalid verification code');
+      console.error('Error code:', err.code);
+      console.error('Full error:', JSON.stringify(err, null, 2));
+      setError(err.message || err.code || 'Invalid verification code');
     } finally {
       setVerifyingPhone(false);
     }
