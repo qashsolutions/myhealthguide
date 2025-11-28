@@ -76,7 +76,11 @@ export class NotificationService {
 
       const data = groupDoc.data();
       return data.settings?.notificationPreferences || null;
-    } catch (error) {
+    } catch (error: any) {
+      // Return null for permission errors (expected for new users without groups)
+      if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
+        return null;
+      }
       console.error('Error fetching notification preferences:', error);
       throw error;
     }
@@ -112,7 +116,11 @@ export class NotificationService {
 
       const data = groupDoc.data();
       return data.settings?.notificationRecipients || [];
-    } catch (error) {
+    } catch (error: any) {
+      // Return empty array for permission errors (expected for new users without groups)
+      if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
+        return [];
+      }
       console.error('Error fetching notification recipients:', error);
       throw error;
     }

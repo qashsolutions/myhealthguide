@@ -36,18 +36,25 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
   const loadSettings = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear any previous errors
+
       const [prefs, recips] = await Promise.all([
-        NotificationService.getGroupNotificationPreferences(groupId),
-        NotificationService.getNotificationRecipients(groupId)
+        NotificationService.getGroupNotificationPreferences(groupId).catch(() => null),
+        NotificationService.getNotificationRecipients(groupId).catch(() => [])
       ]);
 
       if (prefs) {
         setPreferences(prefs);
       }
-      setRecipients(recips);
-    } catch (err) {
-      console.error('Error loading notification settings:', err);
-      setError('Failed to load notification settings');
+      setRecipients(recips || []);
+      // No error shown - empty state is expected for new users
+    } catch (err: any) {
+      // Only show error for unexpected issues, not for permission denied (new users)
+      if (err?.code !== 'permission-denied' && !err?.message?.includes('Missing or insufficient permissions')) {
+        console.error('Error loading notification settings:', err);
+        setError('Failed to load notification settings');
+      }
+      // For permission errors, just use defaults (this is expected for new users)
     } finally {
       setLoading(false);
     }
