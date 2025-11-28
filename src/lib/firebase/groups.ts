@@ -72,6 +72,27 @@ export class GroupService {
 
       const data = groupDoc.data();
 
+      // Helper to safely convert Firestore Timestamp to Date
+      const toSafeDate = (timestamp: any): Date => {
+        if (!timestamp) return new Date();
+        if (typeof timestamp === 'object' && 'seconds' in timestamp) {
+          return new Date(timestamp.seconds * 1000);
+        }
+        if (timestamp instanceof Date) return timestamp;
+        if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+          const date = new Date(timestamp);
+          return isNaN(date.getTime()) ? new Date() : date;
+        }
+        if (typeof timestamp.toDate === 'function') {
+          try {
+            return timestamp.toDate();
+          } catch {
+            return new Date();
+          }
+        }
+        return new Date();
+      };
+
       return {
         id: groupDoc.id,
         name: data.name,
@@ -85,11 +106,11 @@ export class GroupService {
         subscription: data.subscription,
         settings: data.settings,
         inviteCode: data.inviteCode || '',
-        inviteCodeExpiry: data.inviteCodeExpiry ? data.inviteCodeExpiry.toDate() : undefined,
-        inviteCodeGeneratedAt: data.inviteCodeGeneratedAt ? data.inviteCodeGeneratedAt.toDate() : new Date(),
+        inviteCodeExpiry: data.inviteCodeExpiry ? toSafeDate(data.inviteCodeExpiry) : undefined,
+        inviteCodeGeneratedAt: toSafeDate(data.inviteCodeGeneratedAt),
         inviteCodeGeneratedBy: data.inviteCodeGeneratedBy || data.adminId,
-        createdAt: data.createdAt.toDate(),
-        updatedAt: data.updatedAt.toDate()
+        createdAt: toSafeDate(data.createdAt),
+        updatedAt: toSafeDate(data.updatedAt)
       };
     } catch (error) {
       console.error('Error getting group:', error);
@@ -469,6 +490,28 @@ export class GroupService {
 
       return snapshot.docs.map(doc => {
         const data = doc.data();
+
+        // Helper to safely convert Firestore Timestamp to Date
+        const toSafeDate = (timestamp: any): Date => {
+          if (!timestamp) return new Date();
+          if (typeof timestamp === 'object' && 'seconds' in timestamp) {
+            return new Date(timestamp.seconds * 1000);
+          }
+          if (timestamp instanceof Date) return timestamp;
+          if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+            const date = new Date(timestamp);
+            return isNaN(date.getTime()) ? new Date() : date;
+          }
+          if (typeof timestamp.toDate === 'function') {
+            try {
+              return timestamp.toDate();
+            } catch {
+              return new Date();
+            }
+          }
+          return new Date();
+        };
+
         return {
           id: doc.id,
           name: data.name,
@@ -482,11 +525,11 @@ export class GroupService {
           subscription: data.subscription,
           settings: data.settings,
           inviteCode: data.inviteCode || '',
-          inviteCodeExpiry: data.inviteCodeExpiry ? data.inviteCodeExpiry.toDate() : undefined,
-          inviteCodeGeneratedAt: data.inviteCodeGeneratedAt ? data.inviteCodeGeneratedAt.toDate() : new Date(),
+          inviteCodeExpiry: data.inviteCodeExpiry ? toSafeDate(data.inviteCodeExpiry) : undefined,
+          inviteCodeGeneratedAt: toSafeDate(data.inviteCodeGeneratedAt),
           inviteCodeGeneratedBy: data.inviteCodeGeneratedBy || data.adminId,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate()
+          createdAt: toSafeDate(data.createdAt),
+          updatedAt: toSafeDate(data.updatedAt)
         };
       });
     } catch (error) {
@@ -779,6 +822,24 @@ export class GroupService {
 
       return snapshot.docs.map(doc => {
         const data = doc.data();
+
+        // Helper to safely convert Firestore Timestamp to Date
+        const toSafeDate = (timestamp: any): Date => {
+          if (!timestamp) return new Date();
+          if (typeof timestamp === 'object' && 'seconds' in timestamp) {
+            return new Date(timestamp.seconds * 1000);
+          }
+          if (timestamp instanceof Date) return timestamp;
+          if (typeof timestamp.toDate === 'function') {
+            try {
+              return timestamp.toDate();
+            } catch {
+              return new Date();
+            }
+          }
+          return new Date();
+        };
+
         return {
           id: doc.id,
           groupId: data.groupId,
@@ -786,9 +847,9 @@ export class GroupService {
           userName: data.userName,
           userEmail: data.userEmail,
           userPhone: data.userPhone,
-          requestedAt: data.requestedAt.toDate(),
+          requestedAt: toSafeDate(data.requestedAt),
           status: data.status,
-          processedAt: data.processedAt?.toDate(),
+          processedAt: data.processedAt ? toSafeDate(data.processedAt) : undefined,
           processedBy: data.processedBy,
           notes: data.notes
         };
