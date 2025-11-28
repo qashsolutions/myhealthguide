@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { NotificationPreferences, NotificationType } from '@/types';
 import { NotificationService } from '@/lib/firebase/notifications';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell, Plus, X, Check, MessageSquare, User, Info, ArrowUpRight } from 'lucide-react';
+import { Bell, Plus, X, Check, MessageSquare, User, Info, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 
@@ -142,6 +142,7 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [adminPhoneAdded, setAdminPhoneAdded] = useState(false);
+  const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
 
   // Get subscription status and tier for recipient limits
   const subscriptionStatus = user?.subscriptionStatus;
@@ -341,29 +342,41 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
                 {planInfo.description}
               </p>
 
-              {/* Show upgrade options */}
+              {/* Show upgrade options - collapsible */}
               {isTrial && (
-                <div className="mt-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-amber-200 dark:border-amber-700">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                    Upgrade for more recipients:
-                  </p>
-                  <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                    <div className="flex justify-between">
-                      <span>Family Plan</span>
-                      <span>{PLAN_LIMITS.family.max} recipients</span>
+                <div className="mt-3">
+                  <button
+                    onClick={() => setShowUpgradeOptions(!showUpgradeOptions)}
+                    className="flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
+                  >
+                    {showUpgradeOptions ? (
+                      <>Hide plan options <ChevronUp className="w-4 h-4" /></>
+                    ) : (
+                      <>Upgrade for more recipients <ChevronDown className="w-4 h-4" /></>
+                    )}
+                  </button>
+
+                  {showUpgradeOptions && (
+                    <div className="mt-2 p-3 bg-white dark:bg-gray-900 rounded-lg border border-amber-200 dark:border-amber-700">
+                      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex justify-between">
+                          <span>Family Plan</span>
+                          <span>{PLAN_LIMITS.family.max} recipients</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Single Agency</span>
+                          <span>{PLAN_LIMITS.single_agency.max} recipients</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Multi-Agency</span>
+                          <span>{PLAN_LIMITS.multi_agency.max} recipients</span>
+                        </div>
+                      </div>
+                      <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+                        View Plans <ArrowUpRight className="w-3 h-3" />
+                      </Link>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Single Agency</span>
-                      <span>{PLAN_LIMITS.single_agency.max} recipients</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Multi-Agency</span>
-                      <span>{PLAN_LIMITS.multi_agency.max} recipients</span>
-                    </div>
-                  </div>
-                  <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
-                    View Plans <ArrowUpRight className="w-3 h-3" />
-                  </Link>
+                  )}
                 </div>
               )}
 
