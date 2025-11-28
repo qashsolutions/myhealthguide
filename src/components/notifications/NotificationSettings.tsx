@@ -43,10 +43,25 @@ function formatPhoneE164(phone: string): string | null {
 }
 
 /**
- * Display phone number in user-friendly format
- * +14692039202 -> (469) 203-9202
+ * Check if string is a valid E.164 phone number
  */
-function formatPhoneDisplay(phone: string): string {
+function isValidE164(phone: string): boolean {
+  // E.164 format: +1 followed by 10 digits
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  return /^\+1\d{10}$/.test(cleaned);
+}
+
+/**
+ * Display phone number in user-friendly obfuscated format
+ * +14692039202 -> (***) ***-9202
+ * Shows only last 4 digits for privacy
+ */
+function formatPhoneDisplay(phone: string, obfuscate: boolean = true): string {
+  // Check if this looks like a hash (not a valid phone number)
+  if (!isValidE164(phone)) {
+    return '***-***-****'; // Invalid/hash value
+  }
+
   const cleaned = phone.replace(/\D/g, '');
   // Remove leading 1 if present
   const digits = cleaned.startsWith('1') && cleaned.length === 11
@@ -54,9 +69,13 @@ function formatPhoneDisplay(phone: string): string {
     : cleaned;
 
   if (digits.length === 10) {
+    if (obfuscate) {
+      // Show only last 4 digits: (***) ***-1234
+      return `(***) ***-${digits.slice(6)}`;
+    }
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
-  return phone;
+  return '***-***-****';
 }
 
 /**
@@ -122,7 +141,9 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
       if (prefs) {
         setPreferences(prefs);
       }
-      setRecipients(recips || []);
+      // Filter out invalid phone numbers (e.g., old hash values)
+      const validRecipients = (recips || []).filter(isValidE164);
+      setRecipients(validRecipients);
       // No error shown - empty state is expected for new users
     } catch (err: any) {
       // Only show error for unexpected issues, not for permission denied (new users)
