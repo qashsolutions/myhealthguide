@@ -68,6 +68,34 @@ function obfuscateEmail(email: string): string {
   return `${obfuscatedLocal}@${obfuscatedDomain}.${extension}`;
 }
 
+/**
+ * Obfuscates a phone number for privacy
+ * e.g., "+16505551234" -> "+1******1234"
+ * Shows country code and last 4 digits only
+ */
+function obfuscatePhone(phone: string): string {
+  if (!phone) return '***-***-****';
+
+  // Remove all non-digit characters except +
+  const cleaned = phone.replace(/[^\d+]/g, '');
+
+  // Handle different formats
+  if (cleaned.startsWith('+1') && cleaned.length >= 12) {
+    // +1XXXXXXXXXX format - show +1 and last 4 digits
+    return '+1******' + cleaned.slice(-4);
+  } else if (cleaned.startsWith('+') && cleaned.length >= 11) {
+    // Other international format
+    const countryCode = cleaned.slice(0, cleaned.length - 10);
+    return countryCode + '******' + cleaned.slice(-4);
+  } else if (cleaned.length >= 10) {
+    // 10 digit format
+    return '******' + cleaned.slice(-4);
+  }
+
+  // Fallback for shorter numbers
+  return '***-***-****';
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -397,7 +425,7 @@ function ProfileSettings() {
           <Input
             id="phone"
             type="tel"
-            value={user?.phoneNumber || ''}
+            value={user?.phoneNumber ? obfuscatePhone(user.phoneNumber) : ''}
             disabled
             className="bg-gray-50 dark:bg-gray-900"
           />
@@ -636,7 +664,7 @@ function SecurityActivitySettings() {
                     <div className={`w-3 h-3 rounded-full ${user?.phoneVerified ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <div>
                       <p className="font-medium">Phone Verification</p>
-                      <p className="text-sm text-gray-500">{user?.phoneNumber || 'No phone added'}</p>
+                      <p className="text-sm text-gray-500">{user?.phoneNumber ? obfuscatePhone(user.phoneNumber) : 'No phone added'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
