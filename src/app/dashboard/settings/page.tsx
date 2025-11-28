@@ -15,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings } from 'lucide-react';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
@@ -847,6 +848,44 @@ function AISettings() {
   );
 }
 
+// Plan member limits
+const MEMBER_PLAN_LIMITS = {
+  trial: { max: 2, label: 'Trial', description: 'Admin + 1 member' },
+  family: { max: 2, label: 'Family', description: 'Admin + 1 member' },
+  single_agency: { max: 4, label: 'Single Agency', description: 'Admin + 3 members' },
+  multi_agency: { max: 10, label: 'Multi-Agency', description: 'SuperAdmin + caregivers' }
+};
+
+function getMaxMembers(subscriptionStatus: string | null | undefined, subscriptionTier: string | null | undefined): number {
+  if (subscriptionStatus === 'trial' || !subscriptionStatus) {
+    return MEMBER_PLAN_LIMITS.trial.max;
+  }
+  switch (subscriptionTier) {
+    case 'multi_agency':
+      return MEMBER_PLAN_LIMITS.multi_agency.max;
+    case 'single_agency':
+      return MEMBER_PLAN_LIMITS.single_agency.max;
+    case 'family':
+    default:
+      return MEMBER_PLAN_LIMITS.family.max;
+  }
+}
+
+function getMemberPlanInfo(subscriptionStatus: string | null | undefined, subscriptionTier: string | null | undefined) {
+  if (subscriptionStatus === 'trial' || !subscriptionStatus) {
+    return MEMBER_PLAN_LIMITS.trial;
+  }
+  switch (subscriptionTier) {
+    case 'multi_agency':
+      return MEMBER_PLAN_LIMITS.multi_agency;
+    case 'single_agency':
+      return MEMBER_PLAN_LIMITS.single_agency;
+    case 'family':
+    default:
+      return MEMBER_PLAN_LIMITS.family;
+  }
+}
+
 function GroupSettings() {
   const { user } = useAuth();
   const [groupName, setGroupName] = useState('My Family');
@@ -854,6 +893,7 @@ function GroupSettings() {
   const [loading, setLoading] = useState(true);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
 
   // Get actual user and group data from auth context
   const currentUser = {
@@ -863,6 +903,14 @@ function GroupSettings() {
   };
   const groupId = user?.groups?.[0]?.groupId || '';
   const isGroupAdmin = user?.groups?.[0]?.role === 'admin';
+
+  // Get plan-based limits
+  const subscriptionStatus = user?.subscriptionStatus;
+  const subscriptionTier = user?.subscriptionTier;
+  const maxMembers = getMaxMembers(subscriptionStatus, subscriptionTier);
+  const planInfo = getMemberPlanInfo(subscriptionStatus, subscriptionTier);
+  const isTrial = subscriptionStatus === 'trial' || !subscriptionStatus;
+  const isAtLimit = members.length >= maxMembers;
 
   useEffect(() => {
     if (groupId) {
@@ -979,6 +1027,157 @@ function GroupSettings() {
         </CardContent>
       </Card>
 
+      {/* Plan Limits Banner */}
+      <Card className={isTrial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}>
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <Info className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isTrial ? 'text-amber-600' : 'text-blue-600'}`} />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {planInfo.label} Plan
+                </span>
+                <Badge variant={isTrial ? 'outline' : 'secondary'} className="text-xs">
+                  {members.length}/{maxMembers} members
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {planInfo.description}
+              </p>
+
+              {/* Collapsible upgrade options */}
+              {isTrial && (
+                <div className="mt-3">
+                  <button
+                    onClick={() => setShowUpgradeOptions(!showUpgradeOptions)}
+                    className="flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
+                  >
+                    {showUpgradeOptions ? (
+                      <>Hide plan options <ChevronUp className="w-4 h-4" /></>
+                    ) : (
+                      <>Upgrade for more members <ChevronDown className="w-4 h-4" /></>
+                    )}
+                  </button>
+
+                  {showUpgradeOptions && (
+                    <div className="mt-2 p-3 bg-white dark:bg-gray-900 rounded-lg border border-amber-200 dark:border-amber-700">
+                      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex justify-between">
+                          <span>Family Plan</span>
+                          <span>{MEMBER_PLAN_LIMITS.family.max} members</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Single Agency</span>
+                          <span>{MEMBER_PLAN_LIMITS.single_agency.max} members</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Multi-Agency</span>
+                          <span>{MEMBER_PLAN_LIMITS.multi_agency.max} members</span>
+                        </div>
+                      </div>
+                      <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+                        View Plans <ArrowUpRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Show upgrade prompt when at limit (non-trial) */}
+              {!isTrial && isAtLimit && subscriptionTier !== 'multi_agency' && (
+                <div className="mt-2">
+                  <Link href="/dashboard/settings?tab=subscription" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+                    Upgrade for more members <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Role Permissions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            Role Permissions
+          </CardTitle>
+          <CardDescription>
+            Understanding what each role can do
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {/* Admin Permissions */}
+            <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Admin</Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  <Eye className="w-3 h-3" /> Read
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  <Edit3 className="w-3 h-3" /> Edit
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  <Settings className="w-3 h-3" /> Manage
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Full access: view data, edit records, manage members & settings
+              </p>
+            </div>
+
+            {/* Member Permissions */}
+            <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="outline">Member</Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  <Eye className="w-3 h-3" /> Read
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                  <Edit3 className="w-3 h-3" /> Edit
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                  <Settings className="w-3 h-3" /> Manage
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                View-only access: can see elder info, medications, and schedules
+              </p>
+            </div>
+
+            {/* Caregiver Permissions (shown for agency plans) */}
+            {(subscriptionTier === 'single_agency' || subscriptionTier === 'multi_agency') && (
+              <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Caregiver</Badge>
+                  <span className="text-xs text-gray-500">(up to 3 elders)</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <Eye className="w-3 h-3" /> Read
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <Edit3 className="w-3 h-3" /> Edit
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <Settings className="w-3 h-3" /> Manage
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Can view and edit records for assigned elders only
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Pending Approvals Queue (Admin Only) */}
       {isGroupAdmin && (
         <ApprovalQueue groupId={groupId} adminId={currentUser.id} />
@@ -994,12 +1193,17 @@ function GroupSettings() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Group Members</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Group Members
+                <Badge variant="secondary" className="text-xs">
+                  {members.length}/{maxMembers}
+                </Badge>
+              </CardTitle>
               <CardDescription>
-                Manage members and their roles (max 4 members)
+                Manage members and their roles
               </CardDescription>
             </div>
-            {members.length < 4 && (
+            {!isAtLimit && (
               <Button onClick={() => setShowInviteDialog(true)}>
                 <UserPlus className="w-4 h-4 mr-2" />
                 Invite Member
@@ -1036,7 +1240,7 @@ function GroupSettings() {
                   onTransferOwnership={handleTransferOwnership}
                 />
               ))}
-              {members.length < 4 && (
+              {!isAtLimit && (
                 <div className="pt-2">
                   <Button
                     variant="outline"
@@ -1048,10 +1252,18 @@ function GroupSettings() {
                   </Button>
                 </div>
               )}
-              {members.length >= 4 && (
-                <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    Your group has reached the maximum capacity of 4 members.
+              {isAtLimit && (
+                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    {isTrial
+                      ? `Trial limit: ${maxMembers} members. Subscribe for more.`
+                      : `${planInfo.label} plan limit: ${maxMembers} members.`
+                    }
+                    {subscriptionTier !== 'multi_agency' && (
+                      <Link href={isTrial ? '/pricing' : '/dashboard/settings?tab=subscription'} className="ml-1 font-medium text-blue-600 hover:text-blue-700">
+                        Upgrade
+                      </Link>
+                    )}
                   </p>
                 </div>
               )}
