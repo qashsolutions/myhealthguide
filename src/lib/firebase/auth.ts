@@ -41,10 +41,10 @@ export class AuthService {
 
     const firebaseUser = userCredential.user;
 
-    // Send email verification with custom action handler
+    // Send email verification - continueUrl redirects user back to verify page after Firebase's verification
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
     const actionCodeSettings = {
-      url: `${baseUrl}/auth/action`,
+      url: `${baseUrl}/verify`,
       handleCodeInApp: false
     };
     await sendEmailVerification(firebaseUser, actionCodeSettings);
@@ -611,10 +611,10 @@ export class AuthService {
 
       if (linkedUser.email) {
         // Action code settings for the verification email
-        // Redirect to our custom auth action handler after verification
+        // continueUrl is where user goes after clicking "Continue" on Firebase's verification page
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
         const actionCodeSettings = {
-          url: `${baseUrl}/auth/action`,
+          url: `${baseUrl}/verify`,
           handleCodeInApp: false
         };
         console.log('ActionCodeSettings:', actionCodeSettings);

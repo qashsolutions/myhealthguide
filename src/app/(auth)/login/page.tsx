@@ -32,16 +32,24 @@ export default function LoginPage() {
       // Map Firebase error codes to user-friendly messages
       let errorMessage = 'Failed to sign in. Please try again.';
 
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      // Check error code (Firebase errors have this)
+      const errorCode = err.code || '';
+      // Also check if error message contains the code (fallback detection)
+      const errorStr = err.message || '';
+
+      if (errorCode === 'auth/invalid-credential' ||
+          errorCode === 'auth/user-not-found' ||
+          errorCode === 'auth/wrong-password' ||
+          errorStr.includes('invalid-credential') ||
+          errorStr.includes('user-not-found') ||
+          errorStr.includes('wrong-password')) {
         errorMessage = 'Invalid email or password. Please check your credentials or create an account.';
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (errorCode === 'auth/invalid-email' || errorStr.includes('invalid-email')) {
         errorMessage = 'Please enter a valid email address.';
-      } else if (err.code === 'auth/user-disabled') {
+      } else if (errorCode === 'auth/user-disabled' || errorStr.includes('user-disabled')) {
         errorMessage = 'This account has been disabled. Please contact support.';
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (errorCode === 'auth/too-many-requests' || errorStr.includes('too-many-requests')) {
         errorMessage = 'Too many failed attempts. Please try again later or reset your password.';
-      } else if (err.message) {
-        errorMessage = err.message;
       }
 
       setError(errorMessage);

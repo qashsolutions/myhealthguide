@@ -254,10 +254,10 @@ export default function VerifyPage() {
         }
 
         console.log('Calling sendEmailVerification...');
-        // Redirect to our custom auth action handler after verification
+        // continueUrl redirects user back to verify page after Firebase's verification
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
         const actionCodeSettings = {
-          url: `${baseUrl}/auth/action`,
+          url: `${baseUrl}/verify`,
           handleCodeInApp: false
         };
         console.log('ActionCodeSettings:', actionCodeSettings);
