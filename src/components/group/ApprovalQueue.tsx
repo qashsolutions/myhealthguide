@@ -8,7 +8,35 @@ import { Badge } from '@/components/ui/badge';
 import { GroupService } from '@/lib/firebase/groups';
 import { PendingApproval } from '@/types';
 import { CheckCircle, XCircle, Clock, UserPlus, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+
+/**
+ * Safely format a date, handling Firestore Timestamps and invalid dates
+ */
+function safeFormatDate(date: any, formatStr: string, fallback: string = 'Unknown'): string {
+  try {
+    if (!date) return fallback;
+
+    // Handle Firestore Timestamp
+    let dateObj: Date;
+    if (typeof date === 'object' && 'seconds' in date) {
+      dateObj = new Date(date.seconds * 1000);
+    } else if (date instanceof Date) {
+      dateObj = date;
+    } else if (typeof date === 'string' || typeof date === 'number') {
+      dateObj = new Date(date);
+    } else if (typeof date.toDate === 'function') {
+      dateObj = date.toDate();
+    } else {
+      return fallback;
+    }
+
+    if (!isValid(dateObj)) return fallback;
+    return format(dateObj, formatStr);
+  } catch {
+    return fallback;
+  }
+}
 
 interface ApprovalQueueProps {
   groupId: string;
@@ -167,7 +195,7 @@ export function ApprovalQueue({ groupId, adminId }: ApprovalQueueProps) {
                       )}
                       <p className="flex items-center gap-1">
                         <span className="font-medium">Requested:</span>
-                        {format(approval.requestedAt, 'MMM d, yyyy h:mm a')}
+                        {safeFormatDate(approval.requestedAt, 'MMM d, yyyy h:mm a')}
                       </p>
                     </div>
                   </div>
