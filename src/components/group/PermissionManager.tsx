@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GroupService } from '@/lib/firebase/groups';
 import { Group, GroupMember, PermissionLevel } from '@/types';
-import { Shield, Key, RefreshCw, Copy, UserMinus, AlertCircle, CheckCircle, Eye, Edit, Crown } from 'lucide-react';
+import { Shield, Key, RefreshCw, Copy, UserMinus, AlertCircle, CheckCircle, Eye, Edit, Crown, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatInviteCodeForDisplay } from '@/lib/utils/inviteCode';
 
 interface PermissionManagerProps {
@@ -31,6 +31,9 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [isInviteExpanded, setIsInviteExpanded] = useState(true);
+  const [isMembersExpanded, setIsMembersExpanded] = useState(true);
+  const [isPermissionLevelsExpanded, setIsPermissionLevelsExpanded] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -164,17 +167,27 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
 
   return (
     <div className="space-y-4">
-      {/* Invite Code Card */}
+      {/* Invite Code Card - Collapsible */}
       <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="w-5 h-5" />
-            Group Invite Code
-          </CardTitle>
-          <CardDescription>
-            Share this code with others to invite them to your group
-          </CardDescription>
+        <CardHeader className="cursor-pointer" onClick={() => setIsInviteExpanded(!isInviteExpanded)}>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="w-5 h-5" />
+                Group Invite Code
+              </CardTitle>
+              <CardDescription>
+                Share this code with others to invite them to your group
+              </CardDescription>
+            </div>
+            {isInviteExpanded ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </div>
         </CardHeader>
+        {isInviteExpanded && (
         <CardContent>
           {inviteCode ? (
             <div className="flex items-center gap-2">
@@ -186,7 +199,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
               <Button
                 variant="outline"
                 size="icon"
-                onClick={handleCopyInviteCode}
+                onClick={(e) => { e.stopPropagation(); handleCopyInviteCode(); }}
                 className="h-12 w-12"
               >
                 {codeCopied ? <CheckCircle className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
@@ -194,7 +207,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
               <Button
                 variant="outline"
                 size="icon"
-                onClick={handleRefreshInviteCode}
+                onClick={(e) => { e.stopPropagation(); handleRefreshInviteCode(); }}
                 disabled={refreshing}
                 className="h-12 w-12"
               >
@@ -202,7 +215,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
               </Button>
             </div>
           ) : (
-            <Button onClick={handleRefreshInviteCode} disabled={refreshing}>
+            <Button onClick={(e) => { e.stopPropagation(); handleRefreshInviteCode(); }} disabled={refreshing}>
               <Key className="w-4 h-4 mr-2" />
               Generate Invite Code
             </Button>
@@ -212,20 +225,31 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
             New members will need admin approval before they can access the group. Refresh the code to invalidate previous codes.
           </p>
         </CardContent>
+        )}
       </Card>
 
-      {/* Members Permission Card */}
+      {/* Members Permission Card - Collapsible */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Member Permissions
-          </CardTitle>
-          <CardDescription>
-            Manage member access levels. Only 1 member can have write permission.
-          </CardDescription>
+        <CardHeader className="cursor-pointer" onClick={() => setIsMembersExpanded(!isMembersExpanded)}>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Member Permissions
+              </CardTitle>
+              <CardDescription>
+                Manage member access levels. Only 1 member can have write permission.
+              </CardDescription>
+            </div>
+            {isMembersExpanded ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </div>
         </CardHeader>
 
+        {isMembersExpanded && (
         <CardContent>
           {error && (
             <Alert variant="destructive" className="mb-4">
@@ -319,17 +343,31 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
             })}
           </div>
 
-          <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500">
-            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-1">
-              Permission Levels:
-            </h4>
-            <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-              <li><strong>Admin:</strong> Full control - create, edit, delete, manage members</li>
-              <li><strong>Write:</strong> Can log doses, add entries, view data (max 1 member)</li>
-              <li><strong>Read:</strong> Can only view data, no editing allowed</li>
-            </ul>
+          {/* Permission Levels - Collapsible Info */}
+          <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsPermissionLevelsExpanded(!isPermissionLevelsExpanded); }}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300">
+                Permission Levels
+              </h4>
+              {isPermissionLevelsExpanded ? (
+                <ChevronUp className="w-4 h-4 text-blue-500" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-blue-500" />
+              )}
+            </button>
+            {isPermissionLevelsExpanded && (
+              <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-2">
+                <li><strong>Admin:</strong> Full control - create, edit, delete, manage members</li>
+                <li><strong>Write:</strong> Can log doses, add entries, view data (max 1 member)</li>
+                <li><strong>Read:</strong> Can only view data, no editing allowed</li>
+              </ul>
+            )}
           </div>
         </CardContent>
+        )}
       </Card>
     </div>
   );
