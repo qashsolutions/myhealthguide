@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { NotificationPreferences, NotificationType } from '@/types';
 import { NotificationService } from '@/lib/firebase/notifications';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell, Plus, X, Check, MessageSquare, User } from 'lucide-react';
+import { Bell, Plus, X, Check, MessageSquare, User, Info, ArrowUpRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import Link from 'next/link';
 
 interface NotificationSettingsProps {
   groupId: string;
@@ -79,17 +80,51 @@ function formatPhoneDisplay(phone: string, obfuscate: boolean = true): string {
 }
 
 /**
- * Get max recipients based on subscription tier
+ * Plan recipient limits
  */
-function getMaxRecipients(subscriptionTier: string | null | undefined): number {
+const PLAN_LIMITS = {
+  trial: { max: 2, label: 'Trial', description: 'You + 1 family member' },
+  family: { max: 2, label: 'Family', description: 'You + 1 family member' },
+  single_agency: { max: 4, label: 'Single Agency', description: 'You + 3 team members' },
+  multi_agency: { max: 10, label: 'Multi-Agency', description: 'You + caregivers + additional contacts' }
+};
+
+/**
+ * Get max recipients based on subscription status and tier
+ */
+function getMaxRecipients(subscriptionStatus: string | null | undefined, subscriptionTier: string | null | undefined): number {
+  // Trial users get limited access
+  if (subscriptionStatus === 'trial' || !subscriptionStatus) {
+    return PLAN_LIMITS.trial.max;
+  }
+
   switch (subscriptionTier) {
     case 'multi_agency':
-      return 10; // SuperAdmin + caregivers + additional
+      return PLAN_LIMITS.multi_agency.max;
     case 'single_agency':
-      return 4; // Admin + 3 more
+      return PLAN_LIMITS.single_agency.max;
     case 'family':
     default:
-      return 2; // Admin + 1 more
+      return PLAN_LIMITS.family.max;
+  }
+}
+
+/**
+ * Get current plan info
+ */
+function getPlanInfo(subscriptionStatus: string | null | undefined, subscriptionTier: string | null | undefined) {
+  if (subscriptionStatus === 'trial' || !subscriptionStatus) {
+    return PLAN_LIMITS.trial;
+  }
+
+  switch (subscriptionTier) {
+    case 'multi_agency':
+      return PLAN_LIMITS.multi_agency;
+    case 'single_agency':
+      return PLAN_LIMITS.single_agency;
+    case 'family':
+    default:
+      return PLAN_LIMITS.family;
   }
 }
 
@@ -108,9 +143,13 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
   const [success, setSuccess] = useState('');
   const [adminPhoneAdded, setAdminPhoneAdded] = useState(false);
 
-  // Get subscription tier for recipient limits
-  const subscriptionTier = user?.subscriptionTier || 'family';
-  const maxRecipients = getMaxRecipients(subscriptionTier);
+  // Get subscription status and tier for recipient limits
+  const subscriptionStatus = user?.subscriptionStatus;
+  const subscriptionTier = user?.subscriptionTier;
+  const maxRecipients = getMaxRecipients(subscriptionStatus, subscriptionTier);
+  const planInfo = getPlanInfo(subscriptionStatus, subscriptionTier);
+  const isTrial = subscriptionStatus === 'trial' || !subscriptionStatus;
+  const isAtLimit = recipients.length >= maxRecipients;
 
   // Get admin's phone number (E.164 format)
   const adminPhone = user?.phoneNumber ? formatPhoneE164(user.phoneNumber) : null;
@@ -198,7 +237,11 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
     }
 
     if (recipients.length >= maxRecipients) {
-      setError(`Maximum ${maxRecipients} recipients allowed for your plan`);
+      if (isTrial) {
+        setError(`Trial limit: ${maxRecipients} recipients. Subscribe for more.`);
+      } else {
+        setError(`${planInfo.label} plan limit: ${maxRecipients} recipients. Upgrade for more.`);
+      }
       return;
     }
 
@@ -280,6 +323,63 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
         </CardContent>
       </Card>
 
+      {/* Plan Limits Banner */}
+      <Card className={isTrial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}>
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <Info className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isTrial ? 'text-amber-600' : 'text-blue-600'}`} />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {planInfo.label} Plan
+                </span>
+                <Badge variant={isTrial ? 'outline' : 'secondary'} className="text-xs">
+                  {recipients.length}/{maxRecipients} recipients
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {planInfo.description}
+              </p>
+
+              {/* Show upgrade options */}
+              {isTrial && (
+                <div className="mt-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-amber-200 dark:border-amber-700">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Upgrade for more recipients:
+                  </p>
+                  <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex justify-between">
+                      <span>Family Plan</span>
+                      <span>{PLAN_LIMITS.family.max} recipients</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Single Agency</span>
+                      <span>{PLAN_LIMITS.single_agency.max} recipients</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Multi-Agency</span>
+                      <span>{PLAN_LIMITS.multi_agency.max} recipients</span>
+                    </div>
+                  </div>
+                  <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+                    View Plans <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              )}
+
+              {/* Show upgrade prompt when at limit (non-trial) */}
+              {!isTrial && isAtLimit && subscriptionTier !== 'multi_agency' && (
+                <div className="mt-2">
+                  <Link href="/dashboard/settings?tab=subscription" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+                    Upgrade for more recipients <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Notification Recipients */}
       <Card>
         <CardHeader>
@@ -288,7 +388,7 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
             SMS Recipients
           </CardTitle>
           <CardDescription>
-            Add US phone numbers to receive SMS notifications (max {maxRecipients} for your plan)
+            Add US phone numbers to receive SMS notifications ({recipients.length}/{maxRecipients})
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -467,7 +567,6 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
               </p>
               <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
                 <li>• Standard SMS rates may apply</li>
-                <li>• Maximum {maxRecipients} recipients for your {subscriptionTier === 'multi_agency' ? 'Multi-Agency' : subscriptionTier === 'single_agency' ? 'Single Agency' : 'Family'} plan</li>
                 <li>• US phone numbers only (+1 country code)</li>
                 <li>• Reply TAKEN/MISSED/SKIP to confirm medication status</li>
                 <li>• Reply HELP for list of SMS commands</li>
