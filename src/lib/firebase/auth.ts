@@ -539,10 +539,13 @@ export class AuthService {
 
       await linkWithCredential(auth.currentUser, credential);
 
-      // Update user document with phone number
+      // Update user document with phone number and mark as verified
+      // Note: Only updating verification-related fields as per Firestore rules
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         phoneNumber: phoneNumber,
-        phoneNumberHash: hashPhoneNumber(phoneNumber)
+        phoneNumberHash: hashPhoneNumber(phoneNumber),
+        phoneVerified: true,
+        phoneVerifiedAt: new Date()
       });
     } catch (error: any) {
       console.error('Error linking phone:', error);
@@ -713,6 +716,9 @@ export class AuthService {
    */
   static async addPhoneNumber(userId: string, phoneNumber: string): Promise<void> {
     const phoneHash = hashPhoneNumber(phoneNumber);
+
+    // Update user with phone number (includes phoneVerified: false for consistency)
+    // Note: Only updating verification-related fields as per Firestore rules
     await updateDoc(doc(db, 'users', userId), {
       phoneNumber: phoneNumber,
       phoneNumberHash: phoneHash

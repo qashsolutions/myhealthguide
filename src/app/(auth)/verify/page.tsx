@@ -671,11 +671,11 @@ export default function VerifyPage() {
                   <Input
                     id="code"
                     type="text"
-                    placeholder="123456"
+                    placeholder="------"
                     value={phoneCode}
                     onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     maxLength={6}
-                    className="text-center text-3xl tracking-widest h-16 font-mono"
+                    className="text-center text-3xl tracking-widest h-16 font-mono placeholder:text-gray-300 dark:placeholder:text-gray-600"
                   />
                   <p className="text-sm text-gray-500 text-center">
                     Code sent to {userPhone || `+1${phoneInput}`}
