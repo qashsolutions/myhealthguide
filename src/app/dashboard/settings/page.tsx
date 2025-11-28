@@ -865,10 +865,18 @@ function GroupSettings() {
   const isGroupAdmin = user?.groups?.[0]?.role === 'admin';
 
   useEffect(() => {
-    loadMembers();
-  }, []);
+    if (groupId) {
+      loadMembers();
+    } else {
+      setLoading(false);
+    }
+  }, [groupId]);
 
   const loadMembers = async () => {
+    if (!groupId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const membersData = await GroupService.getGroupMembersWithDetails(groupId);
@@ -923,6 +931,25 @@ function GroupSettings() {
       setSaving(false);
     }
   };
+
+  // Show message if no group found
+  if (!groupId) {
+    return (
+      <div className="text-center py-12">
+        <UsersIcon className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          No Group Found
+        </h3>
+        <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+          You haven't created or joined a group yet. Create a group to start managing family members or caregivers.
+        </p>
+        <Button onClick={() => window.location.href = '/dashboard/join'}>
+          <UserPlus className="w-4 h-4 mr-2" />
+          Create or Join a Group
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
