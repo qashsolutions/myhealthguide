@@ -331,8 +331,14 @@ export default function VerifyPage() {
         return;
       }
 
-      // Format phone number
-      const digitsOnly = phoneToVerify.replace(/\D/g, '');
+      // Format phone number - handle both +1XXXXXXXXXX and XXXXXXXXXX formats
+      let digitsOnly = phoneToVerify.replace(/\D/g, '');
+
+      // If it starts with 1 and is 11 digits, remove the leading 1
+      if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
+        digitsOnly = digitsOnly.substring(1);
+      }
+
       if (digitsOnly.length !== 10) {
         setError('Please enter a valid 10-digit phone number');
         return;
