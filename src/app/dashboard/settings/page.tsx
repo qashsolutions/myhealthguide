@@ -731,11 +731,14 @@ function SecurityActivitySettings() {
                   id="newPassword"
                   name="newPassword"
                   type="password"
-                  placeholder="8+ alphanumeric characters"
+                  placeholder="8+ characters (a-z, A-Z, 0-9)"
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
                   autoComplete="new-password"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Use letters (a-z, A-Z) and numbers (0-9) only
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
