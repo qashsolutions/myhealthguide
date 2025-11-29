@@ -1017,6 +1017,146 @@ async function predictMedicationRefill(
   };
 }
 
+// ============= REAL-TIME NOTIFICATION PROCESSING =============
+
+/**
+ * Process notification_queue in real-time and send FCM push notifications immediately
+ * Trigger: Firestore onCreate in 'notification_queue' collection
+ *
+ * This handles join requests, alerts, and other notifications that need immediate delivery.
+ */
+export const processNotificationQueue = functions.firestore
+  .document('notification_queue/{notificationId}')
+  .onCreate(async (snapshot, context) => {
+    const notificationId = context.params.notificationId;
+    const notificationData = snapshot.data();
+
+    console.log('Processing notification:', {
+      id: notificationId,
+      type: notificationData.type,
+      userId: notificationData.userId
+    });
+
+    try {
+      // Get user's FCM tokens
+      const userDoc = await admin.firestore()
+        .collection('users')
+        .doc(notificationData.userId)
+        .get();
+
+      if (!userDoc.exists) {
+        console.warn('User not found:', notificationData.userId);
+        await snapshot.ref.update({
+          status: 'failed',
+          error: 'User not found',
+          processedAt: admin.firestore.Timestamp.now()
+        });
+        return { success: false, error: 'User not found' };
+      }
+
+      const userData = userDoc.data();
+      const fcmTokens = userData?.fcmTokens || [];
+
+      if (fcmTokens.length === 0) {
+        console.warn('No FCM tokens for user:', notificationData.userId);
+        await snapshot.ref.update({
+          status: 'no_tokens',
+          processedAt: admin.firestore.Timestamp.now()
+        });
+        return { success: false, error: 'No FCM tokens' };
+      }
+
+      // Prepare FCM payload
+      const payload: admin.messaging.MulticastMessage = {
+        tokens: fcmTokens,
+        notification: {
+          title: notificationData.title || 'MyGuide Health',
+          body: notificationData.body || ''
+        },
+        data: {
+          type: notificationData.type || 'general',
+          ...(notificationData.data || {}),
+          notificationId: notificationId
+        },
+        webpush: {
+          fcmOptions: {
+            link: notificationData.data?.link || '/dashboard'
+          },
+          notification: {
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            tag: `notification-${notificationData.type}-${notificationId}`,
+            requireInteraction: notificationData.type === 'pending_approval'
+          }
+        }
+      };
+
+      // Send FCM notification
+      console.log('Sending FCM to tokens:', fcmTokens.length);
+      const response = await admin.messaging().sendEachForMulticast(payload);
+
+      console.log('FCM response:', {
+        successCount: response.successCount,
+        failureCount: response.failureCount
+      });
+
+      // Handle failed tokens
+      if (response.failureCount > 0) {
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            const errorCode = resp.error?.code;
+            console.error('Failed to send to token:', {
+              token: fcmTokens[idx]?.substring(0, 20) + '...',
+              error: resp.error?.message
+            });
+
+            // Remove invalid tokens
+            if (
+              errorCode === 'messaging/invalid-registration-token' ||
+              errorCode === 'messaging/registration-token-not-registered'
+            ) {
+              admin.firestore()
+                .collection('users')
+                .doc(notificationData.userId)
+                .update({
+                  fcmTokens: admin.firestore.FieldValue.arrayRemove(fcmTokens[idx])
+                })
+                .catch(err => console.error('Error removing invalid token:', err));
+            }
+          }
+        });
+      }
+
+      // Update notification status
+      await snapshot.ref.update({
+        status: 'sent',
+        processedAt: admin.firestore.Timestamp.now(),
+        successCount: response.successCount,
+        failureCount: response.failureCount
+      });
+
+      return {
+        success: true,
+        successCount: response.successCount,
+        failureCount: response.failureCount
+      };
+
+    } catch (error) {
+      console.error('Error processing notification:', error);
+
+      await snapshot.ref.update({
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        processedAt: admin.firestore.Timestamp.now()
+      });
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  });
+
 // ============= SMS DELIVERY VIA TWILIO =============
 
 /**

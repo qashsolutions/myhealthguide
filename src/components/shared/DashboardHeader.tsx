@@ -20,6 +20,8 @@ import { ElderSelector } from '@/components/dashboard/ElderSelector';
 import { UnifiedSearch } from '@/components/shared/UnifiedSearch';
 import { GroupService } from '@/lib/firebase/groups';
 import { PendingApproval } from '@/types';
+import { db } from '@/lib/firebase/config';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 interface DashboardHeaderProps {
   onMenuClick?: () => void;
@@ -32,32 +34,71 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
 
-  // Fetch pending approvals for admin users
+  // Real-time listener for pending approvals (admin users only)
   useEffect(() => {
-    const fetchPendingApprovals = async () => {
-      if (!user) return;
+    if (!user) return;
 
-      // Check if user is admin of any group
-      const isAdmin = user.groups?.some(g => g.role === 'admin');
-      if (!isAdmin) return;
+    // Check if user is admin of any group
+    const isAdmin = user.groups?.some(g => g.role === 'admin');
+    if (!isAdmin) return;
 
-      const groupId = user.groups?.find(g => g.role === 'admin')?.groupId;
-      if (!groupId) return;
+    const groupId = user.groups?.find(g => g.role === 'admin')?.groupId;
+    if (!groupId) return;
 
-      try {
-        const approvals = await GroupService.getPendingApprovals(groupId);
+    // Set up real-time listener for pending approvals
+    const q = query(
+      collection(db, 'groups', groupId, 'pending_approvals'),
+      where('status', '==', 'pending')
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const approvals: PendingApproval[] = snapshot.docs.map(doc => {
+          const data = doc.data();
+
+          // Helper to safely convert Firestore Timestamp to Date
+          const toSafeDate = (timestamp: any): Date => {
+            if (!timestamp) return new Date();
+            if (typeof timestamp === 'object' && 'seconds' in timestamp) {
+              return new Date(timestamp.seconds * 1000);
+            }
+            if (timestamp instanceof Date) return timestamp;
+            if (typeof timestamp.toDate === 'function') {
+              try {
+                return timestamp.toDate();
+              } catch {
+                return new Date();
+              }
+            }
+            return new Date();
+          };
+
+          return {
+            id: doc.id,
+            groupId: data.groupId,
+            userId: data.userId,
+            userName: data.userName,
+            userEmail: data.userEmail,
+            userPhone: data.userPhone,
+            requestedAt: toSafeDate(data.requestedAt),
+            status: data.status,
+            processedAt: data.processedAt ? toSafeDate(data.processedAt) : undefined,
+            processedBy: data.processedBy,
+            notes: data.notes
+          };
+        });
+
         setPendingApprovals(approvals);
         setNotificationCount(approvals.length);
-      } catch (error) {
-        console.error('Error fetching pending approvals:', error);
+      },
+      (error) => {
+        console.error('Error listening to pending approvals:', error);
       }
-    };
+    );
 
-    fetchPendingApprovals();
-
-    // Refresh every 6 hours (6 * 60 * 60 * 1000 = 21600000ms)
-    const interval = setInterval(fetchPendingApprovals, 21600000);
-    return () => clearInterval(interval);
+    // Cleanup listener on unmount
+    return () => unsubscribe();
   }, [user]);
 
   const handleSignOut = async () => {
