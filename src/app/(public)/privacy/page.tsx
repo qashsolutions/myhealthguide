@@ -6,9 +6,9 @@ export default function PrivacyPage() {
 
         <div className="prose prose-lg dark:prose-invert max-w-none">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
-            <strong>Effective Date:</strong> November 18, 2025
+            <strong>Effective Date:</strong> November 28, 2025
             <br />
-            <strong>Last Updated:</strong> November 18, 2025
+            <strong>Last Updated:</strong> November 28, 2025
           </p>
 
           {/* HIPAA Notice Callout */}
@@ -353,8 +353,25 @@ export default function PrivacyPage() {
               <li>IP address and user agent logged for medical consent audit trails (optional)</li>
             </ul>
 
+            <h3 className="text-xl font-semibold mt-6 mb-3">9.5 Security Limitations and Disclaimer</h3>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-600 p-4 mb-4">
+              <p className="text-amber-800 dark:text-amber-300 font-medium mb-2">Important Security Notice</p>
+              <p className="text-amber-700 dark:text-amber-400 text-sm">
+                While we implement commercially reasonable security measures to protect your health data and personal information, no method of transmission over the Internet or method of electronic storage is 100% secure.
+              </p>
+            </div>
             <p className="mb-4">
-              Despite our security measures, no method of transmission over the Internet or electronic storage is 100% secure. We cannot guarantee absolute security.
+              <strong>You acknowledge and agree that:</strong>
+            </p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>We cannot guarantee the absolute security of your data</li>
+              <li>You transmit information to us at your own risk</li>
+              <li>We are not responsible for any circumvention of privacy settings or security measures contained on the Service</li>
+              <li>Any unauthorized access, use, or disclosure of your information due to factors outside our reasonable control is not our responsibility</li>
+              <li>You are responsible for maintaining the security of your account credentials and for any activities that occur under your account</li>
+            </ul>
+            <p className="mb-4">
+              In the event of a security breach affecting your personal information, we will comply with applicable data breach notification laws and notify affected users as required by law.
             </p>
           </section>
 
@@ -487,7 +504,7 @@ export default function PrivacyPage() {
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-12">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              This Privacy Policy was last updated on November 18, 2025. By using myguide.health, you acknowledge that you have read and understood this Privacy Policy.
+              This Privacy Policy was last updated on November 28, 2025. By using myguide.health, you acknowledge that you have read and understood this Privacy Policy.
             </p>
           </div>
         </div>

@@ -6,9 +6,9 @@ export default function TermsPage() {
 
         <div className="prose prose-lg dark:prose-invert max-w-none">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
-            <strong>Effective Date:</strong> November 18, 2025
+            <strong>Effective Date:</strong> November 28, 2025
             <br />
-            <strong>Last Updated:</strong> November 18, 2025
+            <strong>Last Updated:</strong> November 28, 2025
           </p>
 
           <section className="mb-8">
@@ -128,32 +128,125 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">6. Medical Disclaimer</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">6. Medical Disclaimer - NOT MEDICAL ADVICE</h2>
+
+            <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-600 p-6 mb-6">
+              <p className="font-bold text-red-800 dark:text-red-300 mb-3">
+                IMPORTANT: PLEASE READ THIS SECTION CAREFULLY
+              </p>
+              <p className="text-red-700 dark:text-red-400">
+                The Services, including any AI-generated insights, analysis, summaries, drug interaction detection, or other content, are for <strong>informational and educational purposes only</strong> and do not constitute medical advice, medical diagnosis, or medical treatment.
+              </p>
+            </div>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.1 No Doctor-Patient Relationship</h3>
             <p className="mb-4">
-              <strong className="text-red-600 dark:text-red-400">IMPORTANT: The Service is NOT a medical device and is NOT intended to diagnose, treat, cure, or prevent any disease.</strong>
+              The Services are not intended to be a substitute for professional medical advice, diagnosis, or treatment. <strong>No doctor-patient relationship is created between you and Qash Solutions Inc. by your use of the Services.</strong>
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>AI-generated summaries and insights are for informational purposes only</li>
-              <li>Drug interaction detection uses FDA data but may not be complete or current</li>
-              <li>Always consult a qualified healthcare provider before making medical decisions</li>
-              <li>Never disregard professional medical advice based on information from our Service</li>
-              <li>In case of emergency, call 911 immediately</li>
+              <li>Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition</li>
+              <li>Never disregard professional medical advice or delay in seeking it because of something you have read or accessed through the Services</li>
+              <li>If you think you may have a medical emergency, call your doctor or 911 immediately</li>
+              <li>Qash Solutions Inc. does not recommend or endorse any specific tests, physicians, products, procedures, opinions, or other information that may be mentioned through the Services</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">6.1 Medical Consent</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.2 Limitations of Service</h3>
+            <p className="mb-4">The Service is NOT a medical device and is NOT intended to:</p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>Diagnose, treat, cure, or prevent any disease or medical condition</li>
+              <li>Replace the advice, diagnosis, or treatment provided by a licensed healthcare professional</li>
+              <li>Provide emergency medical services or crisis intervention</li>
+              <li>Serve as a primary source of medical information for clinical decision-making</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.3 Drug Interaction and FDA Data</h3>
             <p className="mb-4">
-              Before accessing medical features (drug interactions, side effects, dementia screening), you must provide explicit consent. Your consent expires after 90 days and must be renewed. You may revoke consent at any time.
+              Drug interaction detection uses data from the FDA OpenFDA API. This data may not be complete, current, or accurate. The absence of a warning does not mean a drug interaction does not exist. <strong>Always consult a pharmacist or physician before combining medications.</strong>
+            </p>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.4 Medical Feature Consent</h3>
+            <p className="mb-4">
+              Before accessing medical features (drug interactions, side effects, dementia screening), you must provide explicit consent acknowledging these limitations. Your consent expires after 90 days and must be renewed. You may revoke consent at any time through your account settings.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">7. Intellectual Property</h2>
-            <h3 className="text-xl font-semibold mt-6 mb-3">7.1 Our Rights</h3>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">7. Artificial Intelligence (AI) Technology Disclaimer</h2>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-600 p-6 mb-6">
+              <p className="font-bold text-amber-800 dark:text-amber-300 mb-3">
+                AI OUTPUT ACCURACY DISCLAIMER
+              </p>
+              <p className="text-amber-700 dark:text-amber-400">
+                You acknowledge that the Services utilize artificial intelligence and machine learning technologies ("AI Technologies"). AI Technologies are probabilistic in nature and may generate output that is inaccurate, incomplete, misleading, or inappropriate.
+              </p>
+            </div>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">7.1 Nature of AI Technology</h3>
+            <p className="mb-4">You understand and acknowledge that:</p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>AI Technologies use statistical models to generate responses and may produce errors, inaccuracies, or "hallucinations" (confident statements that are factually incorrect)</li>
+              <li>AI-generated content may be incomplete, out of date, or inconsistent with current medical knowledge or best practices</li>
+              <li>The AI may misinterpret, misclassify, or incorrectly analyze the information you provide</li>
+              <li>AI outputs should be considered as one of many inputs to your decision-making, not as authoritative or definitive answers</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">7.2 User Responsibility for AI Output</h3>
+            <p className="mb-4">
+              <strong>You are solely responsible for verifying the accuracy, completeness, and appropriateness of any output generated by the Services before applying it to any medical, health, or professional use.</strong>
+            </p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>You agree that you will not rely solely on AI-generated content for any critical decision-making, including clinical decision-making, medication management, or health-related decisions</li>
+              <li>You agree to independently verify all AI-generated summaries, recommendations, and analyses with qualified healthcare professionals</li>
+              <li>You understand that Qash Solutions Inc. makes no representations or warranties regarding the accuracy of AI-generated content</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">7.3 AI Features Covered</h3>
+            <p className="mb-4">This disclaimer applies to all AI-powered features in the Service, including but not limited to:</p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>Daily health summaries and insights</li>
+              <li>Medication compliance analysis</li>
+              <li>Diet and nutrition analysis</li>
+              <li>AI chat assistant responses</li>
+              <li>Voice transcription and interpretation</li>
+              <li>Pattern detection and trend analysis</li>
+              <li>Any other feature that uses Google Gemini AI or similar AI models</li>
+            </ul>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mt-8 mb-4">8. Healthcare Professional Users</h2>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">8.1 Professional Judgment Required</h3>
+            <p className="mb-4">
+              If you are a licensed healthcare professional (including but not limited to physicians, nurses, pharmacists, caregivers, or other medical practitioners), the following additional terms apply:
+            </p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>The Services are intended to assist healthcare professionals but do not replace the exercise of professional judgment</li>
+              <li>You are solely responsible for all decisions made regarding patient care</li>
+              <li>You agree to review all AI-generated outputs with independent professional judgment and current standards of care before utilizing such outputs in any patient setting</li>
+              <li>You must verify all information against authoritative medical sources and your professional training</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">8.2 Human-in-the-Loop Requirement</h3>
+            <p className="mb-4">
+              <strong>You agree that a qualified human professional must review and approve any AI-generated content before it is used in connection with patient care or clinical decision-making.</strong> The Service is designed as a support tool, not an autonomous decision-making system.
+            </p>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">8.3 Professional Liability</h3>
+            <p className="mb-4">
+              Healthcare professionals using the Service remain subject to all applicable professional standards, licensing requirements, and legal obligations. Use of the Service does not transfer any professional liability from the healthcare professional to Qash Solutions Inc.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mt-8 mb-4">9. Intellectual Property</h2>
+            <h3 className="text-xl font-semibold mt-6 mb-3">9.1 Our Rights</h3>
             <p className="mb-4">
               The Service, including all content, features, and functionality, is owned by Qash Solutions Inc. and protected by copyright, trademark, and other intellectual property laws.
             </p>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">7.2 Your Content</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">9.2 Your Content</h3>
             <p className="mb-4">
               You retain ownership of all data you upload to the Service (medications, diet entries, notes, files). By uploading content, you grant us a limited license to:
             </p>
@@ -168,7 +261,7 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">8. Data and Privacy</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">10. Data and Privacy</h2>
             <p className="mb-4">
               Your use of the Service is also governed by our <a href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">Privacy Policy</a>, which describes how we collect, use, and protect your information.
             </p>
@@ -183,8 +276,8 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">9. Termination</h2>
-            <h3 className="text-xl font-semibold mt-6 mb-3">9.1 By You</h3>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">11. Termination</h2>
+            <h3 className="text-xl font-semibold mt-6 mb-3">11.1 By You</h3>
             <p className="mb-4">
               You may terminate your account at any time through account settings. Upon termination:
             </p>
@@ -193,7 +286,7 @@ export default function TermsPage() {
               <li><strong>Paid accounts:</strong> Access continues until the end of the billing period, then data is permanently deleted</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">9.2 By Us</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">11.2 By Us</h3>
             <p className="mb-4">
               We may suspend or terminate your account if you:
             </p>
@@ -209,66 +302,103 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">10. Disclaimers and Limitation of Liability</h2>
-            <h3 className="text-xl font-semibold mt-6 mb-3">10.1 Service "As Is"</h3>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">12. Disclaimers and Limitation of Liability</h2>
+
+            <div className="bg-gray-100 dark:bg-gray-800 border-l-4 border-gray-600 p-6 mb-6">
+              <p className="font-bold text-gray-800 dark:text-gray-200 mb-2">
+                PLEASE READ THIS SECTION CAREFULLY AS IT LIMITS OUR LIABILITY TO YOU
+              </p>
+            </div>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">12.1 Service "As Is"</h3>
             <p className="mb-4">
-              THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+              THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.
             </p>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">10.2 Limitation of Liability</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">12.2 Limitation of Liability</h3>
             <p className="mb-4">
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, QASH SOLUTIONS INC. SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES.
-            </p>
-            <p className="mb-4">
-              OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID US IN THE 12 MONTHS PRECEDING THE CLAIM.
-            </p>
-
-            <h3 className="text-xl font-semibold mt-6 mb-3">10.3 Third-Party Services</h3>
-            <p className="mb-4">
-              We are not responsible for the accuracy, reliability, or availability of third-party services (Firebase, Google Gemini AI, FDA API, Twilio, SendGrid, Stripe) integrated with our Service.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">11. Indemnification</h2>
-            <p className="mb-4">
-              You agree to indemnify and hold harmless Qash Solutions Inc. and its officers, directors, employees, and agents from any claims, damages, losses, liabilities, and expenses (including attorneys' fees) arising from:
+              TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL QASH SOLUTIONS INC., ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, AFFILIATES, OR LICENSORS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING WITHOUT LIMITATION:
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Your use of the Service</li>
-              <li>Your violation of these Terms</li>
-              <li>Your violation of any rights of another party</li>
-              <li>Any content you upload to the Service</li>
+              <li>Loss of profits, revenue, or business opportunities</li>
+              <li>Loss of data, use, goodwill, or other intangible losses</li>
+              <li>Personal injury or property damage resulting from your access to or use of the Service</li>
+              <li>Any unauthorized access to or use of our servers or any personal information stored therein</li>
+              <li>Any interruption or cessation of transmission to or from the Service</li>
+              <li>Any bugs, viruses, or other harmful code that may be transmitted through the Service</li>
+              <li>Any errors or omissions in any content or for any loss or damage incurred as a result of the use of any content posted, emailed, transmitted, or otherwise made available through the Service</li>
+              <li>Any conduct or content of any third party on the Service</li>
             </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">12.3 Liability Cap</h3>
+            <p className="mb-4">
+              <strong>IN NO EVENT SHALL QASH SOLUTIONS INC.'S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE GREATER OF:</strong>
+            </p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>ONE HUNDRED U.S. DOLLARS (US $100.00); OR</li>
+              <li>THE TOTAL AMOUNTS PAID BY YOU TO QASH SOLUTIONS INC. FOR THE SERVICE DURING THE TWELVE (12) MONTHS IMMEDIATELY PRECEDING THE DATE THE CLAIM AROSE</li>
+            </ul>
+            <p className="mb-4">
+              THE LIMITATIONS OF THIS SECTION SHALL APPLY TO ANY THEORY OF LIABILITY, WHETHER BASED ON WARRANTY, CONTRACT, STATUTE, TORT (INCLUDING NEGLIGENCE), OR OTHERWISE, AND WHETHER OR NOT WE HAVE BEEN INFORMED OF THE POSSIBILITY OF SUCH DAMAGE.
+            </p>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">12.4 Third-Party Services</h3>
+            <p className="mb-4">
+              We are not responsible for the accuracy, reliability, availability, or performance of third-party services (including but not limited to Firebase, Google Cloud, Google Gemini AI, FDA OpenFDA API, Twilio, SendGrid, Stripe) integrated with our Service. Your use of such third-party services is at your own risk and subject to the terms and conditions of those third parties.
+            </p>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">12.5 Jurisdictional Limitations</h3>
+            <p className="mb-4">
+              Some jurisdictions do not allow the exclusion of certain warranties or the limitation or exclusion of liability for incidental or consequential damages. Accordingly, some of the above limitations may not apply to you. In such jurisdictions, our liability shall be limited to the maximum extent permitted by law.
+            </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">12. Dispute Resolution</h2>
-            <h3 className="text-xl font-semibold mt-6 mb-3">12.1 Informal Resolution</h3>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">13. Indemnification</h2>
+            <p className="mb-4">
+              You agree to defend, indemnify, and hold harmless Qash Solutions Inc. and its licensees and licensors, and their respective employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs, or debt, and expenses (including but not limited to attorney's fees) resulting from or arising out of:
+            </p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>Your access to and use of the Service, including any data or content transmitted or received by you</li>
+              <li>Your violation of any term of these Terms, including without limitation your breach of any representations and warranties</li>
+              <li>Your violation of any third-party right, including without limitation any intellectual property right, publicity right, confidentiality right, property right, or privacy right</li>
+              <li>Your violation of any applicable law, rule, or regulation</li>
+              <li>Any content you submit, post, or transmit through the Service, including but not limited to health information, medication data, or any other user content</li>
+              <li>Any other party's access to and use of the Service with your unique username, password, or other appropriate security code</li>
+              <li>Any claim that your use of the Service caused damage to a third party</li>
+            </ul>
+            <p className="mb-4">
+              This defense and indemnification obligation will survive termination of these Terms and your use of the Service. We reserve the right to assume the exclusive defense and control of any matter otherwise subject to indemnification by you, in which event you will assist and cooperate with us in asserting any available defenses.
+            </p>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mt-8 mb-4">14. Dispute Resolution</h2>
+            <h3 className="text-xl font-semibold mt-6 mb-3">14.1 Informal Resolution</h3>
             <p className="mb-4">
               Before filing a claim, you agree to contact us at admin@myguide.health and attempt to resolve the dispute informally for at least 30 days.
             </p>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">12.2 Arbitration</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">14.2 Arbitration</h3>
             <p className="mb-4">
               Any dispute arising from these Terms or the Service shall be resolved through binding arbitration in accordance with the American Arbitration Association's rules, conducted in Texas, United States.
             </p>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">12.3 Class Action Waiver</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">14.3 Class Action Waiver</h3>
             <p className="mb-4">
               You agree to resolve disputes on an individual basis and waive the right to participate in class actions or class arbitrations.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">13. Governing Law</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">15. Governing Law</h2>
             <p className="mb-4">
               These Terms are governed by the laws of the State of Texas and the United States, without regard to conflict of law principles.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">14. Changes to Terms</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">16. Changes to Terms</h2>
             <p className="mb-4">
               We may update these Terms from time to time. When we make changes, we will update the "Last Updated" date and post the revised Terms on this page.
             </p>
@@ -278,14 +408,14 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">15. Severability</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">17. Severability</h2>
             <p className="mb-4">
               If any provision of these Terms is found to be unenforceable or invalid, that provision shall be limited or eliminated to the minimum extent necessary, and the remaining provisions shall remain in full force and effect.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold mt-8 mb-4">16. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">18. Contact Us</h2>
             <p className="mb-4">
               If you have questions about these Terms, please contact us:
             </p>
