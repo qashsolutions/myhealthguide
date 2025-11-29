@@ -50,6 +50,7 @@ export default function MedGemmaHubPage() {
   const [loading, setLoading] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showModeCards, setShowModeCards] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const groupId = selectedElder?.groupId || user?.groups?.[0]?.groupId;
 
@@ -352,20 +353,39 @@ export default function MedGemmaHubPage() {
             )}
           </Card>
 
-          {/* Important Notice */}
-          <Alert variant="destructive" className="border-2">
-            <AlertTriangle className="h-5 w-5" />
-            <AlertTitle className="text-lg">Important: This is Not Medical Advice</AlertTitle>
-            <AlertDescription className="space-y-2 text-sm">
-              <p>
-                The Health Assistant helps you organize information and ask questions, but it <strong>cannot replace a doctor or nurse</strong>.
-                Always talk to a healthcare provider before making any medical decisions.
-              </p>
-              <p>
-                <strong>In an emergency, call 911 immediately.</strong>
-              </p>
-            </AlertDescription>
-          </Alert>
+          {/* Important Notice - Collapsible */}
+          <Card className="border-2 border-red-500">
+            <CardHeader
+              className="cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+              onClick={() => setShowDisclaimer(!showDisclaimer)}
+            >
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                  <AlertTriangle className="w-5 h-5" />
+                  Important: This is Not Medical Advice
+                </CardTitle>
+                {showDisclaimer ? (
+                  <ChevronUp className="w-5 h-5 text-red-500" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-red-500" />
+                )}
+              </div>
+            </CardHeader>
+
+            {showDisclaimer && (
+              <CardContent className="pt-0">
+                <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                  <p>
+                    The Health Assistant helps you organize information and ask questions, but it <strong>cannot replace a doctor or nurse</strong>.
+                    Always talk to a healthcare provider before making any medical decisions.
+                  </p>
+                  <p className="font-semibold text-red-600 dark:text-red-400">
+                    In an emergency, call 911 immediately.
+                  </p>
+                </div>
+              </CardContent>
+            )}
+          </Card>
 
           {/* Footer with required Google links */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
