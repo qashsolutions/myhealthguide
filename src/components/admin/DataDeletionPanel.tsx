@@ -13,9 +13,10 @@ interface DataDeletionPanelProps {
   userId: string;
   isAdmin: boolean;
   userEmail: string;
+  isEmbedded?: boolean; // If true, renders without Card wrapper
 }
 
-export function DataDeletionPanel({ userId, isAdmin, userEmail }: DataDeletionPanelProps) {
+export function DataDeletionPanel({ userId, isAdmin, userEmail, isEmbedded = false }: DataDeletionPanelProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -57,6 +58,45 @@ export function DataDeletionPanel({ userId, isAdmin, userEmail }: DataDeletionPa
   };
 
   if (deletionResult?.success) {
+    const successContent = (
+      <div className="space-y-4">
+        <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="ml-2 text-green-800 dark:text-green-200">
+            Your data has been permanently deleted. You will be redirected shortly...
+          </AlertDescription>
+        </Alert>
+
+        {/* Deletion Summary */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
+            <p className="text-xs text-gray-600 dark:text-gray-400">Groups Deleted</p>
+            <p className="text-lg font-bold">{deletionResult.deletedCounts.groups}</p>
+          </div>
+          <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
+            <p className="text-xs text-gray-600 dark:text-gray-400">Elders Deleted</p>
+            <p className="text-lg font-bold">{deletionResult.deletedCounts.elders}</p>
+          </div>
+          <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
+            <p className="text-xs text-gray-600 dark:text-gray-400">Medications Deleted</p>
+            <p className="text-lg font-bold">{deletionResult.deletedCounts.medications}</p>
+          </div>
+          <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
+            <p className="text-xs text-gray-600 dark:text-gray-400">Logs Deleted</p>
+            <p className="text-lg font-bold">
+              {deletionResult.deletedCounts.medicationLogs +
+                deletionResult.deletedCounts.supplementLogs +
+                deletionResult.deletedCounts.dietEntries}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+
+    if (isEmbedded) {
+      return successContent;
+    }
+
     return (
       <Card className="border-green-500">
         <CardHeader>
@@ -65,55 +105,17 @@ export function DataDeletionPanel({ userId, isAdmin, userEmail }: DataDeletionPa
             Data Deleted Successfully
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-            <AlertDescription className="text-green-800 dark:text-green-200">
-              Your data has been permanently deleted. You will be redirected shortly...
-            </AlertDescription>
-          </Alert>
-
-          {/* Deletion Summary */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
-              <p className="text-xs text-gray-600 dark:text-gray-400">Groups Deleted</p>
-              <p className="text-lg font-bold">{deletionResult.deletedCounts.groups}</p>
-            </div>
-            <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
-              <p className="text-xs text-gray-600 dark:text-gray-400">Elders Deleted</p>
-              <p className="text-lg font-bold">{deletionResult.deletedCounts.elders}</p>
-            </div>
-            <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
-              <p className="text-xs text-gray-600 dark:text-gray-400">Medications Deleted</p>
-              <p className="text-lg font-bold">{deletionResult.deletedCounts.medications}</p>
-            </div>
-            <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
-              <p className="text-xs text-gray-600 dark:text-gray-400">Logs Deleted</p>
-              <p className="text-lg font-bold">
-                {deletionResult.deletedCounts.medicationLogs +
-                  deletionResult.deletedCounts.supplementLogs +
-                  deletionResult.deletedCounts.dietEntries}
-              </p>
-            </div>
-          </div>
+        <CardContent>
+          {successContent}
         </CardContent>
       </Card>
     );
   }
 
-  return (
-    <Card className="border-red-500">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-red-600">
-          <Trash2 className="w-5 h-5" />
-          Delete All Data
-        </CardTitle>
-        <CardDescription>
-          Permanently delete all your data (GDPR Right to be Forgotten)
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Warning Alert */}
-        <Alert className="bg-red-50 dark:bg-red-900/20 border-red-500">
+  const content = (
+    <div className="space-y-4">
+      {/* Warning Alert */}
+      <Alert className="bg-red-50 dark:bg-red-900/20 border-red-500">
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertDescription className="ml-2 text-red-800 dark:text-red-200">
             <p className="font-bold mb-2">⚠️ WARNING: This action is IRREVERSIBLE!</p>
@@ -234,6 +236,26 @@ export function DataDeletionPanel({ userId, isAdmin, userEmail }: DataDeletionPa
             <strong>Right to be Forgotten:</strong> Under GDPR, you have the right to request deletion of your personal data. This action will permanently remove all your data from our systems within 30 days. Some data may be retained for legal compliance purposes.
           </p>
         </div>
+    </div>
+  );
+
+  if (isEmbedded) {
+    return content;
+  }
+
+  return (
+    <Card className="border-red-500">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-red-600">
+          <Trash2 className="w-5 h-5" />
+          Delete All Data
+        </CardTitle>
+        <CardDescription>
+          Permanently delete all your data (GDPR Right to be Forgotten)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {content}
       </CardContent>
     </Card>
   );

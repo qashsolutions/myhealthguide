@@ -10,9 +10,10 @@ import { Download, FileJson, FileText, Loader, CheckCircle, Info } from 'lucide-
 interface DataExportPanelProps {
   userId: string;
   isAdmin: boolean;
+  isEmbedded?: boolean; // If true, renders without Card wrapper
 }
 
-export function DataExportPanel({ userId, isAdmin }: DataExportPanelProps) {
+export function DataExportPanel({ userId, isAdmin, isEmbedded = false }: DataExportPanelProps) {
   const [exporting, setExporting] = useState(false);
   const [exportData, setExportData] = useState<UserDataExport | null>(null);
   const [error, setError] = useState('');
@@ -70,19 +71,9 @@ export function DataExportPanel({ userId, isAdmin }: DataExportPanelProps) {
 
   const summary = exportData ? DataExportService.getExportSummary(exportData) : [];
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Download className="w-5 h-5 text-blue-600" />
-          Export Your Data
-        </CardTitle>
-        <CardDescription>
-          Download all your data in JSON or CSV format (GDPR compliant)
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Info Alert */}
+  const content = (
+    <div className="space-y-4">
+      {/* Info Alert */}
         <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="ml-2 text-blue-800 dark:text-blue-200">
@@ -211,6 +202,26 @@ export function DataExportPanel({ userId, isAdmin }: DataExportPanelProps) {
             <strong>Data Portability Rights:</strong> Under GDPR, you have the right to receive your personal data in a structured, commonly used format. This export includes all data associated with groups where you are the administrator.
           </p>
         </div>
+    </div>
+  );
+
+  if (isEmbedded) {
+    return content;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Download className="w-5 h-5 text-blue-600" />
+          Export Your Data
+        </CardTitle>
+        <CardDescription>
+          Download all your data in JSON or CSV format (GDPR compliant)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {content}
       </CardContent>
     </Card>
   );

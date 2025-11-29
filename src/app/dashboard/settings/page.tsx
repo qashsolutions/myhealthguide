@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings, Download } from 'lucide-react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
@@ -1309,6 +1309,9 @@ function GroupSettings() {
 
 function DataPrivacySettings() {
   const { user } = useAuth();
+  const [showExport, setShowExport] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [showGdprRights, setShowGdprRights] = useState(false);
 
   // Get actual user data from auth context
   const currentUser = {
@@ -1318,45 +1321,120 @@ function DataPrivacySettings() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Export Panel */}
-      <DataExportPanel userId={currentUser.id} isAdmin={currentUser.isAdmin} />
-
-      {/* Deletion Panel */}
-      <DataDeletionPanel
-        userId={currentUser.id}
-        isAdmin={currentUser.isAdmin}
-        userEmail={currentUser.email}
-      />
-
-      {/* Privacy Info */}
-      <Card className="bg-gray-50 dark:bg-gray-800">
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900 dark:text-white">
-              Your Privacy Rights (GDPR)
-            </h3>
-            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-              <p>
-                <strong>Right to Access:</strong> You can view all your data in the app at any time.
-              </p>
-              <p>
-                <strong>Right to Data Portability:</strong> You can export your data in machine-readable format (JSON/CSV).
-              </p>
-              <p>
-                <strong>Right to be Forgotten:</strong> You can request permanent deletion of all your data.
-              </p>
-              <p>
-                <strong>Right to Rectification:</strong> You can update or correct your data at any time through the app.
-              </p>
+    <div className="space-y-4">
+      {/* Export Panel - Collapsible */}
+      <Card>
+        <CardHeader
+          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors rounded-t-lg"
+          onClick={() => setShowExport(!showExport)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Download className="w-5 h-5 text-blue-600" />
+              <div>
+                <CardTitle className="text-base">Export Your Data</CardTitle>
+                <CardDescription>
+                  Download all your data in JSON or CSV format (GDPR compliant)
+                </CardDescription>
+              </div>
             </div>
-            <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                For questions about your privacy rights, contact us at privacy@myguide.health
-              </p>
-            </div>
+            {showExport ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
           </div>
-        </CardContent>
+        </CardHeader>
+        {showExport && (
+          <CardContent>
+            <DataExportPanel userId={currentUser.id} isAdmin={currentUser.isAdmin} isEmbedded />
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Deletion Panel - Collapsible */}
+      <Card className="border-red-200 dark:border-red-800">
+        <CardHeader
+          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors rounded-t-lg"
+          onClick={() => setShowDelete(!showDelete)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <div>
+                <CardTitle className="text-base text-red-600">Delete All Data</CardTitle>
+                <CardDescription>
+                  Permanently delete all your data (GDPR Right to be Forgotten)
+                </CardDescription>
+              </div>
+            </div>
+            {showDelete ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </div>
+        </CardHeader>
+        {showDelete && (
+          <CardContent>
+            <DataDeletionPanel
+              userId={currentUser.id}
+              isAdmin={currentUser.isAdmin}
+              userEmail={currentUser.email}
+              isEmbedded
+            />
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Privacy Info - Collapsible */}
+      <Card className="bg-gray-50 dark:bg-gray-800">
+        <CardHeader
+          className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors rounded-t-lg"
+          onClick={() => setShowGdprRights(!showGdprRights)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <div>
+                <CardTitle className="text-base">Your Privacy Rights (GDPR)</CardTitle>
+                <CardDescription>
+                  Learn about your data protection rights
+                </CardDescription>
+              </div>
+            </div>
+            {showGdprRights ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </div>
+        </CardHeader>
+        {showGdprRights && (
+          <CardContent>
+            <div className="space-y-3">
+              <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                <p>
+                  <strong>Right to Access:</strong> You can view all your data in the app at any time.
+                </p>
+                <p>
+                  <strong>Right to Data Portability:</strong> You can export your data in machine-readable format (JSON/CSV).
+                </p>
+                <p>
+                  <strong>Right to be Forgotten:</strong> You can request permanent deletion of all your data.
+                </p>
+                <p>
+                  <strong>Right to Rectification:</strong> You can update or correct your data at any time through the app.
+                </p>
+              </div>
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  For questions about your privacy rights, contact us at privacy@myguide.health
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
