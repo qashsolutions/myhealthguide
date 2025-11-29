@@ -111,19 +111,31 @@ export async function checkUnifiedConsent(
   groupId: string
 ): Promise<{ valid: boolean; consent: UnifiedAIConsent | null; reason?: string }> {
   try {
+    // Simplified query to avoid composite index requirement
+    // We filter by userId only, then filter the rest in memory
     const q = query(
       collection(db, 'unifiedAIConsents'),
-      where('userId', '==', userId),
-      where('groupId', '==', groupId),
-      where('isActive', '==', true),
-      where('consentGiven', '==', true),
-      orderBy('consentedAt', 'desc'),
-      limit(1)
+      where('userId', '==', userId)
     );
 
     const consentsSnap = await getDocs(q);
 
-    if (consentsSnap.empty) {
+    // Filter in memory for groupId, isActive, and consentGiven
+    const matchingDocs = consentsSnap.docs.filter(doc => {
+      const data = doc.data();
+      return data.groupId === groupId &&
+             data.isActive === true &&
+             data.consentGiven === true;
+    });
+
+    // Sort by consentedAt descending and take the first one
+    matchingDocs.sort((a, b) => {
+      const aTime = a.data().consentedAt?.toDate?.() || a.data().consentedAt || new Date(0);
+      const bTime = b.data().consentedAt?.toDate?.() || b.data().consentedAt || new Date(0);
+      return bTime.getTime() - aTime.getTime();
+    });
+
+    if (matchingDocs.length === 0) {
       return {
         valid: false,
         consent: null,
@@ -131,7 +143,7 @@ export async function checkUnifiedConsent(
       };
     }
 
-    const consentDoc = consentsSnap.docs[0];
+    const consentDoc = matchingDocs[0];
     const data = consentDoc.data();
 
     const consent: UnifiedAIConsent = {
