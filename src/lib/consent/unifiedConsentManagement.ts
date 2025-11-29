@@ -95,6 +95,7 @@ export interface UnifiedConsentAccessLog {
     | 'medication_optimization'
     | 'weekly_summary'
     | 'doctor_visit_prep'
+    | 'document_analysis'
     | 'ai_settings';
 
   action: 'accessed' | 'query_submitted' | 'report_generated' | 'data_viewed';

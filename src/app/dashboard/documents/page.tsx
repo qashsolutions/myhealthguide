@@ -5,8 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Trash2, Download, Eye, AlertCircle, FolderOpen } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { FileText, Upload, Trash2, Eye, AlertCircle, FolderOpen, Sparkles, X } from 'lucide-react';
 import { uploadFileWithQuota, getUserFiles, deleteFileWithQuota } from '@/lib/firebase/storage';
+import { DocumentAnalysisPanel } from '@/components/documents/DocumentAnalysisPanel';
 import type { StorageMetadata } from '@/types';
 import { format } from 'date-fns';
 
@@ -19,6 +26,8 @@ export default function DocumentsPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | 'all'>('all');
+  const [selectedDocument, setSelectedDocument] = useState<StorageMetadata | null>(null);
+  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -101,6 +110,15 @@ export default function DocumentsPage() {
     if (fileType.includes('word') || fileType.includes('document')) return '📝';
     if (fileType.includes('sheet') || fileType.includes('excel')) return '📊';
     return '📎';
+  };
+
+  const canAnalyzeDocument = (fileType: string) => {
+    return ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/tiff'].includes(fileType);
+  };
+
+  const handleAnalyzeDocument = (doc: StorageMetadata) => {
+    setSelectedDocument(doc);
+    setShowAnalysisDialog(true);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -301,23 +319,36 @@ export default function DocumentsPage() {
                       </p>
 
                       {/* Actions */}
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => window.open(doc.filePath, '_blank')}
-                        >
-                          <Eye className="w-3 h-3 mr-1" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(doc)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => window.open(doc.filePath, '_blank')}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(doc)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        {canAnalyzeDocument(doc.fileType) && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                            onClick={() => handleAnalyzeDocument(doc)}
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Analyze with AI
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -327,6 +358,41 @@ export default function DocumentsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Document Analysis Dialog */}
+      <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                Document Analysis
+              </DialogTitle>
+            </div>
+            {selectedDocument && (
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {selectedDocument.fileName}
+              </p>
+            )}
+          </DialogHeader>
+
+          {selectedDocument && user && selectedElder && (
+            <DocumentAnalysisPanel
+              documentId={selectedDocument.id!}
+              fileName={selectedDocument.fileName}
+              fileType={selectedDocument.fileType}
+              filePath={selectedDocument.filePath}
+              fileSize={selectedDocument.fileSize}
+              userId={user.id}
+              groupId={user.groups?.[0]?.groupId || ''}
+              elderId={selectedElder.id!}
+              onAnalysisComplete={() => {
+                // Could refresh documents or show notification
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

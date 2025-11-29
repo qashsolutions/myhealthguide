@@ -1240,6 +1240,34 @@ service cloud.firestore {
       allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
+    // ============= Document Analyses Collection =============
+    // AI-powered document analysis results (OCR + structured extraction)
+
+    match /documentAnalyses/{analysisId} {
+      // Users can read their own document analyses
+      // Group members can read analyses for their group
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid)));
+
+      // Users can create analyses for their own documents
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // System can update analysis status (processing -> completed/failed)
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.userId == request.auth.uid;
+
+      // Users can delete their own analyses
+      // Group admin can delete any analysis in their group
+      allow delete: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         isGroupAdmin(resource.data.groupId));
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
