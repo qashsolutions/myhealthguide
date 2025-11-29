@@ -19,7 +19,8 @@ import {
   addDoc,
   updateDoc,
   doc,
-  getDoc
+  getDoc,
+  deleteField
 } from 'firebase/firestore';
 import type { UserAlertPreferences, AlertType } from '@/types';
 
@@ -54,8 +55,7 @@ export async function getUserAlertPreferences(
         medicationRefillAlerts: {
           enabled: true,
           thresholdDays: 7,
-          excludedMedications: [],
-          quietHours: undefined
+          excludedMedications: []
         },
         emergencyAlerts: {
           enabled: true,
@@ -135,11 +135,27 @@ export async function updateMedicationRefillPreferences(
     if (!snap.empty) {
       const prefRef = doc(db, 'userAlertPreferences', snap.docs[0].id);
 
+      // Build update object, excluding undefined values (Firestore doesn't accept undefined)
+      const currentMedPrefs = currentPrefs.preferences.medicationRefillAlerts;
+      const updatedMedPrefs: Record<string, any> = {
+        enabled: preferences.enabled ?? currentMedPrefs.enabled,
+        thresholdDays: preferences.thresholdDays ?? currentMedPrefs.thresholdDays,
+        excludedMedications: preferences.excludedMedications ?? currentMedPrefs.excludedMedications
+      };
+
+      // Handle quietHours: use deleteField() to remove, or set if provided
+      if (preferences.quietHours === undefined && currentMedPrefs.quietHours === undefined) {
+        // Neither has quietHours, don't include it
+      } else if (preferences.quietHours) {
+        // User is setting quietHours
+        updatedMedPrefs.quietHours = preferences.quietHours;
+      } else if (preferences.quietHours === undefined && currentMedPrefs.quietHours) {
+        // User is disabling quietHours - use deleteField()
+        updatedMedPrefs.quietHours = deleteField();
+      }
+
       await updateDoc(prefRef, {
-        'preferences.medicationRefillAlerts': {
-          ...currentPrefs.preferences.medicationRefillAlerts,
-          ...preferences
-        },
+        'preferences.medicationRefillAlerts': updatedMedPrefs,
         updatedAt: new Date()
       });
     }
@@ -547,8 +563,7 @@ export async function resetAlertPreferencesToDefaults(
           medicationRefillAlerts: {
             enabled: true,
             thresholdDays: 7,
-            excludedMedications: [],
-            quietHours: undefined
+            excludedMedications: []
           },
           emergencyAlerts: {
             enabled: true,
