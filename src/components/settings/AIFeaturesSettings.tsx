@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
-import { Sparkles, TrendingUp, Clock, FileText, Shield, AlertCircle, CheckCircle, Brain, RefreshCw } from 'lucide-react';
+import { Sparkles, TrendingUp, Clock, FileText, Shield, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import { AIFeatureSettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -52,11 +52,6 @@ export function AIFeaturesSettings({
         medicationTimeOptimization: {
           enabled: true,
           autoSuggest: true
-        },
-        weeklySummary: {
-          enabled: false,
-          recipients: [],
-          schedule: 'sunday'
         },
         doctorVisitPrep: {
           enabled: true
@@ -296,17 +291,17 @@ export function AIFeaturesSettings({
 
           {/* Show features only if consent valid */}
           {consentValid ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Health Change Detection */}
               <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <TrendingUp className="w-5 h-5 text-blue-600 mt-1" />
-                    <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <TrendingUp className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0">
                       <Label htmlFor="health-change" className="text-base font-medium cursor-pointer">
                         Health Change Detection
                       </Label>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         Get alerts when significant changes in health patterns are detected
                       </p>
                     </div>
@@ -316,6 +311,7 @@ export function AIFeaturesSettings({
                     checked={settings.features.healthChangeDetection.enabled}
                     onCheckedChange={(checked) => updateFeature('healthChangeDetection.enabled', checked)}
                     disabled={!settings.enabled || saving}
+                    className="flex-shrink-0 ml-4"
                   />
                 </div>
 
@@ -347,14 +343,14 @@ export function AIFeaturesSettings({
 
               {/* Medication Time Optimization */}
               <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <Clock className="w-5 h-5 text-purple-600 mt-1" />
-                    <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Clock className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                    <div className="min-w-0">
                       <Label htmlFor="med-optimization" className="text-base font-medium cursor-pointer">
                         Medication Time Optimization
                       </Label>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         Analyze missed doses and suggest better medication times
                       </p>
                     </div>
@@ -364,6 +360,7 @@ export function AIFeaturesSettings({
                     checked={settings.features.medicationTimeOptimization.enabled}
                     onCheckedChange={(checked) => updateFeature('medicationTimeOptimization.enabled', checked)}
                     disabled={!settings.enabled || saving}
+                    className="flex-shrink-0 ml-4"
                   />
                 </div>
 
@@ -382,59 +379,15 @@ export function AIFeaturesSettings({
                 )}
               </div>
 
-              {/* Weekly Summary */}
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <FileText className="w-5 h-5 text-green-600 mt-1" />
-                    <div>
-                      <Label htmlFor="weekly-summary" className="text-base font-medium cursor-pointer">
-                        Weekly Summary Reports
-                      </Label>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Generate comprehensive weekly health summaries
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="weekly-summary"
-                    checked={settings.features.weeklySummary.enabled}
-                    onCheckedChange={(checked) => updateFeature('weeklySummary.enabled', checked)}
-                    disabled={!settings.enabled || saving}
-                  />
-                </div>
-
-                {settings.features.weeklySummary.enabled && (
-                  <div className="ml-8 space-y-2">
-                    <Label htmlFor="schedule" className="text-sm">
-                      Send Summary On
-                    </Label>
-                    <Select
-                      value={settings.features.weeklySummary.schedule}
-                      onValueChange={(value) => updateFeature('weeklySummary.schedule', value)}
-                      disabled={!settings.enabled}
-                    >
-                      <SelectTrigger className="w-64">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sunday">Sunday Evening</SelectItem>
-                        <SelectItem value="monday">Monday Morning</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-
               {/* Doctor Visit Prep */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3 flex-1">
-                  <FileText className="w-5 h-5 text-orange-600 mt-1" />
-                  <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                  <div className="min-w-0">
                     <Label htmlFor="doctor-prep" className="text-base font-medium cursor-pointer">
                       Doctor Visit Preparation
                     </Label>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       Generate printable reports for doctor appointments
                     </p>
                   </div>
@@ -444,6 +397,7 @@ export function AIFeaturesSettings({
                   checked={settings.features.doctorVisitPrep.enabled}
                   onCheckedChange={(checked) => updateFeature('doctorVisitPrep.enabled', checked)}
                   disabled={!settings.enabled || saving}
+                  className="flex-shrink-0 ml-4"
                 />
               </div>
 
