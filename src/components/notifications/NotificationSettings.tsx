@@ -461,13 +461,16 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
                         <Badge variant="secondary" className="text-xs">You</Badge>
                       )}
                     </div>
-                    <button
-                      onClick={() => removeRecipient(phone)}
-                      className="text-gray-500 hover:text-red-600"
-                      title={isAdminPhone ? "Remove your number" : "Remove recipient"}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    {/* Admin cannot remove themselves from the recipient list */}
+                    {!isAdminPhone && (
+                      <button
+                        onClick={() => removeRecipient(phone)}
+                        className="text-gray-500 hover:text-red-600"
+                        title="Remove recipient"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 );
               })}
