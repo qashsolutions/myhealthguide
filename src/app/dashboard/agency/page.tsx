@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -18,12 +19,23 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function AgencyPage() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
   const [userId, setUserId] = useState<string | null>(null);
   const [agencyId, setAgencyId] = useState<string | null>(null);
   const [groupId, setGroupId] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isMultiAgency, setIsMultiAgency] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // Update active tab when URL param changes
+  useEffect(() => {
+    if (tabParam && ['overview', 'scheduling', 'assignments', 'analytics', 'billing'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -133,7 +145,7 @@ export default function AgencyPage() {
       </div>
 
       {isSuperAdmin ? (
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className={`grid w-full ${isMultiAgency ? 'grid-cols-5' : 'grid-cols-3'} lg:w-auto`}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />

@@ -25,7 +25,12 @@ import {
   FolderOpen,
   Calendar,
   MessageSquare,
-  X
+  X,
+  Building2,
+  BarChart3,
+  DollarSign,
+  CalendarDays,
+  UserCog
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -215,20 +220,83 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           Manage Elders
         </Link>
 
-        {/* Calendar - Only for multi-agency tier */}
+        {/* Agency Management - Only for multi-agency tier */}
         {isMultiAgency && (
-          <Link
-            href="/dashboard/calendar"
-            className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-              pathname === '/dashboard/calendar'
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-            )}
-          >
-            <Calendar className="w-5 h-5" />
-            Shift Calendar
-          </Link>
+          <>
+            <div className="pt-4 pb-2">
+              <div className="px-3">
+                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                  <Building2 className="w-3 h-3" />
+                  Agency Management
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard/agency"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                pathname === '/dashboard/agency'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <Building2 className="w-5 h-5" />
+              Agency Overview
+            </Link>
+
+            <Link
+              href="/dashboard/agency?tab=scheduling"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/calendar' || (pathname === '/dashboard/agency' && typeof window !== 'undefined' && window.location.search.includes('scheduling'))
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <CalendarDays className="w-4 h-4" />
+              Shift Scheduling
+            </Link>
+
+            <Link
+              href="/dashboard/agency?tab=assignments"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/agency' && typeof window !== 'undefined' && window.location.search.includes('assignments')
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <UserCog className="w-4 h-4" />
+              Caregiver Assignments
+            </Link>
+
+            <Link
+              href="/dashboard/agency?tab=analytics"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/agency' && typeof window !== 'undefined' && window.location.search.includes('analytics')
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Analytics
+            </Link>
+
+            <Link
+              href="/dashboard/agency?tab=billing"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/agency' && typeof window !== 'undefined' && window.location.search.includes('billing')
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <DollarSign className="w-4 h-4" />
+              Billing
+            </Link>
+          </>
         )}
 
         {/* Health Assistant Section - Always visible, prominent */}
