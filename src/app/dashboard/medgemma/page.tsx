@@ -12,7 +12,6 @@ import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
 import {
   Brain,
-  Sparkles,
   MessageSquare,
   FileText,
   Zap,
@@ -23,7 +22,10 @@ import {
   Settings,
   Clock,
   Target,
-  HelpCircle
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  X
 } from 'lucide-react';
 import {
   checkUnifiedConsent,
@@ -46,6 +48,8 @@ export default function MedGemmaHubPage() {
   const [consentValid, setConsentValid] = useState(false);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showModeCards, setShowModeCards] = useState(false);
 
   const groupId = selectedElder?.groupId || user?.groups?.[0]?.groupId;
 
@@ -102,26 +106,6 @@ export default function MedGemmaHubPage() {
               </Button>
             )}
           </div>
-
-          {/* Google Attribution - REQUIRED */}
-          <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
-            <Sparkles className="h-5 w-5 text-blue-600" />
-            <AlertTitle className="text-blue-900 dark:text-blue-100">
-              Powered by Google MedGemma
-            </AlertTitle>
-            <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2">
-              This feature uses Google's medical AI technology.{' '}
-              <a
-                href="https://developers.google.com/health-ai-developer-foundations/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline font-medium inline-flex items-center gap-1 hover:text-blue-600"
-              >
-                Terms of Use
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </AlertDescription>
-          </Alert>
 
           {/* Consent Status */}
           {loading ? (
@@ -190,7 +174,7 @@ export default function MedGemmaHubPage() {
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Health Chat */}
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageSquare className="w-6 h-6 text-blue-600" />
@@ -200,8 +184,8 @@ export default function MedGemmaHubPage() {
                     Get quick answers about medications, schedules, and care
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
+                <CardContent className="flex-1 flex flex-col">
+                  <div className="flex-1">
                     <h4 className="font-semibold text-sm mb-2">Try asking:</h4>
                     <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <li className="flex items-start gap-2">
@@ -220,7 +204,7 @@ export default function MedGemmaHubPage() {
                   </div>
 
                   <Button
-                    className="w-full gap-2"
+                    className="w-full gap-2 mt-4"
                     onClick={() => router.push('/dashboard/health-chat')}
                     disabled={!consentValid}
                   >
@@ -231,7 +215,7 @@ export default function MedGemmaHubPage() {
               </Card>
 
               {/* Doctor Visit Prep */}
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="w-6 h-6 text-purple-600" />
@@ -241,8 +225,8 @@ export default function MedGemmaHubPage() {
                     Get a summary ready for the next appointment
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
+                <CardContent className="flex-1 flex flex-col">
+                  <div className="flex-1">
                     <h4 className="font-semibold text-sm mb-2">The summary includes:</h4>
                     <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <li className="flex items-center gap-2">
@@ -265,7 +249,7 @@ export default function MedGemmaHubPage() {
                   </div>
 
                   <Button
-                    className="w-full gap-2"
+                    className="w-full gap-2 mt-4"
                     onClick={() => router.push('/dashboard/clinical-notes')}
                     disabled={!consentValid}
                   >
@@ -277,80 +261,96 @@ export default function MedGemmaHubPage() {
             </div>
           </div>
 
-          {/* Choose Your Mode */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Choose How the AI Works
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              You can change this anytime in Settings.
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Accurate Mode */}
-              <Card className={`border-2 ${consent?.preferredModel === 'medgemma-27b' || !consent?.preferredModel ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="w-6 h-6 text-blue-600" />
-                      Accurate Mode
-                    </CardTitle>
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                      Recommended
-                    </span>
-                  </div>
-                  <CardDescription>
-                    Takes a bit longer but gives more detailed answers
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      Best for doctor visit summaries
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      More thorough explanations
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      Better for complex questions
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              {/* Fast Mode */}
-              <Card className={`border-2 ${consent?.preferredModel === 'medgemma-4b' ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
-                <CardHeader>
+          {/* Choose Your Mode - Collapsible */}
+          <Card>
+            <CardHeader
+              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              onClick={() => setShowModeCards(!showModeCards)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
                   <CardTitle className="flex items-center gap-2">
-                    <Zap className="w-6 h-6 text-yellow-600" />
-                    Fast Mode
+                    <Settings className="w-5 h-5 text-gray-600" />
+                    Choose How the AI Works
                   </CardTitle>
-                  <CardDescription>
-                    Quick answers for simple questions
+                  <CardDescription className="mt-1">
+                    You can change this anytime in Settings
+                    {consent?.preferredModel && (
+                      <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                        • Current: {consent.preferredModel === 'medgemma-4b' ? 'Fast' : 'Accurate'} Mode
+                      </span>
+                    )}
                   </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <li className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-yellow-600" />
-                      Faster responses
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      Good for quick lookups
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      Simple medication questions
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                </div>
+                {showModeCards ? (
+                  <ChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </div>
+            </CardHeader>
+
+            {showModeCards && (
+              <CardContent className="pt-0">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Accurate Mode */}
+                  <div className={`p-4 rounded-lg border-2 ${consent?.preferredModel === 'medgemma-27b' || !consent?.preferredModel ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Target className="w-5 h-5 text-blue-600" />
+                        Accurate Mode
+                      </h4>
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                        Recommended
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Takes a bit longer but gives more detailed answers
+                    </p>
+                    <ul className="space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        Best for doctor visit summaries
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        More thorough explanations
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        Better for complex questions
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Fast Mode */}
+                  <div className={`p-4 rounded-lg border-2 ${consent?.preferredModel === 'medgemma-4b' ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
+                    <h4 className="font-semibold flex items-center gap-2 mb-2">
+                      <Zap className="w-5 h-5 text-yellow-600" />
+                      Fast Mode
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Quick answers for simple questions
+                    </p>
+                    <ul className="space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
+                      <li className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-yellow-600" />
+                        Faster responses
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        Good for quick lookups
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        Simple medication questions
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
 
           {/* Important Notice */}
           <Alert variant="destructive" className="border-2">
@@ -382,18 +382,56 @@ export default function MedGemmaHubPage() {
                 <ExternalLink className="w-3 h-3" />
                 About Google MedGemma
               </a>
-              <a
-                href="https://developers.google.com/health-ai-developer-foundations/terms"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => setShowTermsModal(true)}
                 className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline text-xs"
               >
                 <ExternalLink className="w-3 h-3" />
                 Terms of Use
-              </a>
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Terms of Use Modal */}
+        {showTermsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Google MedGemma Terms of Use
+                </h2>
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto">
+                <iframe
+                  src="https://developers.google.com/health-ai-developer-foundations/terms"
+                  className="w-full h-full min-h-[60vh]"
+                  title="Google MedGemma Terms of Use"
+                />
+              </div>
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <a
+                  href="https://developers.google.com/health-ai-developer-foundations/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                >
+                  Open in new tab
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <Button onClick={() => setShowTermsModal(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Unified Consent Dialog */}
         {user && groupId && (
