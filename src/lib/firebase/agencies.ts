@@ -23,9 +23,11 @@ import {
   CaregiverAssignment,
   CaregiverPermissions,
   AgencyRole,
-  GroupMember
+  GroupMember,
+  Elder
 } from '@/types';
 import { canAddCaregiver } from './planLimits';
+import { ElderAssignmentService, AssignmentConflict } from './elderAssignment';
 
 export class AgencyService {
   // ============= Agency Management =============
@@ -192,6 +194,8 @@ export class AgencyService {
 
   /**
    * Assign caregiver to elders
+   * @param assignAsPrimary - If true, sets this caregiver as primary for the elders
+   * @param forceTransfer - If true, transfers primary caregiver without prompting
    */
   static async assignCaregiverToElders(
     agencyId: string,
@@ -200,13 +204,38 @@ export class AgencyService {
     groupId: string,
     assignedBy: string,
     role: 'caregiver_admin' | 'caregiver' = 'caregiver',
-    permissions?: Partial<CaregiverPermissions>
-  ): Promise<string> {
+    permissions?: Partial<CaregiverPermissions>,
+    assignAsPrimary: boolean = false,
+    forceTransfer: boolean = false
+  ): Promise<{ assignmentId: string; conflicts?: AssignmentConflict[] }> {
     try {
       // Validate elder limit
       const agency = await this.getAgency(agencyId);
       if (!agency) {
         throw new Error('Agency not found');
+      }
+
+      // Get caregiver name for primary assignment
+      let caregiverName = 'Unknown';
+      const caregiverDoc = await getDoc(doc(db, 'users', caregiverId));
+      if (caregiverDoc.exists()) {
+        const data = caregiverDoc.data();
+        caregiverName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unknown';
+      }
+
+      // Check for primary caregiver conflicts if assigning as primary
+      if (assignAsPrimary && !forceTransfer) {
+        const conflicts = await ElderAssignmentService.checkAssignmentConflicts(
+          elderIds,
+          caregiverId,
+          caregiverName,
+          true
+        );
+
+        if (conflicts.length > 0) {
+          // Return conflicts for UI to handle - don't proceed with assignment yet
+          return { assignmentId: '', conflicts };
+        }
       }
 
       // Check existing assignments for this caregiver
@@ -226,11 +255,11 @@ export class AgencyService {
 
       // Create assignment with default or provided permissions
       const defaultPermissions: CaregiverPermissions = {
-        canEditMedications: role === 'caregiver_admin',
+        canEditMedications: role === 'caregiver_admin' || assignAsPrimary,
         canLogDoses: true,
         canViewReports: true,
-        canManageSchedules: role === 'caregiver_admin',
-        canInviteMembers: role === 'caregiver_admin'
+        canManageSchedules: role === 'caregiver_admin' || assignAsPrimary,
+        canInviteMembers: role === 'caregiver_admin' || assignAsPrimary
       };
 
       const assignment: Omit<CaregiverAssignment, 'id'> = {
@@ -238,7 +267,7 @@ export class AgencyService {
         caregiverId,
         elderIds,
         groupId,
-        role,
+        role: assignAsPrimary ? 'caregiver_admin' : role,
         assignedAt: new Date(),
         assignedBy,
         permissions: { ...defaultPermissions, ...permissions },
@@ -268,10 +297,9 @@ export class AgencyService {
       }
 
       // Update user's agency membership
-      const userDoc = await getDoc(doc(db, 'users', caregiverId));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const agencies = userData.agencies || [];
+      const userDocData = caregiverDoc.exists() ? caregiverDoc.data() : null;
+      if (userDocData) {
+        const agencies = userDocData.agencies || [];
 
         // Check if already has this agency
         const existingAgency = agencies.find((a: any) => a.agencyId === agencyId);
@@ -282,7 +310,7 @@ export class AgencyService {
               ...agencies,
               {
                 agencyId,
-                role,
+                role: assignAsPrimary ? 'caregiver_admin' : role,
                 joinedAt: Timestamp.now(),
                 assignedElderIds: elderIds,
                 assignedGroupIds: [groupId]
@@ -307,7 +335,19 @@ export class AgencyService {
         }
       }
 
-      return docRef.id;
+      // Set primary caregiver for elders if requested
+      if (assignAsPrimary || forceTransfer) {
+        for (const elderId of elderIds) {
+          await ElderAssignmentService.setPrimaryCaregiver(
+            elderId,
+            caregiverId,
+            caregiverName,
+            assignedBy
+          );
+        }
+      }
+
+      return { assignmentId: docRef.id };
     } catch (error) {
       console.error('Error assigning caregiver to elders:', error);
       throw error;

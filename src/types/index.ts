@@ -267,6 +267,12 @@ export interface Elder {
   profileImage?: string;
   notes: string;
   createdAt: Date;
+
+  // Primary caregiver (elder-level admin) - has full management rights for this elder
+  primaryCaregiverId?: string;
+  primaryCaregiverName?: string;
+  primaryCaregiverAssignedAt?: Date;
+  primaryCaregiverAssignedBy?: string;
 }
 
 // ============= Medication Types =============
