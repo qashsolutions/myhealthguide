@@ -59,8 +59,8 @@ export default function HelpPage() {
   // Handle search
   useEffect(() => {
     if (!searchQuery.trim()) {
-      // Show featured articles when no search query
-      setSearchResults(helpArticles.filter((article) => article.featured));
+      // Show all articles when no search query (filtering happens in filteredResults)
+      setSearchResults(helpArticles);
       return;
     }
 
@@ -76,6 +76,15 @@ export default function HelpPage() {
   // Filter by category and role
   const filteredResults = useMemo(() => {
     let results = searchResults;
+
+    // If no search query, show featured by default UNLESS:
+    // - User clicked "Show All Features", OR
+    // - User selected a specific category, OR
+    // - User selected a specific role
+    const hasActiveFilters = showAllFeatures || selectedCategory !== 'all' || selectedRole !== 'all';
+    if (!searchQuery.trim() && !hasActiveFilters) {
+      results = results.filter((article) => article.featured);
+    }
 
     // Auto-filter by user's role if logged in and not showing all features
     if (userRole && !showAllFeatures && selectedRole === 'all') {
@@ -93,7 +102,7 @@ export default function HelpPage() {
     }
 
     return results;
-  }, [searchResults, selectedCategory, selectedRole, userRole, showAllFeatures]);
+  }, [searchResults, selectedCategory, selectedRole, userRole, showAllFeatures, searchQuery]);
 
   // Simple voice search (no GDPR consent needed for public help search)
   const handleVoiceSearch = () => {
@@ -166,10 +175,10 @@ export default function HelpPage() {
 
   const roles: { value: UserRole | 'all'; label: string }[] = [
     { value: 'all', label: 'All Roles' },
-    { value: 'admin', label: 'Admin' },
-    { value: 'caregiver', label: 'Caregiver' },
+    { value: 'admin', label: 'Family Admin' },
+    { value: 'caregiver', label: 'Member' },
     { value: 'caregiver_admin', label: 'Caregiver Admin' },
-    { value: 'super_admin', label: 'Super Admin' },
+    { value: 'super_admin', label: 'Agency Admin' },
   ];
 
   return (
@@ -306,13 +315,21 @@ export default function HelpPage() {
         </div>
 
         {/* Results Count */}
-        {searchQuery && (
-          <div className="text-center mb-6 text-gray-600 dark:text-gray-400">
-            Found <strong>{filteredResults.length}</strong> result
-            {filteredResults.length !== 1 ? 's' : ''}
-            {searchQuery && ` for "${searchQuery}"`}
-          </div>
-        )}
+        <div className="text-center mb-6 text-gray-600 dark:text-gray-400">
+          {searchQuery ? (
+            <>
+              Found <strong>{filteredResults.length}</strong> result
+              {filteredResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+            </>
+          ) : (
+            <>
+              Showing <strong>{filteredResults.length}</strong> of <strong>{helpArticles.length}</strong> features
+              {!showAllFeatures && selectedCategory === 'all' && selectedRole === 'all' && (
+                <span className="text-gray-500"> (featured)</span>
+              )}
+            </>
+          )}
+        </div>
 
         {/* No Results */}
         {searchQuery && filteredResults.length === 0 && (
