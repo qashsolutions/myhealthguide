@@ -1220,6 +1220,26 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
+    // ============= Weekly Summaries Collection =============
+    // AI-generated weekly health summaries for elders
+
+    match /weeklySummaries/{summaryId} {
+      // Group members can read weekly summaries
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Group members with write permission can create summaries
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Summaries are immutable once created
+      allow update: if false;
+
+      // GDPR: Admin can delete even without active trial
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default

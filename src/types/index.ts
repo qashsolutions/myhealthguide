@@ -127,6 +127,11 @@ export interface AIFeatureSettings {
       enabled: boolean;
       autoSuggest: boolean; // Show suggestions automatically
     };
+    weeklySummary: {
+      enabled: boolean;
+      recipients: string[]; // User IDs to receive summary
+      schedule: 'sunday' | 'monday'; // When to send
+    };
     doctorVisitPrep: {
       enabled: boolean;
     };

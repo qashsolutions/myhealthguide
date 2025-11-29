@@ -53,6 +53,11 @@ export function AIFeaturesSettings({
           enabled: true,
           autoSuggest: true
         },
+        weeklySummary: {
+          enabled: false,
+          recipients: [],
+          schedule: 'sunday'
+        },
         doctorVisitPrep: {
           enabled: true
         },
@@ -375,6 +380,51 @@ export function AIFeaturesSettings({
                     <Label htmlFor="auto-suggest" className="text-sm cursor-pointer">
                       Show suggestions automatically on insights page
                     </Label>
+                  </div>
+                )}
+              </div>
+
+              {/* Weekly Summary */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <Label htmlFor="weekly-summary" className="text-base font-medium cursor-pointer">
+                        Weekly Summary Reports
+                      </Label>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Generate comprehensive weekly health summaries
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="weekly-summary"
+                    checked={settings.features.weeklySummary.enabled}
+                    onCheckedChange={(checked) => updateFeature('weeklySummary.enabled', checked)}
+                    disabled={!settings.enabled || saving}
+                    className="flex-shrink-0 ml-4"
+                  />
+                </div>
+
+                {settings.features.weeklySummary.enabled && (
+                  <div className="ml-8 space-y-2">
+                    <Label htmlFor="schedule" className="text-sm">
+                      Send Summary On
+                    </Label>
+                    <Select
+                      value={settings.features.weeklySummary.schedule}
+                      onValueChange={(value) => updateFeature('weeklySummary.schedule', value)}
+                      disabled={!settings.enabled}
+                    >
+                      <SelectTrigger className="w-64">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sunday">Sunday Evening</SelectItem>
+                        <SelectItem value="monday">Monday Morning</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>
