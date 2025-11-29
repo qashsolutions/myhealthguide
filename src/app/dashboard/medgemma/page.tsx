@@ -21,7 +21,9 @@ import {
   CheckCircle,
   ArrowRight,
   Settings,
-  Info
+  Clock,
+  Target,
+  HelpCircle
 } from 'lucide-react';
 import {
   checkUnifiedConsent,
@@ -30,13 +32,10 @@ import {
 } from '@/lib/consent/unifiedConsentManagement';
 
 /**
- * MedGemma Hub Page
+ * Health Assistant AI Hub Page
  *
- * Central landing page for Google MedGemma AI features
- * - Model information (4B vs 27B)
- * - Feature showcase
- * - Consent management (uses unified consent system)
- * - Google attribution & compliance
+ * Caregiver-friendly landing page for AI features
+ * Powered by Google MedGemma (attribution required)
  */
 export default function MedGemmaHubPage() {
   const router = useRouter();
@@ -50,7 +49,6 @@ export default function MedGemmaHubPage() {
 
   const groupId = selectedElder?.groupId || user?.groups?.[0]?.groupId;
 
-  // Check consent status using unified consent system
   useEffect(() => {
     if (!user?.id || !groupId) {
       setLoading(false);
@@ -65,7 +63,6 @@ export default function MedGemmaHubPage() {
   }, [user?.id, groupId]);
 
   const handleConsentComplete = async () => {
-    // Re-check consent after it's been granted
     if (!user?.id || !groupId) return;
 
     const { valid, consent: newConsent } = await checkUnifiedConsent(user.id, groupId);
@@ -77,8 +74,8 @@ export default function MedGemmaHubPage() {
   const expiryWarning = consent ? getConsentExpiryWarning(consent) : null;
 
   return (
-    <TrialExpirationGate featureName="MedGemma AI features">
-      <EmailVerificationGate featureName="MedGemma AI features">
+    <TrialExpirationGate featureName="Health Assistant AI">
+      <EmailVerificationGate featureName="Health Assistant AI">
         <div className="p-6 max-w-7xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex items-start justify-between">
@@ -86,11 +83,11 @@ export default function MedGemmaHubPage() {
               <div className="flex items-center gap-3 mb-2">
                 <Brain className="h-10 w-10 text-blue-600 dark:text-blue-400" />
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-                  MedGemma AI
+                  Health Assistant
                 </h1>
               </div>
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl">
-                Clinical-grade artificial intelligence powered by Google's MedGemma foundation models
+                Get answers to your caregiving questions using AI trained on medical knowledge
               </p>
             </div>
 
@@ -110,27 +107,17 @@ export default function MedGemmaHubPage() {
           <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
             <Sparkles className="h-5 w-5 text-blue-600" />
             <AlertTitle className="text-blue-900 dark:text-blue-100">
-              Powered by Google Health AI Developer Foundations
+              Powered by Google MedGemma
             </AlertTitle>
             <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2">
-              HAI-DEF is provided under and subject to the{' '}
+              This feature uses Google's medical AI technology.{' '}
               <a
                 href="https://developers.google.com/health-ai-developer-foundations/terms"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline font-medium inline-flex items-center gap-1 hover:text-blue-600"
               >
-                Health AI Developer Foundations Terms of Use
-                <ExternalLink className="w-3 h-3" />
-              </a>
-              {' '}•{' '}
-              <a
-                href="https://developers.google.com/health-ai-developer-foundations/medgemma/model-card"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline font-medium inline-flex items-center gap-1 hover:text-blue-600"
-              >
-                Model Card
+                Terms of Use
                 <ExternalLink className="w-3 h-3" />
               </a>
             </AlertDescription>
@@ -138,21 +125,21 @@ export default function MedGemmaHubPage() {
 
           {/* Consent Status */}
           {loading ? (
-            <div className="text-center py-8 text-gray-500">Loading consent status...</div>
+            <div className="text-center py-8 text-gray-500">Loading...</div>
           ) : consentValid ? (
             <>
               {/* Active Consent */}
               <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <AlertTitle className="text-green-900 dark:text-green-100">
-                  MedGemma AI Enabled
+                  Health Assistant is Ready
                 </AlertTitle>
                 <AlertDescription className="text-green-800 dark:text-green-200">
-                  You have accepted the terms and can use all MedGemma-powered features.
+                  You can now use all AI-powered health features.
                   {consent && (
                     <span className="block mt-1 text-sm">
-                      Preferred Model: <strong className="font-semibold">{consent.preferredModel === 'medgemma-4b' ? 'MedGemma 4B (Fast)' : 'MedGemma 27B (Accurate)'}</strong>
-                      {' '}• Expires: <strong>{consent.expiresAt?.toLocaleDateString()}</strong>
+                      Mode: <strong className="font-semibold">{consent.preferredModel === 'medgemma-4b' ? 'Fast' : 'Accurate'}</strong>
+                      {' '}• Valid until: <strong>{consent.expiresAt?.toLocaleDateString()}</strong>
                     </span>
                   )}
                 </AlertDescription>
@@ -162,7 +149,7 @@ export default function MedGemmaHubPage() {
               {expiryWarning && expiryWarning.warning && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-5 w-5" />
-                  <AlertTitle>Consent Expiring Soon</AlertTitle>
+                  <AlertTitle>Agreement Expiring Soon</AlertTitle>
                   <AlertDescription>
                     {expiryWarning.message}
                     <Button
@@ -170,7 +157,7 @@ export default function MedGemmaHubPage() {
                       className="mt-2"
                       onClick={() => setShowConsentDialog(true)}
                     >
-                      Re-consent Now
+                      Renew Now
                     </Button>
                   </AlertDescription>
                 </Alert>
@@ -180,117 +167,25 @@ export default function MedGemmaHubPage() {
             <Alert className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
               <AlertTriangle className="h-5 w-5 text-yellow-600" />
               <AlertTitle className="text-yellow-900 dark:text-yellow-100">
-                Consent Required
+                Review Required
               </AlertTitle>
               <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-                To use MedGemma AI features, please review and accept the terms of use.
+                Please review and accept the terms to use the Health Assistant.
                 <Button
                   size="sm"
                   className="mt-2"
                   onClick={() => setShowConsentDialog(true)}
                 >
-                  Review Terms & Enable MedGemma
+                  Review Terms & Get Started
                 </Button>
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Model Comparison */}
+          {/* What Can It Do */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              MedGemma Models
-            </h2>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* MedGemma 27B */}
-              <Card className="border-2 border-blue-200 dark:border-blue-800">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="w-6 h-6 text-blue-600" />
-                      MedGemma 27B
-                    </CardTitle>
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                      Recommended
-                    </span>
-                  </div>
-                  <CardDescription>
-                    Advanced medical reasoning model optimized for clinical accuracy
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Best For:</h4>
-                    <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        Clinical note generation
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        Complex medical reasoning
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        Doctor visit preparation
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Training:</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Fine-tuned on medical literature, clinical notes, USMLE questions, and PubMed articles
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* MedGemma 4B */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="w-6 h-6 text-yellow-600" />
-                    MedGemma 4B
-                  </CardTitle>
-                  <CardDescription>
-                    Faster multimodal model for general healthcare applications
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Best For:</h4>
-                    <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        Quick health queries
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        Faster response times
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        General medical questions
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Training:</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Multimodal training on medical text and de-identified medical images
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Features */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              MedGemma-Powered Features
+              What Can the Health Assistant Do?
             </h2>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -299,28 +194,28 @@ export default function MedGemmaHubPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageSquare className="w-6 h-6 text-blue-600" />
-                    AI Health Chat
+                    Ask Health Questions
                   </CardTitle>
                   <CardDescription>
-                    Ask questions about medications, adherence, and care routines in natural language
+                    Get quick answers about medications, schedules, and care
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <h4 className="font-semibold text-sm mb-2 text-green-700 dark:text-green-300">
-                      Value Proposition:
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Get instant, evidence-based answers without searching through logs manually
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Example Queries:</h4>
-                    <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                      <li>• "What medications did grandma miss this week?"</li>
-                      <li>• "Show me adherence patterns for lisinopril"</li>
-                      <li>• "When should I give evening medications?"</li>
+                    <h4 className="font-semibold text-sm mb-2">Try asking:</h4>
+                    <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      <li className="flex items-start gap-2">
+                        <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        "What medications did mom miss this week?"
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        "When should I give the evening medications?"
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        "How has blood pressure medication been taken lately?"
+                      </li>
                     </ul>
                   </div>
 
@@ -329,40 +224,43 @@ export default function MedGemmaHubPage() {
                     onClick={() => router.push('/dashboard/health-chat')}
                     disabled={!consentValid}
                   >
-                    Open Health Chat
+                    Start Chatting
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </CardContent>
               </Card>
 
-              {/* Clinical Notes */}
+              {/* Doctor Visit Prep */}
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="w-6 h-6 text-purple-600" />
-                    Clinical Notes Generator
+                    Prepare for Doctor Visits
                   </CardTitle>
                   <CardDescription>
-                    Generate comprehensive clinical summaries for doctor visits
+                    Get a summary ready for the next appointment
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <h4 className="font-semibold text-sm mb-2 text-green-700 dark:text-green-300">
-                      Value Proposition:
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Save 15+ minutes per doctor visit with AI-generated summaries
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Includes:</h4>
-                    <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                      <li>• Medication list with adherence analysis</li>
-                      <li>• Clinical recommendations</li>
-                      <li>• Suggested questions for provider</li>
-                      <li>• Printable PDF format</li>
+                    <h4 className="font-semibold text-sm mb-2">The summary includes:</h4>
+                    <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        All current medications
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        How well medications are being taken
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        Questions to ask the doctor
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        Print-ready format
+                      </li>
                     </ul>
                   </div>
 
@@ -371,7 +269,7 @@ export default function MedGemmaHubPage() {
                     onClick={() => router.push('/dashboard/clinical-notes')}
                     disabled={!consentValid}
                   >
-                    Generate Clinical Note
+                    Create Visit Summary
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </CardContent>
@@ -379,63 +277,118 @@ export default function MedGemmaHubPage() {
             </div>
           </div>
 
-          {/* Medical Disclaimer */}
+          {/* Choose Your Mode */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Choose How the AI Works
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              You can change this anytime in Settings.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Accurate Mode */}
+              <Card className={`border-2 ${consent?.preferredModel === 'medgemma-27b' || !consent?.preferredModel ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="w-6 h-6 text-blue-600" />
+                      Accurate Mode
+                    </CardTitle>
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                      Recommended
+                    </span>
+                  </div>
+                  <CardDescription>
+                    Takes a bit longer but gives more detailed answers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      Best for doctor visit summaries
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      More thorough explanations
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      Better for complex questions
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* Fast Mode */}
+              <Card className={`border-2 ${consent?.preferredModel === 'medgemma-4b' ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="w-6 h-6 text-yellow-600" />
+                    Fast Mode
+                  </CardTitle>
+                  <CardDescription>
+                    Quick answers for simple questions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-yellow-600" />
+                      Faster responses
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      Good for quick lookups
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      Simple medication questions
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Important Notice */}
           <Alert variant="destructive" className="border-2">
             <AlertTriangle className="h-5 w-5" />
-            <AlertTitle className="text-lg">Important Medical Disclaimer</AlertTitle>
+            <AlertTitle className="text-lg">Important: This is Not Medical Advice</AlertTitle>
             <AlertDescription className="space-y-2 text-sm">
               <p>
-                <strong>MedGemma is NOT a substitute for professional medical care.</strong> All
-                AI-generated outputs are informational only and must be independently verified by
-                licensed healthcare providers before use in clinical decision-making.
+                The Health Assistant helps you organize information and ask questions, but it <strong>cannot replace a doctor or nurse</strong>.
+                Always talk to a healthcare provider before making any medical decisions.
               </p>
               <p>
-                MedGemma does not provide medical advice, diagnosis, treatment recommendations, or
-                medication dosage guidance. Always consult qualified healthcare professionals for
-                medical decisions.
-              </p>
-              <p>
-                <strong>Emergency situations:</strong> For medical emergencies, call 911 or your
-                local emergency number immediately.
+                <strong>In an emergency, call 911 immediately.</strong>
               </p>
             </AlertDescription>
           </Alert>
 
-          {/* Documentation Links */}
+          {/* Footer with required Google links */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-              <Info className="w-5 h-5" />
-              Learn More
-            </h3>
-
-            <div className="grid sm:grid-cols-3 gap-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Powered by Google MedGemma. Learn more:
+            </p>
+            <div className="flex flex-wrap gap-4">
               <a
                 href="https://developers.google.com/health-ai-developer-foundations/medgemma"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline text-xs"
               >
-                <ExternalLink className="w-4 h-4" />
-                MedGemma Documentation
+                <ExternalLink className="w-3 h-3" />
+                About Google MedGemma
               </a>
-
-              <a
-                href="https://developers.google.com/health-ai-developer-foundations/medgemma/model-card"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Model Card
-              </a>
-
               <a
                 href="https://developers.google.com/health-ai-developer-foundations/terms"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline text-xs"
               >
-                <ExternalLink className="w-4 h-4" />
+                <ExternalLink className="w-3 h-3" />
                 Terms of Use
               </a>
             </div>
