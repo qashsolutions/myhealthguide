@@ -298,7 +298,7 @@ export function AIFeaturesSettings({
           {consentValid ? (
             <div className="space-y-4">
               {/* Health Change Detection */}
-              <div className="space-y-3">
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <TrendingUp className="w-5 h-5 text-blue-600 flex-shrink-0" />
@@ -347,7 +347,7 @@ export function AIFeaturesSettings({
               </div>
 
               {/* Medication Time Optimization */}
-              <div className="space-y-3">
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Clock className="w-5 h-5 text-purple-600 flex-shrink-0" />
@@ -385,7 +385,7 @@ export function AIFeaturesSettings({
               </div>
 
               {/* Weekly Summary */}
-              <div className="space-y-3">
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -430,25 +430,27 @@ export function AIFeaturesSettings({
               </div>
 
               {/* Doctor Visit Prep */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <Label htmlFor="doctor-prep" className="text-base font-medium cursor-pointer">
-                      Doctor Visit Preparation
-                    </Label>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Generate printable reports for doctor appointments
-                    </p>
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <Label htmlFor="doctor-prep" className="text-base font-medium cursor-pointer">
+                        Doctor Visit Preparation
+                      </Label>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Generate printable reports for doctor appointments
+                      </p>
+                    </div>
                   </div>
+                  <Switch
+                    id="doctor-prep"
+                    checked={settings.features.doctorVisitPrep.enabled}
+                    onCheckedChange={(checked) => updateFeature('doctorVisitPrep.enabled', checked)}
+                    disabled={!settings.enabled || saving}
+                    className="flex-shrink-0 ml-4"
+                  />
                 </div>
-                <Switch
-                  id="doctor-prep"
-                  checked={settings.features.doctorVisitPrep.enabled}
-                  onCheckedChange={(checked) => updateFeature('doctorVisitPrep.enabled', checked)}
-                  disabled={!settings.enabled || saving}
-                  className="flex-shrink-0 ml-4"
-                />
               </div>
 
               {/* Consent Management */}
