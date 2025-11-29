@@ -30,7 +30,9 @@ import {
   BarChart3,
   DollarSign,
   CalendarDays,
-  UserCog
+  UserCog,
+  CalendarCheck,
+  ClockIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -295,6 +297,32 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             >
               <DollarSign className="w-4 h-4" />
               Billing
+            </Link>
+
+            <Link
+              href="/dashboard/calendar"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/calendar'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <CalendarCheck className="w-4 h-4" />
+              Shift Calendar
+            </Link>
+
+            <Link
+              href="/dashboard/availability"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/availability'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <ClockIcon className="w-4 h-4" />
+              Caregiver Availability
             </Link>
           </>
         )}

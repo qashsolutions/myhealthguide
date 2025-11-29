@@ -32,6 +32,8 @@ export default function AvailabilityPage() {
   const { user } = useAuth();
   const { availableElders } = useElder();
 
+  // Check if user is multi-agency subscriber
+  const isMultiAgency = user?.subscriptionTier === 'multi_agency';
   const userAgency = user?.agencies?.[0];
   const isCaregiver = userAgency?.role === 'caregiver' || userAgency?.role === 'caregiver_admin';
 
@@ -63,10 +65,10 @@ export default function AvailabilityPage() {
   });
 
   useEffect(() => {
-    if (user && userAgency && isCaregiver) {
+    if (user && userAgency && isCaregiver && isMultiAgency) {
       loadAvailability();
     }
-  }, [user, userAgency, isCaregiver]);
+  }, [user, userAgency, isCaregiver, isMultiAgency]);
 
   const loadAvailability = async () => {
     if (!user || !userAgency) return;
@@ -281,14 +283,34 @@ export default function AvailabilityPage() {
     });
   };
 
+  if (!isMultiAgency) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card className="p-8">
+          <CardContent>
+            <div className="text-center">
+              <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">
+                Availability management is only available for Multi-Agency subscriptions
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!isCaregiver) {
     return (
       <div className="flex items-center justify-center h-full">
         <Card className="p-8">
           <CardContent>
-            <p className="text-center text-gray-600 dark:text-gray-400">
-              Availability management is only available for caregivers
-            </p>
+            <div className="text-center">
+              <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">
+                Availability management is only available for caregivers
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
