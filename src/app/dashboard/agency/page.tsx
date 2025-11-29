@@ -10,7 +10,8 @@ import { AgencyDashboard } from '@/components/agency/AgencyDashboard';
 import { CaregiverAssignmentManager } from '@/components/agency/CaregiverAssignmentManager';
 import { AgencyAnalyticsDashboard } from '@/components/agency/analytics/AgencyAnalyticsDashboard';
 import { AgencyBillingDashboard } from '@/components/agency/billing/AgencyBillingDashboard';
-import { Building2, Users, Settings, BarChart3, DollarSign } from 'lucide-react';
+import { ShiftSchedulingCalendar } from '@/components/agency/scheduling';
+import { Building2, Users, BarChart3, DollarSign, CalendarDays } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -133,31 +134,51 @@ export default function AgencyPage() {
 
       {isSuperAdmin ? (
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className={`grid w-full ${isMultiAgency ? 'grid-cols-4' : 'grid-cols-2'} lg:w-auto`}>
+          <TabsList className={`grid w-full ${isMultiAgency ? 'grid-cols-5' : 'grid-cols-3'} lg:w-auto`}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
-              Overview
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="scheduling" className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4" />
+              <span className="hidden sm:inline">Scheduling</span>
+            </TabsTrigger>
+            <TabsTrigger value="assignments" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Assignments</span>
             </TabsTrigger>
             {isMultiAgency && (
               <>
                 <TabsTrigger value="analytics" className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
-                  Analytics
+                  <span className="hidden sm:inline">Analytics</span>
                 </TabsTrigger>
                 <TabsTrigger value="billing" className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
-                  Billing
+                  <span className="hidden sm:inline">Billing</span>
                 </TabsTrigger>
               </>
             )}
-            <TabsTrigger value="assignments" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Assignments
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <AgencyDashboard userId={userId} agencyId={agencyId} />
+          </TabsContent>
+
+          <TabsContent value="scheduling" className="space-y-6">
+            <ShiftSchedulingCalendar
+              agencyId={agencyId}
+              groupId={groupId}
+              userId={userId}
+            />
+          </TabsContent>
+
+          <TabsContent value="assignments" className="space-y-6">
+            <CaregiverAssignmentManager
+              agencyId={agencyId}
+              groupId={groupId}
+              userId={userId}
+            />
           </TabsContent>
 
           {isMultiAgency && (
@@ -171,14 +192,6 @@ export default function AgencyPage() {
               </TabsContent>
             </>
           )}
-
-          <TabsContent value="assignments" className="space-y-6">
-            <CaregiverAssignmentManager
-              agencyId={agencyId}
-              groupId={groupId}
-              userId={userId}
-            />
-          </TabsContent>
         </Tabs>
       ) : (
         <AgencyDashboard userId={userId} agencyId={agencyId} />

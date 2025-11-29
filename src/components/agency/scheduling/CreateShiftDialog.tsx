@@ -1,0 +1,351 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, AlertTriangle, Clock, User, Users } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { createScheduledShift, checkScheduleConflicts } from '@/lib/firebase/scheduleShifts';
+import { AgencyService } from '@/lib/firebase/agencies';
+import { GroupService } from '@/lib/firebase/groups';
+import type { Elder, ScheduleConflict } from '@/types';
+
+interface CaregiverInfo {
+  id: string;
+  name: string;
+  color: { bg: string; border: string; text: string };
+}
+
+interface CreateShiftDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  agencyId: string;
+  groupId: string;
+  userId: string;
+  initialDate: Date | null;
+  caregivers: CaregiverInfo[];
+  onShiftCreated: () => void;
+}
+
+export function CreateShiftDialog({
+  open,
+  onOpenChange,
+  agencyId,
+  groupId,
+  userId,
+  initialDate,
+  caregivers,
+  onShiftCreated
+}: CreateShiftDialogProps) {
+  const [date, setDate] = useState<Date | undefined>(initialDate || undefined);
+  const [selectedCaregiver, setSelectedCaregiver] = useState<string>('');
+  const [selectedElder, setSelectedElder] = useState<string>('');
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('17:00');
+  const [notes, setNotes] = useState('');
+  const [elders, setElders] = useState<Elder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<ScheduleConflict | null>(null);
+  const [checkingConflict, setCheckingConflict] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      loadElders();
+      if (initialDate) {
+        setDate(initialDate);
+      }
+    }
+  }, [open, groupId, initialDate]);
+
+  useEffect(() => {
+    // Reset conflict when inputs change
+    setConflict(null);
+    setError(null);
+  }, [selectedCaregiver, date, startTime, endTime]);
+
+  const loadElders = async () => {
+    try {
+      const group = await GroupService.getGroup(groupId);
+      if (group) {
+        setElders(group.elders);
+      }
+    } catch (err) {
+      console.error('Error loading elders:', err);
+    }
+  };
+
+  const handleCheckConflict = async () => {
+    if (!selectedCaregiver || !date) return;
+
+    setCheckingConflict(true);
+    try {
+      const result = await checkScheduleConflicts(
+        selectedCaregiver,
+        agencyId,
+        date,
+        startTime,
+        endTime
+      );
+      setConflict(result);
+    } catch (err) {
+      console.error('Error checking conflicts:', err);
+    } finally {
+      setCheckingConflict(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedCaregiver || !selectedElder || !date) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    // Validate times
+    if (startTime >= endTime) {
+      setError('End time must be after start time');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get caregiver and elder names
+      const caregiver = caregivers.find(c => c.id === selectedCaregiver);
+      const elder = elders.find(e => e.id === selectedElder);
+
+      if (!caregiver || !elder) {
+        setError('Invalid caregiver or elder selection');
+        return;
+      }
+
+      const result = await createScheduledShift(
+        agencyId,
+        groupId,
+        selectedElder,
+        elder.name,
+        selectedCaregiver,
+        caregiver.name,
+        date,
+        startTime,
+        endTime,
+        notes || undefined,
+        userId
+      );
+
+      if (result.success) {
+        // Reset form
+        setSelectedCaregiver('');
+        setSelectedElder('');
+        setStartTime('09:00');
+        setEndTime('17:00');
+        setNotes('');
+        setDate(undefined);
+        onShiftCreated();
+      } else {
+        if (result.conflict) {
+          setConflict(result.conflict);
+        }
+        setError(result.error || 'Failed to create shift');
+      }
+    } catch (err: any) {
+      console.error('Error creating shift:', err);
+      setError(err.message || 'Failed to create shift');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateDuration = () => {
+    if (!startTime || !endTime) return 0;
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    return Math.max(0, endMinutes - startMinutes);
+  };
+
+  const duration = calculateDuration();
+  const hours = Math.floor(duration / 60);
+  const minutes = duration % 60;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New Shift</DialogTitle>
+          <DialogDescription>
+            Schedule a caregiver to work with an elder
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Conflict Warning */}
+          {conflict && (
+            <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <strong>Scheduling Conflict:</strong> {conflict.message}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Date Selection */}
+          <div className="space-y-2">
+            <Label>Date *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full justify-start text-left font-normal',
+                    !date && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, 'PPP') : 'Select date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Caregiver Selection */}
+          <div className="space-y-2">
+            <Label>Caregiver *</Label>
+            <Select value={selectedCaregiver} onValueChange={setSelectedCaregiver}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select caregiver" />
+              </SelectTrigger>
+              <SelectContent>
+                {caregivers.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${c.color.bg} ${c.color.border} border`} />
+                      {c.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Elder Selection */}
+          <div className="space-y-2">
+            <Label>Elder *</Label>
+            <Select value={selectedElder} onValueChange={setSelectedElder}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select elder" />
+              </SelectTrigger>
+              <SelectContent>
+                {elders.map(e => (
+                  <SelectItem key={e.id} value={e.id!}>
+                    {e.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Time Selection */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Start Time *</Label>
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>End Time *</Label>
+              <Input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Duration Display */}
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <Clock className="w-4 h-4" />
+            <span>
+              Duration: {hours > 0 ? `${hours}h ` : ''}{minutes > 0 ? `${minutes}m` : hours === 0 ? '0m' : ''}
+            </span>
+          </div>
+
+          {/* Check Conflict Button */}
+          {selectedCaregiver && date && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCheckConflict}
+              disabled={checkingConflict}
+              className="w-full"
+            >
+              {checkingConflict ? 'Checking...' : 'Check for Conflicts'}
+            </Button>
+          )}
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label>Notes (optional)</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any special instructions..."
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading || !!conflict}>
+            {loading ? 'Creating...' : 'Create Shift'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
