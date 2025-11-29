@@ -9,15 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
-import { MedGemmaConsentDialog } from '@/components/medgemma/MedGemmaConsentDialog';
+import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
 import {
   Brain,
   Sparkles,
   MessageSquare,
   FileText,
-  Shield,
   Zap,
-  TrendingUp,
   ExternalLink,
   AlertTriangle,
   CheckCircle,
@@ -26,11 +24,10 @@ import {
   Info
 } from 'lucide-react';
 import {
-  checkMedGemmaConsent,
-  createMedGemmaConsent,
+  checkUnifiedConsent,
   getConsentExpiryWarning,
-  type MedGemmaConsent
-} from '@/lib/medgemma/consentManagement';
+  type UnifiedAIConsent
+} from '@/lib/consent/unifiedConsentManagement';
 
 /**
  * MedGemma Hub Page
@@ -38,7 +35,7 @@ import {
  * Central landing page for Google MedGemma AI features
  * - Model information (4B vs 27B)
  * - Feature showcase
- * - Consent management
+ * - Consent management (uses unified consent system)
  * - Google attribution & compliance
  */
 export default function MedGemmaHubPage() {
@@ -46,33 +43,35 @@ export default function MedGemmaHubPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
 
-  const [consent, setConsent] = useState<MedGemmaConsent | null>(null);
+  const [consent, setConsent] = useState<UnifiedAIConsent | null>(null);
   const [consentValid, setConsentValid] = useState(false);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Check consent status
-  useEffect(() => {
-    if (!user || !selectedElder) return;
+  const groupId = selectedElder?.groupId || user?.groups?.[0]?.groupId;
 
-    checkMedGemmaConsent(user.id, selectedElder.groupId).then(({ valid, consent }) => {
+  // Check consent status using unified consent system
+  useEffect(() => {
+    if (!user?.id || !groupId) {
+      setLoading(false);
+      return;
+    }
+
+    checkUnifiedConsent(user.id, groupId).then(({ valid, consent }) => {
       setConsentValid(valid);
       setConsent(consent);
       setLoading(false);
     });
-  }, [user, selectedElder]);
+  }, [user?.id, groupId]);
 
-  const handleConsent = async (preferredModel: 'medgemma-4b' | 'medgemma-27b') => {
-    if (!user || !selectedElder) return;
+  const handleConsentComplete = async () => {
+    // Re-check consent after it's been granted
+    if (!user?.id || !groupId) return;
 
-    try {
-      const newConsent = await createMedGemmaConsent(user.id, selectedElder.groupId, preferredModel);
-      setConsent(newConsent);
-      setConsentValid(true);
-      setShowConsentDialog(false);
-    } catch (error) {
-      console.error('Error creating consent:', error);
-    }
+    const { valid, consent: newConsent } = await checkUnifiedConsent(user.id, groupId);
+    setConsentValid(valid);
+    setConsent(newConsent);
+    setShowConsentDialog(false);
   };
 
   const expiryWarning = consent ? getConsentExpiryWarning(consent) : null;
@@ -98,7 +97,7 @@ export default function MedGemmaHubPage() {
             {consentValid && (
               <Button
                 variant="outline"
-                onClick={() => router.push('/dashboard/settings')}
+                onClick={() => router.push('/dashboard/settings?tab=ai')}
                 className="gap-2"
               >
                 <Settings className="w-4 h-4" />
@@ -309,7 +308,7 @@ export default function MedGemmaHubPage() {
                 <CardContent className="space-y-4">
                   <div>
                     <h4 className="font-semibold text-sm mb-2 text-green-700 dark:text-green-300">
-                      ✓ Value Proposition:
+                      Value Proposition:
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Get instant, evidence-based answers without searching through logs manually
@@ -350,7 +349,7 @@ export default function MedGemmaHubPage() {
                 <CardContent className="space-y-4">
                   <div>
                     <h4 className="font-semibold text-sm mb-2 text-green-700 dark:text-green-300">
-                      ✓ Value Proposition:
+                      Value Proposition:
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Save 15+ minutes per doctor visit with AI-generated summaries
@@ -443,12 +442,16 @@ export default function MedGemmaHubPage() {
           </div>
         </div>
 
-        {/* Consent Dialog */}
-        <MedGemmaConsentDialog
-          open={showConsentDialog}
-          onConsent={handleConsent}
-          onDecline={() => setShowConsentDialog(false)}
-        />
+        {/* Unified Consent Dialog */}
+        {user && groupId && (
+          <UnifiedAIConsentDialog
+            open={showConsentDialog}
+            userId={user.id}
+            groupId={groupId}
+            onConsent={handleConsentComplete}
+            onDecline={() => setShowConsentDialog(false)}
+          />
+        )}
       </EmailVerificationGate>
     </TrialExpirationGate>
   );
