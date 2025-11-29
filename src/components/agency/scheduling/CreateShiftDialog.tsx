@@ -21,13 +21,9 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, AlertTriangle, Clock, User, Users } from 'lucide-react';
+import { CalendarIcon, AlertTriangle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { createScheduledShift, checkScheduleConflicts } from '@/lib/firebase/scheduleShifts';
-import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
 import type { Elder, ScheduleConflict } from '@/types';
 
@@ -223,28 +219,12 @@ export function CreateShiftDialog({
           {/* Date Selection */}
           <div className="space-y-2">
             <Label>Date *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !date && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, 'PPP') : 'Select date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <Input
+              type="date"
+              value={date ? format(date, 'yyyy-MM-dd') : ''}
+              onChange={(e) => setDate(e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined)}
+              className="w-full"
+            />
           </div>
 
           {/* Caregiver Selection */}

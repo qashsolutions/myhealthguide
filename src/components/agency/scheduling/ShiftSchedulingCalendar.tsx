@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   ChevronLeft,
   ChevronRight,
@@ -391,42 +390,40 @@ export function ShiftSchedulingCalendar({
                     }`}
                     onClick={() => handleDayClick(day)}
                   >
-                    <ScrollArea className="h-[140px]">
-                      <div className="space-y-1">
-                        {dayShifts.map(shift => {
-                          const color = getCaregiverColor(shift.caregiverId);
-                          return (
-                            <div
-                              key={shift.id}
-                              className={`p-1.5 rounded text-xs ${color.bg} ${color.border} border-l-2 cursor-pointer hover:opacity-80`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedShift(shift);
-                              }}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className={`font-medium ${color.text}`}>
-                                  {shift.startTime}-{shift.endTime}
-                                </span>
-                                <div className={`w-2 h-2 rounded-full ${getShiftStatusColor(shift.status)}`} />
-                              </div>
-                              <div className="text-gray-600 dark:text-gray-400 truncate">
-                                {shift.caregiverName}
-                              </div>
-                              <div className="text-gray-500 dark:text-gray-500 truncate text-[10px]">
-                                → {shift.elderName}
-                              </div>
+                    <div className="h-[140px] overflow-y-auto space-y-1">
+                      {dayShifts.map(shift => {
+                        const color = getCaregiverColor(shift.caregiverId);
+                        return (
+                          <div
+                            key={shift.id}
+                            className={`p-1.5 rounded text-xs ${color.bg} ${color.border} border-l-2 cursor-pointer hover:opacity-80`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedShift(shift);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className={`font-medium ${color.text}`}>
+                                {shift.startTime}-{shift.endTime}
+                              </span>
+                              <div className={`w-2 h-2 rounded-full ${getShiftStatusColor(shift.status)}`} />
                             </div>
-                          );
-                        })}
-                        {dayShifts.length === 0 && (
-                          <div className="h-full flex items-center justify-center text-gray-400 text-xs">
-                            <Plus className="w-3 h-3 mr-1" />
-                            Add
+                            <div className="text-gray-600 dark:text-gray-400 truncate">
+                              {shift.caregiverName}
+                            </div>
+                            <div className="text-gray-500 dark:text-gray-500 truncate text-[10px]">
+                              → {shift.elderName}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </ScrollArea>
+                        );
+                      })}
+                      {dayShifts.length === 0 && (
+                        <div className="h-full flex items-center justify-center text-gray-400 text-xs">
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
