@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, Loader2, AlertCircle, CheckCircle, RefreshCw, Pill } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, RefreshCw, Pill, Clock } from 'lucide-react';
 import { runScheduleConflictCheck } from '@/lib/medical/scheduleConflictDetection';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -80,16 +80,17 @@ export default function ScheduleConflictsPage() {
         </Button>
       </div>
 
-      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4">
+      <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 p-4">
         <div className="flex items-start gap-3">
-          <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+          <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
-            <p className="font-semibold text-blue-900 dark:text-blue-100">
-              Scheduling Information Only
+            <p className="font-semibold text-amber-900 dark:text-amber-100">
+              Informational Alerts Only — Not Medical Advice
             </p>
-            <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-              These are potential timing conflicts based on common medication requirements. Always
-              consult your doctor or pharmacist about medication timing.
+            <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+              Any conflicts shown are informational notifications based on general medication guidelines.
+              <strong> Always follow your physician's, PCP's, or pharmacist's instructions.</strong> Do not
+              change your medication schedule without consulting your healthcare provider.
             </p>
           </div>
         </div>
