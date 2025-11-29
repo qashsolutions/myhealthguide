@@ -5,37 +5,43 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2, Shield, RefreshCw } from 'lucide-react';
-import { MedicalDisclaimerConsent } from '@/components/medical/MedicalDisclaimerConsent';
+import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
 import { FDADataDisclaimer } from '@/components/medical/FDADataDisclaimer';
 import { FDADataDisplay } from '@/components/medical/FDADataDisplay';
-import { verifyAndLogMedicalAccess } from '@/lib/medical/consentManagement';
+import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
 import {
-  checkMedicationInteractions,
   runInteractionCheck,
   getFDADataForMedication
 } from '@/lib/medical/drugInteractionDetection';
 import type { FDADrugLabelData } from '@/lib/medical/fdaApi';
-import type { Medication } from '@/types';
 
 export default function DrugInteractionsPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
   const groupId = selectedElder?.groupId || user?.groups?.[0]?.groupId;
   const elderId = selectedElder?.id;
+
+  // Unified consent state
   const [hasConsent, setHasConsent] = useState(false);
   const [checkingConsent, setCheckingConsent] = useState(true);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
 
+  // Feature state
   const [loading, setLoading] = useState(false);
   const [interactions, setInteractions] = useState<any[]>([]);
-  const [selectedInteraction, setSelectedInteraction] = useState<any | null>(null);
   const [showFDADisclaimer, setShowFDADisclaimer] = useState(false);
   const [fdaDataToShow, setFdaDataToShow] = useState<FDADrugLabelData | null>(null);
   const [medicationNameForFDA, setMedicationNameForFDA] = useState('');
 
-  // Check consent on mount
+  // Check unified consent on mount
   useEffect(() => {
+    if (!user?.id || !groupId) {
+      setCheckingConsent(false);
+      return;
+    }
+
     checkConsent();
   }, [user?.id, groupId]);
 
@@ -43,28 +49,50 @@ export default function DrugInteractionsPage() {
     if (!user?.id || !groupId) return;
 
     setCheckingConsent(true);
-    const { allowed } = await verifyAndLogMedicalAccess(
-      user.id,
-      groupId,
-      'medication_interactions'
-    );
+    try {
+      const { allowed } = await verifyAndLogAccess(
+        user.id,
+        groupId,
+        'drug_interactions',
+        elderId
+      );
 
-    setHasConsent(allowed);
-    setCheckingConsent(false);
+      setHasConsent(allowed);
 
-    if (!allowed) {
-      setShowConsentDialog(true);
-    } else {
-      loadInteractions();
+      if (!allowed) {
+        setShowConsentDialog(true);
+      } else {
+        loadInteractions();
+      }
+    } catch (error) {
+      console.error('Error checking consent:', error);
+    } finally {
+      setCheckingConsent(false);
     }
   }
+
+  const handleConsentComplete = async () => {
+    setShowConsentDialog(false);
+    setHasConsent(true);
+
+    // Log access after consent
+    if (user?.id && groupId) {
+      await verifyAndLogAccess(
+        user.id,
+        groupId,
+        'drug_interactions',
+        elderId
+      );
+    }
+
+    loadInteractions();
+  };
 
   async function loadInteractions() {
     if (!groupId) return;
 
     setLoading(true);
     try {
-      // Run fresh interaction check
       const result = await runInteractionCheck(groupId, elderId || '');
       setInteractions(result.interactions);
     } catch (error) {
@@ -85,7 +113,6 @@ export default function DrugInteractionsPage() {
 
   function handleFDADisclaimerAccept() {
     setShowFDADisclaimer(false);
-    // FDA data already loaded, user can now view it
   }
 
   if (checkingConsent) {
@@ -101,18 +128,24 @@ export default function DrugInteractionsPage() {
   if (!hasConsent) {
     return (
       <div className="p-6">
-        {showConsentDialog && (
-          <MedicalDisclaimerConsent
-            featureType="medication_interactions"
-            groupId={groupId!}
-            onConsentGiven={() => {
-              setHasConsent(true);
-              setShowConsentDialog(false);
-              loadInteractions();
-            }}
-            onConsentDenied={() => {
-              window.location.href = '/dashboard';
-            }}
+        <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+          <AlertTriangle className="h-5 w-5 text-yellow-600" />
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <strong>AI & Medical Consent Required:</strong> To use Drug Interactions, please review
+            and accept the terms.
+            <Button size="sm" className="mt-2 ml-2" onClick={() => setShowConsentDialog(true)}>
+              Review Terms & Enable
+            </Button>
+          </AlertDescription>
+        </Alert>
+
+        {user && groupId && (
+          <UnifiedAIConsentDialog
+            open={showConsentDialog}
+            userId={user.id}
+            groupId={groupId}
+            onConsent={handleConsentComplete}
+            onDecline={() => window.location.href = '/dashboard'}
           />
         )}
       </div>
@@ -291,6 +324,17 @@ export default function DrugInteractionsPage() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Unified Consent Dialog */}
+      {user && groupId && (
+        <UnifiedAIConsentDialog
+          open={showConsentDialog}
+          userId={user.id}
+          groupId={groupId}
+          onConsent={handleConsentComplete}
+          onDecline={() => window.location.href = '/dashboard'}
+        />
       )}
     </div>
   );

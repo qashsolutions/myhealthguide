@@ -10,16 +10,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
-import { MedGemmaConsentDialog } from '@/components/medgemma/MedGemmaConsentDialog';
+import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
 import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info, AlertTriangle, Brain } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { validateNoProfanity } from '@/lib/utils/profanityFilter';
 import {
-  checkMedGemmaConsent,
-  createMedGemmaConsent,
-  logMedGemmaAccess
-} from '@/lib/medgemma/consentManagement';
+  checkUnifiedConsent,
+  verifyAndLogAccess
+} from '@/lib/consent/unifiedConsentManagement';
 
 interface Message {
   id: string;
@@ -40,9 +39,8 @@ export default function HealthChatPage() {
   const [profanityError, setProfanityError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // MedGemma consent management
+  // Unified consent management
   const [consentValid, setConsentValid] = useState(false);
-  const [consentId, setConsentId] = useState<string | null>(null);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
   const [checkingConsent, setCheckingConsent] = useState(true);
 
@@ -54,61 +52,56 @@ export default function HealthChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  // Check MedGemma consent on mount
+  // Check unified consent on mount
   useEffect(() => {
     if (!user || !selectedElder) {
       setCheckingConsent(false);
       return;
     }
 
-    checkMedGemmaConsent(user.id, selectedElder.groupId).then(({ valid, consent }) => {
-      setConsentValid(valid);
-      setConsentId(consent?.id || null);
-      setCheckingConsent(false);
-
-      if (valid && consent) {
-        // Log access
-        logMedGemmaAccess(
-          user.id,
-          selectedElder.groupId,
-          selectedElder.id,
-          'health_chat',
-          'accessed',
-          consent.id,
-          true,
-          consent.preferredModel === 'medgemma-4b' ? 'medgemma-4b' : 'medgemma-27b'
-        );
-      }
-    });
+    checkConsent();
   }, [user, selectedElder]);
 
-  const handleConsent = async (preferredModel: 'medgemma-4b' | 'medgemma-27b') => {
-    if (!user || !selectedElder) return;
+  const checkConsent = async () => {
+    if (!user?.id || !selectedElder?.groupId) return;
 
+    setCheckingConsent(true);
     try {
-      const newConsent = await createMedGemmaConsent(user.id, selectedElder.groupId, preferredModel);
-      setConsentId(newConsent.id);
-      setConsentValid(true);
-      setShowConsentDialog(false);
-
-      // Log access
-      await logMedGemmaAccess(
+      const { allowed, consent } = await verifyAndLogAccess(
         user.id,
         selectedElder.groupId,
-        selectedElder.id,
         'health_chat',
-        'accessed',
-        newConsent.id,
-        true,
-        preferredModel
+        selectedElder.id
       );
+
+      setConsentValid(allowed);
+      if (!allowed) {
+        setShowConsentDialog(true);
+      }
     } catch (error) {
-      console.error('Error creating consent:', error);
+      console.error('Error checking consent:', error);
+    } finally {
+      setCheckingConsent(false);
+    }
+  };
+
+  const handleConsentComplete = async () => {
+    setShowConsentDialog(false);
+    setConsentValid(true);
+
+    // Log access after consent
+    if (user?.id && selectedElder?.groupId) {
+      await verifyAndLogAccess(
+        user.id,
+        selectedElder.groupId,
+        'health_chat',
+        selectedElder.id
+      );
     }
   };
 
   const handleSendMessage = async (message: string) => {
-    if (!message.trim() || !user || !selectedElder) return;
+    if (!message.trim() || !user || !selectedElder || !consentValid) return;
 
     // Check for profanity
     const profanityCheck = validateNoProfanity(message, 'Message');
@@ -212,18 +205,18 @@ export default function HealthChatPage() {
           </div>
         </div>
 
-        {/* MedGemma Consent Gate */}
+        {/* Consent Gate */}
         {checkingConsent ? (
           <Alert className="mb-4">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <AlertDescription>Checking MedGemma consent status...</AlertDescription>
+            <AlertDescription>Checking consent status...</AlertDescription>
           </Alert>
         ) : !consentValid ? (
           <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
             <AlertTriangle className="h-5 w-5 text-yellow-600" />
             <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-              <strong>MedGemma Consent Required:</strong> To use Health Chat, please review and accept the
-              Google Health AI Developer Foundations terms.
+              <strong>AI Consent Required:</strong> To use Health Chat, please review and accept the
+              AI & Medical terms.
               <Button size="sm" className="mt-2" onClick={() => setShowConsentDialog(true)}>
                 Review Terms & Enable
               </Button>
@@ -261,8 +254,9 @@ export default function HealthChatPage() {
               {exampleQueries.map((query, index) => (
                 <button
                   key={index}
-                  onClick={() => handleSendMessage(query)}
-                  className="p-3 text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+                  onClick={() => consentValid && handleSendMessage(query)}
+                  disabled={!consentValid}
+                  className="p-3 text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <p className="text-sm text-gray-700 dark:text-gray-300">{query}</p>
                 </button>
@@ -356,7 +350,7 @@ export default function HealthChatPage() {
               setInputValue(e.target.value);
               setProfanityError(null);
             }}
-            placeholder={!consentValid ? "MedGemma consent required" : "Ask about health data..."}
+            placeholder={!consentValid ? "AI consent required" : "Ask about health data..."}
             disabled={loading || !selectedElder || !consentValid}
             className="flex-1"
           />
@@ -383,12 +377,16 @@ export default function HealthChatPage() {
       </Card>
         </div>
 
-        {/* MedGemma Consent Dialog */}
-        <MedGemmaConsentDialog
-          open={showConsentDialog}
-          onConsent={handleConsent}
-          onDecline={() => setShowConsentDialog(false)}
-        />
+        {/* Unified Consent Dialog */}
+        {user && selectedElder && (
+          <UnifiedAIConsentDialog
+            open={showConsentDialog}
+            userId={user.id}
+            groupId={selectedElder.groupId}
+            onConsent={handleConsentComplete}
+            onDecline={() => setShowConsentDialog(false)}
+          />
+        )}
       </EmailVerificationGate>
     </TrialExpirationGate>
   );

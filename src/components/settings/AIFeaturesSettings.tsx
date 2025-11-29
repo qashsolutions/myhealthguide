@@ -7,9 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AIFeaturesConsentDialog } from '@/components/ai/AIFeaturesConsentDialog';
-import { Sparkles, TrendingUp, Clock, FileText, Shield, AlertCircle, CheckCircle } from 'lucide-react';
+import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
+import { Sparkles, TrendingUp, Clock, FileText, Shield, AlertCircle, CheckCircle, Brain, RefreshCw } from 'lucide-react';
 import { AIFeatureSettings } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  checkUnifiedConsent,
+  revokeUnifiedConsent,
+  getConsentExpiryWarning,
+  UnifiedAIConsent
+} from '@/lib/consent/unifiedConsentManagement';
 
 interface AIFeaturesSettingsProps {
   groupId: string;
@@ -24,7 +31,13 @@ export function AIFeaturesSettings({
   onSave,
   isAdmin
 }: AIFeaturesSettingsProps) {
+  const { user } = useAuth();
   const [showConsentDialog, setShowConsentDialog] = useState(false);
+  const [consent, setConsent] = useState<UnifiedAIConsent | null>(null);
+  const [consentValid, setConsentValid] = useState(false);
+  const [checkingConsent, setCheckingConsent] = useState(true);
+  const [expiryWarning, setExpiryWarning] = useState<{ warning: boolean; daysRemaining: number; message: string } | null>(null);
+
   const [settings, setSettings] = useState<AIFeatureSettings>(
     currentSettings || {
       enabled: false,
@@ -65,8 +78,49 @@ export function AIFeaturesSettings({
   );
   const [saving, setSaving] = useState(false);
 
+  // Check for existing unified consent on mount
+  useEffect(() => {
+    if (!user?.id || !groupId) return;
+
+    checkExistingConsent();
+  }, [user?.id, groupId]);
+
+  const checkExistingConsent = async () => {
+    if (!user?.id) return;
+
+    setCheckingConsent(true);
+    try {
+      const { valid, consent: existingConsent } = await checkUnifiedConsent(user.id, groupId);
+
+      setConsentValid(valid);
+      setConsent(existingConsent);
+
+      if (valid && existingConsent) {
+        // Consent exists - update settings to reflect this
+        const updatedSettings: AIFeatureSettings = {
+          ...settings,
+          enabled: true,
+          consent: {
+            granted: true,
+            grantedAt: existingConsent.consentedAt,
+            grantedBy: user.id
+          }
+        };
+        setSettings(updatedSettings);
+
+        // Check for expiry warning
+        const warning = getConsentExpiryWarning(existingConsent);
+        setExpiryWarning(warning);
+      }
+    } catch (error) {
+      console.error('Error checking consent:', error);
+    } finally {
+      setCheckingConsent(false);
+    }
+  };
+
   const handleEnableAI = () => {
-    if (!settings.consent.granted) {
+    if (!consentValid) {
       setShowConsentDialog(true);
     } else {
       // Already consented, just toggle master switch
@@ -74,23 +128,56 @@ export function AIFeaturesSettings({
     }
   };
 
-  const handleConsent = async () => {
+  const handleConsentComplete = async () => {
+    setShowConsentDialog(false);
+
+    // Re-check consent after it's been granted
+    await checkExistingConsent();
+
+    // Enable AI features
     const updatedSettings: AIFeatureSettings = {
       ...settings,
       enabled: true,
       consent: {
         granted: true,
         grantedAt: new Date(),
-        grantedBy: groupId // This should be user ID in real implementation
+        grantedBy: user?.id || groupId
       }
     };
     setSettings(updatedSettings);
-    setShowConsentDialog(false);
     await handleSave(updatedSettings);
   };
 
   const handleDecline = () => {
     setShowConsentDialog(false);
+  };
+
+  const handleRevokeConsent = async () => {
+    if (!consent?.id) return;
+
+    if (!confirm('Are you sure you want to revoke AI consent? This will disable all AI-powered features.')) {
+      return;
+    }
+
+    try {
+      await revokeUnifiedConsent(consent.id, 'User revoked from settings');
+
+      // Update local state
+      setConsentValid(false);
+      setConsent(null);
+
+      const updatedSettings: AIFeatureSettings = {
+        ...settings,
+        enabled: false,
+        consent: {
+          granted: false
+        }
+      };
+      setSettings(updatedSettings);
+      await handleSave(updatedSettings);
+    } catch (error) {
+      console.error('Error revoking consent:', error);
+    }
   };
 
   const handleSave = async (updatedSettings: AIFeatureSettings) => {
@@ -130,6 +217,25 @@ export function AIFeaturesSettings({
     );
   }
 
+  if (checkingConsent) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            AI-Powered Caregiver Intelligence
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8">
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+            <span className="text-gray-600 dark:text-gray-400">Checking consent status...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <>
       <Card>
@@ -144,6 +250,25 @@ export function AIFeaturesSettings({
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Expiry Warning */}
+          {expiryWarning && (
+            <Alert className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                {expiryWarning.message}
+                {expiryWarning.daysRemaining === 0 && (
+                  <Button
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => setShowConsentDialog(true)}
+                  >
+                    Re-consent Now
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Master Toggle */}
           <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
             <div className="flex-1">
@@ -151,26 +276,26 @@ export function AIFeaturesSettings({
                 <Label htmlFor="ai-master" className="text-base font-semibold cursor-pointer">
                   Enable AI Features
                 </Label>
-                {settings.consent.granted && (
+                {consentValid && (
                   <CheckCircle className="w-4 h-4 text-green-600" />
                 )}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {settings.consent.granted
-                  ? `Consent granted ${settings.consent.grantedAt ? new Date(settings.consent.grantedAt).toLocaleDateString() : ''}`
+                {consentValid && consent
+                  ? `Consent granted ${consent.consentedAt ? new Date(consent.consentedAt).toLocaleDateString() : ''}`
                   : 'Requires consent to enable AI-powered insights'}
               </p>
             </div>
             <Switch
               id="ai-master"
-              checked={settings.enabled}
+              checked={settings.enabled && consentValid}
               onCheckedChange={handleEnableAI}
               disabled={saving}
             />
           </div>
 
-          {/* Show features only if consent granted */}
-          {settings.consent.granted ? (
+          {/* Show features only if consent valid */}
+          {consentValid ? (
             <div className="space-y-6">
               {/* Health Change Detection */}
               <div className="space-y-3">
@@ -322,6 +447,30 @@ export function AIFeaturesSettings({
                 />
               </div>
 
+              {/* Consent Management */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      Manage Consent
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {consent?.expiresAt && (
+                        <>Expires: {new Date(consent.expiresAt).toLocaleDateString()}</>
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRevokeConsent}
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    Revoke Consent
+                  </Button>
+                </div>
+              </div>
+
               {/* Info Alert */}
               <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
                 <AlertCircle className="h-4 w-4 text-blue-600" />
@@ -344,12 +493,16 @@ export function AIFeaturesSettings({
         </CardContent>
       </Card>
 
-      {/* Consent Dialog */}
-      <AIFeaturesConsentDialog
-        open={showConsentDialog}
-        onConsent={handleConsent}
-        onDecline={handleDecline}
-      />
+      {/* Unified Consent Dialog */}
+      {user && (
+        <UnifiedAIConsentDialog
+          open={showConsentDialog}
+          userId={user.id}
+          groupId={groupId}
+          onConsent={handleConsentComplete}
+          onDecline={handleDecline}
+        />
+      )}
     </>
   );
 }

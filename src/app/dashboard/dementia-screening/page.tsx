@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Brain, Loader2, AlertTriangle, Info, RefreshCw, Shield } from 'lucide-react';
-import { MedicalDisclaimerConsent } from '@/components/medical/MedicalDisclaimerConsent';
-import { verifyAndLogMedicalAccess } from '@/lib/medical/consentManagement';
+import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
+import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
 import {
   runDementiaScreening,
   getDementiaScreenings,
@@ -22,17 +23,24 @@ export default function DementiaScreeningPage() {
   const elderId = selectedElder?.id;
   const elderName = selectedElder?.name || 'Elder';
 
+  // Unified consent state
   const [hasConsent, setHasConsent] = useState(false);
   const [checkingConsent, setCheckingConsent] = useState(true);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
 
+  // Feature state
   const [loading, setLoading] = useState(false);
   const [runningScreening, setRunningScreening] = useState(false);
   const [screenings, setScreenings] = useState<DementiaScreeningReport[]>([]);
   const [selectedScreening, setSelectedScreening] = useState<DementiaScreeningReport | null>(null);
 
-  // Check consent on mount
+  // Check unified consent on mount
   useEffect(() => {
+    if (!user?.id || !groupId) {
+      setCheckingConsent(false);
+      return;
+    }
+
     checkConsent();
   }, [user?.id, groupId]);
 
@@ -40,21 +48,44 @@ export default function DementiaScreeningPage() {
     if (!user?.id || !groupId) return;
 
     setCheckingConsent(true);
-    const { allowed } = await verifyAndLogMedicalAccess(
-      user.id,
-      groupId,
-      'dementia_screening'
-    );
+    try {
+      const { allowed } = await verifyAndLogAccess(
+        user.id,
+        groupId,
+        'dementia_screening',
+        elderId
+      );
 
-    setHasConsent(allowed);
-    setCheckingConsent(false);
+      setHasConsent(allowed);
 
-    if (!allowed) {
-      setShowConsentDialog(true);
-    } else {
-      loadScreenings();
+      if (!allowed) {
+        setShowConsentDialog(true);
+      } else {
+        loadScreenings();
+      }
+    } catch (error) {
+      console.error('Error checking consent:', error);
+    } finally {
+      setCheckingConsent(false);
     }
   }
+
+  const handleConsentComplete = async () => {
+    setShowConsentDialog(false);
+    setHasConsent(true);
+
+    // Log access after consent
+    if (user?.id && groupId) {
+      await verifyAndLogAccess(
+        user.id,
+        groupId,
+        'dementia_screening',
+        elderId
+      );
+    }
+
+    loadScreenings();
+  };
 
   async function loadScreenings() {
     if (!groupId || !elderId) return;
@@ -125,18 +156,24 @@ export default function DementiaScreeningPage() {
   if (!hasConsent) {
     return (
       <div className="p-6">
-        {showConsentDialog && (
-          <MedicalDisclaimerConsent
-            featureType="dementia_screening"
-            groupId={groupId!}
-            onConsentGiven={() => {
-              setHasConsent(true);
-              setShowConsentDialog(false);
-              loadScreenings();
-            }}
-            onConsentDenied={() => {
-              window.location.href = '/dashboard';
-            }}
+        <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+          <AlertTriangle className="h-5 w-5 text-yellow-600" />
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <strong>AI & Medical Consent Required:</strong> To use Behavioral Pattern Monitoring,
+            please review and accept the terms.
+            <Button size="sm" className="mt-2 ml-2" onClick={() => setShowConsentDialog(true)}>
+              Review Terms & Enable
+            </Button>
+          </AlertDescription>
+        </Alert>
+
+        {user && groupId && (
+          <UnifiedAIConsentDialog
+            open={showConsentDialog}
+            userId={user.id}
+            groupId={groupId}
+            onConsent={handleConsentComplete}
+            onDecline={() => window.location.href = '/dashboard'}
           />
         )}
       </div>
@@ -382,7 +419,7 @@ export default function DementiaScreeningPage() {
             {/* Action Reminder */}
             <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 p-4">
               <p className="text-xs text-purple-800 dark:text-purple-200">
-                💡 <strong>Next Steps:</strong> If you have concerns about these patterns, schedule
+                <strong>Next Steps:</strong> If you have concerns about these patterns, schedule
                 an appointment with {elderName}'s healthcare provider. Bring this report or share
                 specific examples from the care notes. Early detection and intervention can make a
                 significant difference.
@@ -390,6 +427,17 @@ export default function DementiaScreeningPage() {
             </Card>
           </div>
         </div>
+      )}
+
+      {/* Unified Consent Dialog */}
+      {user && groupId && (
+        <UnifiedAIConsentDialog
+          open={showConsentDialog}
+          userId={user.id}
+          groupId={groupId}
+          onConsent={handleConsentComplete}
+          onDecline={() => window.location.href = '/dashboard'}
+        />
       )}
     </div>
   );

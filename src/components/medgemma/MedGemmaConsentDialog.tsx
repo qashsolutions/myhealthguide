@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Use UnifiedAIConsentDialog from '@/components/consent/UnifiedAIConsentDialog' instead.
+ * The unified consent dialog consolidates all AI and medical consent into a single flow
+ * with 60-second reading time requirement, including Google MedGemma HAI-DEF terms.
+ */
+
 import { useState } from 'react';
 import {
   Dialog,
