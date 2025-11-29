@@ -55,8 +55,8 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
 
     fetchPendingApprovals();
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchPendingApprovals, 30000);
+    // Refresh every 6 hours (6 * 60 * 60 * 1000 = 21600000ms)
+    const interval = setInterval(fetchPendingApprovals, 21600000);
     return () => clearInterval(interval);
   }, [user]);
 
