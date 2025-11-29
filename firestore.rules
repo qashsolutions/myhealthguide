@@ -1178,6 +1178,48 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
+    // ============= Unified AI Consents Collection =============
+    // Single source of truth for all AI and Medical feature consent
+
+    match /unifiedAIConsents/{consentId} {
+      // Users can read their own consents
+      allow read: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // Users can create their own consents
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Users can update their own consents (to revoke)
+      allow update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // Consent records should NOT be deleted (audit trail)
+      // But allow for GDPR compliance
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ============= Unified Consent Access Logs Collection =============
+    // Audit trail for AI/Medical feature access
+
+    match /unifiedConsentAccessLogs/{logId} {
+      // Users can read their own access logs (GDPR transparency)
+      allow read: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // System creates access logs
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Access logs are immutable (audit trail)
+      allow update: if false;
+
+      // Users can delete their own logs (GDPR Right to be Forgotten)
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
