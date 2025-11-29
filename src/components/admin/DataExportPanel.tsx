@@ -28,10 +28,29 @@ export function DataExportPanel({ userId, isAdmin }: DataExportPanelProps) {
 
     try {
       const data = await DataExportService.exportAllUserData(userId);
-      setExportData(data);
-    } catch (err) {
+
+      // Check if there's any meaningful data to export
+      const hasData = data.groups.length > 0 ||
+                      data.elders.length > 0 ||
+                      data.medications.length > 0 ||
+                      data.medicationLogs.length > 0 ||
+                      data.dietEntries.length > 0;
+
+      if (!hasData && data.user) {
+        // User exists but has no data yet
+        setExportData(data);
+        setError('');
+      } else {
+        setExportData(data);
+      }
+    } catch (err: any) {
       console.error('Export error:', err);
-      setError('Failed to export data. Please try again.');
+      // Check for permission errors (user has no groups/data yet)
+      if (err?.code === 'permission-denied' || err?.message?.includes('permission')) {
+        setError('No data to export yet. Start by creating a group and adding elders to track their care.');
+      } else {
+        setError('Failed to export data. Please try again.');
+      }
     } finally {
       setExporting(false);
     }
@@ -79,10 +98,17 @@ export function DataExportPanel({ userId, isAdmin }: DataExportPanelProps) {
           </AlertDescription>
         </Alert>
 
-        {/* Error */}
+        {/* Error/Info Message */}
         {error && (
-          <Alert className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
-            <AlertDescription className="text-red-800 dark:text-red-200">
+          <Alert className={error.includes('No data to export')
+            ? "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800"
+            : "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
+          }>
+            <Info className={`h-4 w-4 ${error.includes('No data to export') ? 'text-amber-600' : 'text-red-600'}`} />
+            <AlertDescription className={error.includes('No data to export')
+              ? "ml-2 text-amber-800 dark:text-amber-200"
+              : "ml-2 text-red-800 dark:text-red-200"
+            }>
               {error}
             </AlertDescription>
           </Alert>
