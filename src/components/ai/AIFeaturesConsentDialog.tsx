@@ -1,11 +1,21 @@
-'use client';
-
 /**
- * @deprecated This component is deprecated and will be removed in a future version.
- * Use UnifiedAIConsentDialog from '@/components/consent/UnifiedAIConsentDialog' instead.
+ * @deprecated DEPRECATED - DO NOT USE
+ *
+ * This component has been replaced by UnifiedAIConsentDialog.
+ * Location: @/components/consent/UnifiedAIConsentDialog
+ *
  * The unified consent dialog consolidates all AI and medical consent into a single flow
  * with 60-second reading time requirement.
+ *
+ * This file is kept for reference only and will be removed in a future version.
+ * All imports of this component should be updated to use UnifiedAIConsentDialog.
+ *
+ * Migration date: November 28, 2025
  */
+
+// ENTIRE COMPONENT COMMENTED OUT - USE UnifiedAIConsentDialog INSTEAD
+/*
+'use client';
 
 import { useState } from 'react';
 import {
@@ -90,7 +100,6 @@ export function AIFeaturesConsentDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Overview Alert */}
           <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
             <Sparkles className="h-5 w-5 text-blue-600" />
             <AlertTitle className="text-blue-900 dark:text-blue-100">
@@ -103,7 +112,6 @@ export function AIFeaturesConsentDialog({
             </AlertDescription>
           </Alert>
 
-          {/* Feature Details */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg flex items-center gap-2">
               <Info className="w-5 h-5" />
@@ -154,7 +162,6 @@ export function AIFeaturesConsentDialog({
             })}
           </div>
 
-          {/* Privacy Information */}
           <Alert className="bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800">
             <Shield className="h-5 w-5 text-purple-600" />
             <AlertTitle className="text-purple-900 dark:text-purple-100">
@@ -178,7 +185,6 @@ export function AIFeaturesConsentDialog({
             </AlertDescription>
           </Alert>
 
-          {/* Consent Checkboxes */}
           <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
             <div className="flex items-start space-x-3">
               <Checkbox
@@ -232,3 +238,7 @@ export function AIFeaturesConsentDialog({
     </Dialog>
   );
 }
+*/
+
+// Export nothing - this component should not be used
+export {};

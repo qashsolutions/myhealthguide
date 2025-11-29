@@ -170,5 +170,74 @@ match /sessionEvents/{eventId} {
 - `src/app/(auth)/phone-login/page.tsx`
 
 **Do NOT remove** the +1 prefix logic - it's required for Firebase phone authentication to work correctly for US numbers.
-- Today is Nov 25,2025
+- Today is Nov 28, 2025
 - the firebase config will not work in local
+
+### 7. Unified AI & Medical Consent System (IMPLEMENTED: Nov 28, 2025)
+
+**IMPORTANT:** All AI and Medical features now use a SINGLE unified consent system.
+
+**Active Component:**
+- `src/components/consent/UnifiedAIConsentDialog.tsx` - The ONLY consent dialog to use
+- `src/lib/consent/unifiedConsentManagement.ts` - Consent management library
+
+**DEPRECATED Components (fully commented out - DO NOT USE):**
+- `src/components/ai/AIFeaturesConsentDialog.tsx` - DEPRECATED
+- `src/components/medical/MedicalDisclaimerConsent.tsx` - DEPRECATED
+- `src/components/medgemma/MedGemmaConsentDialog.tsx` - DEPRECATED
+
+**Unified Consent Features:**
+- 60-second mandatory reading time (user must wait before checkboxes enable)
+- Must scroll to bottom of terms
+- 4 required checkboxes:
+  1. AI Features understanding
+  2. Google MedGemma/HAI-DEF terms
+  3. Medical disclaimer acknowledgment
+  4. Data processing consent
+- 90-day expiry with automatic re-consent requirement
+- Model preference selection (MedGemma 27B or 4B)
+- Access logging for audit trail
+
+**Firestore Collections:**
+- `unifiedAIConsents` - Stores consent records
+- `unifiedConsentAccessLogs` - Stores access logs for audit
+
+**Firestore Rules Required:**
+```javascript
+// Unified AI Consents
+match /unifiedAIConsents/{consentId} {
+  allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+  allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+  allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+  allow delete: if false; // Audit trail - never delete
+}
+
+// Consent Access Logs
+match /unifiedConsentAccessLogs/{logId} {
+  allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+  allow create: if request.auth != null;
+  allow update, delete: if false; // Immutable audit trail
+}
+```
+
+**Pages Using Unified Consent:**
+- Settings > AI Features (`src/components/settings/AIFeaturesSettings.tsx`)
+- Health Chat (`src/app/dashboard/health-chat/page.tsx`)
+- Drug Interactions (`src/app/dashboard/drug-interactions/page.tsx`)
+- Dementia Screening (`src/app/dashboard/dementia-screening/page.tsx`)
+
+**How to Check Consent:**
+```typescript
+import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
+
+const { allowed, consent, reason } = await verifyAndLogAccess(
+  userId,
+  groupId,
+  'health_chat', // feature name
+  elderId
+);
+
+if (!allowed) {
+  // Show UnifiedAIConsentDialog
+}
+```
