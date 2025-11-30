@@ -33,6 +33,7 @@
     "date-fns": "^3.6.0",
     "file-saver": "^2.0.5",
     "firebase": "^10.14.1",
+    "firebase-admin": "^13.6.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "jszip": "^3.10.1",
