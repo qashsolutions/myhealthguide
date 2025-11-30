@@ -18,21 +18,6 @@ const ElderContext = createContext<ElderContextType | undefined>(undefined);
 
 const SELECTED_ELDER_KEY = 'selected_elder_id';
 
-// Helper function to get groups where user is admin
-async function getGroupsWhereUserIsAdmin(userId: string): Promise<string[]> {
-  try {
-    const adminGroupsQuery = query(
-      collection(db, 'groups'),
-      where('adminId', '==', userId)
-    );
-    const snapshot = await getDocs(adminGroupsQuery);
-    return snapshot.docs.map(doc => doc.id);
-  } catch (error) {
-    console.error('Error getting admin groups:', error);
-    return [];
-  }
-}
-
 export function ElderProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [selectedElder, setSelectedElderState] = useState<Elder | null>(null);
@@ -71,20 +56,16 @@ export function ElderProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // Regular family member: Load from their groups
-        // First, get group IDs from user.groups array
+        // Use user.groups array which is already populated
         const userGroupIds = user.groups?.map(g => g.groupId) || [];
         console.log('[ElderContext] User group IDs from user.groups:', userGroupIds);
 
-        // Also query groups where user is adminId (in case user.groups wasn't populated)
-        const adminGroupIds = await getGroupsWhereUserIsAdmin(user.id);
-        console.log('[ElderContext] Admin group IDs:', adminGroupIds);
-
-        // Combine and deduplicate
-        const allGroupIds = [...new Set([...userGroupIds, ...adminGroupIds])];
-        console.log('[ElderContext] All group IDs to query:', allGroupIds);
-
-        elders = await loadEldersFromGroups(allGroupIds);
-        console.log('[ElderContext] Loaded elders:', elders.length);
+        if (userGroupIds.length > 0) {
+          elders = await loadEldersFromGroups(userGroupIds);
+          console.log('[ElderContext] Loaded elders:', elders.length);
+        } else {
+          console.log('[ElderContext] No groups found for user');
+        }
       }
 
       setAvailableElders(elders);
