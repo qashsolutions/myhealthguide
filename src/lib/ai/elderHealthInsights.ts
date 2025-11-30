@@ -25,8 +25,7 @@ import {
   getElderImportantNotes,
   saveHealthInsight,
 } from '../firebase/elderHealthProfile';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { getAdminDb } from '../firebase/admin';
 import type { ElderHealthInsight, Elder } from '@/types';
 
 // Initialize Vertex AI
@@ -188,7 +187,7 @@ function filterValidObservations(observations: string[]): string[] {
 // ============= DATA GATHERING =============
 
 /**
- * Gather medication adherence data
+ * Gather medication adherence data using Admin SDK
  */
 async function getMedicationAdherenceData(
   elderId: string,
@@ -196,19 +195,21 @@ async function getMedicationAdherenceData(
   days: number
 ): Promise<{ taken: number; missed: number; total: number; rate: number }> {
   try {
+    const adminDb = getAdminDb();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const logsQuery = query(
-      collection(db, 'medication_logs'),
-      where('elderId', '==', elderId),
-      where('groupId', '==', groupId),
-      orderBy('scheduledTime', 'desc'),
-      limit(500)
-    );
+    const logsSnapshot = await adminDb
+      .collection('groups')
+      .doc(groupId)
+      .collection('elders')
+      .doc(elderId)
+      .collection('medicationLogs')
+      .orderBy('scheduledTime', 'desc')
+      .limit(500)
+      .get();
 
-    const snapshot = await getDocs(logsQuery);
-    const logs = snapshot.docs
+    const logs = logsSnapshot.docs
       .map(doc => {
         const data = doc.data();
         return {
@@ -231,7 +232,7 @@ async function getMedicationAdherenceData(
 }
 
 /**
- * Get diet entry count
+ * Get diet entry count using Admin SDK
  */
 async function getDietEntryCount(
   elderId: string,
@@ -239,19 +240,21 @@ async function getDietEntryCount(
   days: number
 ): Promise<number> {
   try {
+    const adminDb = getAdminDb();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const dietQuery = query(
-      collection(db, 'diet_entries'),
-      where('elderId', '==', elderId),
-      where('groupId', '==', groupId),
-      orderBy('timestamp', 'desc'),
-      limit(500)
-    );
+    const dietSnapshot = await adminDb
+      .collection('groups')
+      .doc(groupId)
+      .collection('elders')
+      .doc(elderId)
+      .collection('dietEntries')
+      .orderBy('timestamp', 'desc')
+      .limit(500)
+      .get();
 
-    const snapshot = await getDocs(dietQuery);
-    const entries = snapshot.docs
+    const entries = dietSnapshot.docs
       .map(doc => ({
         timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().timestamp),
       }))
