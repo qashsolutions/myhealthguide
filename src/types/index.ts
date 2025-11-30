@@ -273,6 +273,135 @@ export interface Elder {
   primaryCaregiverName?: string;
   primaryCaregiverAssignedAt?: Date;
   primaryCaregiverAssignedBy?: string;
+
+  // Extended Demographics
+  preferredName?: string;
+  gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  biologicalSex?: 'male' | 'female';
+  languages?: string[];
+  ethnicity?: string;
+
+  // Physical Attributes
+  height?: { value: number; unit: 'in' | 'cm' };
+  weight?: { value: number; unit: 'lb' | 'kg' };
+  bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
+
+  // Care Preferences
+  dietaryRestrictions?: string[];
+  foodPreferences?: string[];
+  foodDislikes?: string[];
+  sleepSchedule?: { bedtime: string; wakeTime: string };
+  mobilityLevel?: 'independent' | 'minimal_assistance' | 'moderate_assistance' | 'extensive_assistance' | 'dependent' | 'bedridden';
+  cognitiveStatus?: 'sharp' | 'mild_decline' | 'moderate_decline' | 'severe_decline';
+  communicationNotes?: string[];
+}
+
+// ============= Elder Health Profile Types =============
+
+export type ConditionSeverity = 'mild' | 'moderate' | 'severe';
+export type ConditionStatus = 'active' | 'inactive' | 'resolved';
+
+export interface ElderHealthCondition {
+  id?: string;
+  elderId: string;
+  groupId: string;
+  conditionName: string;
+  severity: ConditionSeverity;
+  diagnosisDate?: Date;
+  diagnosedBy?: string;
+  status: ConditionStatus;
+  notes?: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type AllergyType = 'medication' | 'food' | 'environmental' | 'other';
+export type AllergySeverity = 'mild' | 'moderate' | 'severe' | 'life_threatening';
+
+export interface ElderAllergy {
+  id?: string;
+  elderId: string;
+  groupId: string;
+  allergen: string;
+  type: AllergyType;
+  reaction: string;
+  severity: AllergySeverity;
+  discoveredDate?: Date;
+  notes?: string;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export type SymptomSeverity = 'mild' | 'moderate' | 'severe' | 'critical';
+
+export interface ElderSymptom {
+  id?: string;
+  elderId: string;
+  groupId: string;
+  symptom: string;
+  severity: SymptomSeverity;
+  duration?: string;
+  frequency?: string;
+  triggers?: string[];
+  observedAt: Date;
+  loggedAt: Date;
+  reportedBy: string;
+  notes?: string;
+}
+
+export type NoteCategory = 'medical' | 'care_preference' | 'behavior' | 'communication' | 'general';
+
+export interface ElderImportantNote {
+  id?: string;
+  elderId: string;
+  groupId: string;
+  title: string;
+  content: string;
+  category: NoteCategory;
+  isPinned?: boolean;
+  isUrgent?: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ContactType = 'family' | 'friend' | 'doctor' | 'hospital' | 'pharmacy' | 'other';
+
+export interface ElderEmergencyContact {
+  id?: string;
+  elderId: string;
+  groupId: string;
+  name: string;
+  relationship: string;
+  type: ContactType;
+  phone: string;
+  alternatePhone?: string;
+  email?: string;
+  address?: string;
+  isPrimary?: boolean;
+  specialInstructions?: string;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export type HealthInsightType = 'observation' | 'symptom_pattern' | 'medication_adherence' | 'health_trend' | 'summary';
+
+export interface ElderHealthInsight {
+  id?: string;
+  elderId: string;
+  groupId: string;
+  insightType: HealthInsightType;
+  observation: string;
+  dataSource: 'template' | 'ai' | 'raw_data';
+  dataPoints?: string[]; // References to actual data that supports this observation
+  createdAt: Date;
+  periodStart?: Date;
+  periodEnd?: Date;
+  generatedBy: string;
+  userRole: string;
+  dismissedAt?: Date;
+  dismissedBy?: string;
 }
 
 // ============= Medication Types =============

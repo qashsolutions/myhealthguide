@@ -222,6 +222,22 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           Manage Elders
         </Link>
 
+        {/* Health Profile - Show when elder is selected */}
+        {selectedElder && (
+          <Link
+            href={`/dashboard/elder-profile?elderId=${selectedElder.id}`}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              pathname === '/dashboard/elder-profile'
+                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            )}
+          >
+            <Heart className="w-5 h-5 text-red-500" />
+            Health Profile
+          </Link>
+        )}
+
         {/* Agency Management - Only for multi-agency tier */}
         {isMultiAgency && (
           <>

@@ -1268,6 +1268,133 @@ service cloud.firestore {
          isGroupAdmin(resource.data.groupId));
     }
 
+    // ============= Elder Health Conditions Collection =============
+    // Chronic conditions, diagnoses, and health status tracking
+
+    match /elderHealthConditions/{conditionId} {
+      // Group admin or members can read health conditions
+      // GDPR: Admins can read even without active trial (for data export)
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Group members with write permission can create conditions
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(request.resource.data.groupId);
+
+      // Group members with write permission can update conditions
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
+
+      // Group admin can delete conditions
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Elder Allergies Collection =============
+    // Medication, food, and environmental allergies
+
+    match /elderAllergies/{allergyId} {
+      // Group admin or members can read allergies
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Group members with write permission can create allergies
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(request.resource.data.groupId);
+
+      // Group members with write permission can update allergies
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        hasWritePermission(resource.data.groupId);
+
+      // Group admin can delete allergies
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Elder Symptoms Collection =============
+    // Symptom logs - only admin or primary caregiver can create/edit
+
+    match /elderSymptoms/{symptomId} {
+      // Group admin or members can read symptoms
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Only group admin can create symptoms (app enforces primary caregiver logic)
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Only group admin can update symptoms
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // Group admin can delete symptoms
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Elder Important Notes Collection =============
+    // Care preferences, behavior notes, communication notes
+
+    match /elderImportantNotes/{noteId} {
+      // Group admin or members can read notes
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Group members can create notes
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Group members can update notes
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // Group admin can delete notes
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Elder Emergency Contacts Collection =============
+    // Family, doctors, hospitals, pharmacies
+
+    match /elderEmergencyContacts/{contactId} {
+      // Group admin or members can read contacts
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Group members can create contacts
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Group members can update contacts
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // Group admin can delete contacts
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Elder Health Insights Collection =============
+    // AI-generated health observations (observation-only, no recommendations)
+
+    match /elderHealthInsights/{insightId} {
+      // Group admin or members can read insights
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System/AI creates insights (via API route with proper checks)
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Members can update (to dismiss insights)
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // Group admin can delete insights
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default

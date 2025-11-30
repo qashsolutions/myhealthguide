@@ -4,7 +4,7 @@ import { Elder } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, User } from 'lucide-react';
+import { Edit, Trash2, User, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
@@ -54,11 +54,10 @@ export function ElderCard({ elder, onDelete }: ElderCardProps) {
             </p>
           )}
         </div>
-        <div className="flex gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-4">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
             onClick={() => router.push(`/dashboard/elders/${elder.id}/edit`)}
           >
             <Edit className="w-4 h-4 mr-1" />
@@ -67,11 +66,19 @@ export function ElderCard({ elder, onDelete }: ElderCardProps) {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
             onClick={() => router.push(`/dashboard/elders/${elder.id}`)}
           >
             <User className="w-4 h-4 mr-1" />
-            View Care
+            Care
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/dashboard/elder-profile?elderId=${elder.id}`)}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+          >
+            <Heart className="w-4 h-4 mr-1" />
+            Health
           </Button>
           {onDelete && (
             <Button
