@@ -51,7 +51,8 @@ export default function ClinicalNotesPage() {
           elderName: selectedElder.name,
           elderAge: new Date().getFullYear() - new Date(selectedElder.dateOfBirth).getFullYear(),
           elderDateOfBirth: format(new Date(selectedElder.dateOfBirth), 'MMM dd, yyyy'),
-          medicalConditions: [],
+          // Pass known conditions from elder profile for AI context
+          medicalConditions: selectedElder.knownConditions || [],
           allergies: [],
           timeframeDays: timeframe,
         }),
