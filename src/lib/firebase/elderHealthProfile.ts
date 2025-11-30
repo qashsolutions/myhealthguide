@@ -758,20 +758,28 @@ export async function canAccessElderProfile(
   groupId: string
 ): Promise<boolean> {
   try {
+    console.log('[canAccessElderProfile] Checking access:', { userId, elderId, groupId });
+
     // Check if user is group admin
     const groupDoc = await getDoc(doc(db, 'groups', groupId));
+    console.log('[canAccessElderProfile] Group doc exists:', groupDoc.exists());
+
     if (groupDoc.exists()) {
       const groupData = groupDoc.data();
+      console.log('[canAccessElderProfile] Group adminId:', groupData.adminId, '| userId:', userId, '| match:', groupData.adminId === userId);
 
       // Check adminId field
       if (groupData.adminId === userId) {
+        console.log('[canAccessElderProfile] Access granted via adminId');
         return true;
       }
 
       // Also check members array for admin role (in case adminId not set)
       if (groupData.members && Array.isArray(groupData.members)) {
         const userMember = groupData.members.find((m: any) => m.userId === userId);
+        console.log('[canAccessElderProfile] User member found:', userMember);
         if (userMember && userMember.role === 'admin') {
+          console.log('[canAccessElderProfile] Access granted via members array');
           return true;
         }
       }
@@ -779,21 +787,26 @@ export async function canAccessElderProfile(
 
     // Check if user is primary caregiver for this elder
     const elderDoc = await getDoc(doc(db, 'elders', elderId));
+    console.log('[canAccessElderProfile] Elder doc exists:', elderDoc.exists());
+
     if (elderDoc.exists()) {
       const elderData = elderDoc.data();
       if (elderData.primaryCaregiverId === userId) {
+        console.log('[canAccessElderProfile] Access granted via primaryCaregiverId');
         return true;
       }
 
       // Check if user created this elder (createdBy field)
       if (elderData.createdBy === userId) {
+        console.log('[canAccessElderProfile] Access granted via createdBy');
         return true;
       }
     }
 
+    console.log('[canAccessElderProfile] Access DENIED - no matching criteria');
     return false;
   } catch (error) {
-    console.error('Error checking profile access permission:', error);
+    console.error('[canAccessElderProfile] Error:', error);
     return false;
   }
 }
