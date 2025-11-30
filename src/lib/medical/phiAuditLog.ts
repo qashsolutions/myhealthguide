@@ -173,12 +173,21 @@ async function getIPAddress(): Promise<string> {
 
 /**
  * Get approximate location from IP (using free service)
+ * Note: Skipped in browser due to mixed content (HTTP blocked on HTTPS sites)
+ * Location lookup would need to be done server-side
  */
 async function getLocationFromIP(ip: string): Promise<{ city?: string; state?: string; country?: string }> {
+  // Skip location lookup in browser - ip-api.com only supports HTTP
+  // which is blocked on HTTPS sites (mixed content)
+  // For now, return empty - location can be added via server-side API if needed
+  if (typeof window !== 'undefined') {
+    return {};
+  }
+
   if (ip === 'unknown' || !ip) return {};
 
   try {
-    // Use ip-api.com free tier (no API key needed, 45 requests/minute)
+    // Server-side only: Use ip-api.com free tier (no API key needed, 45 requests/minute)
     const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,city,regionName,country`, {
       signal: AbortSignal.timeout(5000) // 5 second timeout
     });
@@ -193,7 +202,7 @@ async function getLocationFromIP(ip: string): Promise<{ city?: string; state?: s
     }
     return {};
   } catch (error) {
-    console.error('Error fetching location:', error);
+    // Silently fail - location is optional
     return {};
   }
 }
@@ -368,17 +377,42 @@ export async function logPHIAccess(params: {
       thirdPartyDisclosure: params.thirdPartyDisclosure,
     };
 
-    // Store in Firestore - top-level collection for easy querying
-    await addDoc(collection(db, 'phi_audit_logs'), {
-      ...phiLog,
+    // Build the document, filtering out undefined values (Firestore doesn't accept undefined)
+    const docData: Record<string, any> = {
+      userId: phiLog.userId,
+      userRole: phiLog.userRole,
+      groupId: phiLog.groupId,
+      phiType: phiLog.phiType,
+      action: phiLog.action,
       timestamp: Timestamp.fromDate(phiLog.timestamp),
-      ...(phiLog.thirdPartyDisclosure?.dateShared && {
-        thirdPartyDisclosure: {
-          ...phiLog.thirdPartyDisclosure,
+      purpose: phiLog.purpose,
+      method: phiLog.method,
+      deviceType: phiLog.deviceType,
+      browser: phiLog.browser,
+    };
+
+    // Add optional fields only if defined
+    if (phiLog.phiId) docData.phiId = phiLog.phiId;
+    if (phiLog.elderId) docData.elderId = phiLog.elderId;
+    if (phiLog.actionDetails) docData.actionDetails = phiLog.actionDetails;
+    if (phiLog.ipAddressHash) docData.ipAddressHash = phiLog.ipAddressHash;
+    if (phiLog.location && Object.keys(phiLog.location).length > 0) docData.location = phiLog.location;
+    if (phiLog.browserVersion) docData.browserVersion = phiLog.browserVersion;
+    if (phiLog.os) docData.os = phiLog.os;
+    if (phiLog.sessionId) docData.sessionId = phiLog.sessionId;
+
+    // Handle thirdPartyDisclosure separately
+    if (phiLog.thirdPartyDisclosure) {
+      docData.thirdPartyDisclosure = {
+        ...phiLog.thirdPartyDisclosure,
+        ...(phiLog.thirdPartyDisclosure.dateShared && {
           dateShared: Timestamp.fromDate(phiLog.thirdPartyDisclosure.dateShared),
-        }
-      }),
-    });
+        }),
+      };
+    }
+
+    // Store in Firestore - top-level collection for easy querying
+    await addDoc(collection(db, 'phi_audit_logs'), docData);
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
