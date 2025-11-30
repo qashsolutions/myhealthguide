@@ -15,16 +15,16 @@ export const PRICING = {
   },
   SINGLE_AGENCY: {
     MONTHLY_RATE: 14.99,
-    MAX_ELDERS: 4,
-    MAX_MEMBERS: 4,
+    MAX_ELDERS: 1, // 1 elder (care recipient)
+    MAX_MEMBERS: 4, // 1 admin + 3 members
     MAX_GROUPS: 1,
     STORAGE_MB: 50,
     PRICE_RANK: 2, // Middle tier
   },
   FAMILY: {
     MONTHLY_RATE: 8.99,
-    MAX_ELDERS: 2,
-    MAX_MEMBERS: 2,
+    MAX_ELDERS: 1, // 1 elder (care recipient)
+    MAX_MEMBERS: 2, // 1 admin + 1 member
     MAX_GROUPS: 1,
     STORAGE_MB: 25,
     PRICE_RANK: 1, // Lowest tier
@@ -48,7 +48,7 @@ export const PLAN_FEATURES = {
     subtitle: 'Perfect for small families',
     priceNote: '/elder/month',
     limits: [
-      `Up to ${PRICING.FAMILY.MAX_ELDERS} elders`,
+      `${PRICING.FAMILY.MAX_ELDERS} elder`,
       `1 admin + 1 member`,
       `${PRICING.FAMILY.STORAGE_MB} MB storage`,
     ],
@@ -59,8 +59,8 @@ export const PLAN_FEATURES = {
     subtitle: 'For families with caregivers',
     priceNote: '/elder/month',
     limits: [
-      `Up to ${PRICING.SINGLE_AGENCY.MAX_ELDERS} elders`,
-      `1 caregiver + ${PRICING.SINGLE_AGENCY.MAX_MEMBERS - 1} members`,
+      `${PRICING.SINGLE_AGENCY.MAX_ELDERS} elder`,
+      `1 admin + ${PRICING.SINGLE_AGENCY.MAX_MEMBERS - 1} members`,
       `${PRICING.SINGLE_AGENCY.STORAGE_MB} MB storage`,
     ],
     extras: [

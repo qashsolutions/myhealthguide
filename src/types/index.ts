@@ -602,15 +602,15 @@ export const STORAGE_LIMITS = {
 // Plan limits
 export const PLAN_LIMITS = {
   FAMILY: {
-    maxElders: 2,
+    maxElders: 1, // 1 elder (care recipient)
     maxMembers: 2, // 1 admin + 1 member
     maxGroups: 1,
     storage: STORAGE_LIMITS.FAMILY,
     price: 8.99,
   },
   SINGLE_AGENCY: {
-    maxElders: 4,
-    maxMembers: 4, // 1 caregiver + 3 members
+    maxElders: 1, // 1 elder (care recipient)
+    maxMembers: 4, // 1 admin + 3 members
     maxGroups: 1,
     storage: STORAGE_LIMITS.SINGLE_AGENCY,
     price: 14.99,
