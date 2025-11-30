@@ -762,8 +762,18 @@ export async function canAccessElderProfile(
     const groupDoc = await getDoc(doc(db, 'groups', groupId));
     if (groupDoc.exists()) {
       const groupData = groupDoc.data();
+
+      // Check adminId field
       if (groupData.adminId === userId) {
         return true;
+      }
+
+      // Also check members array for admin role (in case adminId not set)
+      if (groupData.members && Array.isArray(groupData.members)) {
+        const userMember = groupData.members.find((m: any) => m.userId === userId);
+        if (userMember && userMember.role === 'admin') {
+          return true;
+        }
       }
     }
 
@@ -772,6 +782,11 @@ export async function canAccessElderProfile(
     if (elderDoc.exists()) {
       const elderData = elderDoc.data();
       if (elderData.primaryCaregiverId === userId) {
+        return true;
+      }
+
+      // Check if user created this elder (createdBy field)
+      if (elderData.createdBy === userId) {
         return true;
       }
     }
