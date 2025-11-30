@@ -172,37 +172,32 @@ async function getIPAddress(): Promise<string> {
 }
 
 /**
- * Get approximate location from IP (using free service)
- * Note: Skipped in browser due to mixed content (HTTP blocked on HTTPS sites)
- * Location lookup would need to be done server-side
+ * Get approximate location from IP
+ * Uses ipapi.co which provides free HTTPS API (1000 requests/day)
  */
 async function getLocationFromIP(ip: string): Promise<{ city?: string; state?: string; country?: string }> {
-  // Skip location lookup in browser - ip-api.com only supports HTTP
-  // which is blocked on HTTPS sites (mixed content)
-  // For now, return empty - location can be added via server-side API if needed
-  if (typeof window !== 'undefined') {
-    return {};
-  }
-
   if (ip === 'unknown' || !ip) return {};
 
   try {
-    // Server-side only: Use ip-api.com free tier (no API key needed, 45 requests/minute)
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,city,regionName,country`, {
+    // Use ipapi.co - free HTTPS API (1000 requests/day, no API key needed for basic usage)
+    const response = await fetch(`https://ipapi.co/${ip}/json/`, {
       signal: AbortSignal.timeout(5000) // 5 second timeout
     });
+
+    if (!response.ok) return {};
+
     const data = await response.json();
 
-    if (data.status === 'success') {
+    if (!data.error) {
       return {
         city: data.city,
-        state: data.regionName,
-        country: data.country,
+        state: data.region,
+        country: data.country_name,
       };
     }
     return {};
   } catch (error) {
-    // Silently fail - location is optional
+    // Silently fail - location is optional for audit logs
     return {};
   }
 }
