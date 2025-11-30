@@ -1,6 +1,6 @@
 {
-  "name": "HealthGuide - Caregiving Made Simple",
-  "short_name": "HealthGuide",
+  "name": "Careguide - Caregiving Made Simple",
+  "short_name": "Careguide",
   "description": "Track medications by voice. Get daily summaries. Never wonder if a dose was missed. Built for families and caregiving agencies.",
   "start_url": "/",
   "display": "standalone",

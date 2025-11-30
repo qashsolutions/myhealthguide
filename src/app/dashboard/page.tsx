@@ -451,7 +451,7 @@ export default function DashboardPage() {
               <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Welcome to HealthGuide!
+              Welcome to Careguide!
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Get started by adding your first elder profile. You'll be able to track medications,

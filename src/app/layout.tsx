@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'HealthGuide',
+    title: 'Careguide',
   },
   formatDetection: {
     telephone: false,

@@ -151,8 +151,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         <div className="pt-6 pr-6 pb-4 pl-4 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center">
             <h1 className="text-3xl tracking-tight text-slate-900 dark:text-slate-100">
-              <span className="font-bold">Health</span>
-              <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
+              <span className="font-bold">Care</span>
+              <span className="font-light text-blue-600 dark:text-blue-400">guide</span>
             </h1>
           </Link>
           {/* Close button - Mobile only */}

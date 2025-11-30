@@ -277,8 +277,8 @@ export async function sendTestNotification(
   email: string
 ): Promise<{ sms: boolean; email: boolean }> {
   try {
-    await sendSMS(phoneNumber, 'Test notification from HealthGuide. Your SMS notifications are working!');
-    await sendEmail(email, 'Test Notification', 'Test notification from HealthGuide. Your email notifications are working!');
+    await sendSMS(phoneNumber, 'Test notification from Careguide. Your SMS notifications are working!');
+    await sendEmail(email, 'Test Notification', 'Test notification from Careguide. Your email notifications are working!');
 
     return { sms: true, email: true };
   } catch (error) {

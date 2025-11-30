@@ -11,8 +11,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             {/* Logo */}
             <Link href="/" className="flex items-center">
               <h1 className="text-2xl tracking-tight text-slate-900 dark:text-slate-100">
-                <span className="font-bold">Health</span>
-                <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
+                <span className="font-bold">Care</span>
+                <span className="font-light text-blue-600 dark:text-blue-400">guide</span>
               </h1>
             </Link>
           </div>
