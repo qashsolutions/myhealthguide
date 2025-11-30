@@ -63,12 +63,12 @@ export function ImportantNotesTab({ elderId, groupId, userId }: ImportantNotesTa
 
   useEffect(() => {
     loadNotes();
-  }, [elderId]);
+  }, [elderId, groupId]);
 
   const loadNotes = async () => {
     setLoading(true);
     try {
-      const data = await getElderImportantNotes(elderId);
+      const data = await getElderImportantNotes(elderId, groupId);
       setNotes(data);
     } catch (error) {
       console.error('Error loading notes:', error);

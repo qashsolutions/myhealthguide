@@ -69,12 +69,12 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
 
   useEffect(() => {
     loadContacts();
-  }, [elderId]);
+  }, [elderId, groupId]);
 
   const loadContacts = async () => {
     setLoading(true);
     try {
-      const data = await getElderEmergencyContacts(elderId);
+      const data = await getElderEmergencyContacts(elderId, groupId);
       setContacts(data);
     } catch (error) {
       console.error('Error loading contacts:', error);

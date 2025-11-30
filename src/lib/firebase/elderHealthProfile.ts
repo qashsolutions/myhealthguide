@@ -137,14 +137,18 @@ export async function deleteHealthCondition(
 
 /**
  * Get all health conditions for an elder
+ * @param elderId - The elder's ID
+ * @param groupId - The group ID (required for Firestore security rules)
  */
 export async function getElderHealthConditions(
-  elderId: string
+  elderId: string,
+  groupId: string
 ): Promise<ElderHealthCondition[]> {
   try {
     const q = query(
       collection(db, 'elderHealthConditions'),
       where('elderId', '==', elderId),
+      where('groupId', '==', groupId),
       orderBy('createdAt', 'desc')
     );
     const snapshot = await getDocs(q);
@@ -219,12 +223,18 @@ export async function deleteAllergy(
 
 /**
  * Get all allergies for an elder
+ * @param elderId - The elder's ID
+ * @param groupId - The group ID (required for Firestore security rules)
  */
-export async function getElderAllergies(elderId: string): Promise<ElderAllergy[]> {
+export async function getElderAllergies(
+  elderId: string,
+  groupId: string
+): Promise<ElderAllergy[]> {
   try {
     const q = query(
       collection(db, 'elderAllergies'),
       where('elderId', '==', elderId),
+      where('groupId', '==', groupId),
       orderBy('severity', 'desc')
     );
     const snapshot = await getDocs(q);
@@ -325,9 +335,15 @@ export async function deleteSymptom(
 
 /**
  * Get symptoms for an elder within a date range
+ * @param elderId - The elder's ID
+ * @param groupId - The group ID (required for Firestore security rules)
+ * @param startDate - Optional start date filter
+ * @param endDate - Optional end date filter
+ * @param limitCount - Optional limit on number of results
  */
 export async function getElderSymptoms(
   elderId: string,
+  groupId: string,
   startDate?: Date,
   endDate?: Date,
   limitCount?: number
@@ -336,6 +352,7 @@ export async function getElderSymptoms(
     let q = query(
       collection(db, 'elderSymptoms'),
       where('elderId', '==', elderId),
+      where('groupId', '==', groupId),
       orderBy('observedAt', 'desc')
     );
 
@@ -380,15 +397,19 @@ const severityMap: Record<string, number> = {
 
 /**
  * Get symptom summary for insights generation
+ * @param elderId - The elder's ID
+ * @param groupId - The group ID (required for Firestore security rules)
+ * @param days - Number of days to look back (default 7)
  */
 export async function getSymptomSummary(
   elderId: string,
+  groupId: string,
   days: number = 7
 ): Promise<{ symptomName: string; count: number; avgSeverity: number; dates: Date[] }[]> {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  const symptoms = await getElderSymptoms(elderId, startDate);
+  const symptoms = await getElderSymptoms(elderId, groupId, startDate);
 
   // Group by symptom name
   const grouped = symptoms.reduce((acc, s) => {
@@ -466,14 +487,18 @@ export async function deleteImportantNote(
 
 /**
  * Get all important notes for an elder
+ * @param elderId - The elder's ID
+ * @param groupId - The group ID (required for Firestore security rules)
  */
 export async function getElderImportantNotes(
-  elderId: string
+  elderId: string,
+  groupId: string
 ): Promise<ElderImportantNote[]> {
   try {
     const q = query(
       collection(db, 'elderImportantNotes'),
       where('elderId', '==', elderId),
+      where('groupId', '==', groupId),
       orderBy('createdAt', 'desc')
     );
     const snapshot = await getDocs(q);
@@ -511,7 +536,7 @@ export async function addEmergencyContact(
   try {
     // If this is primary, unset other primary contacts
     if (contact.isPrimary) {
-      const existing = await getElderEmergencyContacts(contact.elderId);
+      const existing = await getElderEmergencyContacts(contact.elderId, contact.groupId);
       for (const c of existing) {
         if (c.isPrimary && c.id) {
           await updateDoc(doc(db, 'elderEmergencyContacts', c.id), { isPrimary: false });
@@ -536,12 +561,13 @@ export async function addEmergencyContact(
 export async function updateEmergencyContact(
   contactId: string,
   updates: Partial<ElderEmergencyContact>,
-  elderId?: string
+  elderId?: string,
+  groupId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // If setting as primary, unset other primary contacts
-    if (updates.isPrimary && elderId) {
-      const existing = await getElderEmergencyContacts(elderId);
+    if (updates.isPrimary && elderId && groupId) {
+      const existing = await getElderEmergencyContacts(elderId, groupId);
       for (const c of existing) {
         if (c.isPrimary && c.id && c.id !== contactId) {
           await updateDoc(doc(db, 'elderEmergencyContacts', c.id), { isPrimary: false });
@@ -574,14 +600,18 @@ export async function deleteEmergencyContact(
 
 /**
  * Get all emergency contacts for an elder
+ * @param elderId - The elder's ID
+ * @param groupId - The group ID (required for Firestore security rules)
  */
 export async function getElderEmergencyContacts(
-  elderId: string
+  elderId: string,
+  groupId: string
 ): Promise<ElderEmergencyContact[]> {
   try {
     const q = query(
       collection(db, 'elderEmergencyContacts'),
       where('elderId', '==', elderId),
+      where('groupId', '==', groupId),
       orderBy('isPrimary', 'desc'),
       orderBy('createdAt', 'asc')
     );
@@ -640,9 +670,14 @@ export async function dismissHealthInsight(
 
 /**
  * Get health insights for an elder
+ * @param elderId - The elder's ID
+ * @param groupId - The group ID (required for Firestore security rules)
+ * @param includeDismissed - Whether to include dismissed insights
+ * @param limitCount - Maximum number of insights to return
  */
 export async function getElderHealthInsights(
   elderId: string,
+  groupId: string,
   includeDismissed: boolean = false,
   limitCount: number = 20
 ): Promise<ElderHealthInsight[]> {
@@ -650,6 +685,7 @@ export async function getElderHealthInsights(
     let q = query(
       collection(db, 'elderHealthInsights'),
       where('elderId', '==', elderId),
+      where('groupId', '==', groupId),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
     );

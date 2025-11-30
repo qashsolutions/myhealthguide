@@ -25,8 +25,11 @@ import {
   EyeOff,
   Shield,
   CheckCircle,
+  Lock,
 } from 'lucide-react';
 import { dismissHealthInsight } from '@/lib/firebase/elderHealthProfile';
+import { checkUnifiedConsent } from '@/lib/consent/unifiedConsentManagement';
+import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
 import type { ElderHealthInsight } from '@/types';
 import { format } from 'date-fns';
 
@@ -46,16 +49,51 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
   const [showDismissed, setShowDismissed] = useState(false);
   const [periodDays, setPeriodDays] = useState('7');
 
+  // Consent state
+  const [hasConsent, setHasConsent] = useState(false);
+  const [checkingConsent, setCheckingConsent] = useState(true);
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
+
+  // Check consent on mount
   useEffect(() => {
+    checkConsent();
+  }, [userId, groupId]);
+
+  useEffect(() => {
+    if (hasConsent) {
+      loadInsights();
+    }
+  }, [elderId, groupId, showDismissed, hasConsent]);
+
+  const checkConsent = async () => {
+    setCheckingConsent(true);
+    try {
+      const { valid } = await checkUnifiedConsent(userId, groupId);
+      setHasConsent(valid);
+    } catch (err) {
+      console.error('Error checking consent:', err);
+      setHasConsent(false);
+    } finally {
+      setCheckingConsent(false);
+    }
+  };
+
+  const handleConsentGranted = () => {
+    setShowConsentDialog(false);
+    setHasConsent(true);
     loadInsights();
-  }, [elderId, showDismissed]);
+  };
+
+  const handleConsentDeclined = () => {
+    setShowConsentDialog(false);
+  };
 
   const loadInsights = async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(
-        `/api/elder-insights?elderId=${elderId}&includeDismissed=${showDismissed}&limit=50`
+        `/api/elder-insights?elderId=${elderId}&groupId=${groupId}&includeDismissed=${showDismissed}&limit=50`
       );
       const data = await response.json();
 
@@ -138,6 +176,61 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
     }
   };
 
+  // Loading state while checking consent
+  if (checkingConsent) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show consent required message if user hasn't consented
+  if (!hasConsent) {
+    return (
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              Health Insights
+            </CardTitle>
+            <CardDescription>
+              AI-generated observations from {elderName}'s logged health data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700">
+              <Lock className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <p className="font-semibold mb-2">Consent Required</p>
+                <p className="text-sm mb-4">
+                  Before generating AI-powered health insights, you must read and accept the AI features terms,
+                  medical disclaimers, and data processing agreement. This ensures you understand how your data
+                  is used and the limitations of AI-generated observations.
+                </p>
+                <Button onClick={() => setShowConsentDialog(true)} size="sm">
+                  <Shield className="w-4 h-4 mr-2" />
+                  Review & Accept Terms
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
+        <UnifiedAIConsentDialog
+          open={showConsentDialog}
+          userId={userId}
+          groupId={groupId}
+          onConsent={handleConsentGranted}
+          onDecline={handleConsentDeclined}
+        />
+      </>
+    );
+  }
+
   if (loading) {
     return (
       <Card>
@@ -195,9 +288,9 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
         <CardContent>
           {/* Critical Disclaimers */}
           <div className="space-y-3 mb-6">
-            <Alert className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800 dark:text-amber-200 text-sm">
+            <Alert className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800 dark:text-red-200 text-sm">
                 <strong>Important:</strong> These observations are based solely on data logged in this app.
                 They are NOT medical advice and should NOT be used for medical decisions.
                 Always consult {elderName}'s healthcare provider for any health concerns.

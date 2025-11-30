@@ -54,12 +54,12 @@ export function AllergiesTab({ elderId, groupId, userId }: AllergiesTabProps) {
 
   useEffect(() => {
     loadAllergies();
-  }, [elderId]);
+  }, [elderId, groupId]);
 
   const loadAllergies = async () => {
     setLoading(true);
     try {
-      const data = await getElderAllergies(elderId);
+      const data = await getElderAllergies(elderId, groupId);
       setAllergies(data);
     } catch (error) {
       console.error('Error loading allergies:', error);

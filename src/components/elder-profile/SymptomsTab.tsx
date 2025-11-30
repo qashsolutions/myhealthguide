@@ -79,7 +79,7 @@ export function SymptomsTab({ elderId, groupId, userId, elderName }: SymptomsTab
   const loadSymptoms = async () => {
     setLoading(true);
     try {
-      const data = await getElderSymptoms(elderId);
+      const data = await getElderSymptoms(elderId, groupId);
       setSymptoms(data);
     } catch (error) {
       console.error('Error loading symptoms:', error);

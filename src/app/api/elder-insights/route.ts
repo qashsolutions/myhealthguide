@@ -28,18 +28,19 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const elderId = searchParams.get('elderId');
+    const groupId = searchParams.get('groupId');
     const limitParam = searchParams.get('limit');
     const includeDismissed = searchParams.get('includeDismissed') === 'true';
 
-    if (!elderId) {
+    if (!elderId || !groupId) {
       return NextResponse.json(
-        { error: 'elderId is required' },
+        { error: 'elderId and groupId are required' },
         { status: 400 }
       );
     }
 
     const limit = limitParam ? parseInt(limitParam, 10) : 20;
-    const insights = await getElderHealthInsights(elderId, includeDismissed, limit);
+    const insights = await getElderHealthInsights(elderId, groupId, includeDismissed, limit);
 
     return NextResponse.json({
       success: true,

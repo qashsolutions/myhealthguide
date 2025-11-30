@@ -54,12 +54,12 @@ export function HealthConditionsTab({ elderId, groupId, userId }: HealthConditio
 
   useEffect(() => {
     loadConditions();
-  }, [elderId]);
+  }, [elderId, groupId]);
 
   const loadConditions = async () => {
     setLoading(true);
     try {
-      const data = await getElderHealthConditions(elderId);
+      const data = await getElderHealthConditions(elderId, groupId);
       setConditions(data);
     } catch (error) {
       console.error('Error loading conditions:', error);

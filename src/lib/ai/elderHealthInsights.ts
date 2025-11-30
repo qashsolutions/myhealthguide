@@ -368,9 +368,9 @@ export async function generateElderHealthInsights(
 
     // Gather data
     const [symptomSummary, conditions, allergies, adherence, dietEntryCount] = await Promise.all([
-      getSymptomSummary(elderId, days),
-      getElderHealthConditions(elderId),
-      getElderAllergies(elderId),
+      getSymptomSummary(elderId, groupId, days),
+      getElderHealthConditions(elderId, groupId),
+      getElderAllergies(elderId, groupId),
       getMedicationAdherenceData(elderId, groupId, days),
       getDietEntryCount(elderId, groupId, days),
     ]);
@@ -444,7 +444,7 @@ export async function generateAISummaryObservation(
   try {
     // Gather data first
     const [symptomSummary, adherence, dietEntryCount] = await Promise.all([
-      getSymptomSummary(elderId, days),
+      getSymptomSummary(elderId, groupId, days),
       getMedicationAdherenceData(elderId, groupId, days),
       getDietEntryCount(elderId, groupId, days),
     ]);
