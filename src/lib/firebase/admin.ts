@@ -27,7 +27,9 @@ function getAdminApp(): App {
   }
 
   // Get credentials from environment variable
-  const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  // Use FIREBASE_ADMIN_CREDENTIALS_JSON for Firebase Admin SDK (token verification, Firestore)
+  // This is separate from GOOGLE_APPLICATION_CREDENTIALS_JSON which is used for Vertex AI
+  const credentialsJson = process.env.FIREBASE_ADMIN_CREDENTIALS_JSON;
 
   if (credentialsJson) {
     try {
@@ -36,12 +38,14 @@ function getAdminApp(): App {
         credential: cert(credentials),
         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
       });
+      console.log('[Firebase Admin] Initialized with FIREBASE_ADMIN_CREDENTIALS_JSON');
     } catch (error) {
-      console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
+      console.error('Failed to parse FIREBASE_ADMIN_CREDENTIALS_JSON:', error);
       throw new Error('Invalid Firebase Admin credentials');
     }
   } else {
     // Fallback for local development with GOOGLE_APPLICATION_CREDENTIALS file path
+    console.warn('[Firebase Admin] FIREBASE_ADMIN_CREDENTIALS_JSON not found, using default credentials');
     adminApp = initializeApp({
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     });
