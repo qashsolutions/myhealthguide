@@ -286,6 +286,9 @@ export interface Elder {
   weight?: { value: number; unit: 'lb' | 'kg' };
   bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
 
+  // Known Conditions (baseline for AI context)
+  knownConditions?: string[]; // e.g., ['diabetes', 'hypertension', 'dementia']
+
   // Care Preferences
   dietaryRestrictions?: string[];
   foodPreferences?: string[];

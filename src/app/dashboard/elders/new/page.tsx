@@ -36,6 +36,15 @@ const COMMON_LANGUAGES = [
   'Other',
 ];
 
+// Top conditions for initial baseline context (AI uses this for pattern analysis)
+const COMMON_CONDITIONS = [
+  { id: 'diabetes', label: 'Diabetes', icon: '🩸' },
+  { id: 'hypertension', label: 'Hypertension', icon: '❤️' },
+  { id: 'dementia', label: 'Dementia/Alzheimer\'s', icon: '🧠' },
+  { id: 'heart_disease', label: 'Heart Disease', icon: '💗' },
+  { id: 'arthritis', label: 'Arthritis', icon: '🦴' },
+];
+
 export default function NewElderPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -47,6 +56,7 @@ export default function NewElderPage() {
     gender: '' as Elder['gender'] | '',
     primaryLanguage: '',
     additionalLanguages: [] as string[],
+    conditions: [] as string[],
     notes: '',
   });
   const [useExactDOB, setUseExactDOB] = useState(false);
@@ -125,6 +135,7 @@ export default function NewElderPage() {
         dateOfBirth,
         gender: formData.gender || undefined,
         languages: languages.length > 0 ? languages : undefined,
+        knownConditions: formData.conditions.length > 0 ? formData.conditions : undefined,
         notes: formData.notes.trim(),
         createdAt: new Date(),
       });
@@ -144,6 +155,17 @@ export default function NewElderPage() {
         return { ...prev, additionalLanguages: current.filter(l => l !== language) };
       } else {
         return { ...prev, additionalLanguages: [...current, language] };
+      }
+    });
+  };
+
+  const handleConditionToggle = (conditionId: string) => {
+    setFormData(prev => {
+      const current = prev.conditions;
+      if (current.includes(conditionId)) {
+        return { ...prev, conditions: current.filter(c => c !== conditionId) };
+      } else {
+        return { ...prev, conditions: [...current, conditionId] };
       }
     });
   };
@@ -309,6 +331,34 @@ export default function NewElderPage() {
                   )}
                 </div>
 
+                {/* Known Conditions Section */}
+                <div className="space-y-4 pt-4 border-t dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    Known Conditions
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+                    Select any conditions for baseline context (helps AI provide relevant observations)
+                  </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {COMMON_CONDITIONS.map(condition => (
+                      <button
+                        key={condition.id}
+                        type="button"
+                        onClick={() => handleConditionToggle(condition.id)}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors text-left ${
+                          formData.conditions.includes(condition.id)
+                            ? 'bg-purple-100 dark:bg-purple-900/30 border-purple-500 text-purple-700 dark:text-purple-300'
+                            : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400'
+                        }`}
+                      >
+                        <span>{condition.icon}</span>
+                        <span>{condition.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Notes Section */}
                 <div className="space-y-4 pt-4 border-t dark:border-gray-700">
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
@@ -319,7 +369,7 @@ export default function NewElderPage() {
                     <Label htmlFor="notes">Important Notes</Label>
                     <Textarea
                       id="notes"
-                      placeholder="Any important information about care preferences, medical conditions, allergies, etc."
+                      placeholder="Any other important information (allergies, care preferences, etc.)"
                       rows={3}
                       value={formData.notes}
                       onChange={(e) => setFormData({...formData, notes: e.target.value})}
