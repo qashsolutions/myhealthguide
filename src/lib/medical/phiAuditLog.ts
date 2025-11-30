@@ -171,36 +171,6 @@ async function getIPAddress(): Promise<string> {
   }
 }
 
-/**
- * Get approximate location from IP
- * Uses ipapi.co which provides free HTTPS API (1000 requests/day)
- */
-async function getLocationFromIP(ip: string): Promise<{ city?: string; state?: string; country?: string }> {
-  if (ip === 'unknown' || !ip) return {};
-
-  try {
-    // Use ipapi.co - free HTTPS API (1000 requests/day, no API key needed for basic usage)
-    const response = await fetch(`https://ipapi.co/${ip}/json/`, {
-      signal: AbortSignal.timeout(5000) // 5 second timeout
-    });
-
-    if (!response.ok) return {};
-
-    const data = await response.json();
-
-    if (!data.error) {
-      return {
-        city: data.city,
-        state: data.region,
-        country: data.country_name,
-      };
-    }
-    return {};
-  } catch (error) {
-    // Silently fail - location is optional for audit logs
-    return {};
-  }
-}
 
 /**
  * Detect device type from user agent
@@ -326,9 +296,6 @@ export async function logPHIAccess(params: {
     const ip = await getIPAddress();
     const ipHash = await hashIPAddress(ip);
 
-    // Get location from IP
-    const location = await getLocationFromIP(ip);
-
     // Get device and browser info
     const deviceType = getDeviceType();
     const browserInfo = getBrowserInfo();
@@ -359,7 +326,6 @@ export async function logPHIAccess(params: {
 
       // WHERE
       ipAddressHash: ipHash,
-      location,
 
       // Additional metadata
       deviceType,
@@ -391,7 +357,6 @@ export async function logPHIAccess(params: {
     if (phiLog.elderId) docData.elderId = phiLog.elderId;
     if (phiLog.actionDetails) docData.actionDetails = phiLog.actionDetails;
     if (phiLog.ipAddressHash) docData.ipAddressHash = phiLog.ipAddressHash;
-    if (phiLog.location && Object.keys(phiLog.location).length > 0) docData.location = phiLog.location;
     if (phiLog.browserVersion) docData.browserVersion = phiLog.browserVersion;
     if (phiLog.os) docData.os = phiLog.os;
     if (phiLog.sessionId) docData.sessionId = phiLog.sessionId;
