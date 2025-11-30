@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, doc, getDoc, documentId } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import type { Elder, AgencyRole } from '@/types';
 
 interface ElderContextType {
@@ -97,48 +97,52 @@ export function ElderProvider({ children }: { children: ReactNode }) {
   };
 
   // Load elders from agency (query top-level elders collection)
+  // First fetch agency doc to get groupIds, then query elders per group
   async function loadAgencyElders(agencyId: string): Promise<Elder[]> {
     const elders: Elder[] = [];
 
-    // First get all group IDs for this agency
-    const groupsQuery = query(
-      collection(db, 'groups'),
-      where('agencyId', '==', agencyId)
-    );
+    // Fetch agency document to get groupIds array
+    // Super admin can read agency doc via hasAgencyAccess rule
+    const agencyDoc = await getDoc(doc(db, 'agencies', agencyId));
 
-    const groupsSnap = await getDocs(groupsQuery);
-    const groupIds = groupsSnap.docs.map(doc => doc.id);
+    if (!agencyDoc.exists()) {
+      console.log('[ElderContext] Agency not found:', agencyId);
+      return elders;
+    }
+
+    const agencyData = agencyDoc.data();
+    const groupIds: string[] = agencyData.groupIds || [];
+    console.log('[ElderContext] Agency group IDs from agency doc:', groupIds);
 
     if (groupIds.length === 0) {
       return elders;
     }
 
-    // Query elders collection where groupId is in the agency's groups
-    // Firestore 'in' query supports max 30 values, chunk if needed
-    const chunks = [];
-    for (let i = 0; i < groupIds.length; i += 30) {
-      chunks.push(groupIds.slice(i, i + 30));
-    }
+    // Query each group separately - Firestore rules require single groupId queries
+    for (const groupId of groupIds) {
+      try {
+        const eldersQuery = query(
+          collection(db, 'elders'),
+          where('groupId', '==', groupId)
+        );
 
-    for (const chunk of chunks) {
-      const eldersQuery = query(
-        collection(db, 'elders'),
-        where('groupId', 'in', chunk)
-      );
-
-      const eldersSnap = await getDocs(eldersQuery);
-      eldersSnap.docs.forEach(doc => {
-        elders.push({
-          id: doc.id,
-          ...doc.data()
-        } as Elder);
-      });
+        const eldersSnap = await getDocs(eldersQuery);
+        eldersSnap.docs.forEach(doc => {
+          elders.push({
+            id: doc.id,
+            ...doc.data()
+          } as Elder);
+        });
+      } catch (error) {
+        console.error(`[ElderContext] Error loading elders for agency group ${groupId}:`, error);
+      }
     }
 
     return elders;
   }
 
   // Load specific elders by IDs (query top-level elders collection)
+  // Query each elder individually to work with Firestore security rules
   async function loadEldersByIds(elderIds: string[]): Promise<Elder[]> {
     const elders: Elder[] = [];
 
@@ -146,26 +150,19 @@ export function ElderProvider({ children }: { children: ReactNode }) {
       return elders;
     }
 
-    // Query elders collection by document IDs
-    // Firestore 'in' query supports max 30 values, chunk if needed
-    const chunks = [];
-    for (let i = 0; i < elderIds.length; i += 30) {
-      chunks.push(elderIds.slice(i, i + 30));
-    }
-
-    for (const chunk of chunks) {
-      const eldersQuery = query(
-        collection(db, 'elders'),
-        where(documentId(), 'in', chunk)
-      );
-
-      const eldersSnap = await getDocs(eldersQuery);
-      eldersSnap.docs.forEach(doc => {
-        elders.push({
-          id: doc.id,
-          ...doc.data()
-        } as Elder);
-      });
+    // Query each elder by document ID individually
+    for (const elderId of elderIds) {
+      try {
+        const elderDoc = await getDoc(doc(db, 'elders', elderId));
+        if (elderDoc.exists()) {
+          elders.push({
+            id: elderDoc.id,
+            ...elderDoc.data()
+          } as Elder);
+        }
+      } catch (error) {
+        console.error(`[ElderContext] Error loading elder ${elderId}:`, error);
+      }
     }
 
     return elders;
