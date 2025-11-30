@@ -172,6 +172,7 @@ export function ElderProvider({ children }: { children: ReactNode }) {
   }
 
   // Load elders from specific groups (query top-level elders collection)
+  // Query each group separately to work with Firestore security rules
   async function loadEldersFromGroups(groupIds: string[]): Promise<Elder[]> {
     const elders: Elder[] = [];
 
@@ -179,18 +180,13 @@ export function ElderProvider({ children }: { children: ReactNode }) {
       return elders;
     }
 
-    // Query elders collection where groupId is in the user's groups
-    // Firestore 'in' query supports max 30 values, chunk if needed
-    const chunks = [];
-    for (let i = 0; i < groupIds.length; i += 30) {
-      chunks.push(groupIds.slice(i, i + 30));
-    }
-
-    for (const chunk of chunks) {
+    // Query each group separately - Firestore rules require single groupId queries
+    // because rules check resource.data.groupId which needs exact match
+    for (const groupId of groupIds) {
       try {
         const eldersQuery = query(
           collection(db, 'elders'),
-          where('groupId', 'in', chunk)
+          where('groupId', '==', groupId)
         );
 
         const eldersSnap = await getDocs(eldersQuery);
@@ -201,7 +197,7 @@ export function ElderProvider({ children }: { children: ReactNode }) {
           } as Elder);
         });
       } catch (error) {
-        console.error('Error loading elders for groups:', error);
+        console.error(`[ElderContext] Error loading elders for group ${groupId}:`, error);
       }
     }
 
