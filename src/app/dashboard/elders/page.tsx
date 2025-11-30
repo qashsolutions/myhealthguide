@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, User, Calendar, Languages, Heart, Loader2, Archive, RotateCcw, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Plus, User, Calendar, Languages, Heart, Loader2, Archive, RotateCcw, AlertTriangle, Eye, EyeOff, Trash2, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -12,12 +12,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { ElderService } from '@/lib/firebase/elders';
 import type { Elder } from '@/types';
+
+type DialogType = 'archive' | 'delete' | null;
 
 export default function EldersPage() {
   const { user } = useAuth();
@@ -26,9 +35,9 @@ export default function EldersPage() {
   const [elders, setElders] = useState<Elder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-  const [elderToArchive, setElderToArchive] = useState<Elder | null>(null);
-  const [archiving, setArchiving] = useState(false);
+  const [dialogType, setDialogType] = useState<DialogType>(null);
+  const [selectedElder, setSelectedElder] = useState<Elder | null>(null);
+  const [processing, setProcessing] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
@@ -69,21 +78,28 @@ export default function EldersPage() {
   const handleArchiveClick = (e: React.MouseEvent, elder: Elder) => {
     e.preventDefault();
     e.stopPropagation();
-    setElderToArchive(elder);
-    setArchiveDialogOpen(true);
+    setSelectedElder(elder);
+    setDialogType('archive');
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, elder: Elder) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedElder(elder);
+    setDialogType('delete');
   };
 
   const handleConfirmArchive = async () => {
-    if (!elderToArchive || !user) return;
+    if (!selectedElder || !user) return;
 
-    setArchiving(true);
+    setProcessing(true);
     try {
       const userRole = (user.groups?.[0]?.role || 'member') as 'admin' | 'caregiver' | 'member';
-      await ElderService.archiveElder(elderToArchive.id, user.id, userRole);
+      await ElderService.archiveElder(selectedElder.id, user.id, userRole);
 
       // Update local state - mark as archived
       setElders(prev => prev.map(e =>
-        e.id === elderToArchive.id
+        e.id === selectedElder.id
           ? { ...e, archived: true, archivedAt: new Date(), archivedBy: user.id }
           : e
       ));
@@ -91,13 +107,35 @@ export default function EldersPage() {
       // Refresh the ElderContext to update sidebar
       await refreshElders();
 
-      setArchiveDialogOpen(false);
-      setElderToArchive(null);
+      closeDialog();
     } catch (err) {
       console.error('Error archiving elder:', err);
       setError('Failed to archive elder. Please try again.');
     } finally {
-      setArchiving(false);
+      setProcessing(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedElder || !user) return;
+
+    setProcessing(true);
+    try {
+      const userRole = (user.groups?.[0]?.role || 'member') as 'admin' | 'caregiver' | 'member';
+      await ElderService.deleteElder(selectedElder.id, user.id, userRole);
+
+      // Update local state - remove elder
+      setElders(prev => prev.filter(e => e.id !== selectedElder.id));
+
+      // Refresh the ElderContext to update sidebar
+      await refreshElders();
+
+      closeDialog();
+    } catch (err) {
+      console.error('Error deleting elder:', err);
+      setError('Failed to delete elder. Please try again.');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -126,9 +164,9 @@ export default function EldersPage() {
     }
   };
 
-  const handleCancelArchive = () => {
-    setArchiveDialogOpen(false);
-    setElderToArchive(null);
+  const closeDialog = () => {
+    setDialogType(null);
+    setSelectedElder(null);
   };
 
   // Separate active and archived elders
@@ -256,16 +294,45 @@ export default function EldersPage() {
                         </div>
                       )}
                     </div>
-                    {/* Archive button - only visible on hover */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                      onClick={(e) => handleArchiveClick(e, elder)}
-                      title="Archive elder"
-                    >
-                      <Archive className="h-4 w-4" />
-                    </Button>
+                    {/* Actions dropdown - only visible on hover */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/elder-profile?elderId=${elder.id}`);
+                          }}
+                        >
+                          <User className="h-4 w-4 mr-2" />
+                          View Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={(e) => handleArchiveClick(e as any, elder)}
+                          className="text-amber-600 focus:text-amber-600"
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archive
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => handleDeleteClick(e as any, elder)}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Permanently
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </Card>
               ))}
@@ -312,17 +379,36 @@ export default function EldersPage() {
                           Archived
                         </p>
                       </div>
-                      {/* Reactivate button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                        onClick={(e) => handleUnarchive(e, elder)}
-                        title="Reactivate elder"
-                      >
-                        <RotateCcw className="h-4 w-4 mr-1" />
-                        Reactivate
-                      </Button>
+                      {/* Actions for archived elders */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => handleUnarchive(e as any, elder)}
+                            className="text-green-600 focus:text-green-600"
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Reactivate
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={(e) => handleDeleteClick(e as any, elder)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Permanently
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </Card>
                 ))}
@@ -333,15 +419,15 @@ export default function EldersPage() {
       )}
 
       {/* Archive Confirmation Dialog */}
-      <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+      <Dialog open={dialogType === 'archive'} onOpenChange={() => closeDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-5 w-5" />
+              <Archive className="h-5 w-5" />
               Archive Elder Profile
             </DialogTitle>
             <DialogDescription className="pt-2">
-              Are you sure you want to archive <strong>{elderToArchive?.name}</strong>?
+              Are you sure you want to archive <strong>{selectedElder?.name}</strong>?
               <br /><br />
               <span className="text-gray-600">
                 Archiving will hide this elder from your active list, but all data will be preserved. You can reactivate this elder at any time.
@@ -355,8 +441,8 @@ export default function EldersPage() {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={handleCancelArchive}
-              disabled={archiving}
+              onClick={closeDialog}
+              disabled={processing}
             >
               Cancel
             </Button>
@@ -364,9 +450,9 @@ export default function EldersPage() {
               variant="default"
               className="bg-amber-600 hover:bg-amber-700"
               onClick={handleConfirmArchive}
-              disabled={archiving}
+              disabled={processing}
             >
-              {archiving ? (
+              {processing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Archiving...
@@ -375,6 +461,55 @@ export default function EldersPage() {
                 <>
                   <Archive className="h-4 w-4 mr-2" />
                   Archive Elder
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={dialogType === 'delete'} onOpenChange={() => closeDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Permanently Delete Elder
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to permanently delete <strong>{selectedElder?.name}</strong>?
+              <br /><br />
+              <span className="text-red-600 font-medium">
+                This will permanently delete all associated data including medications, diet entries, health records, and all other information.
+              </span>
+              <br /><br />
+              <span className="font-bold text-red-700">
+                This action cannot be undone.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={closeDialog}
+              disabled={processing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={processing}
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Permanently
                 </>
               )}
             </Button>
