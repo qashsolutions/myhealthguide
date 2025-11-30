@@ -73,14 +73,18 @@ export function ElderProvider({ children }: { children: ReactNode }) {
         // Regular family member: Load from their groups
         // First, get group IDs from user.groups array
         const userGroupIds = user.groups?.map(g => g.groupId) || [];
+        console.log('[ElderContext] User group IDs from user.groups:', userGroupIds);
 
         // Also query groups where user is adminId (in case user.groups wasn't populated)
         const adminGroupIds = await getGroupsWhereUserIsAdmin(user.id);
+        console.log('[ElderContext] Admin group IDs:', adminGroupIds);
 
         // Combine and deduplicate
         const allGroupIds = [...new Set([...userGroupIds, ...adminGroupIds])];
+        console.log('[ElderContext] All group IDs to query:', allGroupIds);
 
         elders = await loadEldersFromGroups(allGroupIds);
+        console.log('[ElderContext] Loaded elders:', elders.length);
       }
 
       setAvailableElders(elders);
@@ -102,12 +106,9 @@ export function ElderProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       // Handle specific Firestore permission errors gracefully
       // This can happen for new users who don't have any elders assigned yet
-      if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
-        // This is expected for new users - not an error
-        console.log('No elders found for user (this is normal for new accounts)');
-      } else {
-        console.error('Error loading elders:', error);
-      }
+      console.error('[ElderContext] Error loading elders:', error);
+      console.error('[ElderContext] Error code:', error?.code);
+      console.error('[ElderContext] Error message:', error?.message);
       setAvailableElders([]);
     } finally {
       setIsLoading(false);
