@@ -262,7 +262,8 @@ export interface Elder {
   id: string;
   groupId: string;
   name: string;
-  dateOfBirth: Date;
+  dateOfBirth?: Date; // Optional - only if exact DOB is known
+  approximateAge?: number; // Used when exact DOB is not known
   userId?: string;
   profileImage?: string;
   notes: string;

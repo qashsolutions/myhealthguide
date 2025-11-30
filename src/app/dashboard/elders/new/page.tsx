@@ -63,7 +63,7 @@ export default function NewElderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Calculate DOB from approximate age
+  // Calculate DOB from approximate age (kept for future use if needed)
   const calculateDOBFromAge = (age: number): Date => {
     const today = new Date();
     const birthYear = today.getFullYear() - age;
@@ -107,8 +107,10 @@ export default function NewElderPage() {
         throw new Error('Please enter date of birth');
       }
 
-      // Calculate date of birth
-      let dateOfBirth: Date;
+      // Handle date of birth OR approximate age
+      let dateOfBirth: Date | undefined;
+      let approximateAge: number | undefined;
+
       if (useExactDOB && formData.dateOfBirth) {
         dateOfBirth = new Date(formData.dateOfBirth);
       } else {
@@ -116,7 +118,7 @@ export default function NewElderPage() {
         if (isNaN(age) || age < 1 || age > 120) {
           throw new Error('Please enter a valid age between 1 and 120');
         }
-        dateOfBirth = calculateDOBFromAge(age);
+        approximateAge = age;
       }
 
       // Build languages array
@@ -133,6 +135,7 @@ export default function NewElderPage() {
         preferredName: formData.preferredName.trim() || undefined,
         groupId,
         dateOfBirth,
+        approximateAge,
         gender: formData.gender || undefined,
         languages: languages.length > 0 ? languages : undefined,
         knownConditions: formData.conditions.length > 0 ? formData.conditions : undefined,

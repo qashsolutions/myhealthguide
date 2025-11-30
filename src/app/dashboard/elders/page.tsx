@@ -114,7 +114,13 @@ export default function EldersPage() {
                     )}
                     <div className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
                       <Calendar className="h-4 w-4" />
-                      <span>{calculateAge(elder.dateOfBirth)} years old</span>
+                      <span>
+                        {elder.dateOfBirth
+                          ? `${calculateAge(elder.dateOfBirth)} years old`
+                          : elder.approximateAge
+                            ? `~${elder.approximateAge} years old`
+                            : 'Age not specified'}
+                      </span>
                     </div>
                     {elder.languages && elder.languages.length > 0 && (
                       <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">

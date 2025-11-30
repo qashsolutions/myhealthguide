@@ -386,16 +386,24 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
               <p className="font-medium">{elder.preferredName}</p>
             </div>
           )}
-          <div className="space-y-1">
-            <p className="text-sm text-gray-500">Date of Birth</p>
-            <p className="font-medium flex items-center gap-1">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              {format(elder.dateOfBirth, 'MMM d, yyyy')}
-            </p>
-          </div>
+          {elder.dateOfBirth && (
+            <div className="space-y-1">
+              <p className="text-sm text-gray-500">Date of Birth</p>
+              <p className="font-medium flex items-center gap-1">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                {format(elder.dateOfBirth, 'MMM d, yyyy')}
+              </p>
+            </div>
+          )}
           <div className="space-y-1">
             <p className="text-sm text-gray-500">Age</p>
-            <p className="font-medium">{calculateAge(elder.dateOfBirth)} years</p>
+            <p className="font-medium">
+              {elder.dateOfBirth
+                ? `${calculateAge(elder.dateOfBirth)} years`
+                : elder.approximateAge
+                  ? `~${elder.approximateAge} years`
+                  : 'Not specified'}
+            </p>
           </div>
           {elder.gender && (
             <div className="space-y-1">

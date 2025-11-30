@@ -38,7 +38,7 @@ export class ElderService {
     const docRef = await addDoc(collection(db, this.COLLECTION), {
       ...elder,
       groupId,
-      dateOfBirth: Timestamp.fromDate(elder.dateOfBirth),
+      ...(elder.dateOfBirth && { dateOfBirth: Timestamp.fromDate(elder.dateOfBirth) }),
       createdAt: Timestamp.fromDate(elder.createdAt)
     });
 

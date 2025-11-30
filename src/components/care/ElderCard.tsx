@@ -16,7 +16,9 @@ interface ElderCardProps {
 export function ElderCard({ elder, onDelete }: ElderCardProps) {
   const router = useRouter();
 
-  const age = new Date().getFullYear() - new Date(elder.dateOfBirth).getFullYear();
+  const age = elder.dateOfBirth
+    ? new Date().getFullYear() - new Date(elder.dateOfBirth).getFullYear()
+    : elder.approximateAge;
 
   const getInitials = (name: string) => {
     return name
@@ -38,16 +40,20 @@ export function ElderCard({ elder, onDelete }: ElderCardProps) {
           </Avatar>
           <div>
             <h3 className="font-semibold text-lg">{elder.name}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Age {age}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {age ? (elder.dateOfBirth ? `Age ${age}` : `~${age} years`) : 'Age not specified'}
+            </p>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            <span className="font-medium">Date of Birth:</span>{' '}
-            {format(new Date(elder.dateOfBirth), 'MMM dd, yyyy')}
-          </p>
+          {elder.dateOfBirth && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="font-medium">Date of Birth:</span>{' '}
+              {format(new Date(elder.dateOfBirth), 'MMM dd, yyyy')}
+            </p>
+          )}
           {elder.notes && (
             <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
               <span className="font-medium">Notes:</span> {elder.notes}
