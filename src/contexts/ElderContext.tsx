@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, documentId } from 'firebase/firestore';
 import type { Elder, AgencyRole } from '@/types';
 
 interface ElderContextType {
@@ -17,6 +17,21 @@ interface ElderContextType {
 const ElderContext = createContext<ElderContextType | undefined>(undefined);
 
 const SELECTED_ELDER_KEY = 'selected_elder_id';
+
+// Helper function to get groups where user is admin
+async function getGroupsWhereUserIsAdmin(userId: string): Promise<string[]> {
+  try {
+    const adminGroupsQuery = query(
+      collection(db, 'groups'),
+      where('adminId', '==', userId)
+    );
+    const snapshot = await getDocs(adminGroupsQuery);
+    return snapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error('Error getting admin groups:', error);
+    return [];
+  }
+}
 
 export function ElderProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -56,8 +71,16 @@ export function ElderProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // Regular family member: Load from their groups
-        const groupIds = user.groups?.map(g => g.groupId) || [];
-        elders = await loadEldersFromGroups(groupIds);
+        // First, get group IDs from user.groups array
+        const userGroupIds = user.groups?.map(g => g.groupId) || [];
+
+        // Also query groups where user is adminId (in case user.groups wasn't populated)
+        const adminGroupIds = await getGroupsWhereUserIsAdmin(user.id);
+
+        // Combine and deduplicate
+        const allGroupIds = [...new Set([...userGroupIds, ...adminGroupIds])];
+
+        elders = await loadEldersFromGroups(allGroupIds);
       }
 
       setAvailableElders(elders);
@@ -91,26 +114,41 @@ export function ElderProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Load elders from agency
+  // Load elders from agency (query top-level elders collection)
   async function loadAgencyElders(agencyId: string): Promise<Elder[]> {
     const elders: Elder[] = [];
 
-    // Get all groups for this agency
+    // First get all group IDs for this agency
     const groupsQuery = query(
       collection(db, 'groups'),
       where('agencyId', '==', agencyId)
     );
 
     const groupsSnap = await getDocs(groupsQuery);
+    const groupIds = groupsSnap.docs.map(doc => doc.id);
 
-    for (const groupDoc of groupsSnap.docs) {
-      const groupData = groupDoc.data();
-      const groupElders = groupData.elders || [];
+    if (groupIds.length === 0) {
+      return elders;
+    }
 
-      groupElders.forEach((elder: any) => {
+    // Query elders collection where groupId is in the agency's groups
+    // Firestore 'in' query supports max 30 values, chunk if needed
+    const chunks = [];
+    for (let i = 0; i < groupIds.length; i += 30) {
+      chunks.push(groupIds.slice(i, i + 30));
+    }
+
+    for (const chunk of chunks) {
+      const eldersQuery = query(
+        collection(db, 'elders'),
+        where('groupId', 'in', chunk)
+      );
+
+      const eldersSnap = await getDocs(eldersQuery);
+      eldersSnap.docs.forEach(doc => {
         elders.push({
-          ...elder,
-          groupId: groupDoc.id
+          id: doc.id,
+          ...doc.data()
         } as Elder);
       });
     }
@@ -118,54 +156,70 @@ export function ElderProvider({ children }: { children: ReactNode }) {
     return elders;
   }
 
-  // Load specific elders by IDs
+  // Load specific elders by IDs (query top-level elders collection)
   async function loadEldersByIds(elderIds: string[]): Promise<Elder[]> {
     const elders: Elder[] = [];
 
-    // Since elders are nested in groups, we need to find them
-    // This is a limitation of the current schema - elders don't have their own collection
-    // We'll need to query groups and filter elders
+    if (elderIds.length === 0) {
+      return elders;
+    }
 
-    const groupsSnap = await getDocs(collection(db, 'groups'));
+    // Query elders collection by document IDs
+    // Firestore 'in' query supports max 30 values, chunk if needed
+    const chunks = [];
+    for (let i = 0; i < elderIds.length; i += 30) {
+      chunks.push(elderIds.slice(i, i + 30));
+    }
 
-    for (const groupDoc of groupsSnap.docs) {
-      const groupData = groupDoc.data();
-      const groupElders = groupData.elders || [];
+    for (const chunk of chunks) {
+      const eldersQuery = query(
+        collection(db, 'elders'),
+        where(documentId(), 'in', chunk)
+      );
 
-      groupElders.forEach((elder: any) => {
-        if (elderIds.includes(elder.id)) {
-          elders.push({
-            ...elder,
-            groupId: groupDoc.id
-          } as Elder);
-        }
+      const eldersSnap = await getDocs(eldersQuery);
+      eldersSnap.docs.forEach(doc => {
+        elders.push({
+          id: doc.id,
+          ...doc.data()
+        } as Elder);
       });
     }
 
     return elders;
   }
 
-  // Load elders from specific groups
+  // Load elders from specific groups (query top-level elders collection)
   async function loadEldersFromGroups(groupIds: string[]): Promise<Elder[]> {
     const elders: Elder[] = [];
 
-    for (const groupId of groupIds) {
+    if (groupIds.length === 0) {
+      return elders;
+    }
+
+    // Query elders collection where groupId is in the user's groups
+    // Firestore 'in' query supports max 30 values, chunk if needed
+    const chunks = [];
+    for (let i = 0; i < groupIds.length; i += 30) {
+      chunks.push(groupIds.slice(i, i + 30));
+    }
+
+    for (const chunk of chunks) {
       try {
-        const groupDoc = await getDoc(doc(db, 'groups', groupId));
+        const eldersQuery = query(
+          collection(db, 'elders'),
+          where('groupId', 'in', chunk)
+        );
 
-        if (groupDoc.exists()) {
-          const groupData = groupDoc.data();
-          const groupElders = groupData.elders || [];
-
-          groupElders.forEach((elder: any) => {
-            elders.push({
-              ...elder,
-              groupId: groupDoc.id
-            } as Elder);
-          });
-        }
+        const eldersSnap = await getDocs(eldersQuery);
+        eldersSnap.docs.forEach(doc => {
+          elders.push({
+            id: doc.id,
+            ...doc.data()
+          } as Elder);
+        });
       } catch (error) {
-        console.error(`Error loading group ${groupId}:`, error);
+        console.error('Error loading elders for groups:', error);
       }
     }
 
