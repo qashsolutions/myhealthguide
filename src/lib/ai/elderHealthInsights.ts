@@ -188,6 +188,7 @@ function filterValidObservations(observations: string[]): string[] {
 
 /**
  * Gather medication adherence data using Admin SDK
+ * Collection: medication_logs (top-level) with elderId and groupId fields
  */
 async function getMedicationAdherenceData(
   elderId: string,
@@ -200,11 +201,9 @@ async function getMedicationAdherenceData(
     startDate.setDate(startDate.getDate() - days);
 
     const logsSnapshot = await adminDb
-      .collection('groups')
-      .doc(groupId)
-      .collection('elders')
-      .doc(elderId)
-      .collection('medicationLogs')
+      .collection('medication_logs')
+      .where('elderId', '==', elderId)
+      .where('groupId', '==', groupId)
       .orderBy('scheduledTime', 'desc')
       .limit(500)
       .get();
@@ -233,6 +232,7 @@ async function getMedicationAdherenceData(
 
 /**
  * Get diet entry count using Admin SDK
+ * Collection: diet_entries (top-level) with elderId and groupId fields
  */
 async function getDietEntryCount(
   elderId: string,
@@ -245,11 +245,9 @@ async function getDietEntryCount(
     startDate.setDate(startDate.getDate() - days);
 
     const dietSnapshot = await adminDb
-      .collection('groups')
-      .doc(groupId)
-      .collection('elders')
-      .doc(elderId)
-      .collection('dietEntries')
+      .collection('diet_entries')
+      .where('elderId', '==', elderId)
+      .where('groupId', '==', groupId)
       .orderBy('timestamp', 'desc')
       .limit(500)
       .get();
