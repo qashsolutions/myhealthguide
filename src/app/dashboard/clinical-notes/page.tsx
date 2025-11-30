@@ -6,11 +6,23 @@ import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
-import { Loader2, FileText, Download, Printer, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, FileText, Download, Printer, Sparkles, AlertCircle, MessageSquare, HelpCircle, Info } from 'lucide-react';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { generateClinicalNotePDF, ClinicalNotePDFData } from '@/lib/utils/pdfExport';
 import { format } from 'date-fns';
+
+// Types for the API response
+interface DiscussionPoint {
+  topic: string;
+  observation: string;
+  discussionPrompt: string;
+}
+
+interface ProviderQuestion {
+  context: string;
+  question: string;
+}
 
 export default function ClinicalNotesPage() {
   const { user } = useAuth();
@@ -73,8 +85,9 @@ export default function ClinicalNotesPage() {
       clinicalSummary: clinicalNote.summary,
       medicationList: clinicalNote.medicationList,
       complianceAnalysis: clinicalNote.complianceAnalysis,
-      recommendations: clinicalNote.recommendations,
-      questionsForDoctor: clinicalNote.questionsForDoctor,
+      // Convert new format to PDF format
+      discussionPoints: clinicalNote.discussionPoints || [],
+      questionsForProvider: clinicalNote.questionsForProvider || [],
     };
 
     generateClinicalNotePDF(pdfData);
@@ -251,31 +264,54 @@ export default function ClinicalNotesPage() {
               </div>
             </div>
 
-            {clinicalNote.recommendations.length > 0 && (
+            {/* Discussion Points Section */}
+            {clinicalNote.discussionPoints && clinicalNote.discussionPoints.length > 0 && (
               <div className="border-t dark:border-gray-700 pt-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Clinical Recommendations</h3>
-                <ul className="space-y-2">
-                  {clinicalNote.recommendations.map((rec: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700 dark:text-gray-300">{rec}</span>
-                    </li>
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="h-5 w-5 text-purple-600" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Discussion Points for Your Visit</h3>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  These are conversation starters based on data patterns — not medical advice or recommendations.
+                </p>
+                <div className="space-y-4">
+                  {clinicalNote.discussionPoints.map((point: DiscussionPoint, index: number) => (
+                    <div key={index} className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                      <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">{point.topic}</h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                        <span className="font-medium">Data shows:</span> {point.observation}
+                      </p>
+                      <p className="text-sm text-purple-800 dark:text-purple-200 italic">
+                        {point.discussionPrompt}
+                      </p>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
 
-            {clinicalNote.questionsForDoctor.length > 0 && (
+            {/* Questions for Provider Section */}
+            {clinicalNote.questionsForProvider && clinicalNote.questionsForProvider.length > 0 && (
               <div className="border-t dark:border-gray-700 pt-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Questions for Healthcare Provider</h3>
-                <ul className="space-y-2">
-                  {clinicalNote.questionsForDoctor.map((question: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">{index + 1}.</span>
-                      <span className="text-gray-700 dark:text-gray-300">{question}</span>
-                    </li>
+                <div className="flex items-center gap-2 mb-3">
+                  <HelpCircle className="h-5 w-5 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Questions for Your Healthcare Provider</h3>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Open-ended questions to help you gather information during your appointment.
+                </p>
+                <div className="space-y-3">
+                  {clinicalNote.questionsForProvider.map((q: ProviderQuestion, index: number) => (
+                    <div key={index} className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <span className="font-medium">Based on:</span> {q.context}
+                      </p>
+                      <p className="text-blue-900 dark:text-blue-100 font-medium">
+                        "{q.question}"
+                      </p>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
 

@@ -3,7 +3,8 @@
  *
  * POST /api/medgemma/query
  *
- * Processes natural language queries about health data using MedGemma AI
+ * Processes natural language queries about health data using MedGemma AI.
+ * All responses are OBSERVATIONAL ONLY - no medical advice or recommendations.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,6 +13,9 @@ import { UserRole } from '@/lib/medical/phiAuditLog';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import type { Medication, MedicationLog, DietEntry } from '@/types';
+
+// Standard disclaimer appended to all responses
+const RESPONSE_DISCLAIMER = '\n\nThis is based on logged data only. Please discuss any concerns with your healthcare provider.';
 
 interface RequestBody {
   userId: string;
@@ -113,19 +117,23 @@ export async function POST(request: NextRequest) {
       }));
     }
 
+    // Build factual, observational response (NO advice or recommendations)
     let answer = '';
     if (intent === 'view_compliance' && responseData.compliance) {
-      answer = `Based on the last ${timeframeDays} days, the medication compliance rate is ${responseData.compliance.complianceRate}%. ` +
-               `${responseData.compliance.takenDoses} doses were taken out of ${responseData.compliance.totalDoses} scheduled doses, ` +
-               `with ${responseData.compliance.missedDoses} doses missed.`;
+      answer = `Based on the logged data from the last ${timeframeDays} days, the medication compliance rate is ${responseData.compliance.complianceRate}%. ` +
+               `${responseData.compliance.takenDoses} doses were recorded as taken out of ${responseData.compliance.totalDoses} scheduled doses, ` +
+               `with ${responseData.compliance.missedDoses} doses marked as missed.`;
     } else if (intent === 'check_medications' && responseData.medications) {
-      answer = `There are ${responseData.medications.length} medications currently prescribed: ` +
+      answer = `The records show ${responseData.medications.length} medications currently logged: ` +
                responseData.medications.map((m: any) => m.name).join(', ') + '.';
     } else if (intent === 'analyze_diet' && responseData.dietEntries) {
-      answer = `${responseData.dietEntries.length} meals were logged in the last ${timeframeDays} days.`;
+      answer = `The log shows ${responseData.dietEntries.length} meals were recorded in the last ${timeframeDays} days.`;
     } else {
-      answer = `I found information related to your query about ${parameters.metric || 'health data'}.`;
+      answer = `Here is the information from the logged data about ${parameters.metric || 'health records'}.`;
     }
+
+    // Always append disclaimer to remind users this is observational only
+    answer += RESPONSE_DISCLAIMER;
 
     return NextResponse.json({
       success: true,
@@ -136,6 +144,7 @@ export async function POST(request: NextRequest) {
         answer,
         chartData: responseData,
         sources: needsData,
+        disclaimer: 'This response contains factual data summaries only. It does not provide medical advice, recommendations, or interpretations.',
       },
     });
   } catch (error) {

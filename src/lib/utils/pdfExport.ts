@@ -280,6 +280,17 @@ function calculateMetrics(data: ExportData): ComplianceMetrics {
 
 // ============= Clinical Note PDF Export =============
 
+export interface DiscussionPoint {
+  topic: string;
+  observation: string;
+  discussionPrompt: string;
+}
+
+export interface ProviderQuestion {
+  context: string;
+  question: string;
+}
+
 export interface ClinicalNotePDFData {
   patientInfo: {
     name: string;
@@ -306,8 +317,10 @@ export interface ClinicalNotePDFData {
     takenDoses: number;
     missedDoses: number;
   };
-  recommendations: string[];
-  questionsForDoctor: string[];
+  // Discussion points - conversation starters for provider visits (NOT recommendations)
+  discussionPoints: DiscussionPoint[];
+  // Questions for provider - open-ended questions based on data patterns
+  questionsForProvider: ProviderQuestion[];
 }
 
 /**
@@ -461,8 +474,8 @@ export async function generateClinicalNotePDF(
 
   yPosition = (doc as any).lastAutoTable.finalY + 10;
 
-  // === RECOMMENDATIONS ===
-  if (data.recommendations && data.recommendations.length > 0) {
+  // === DISCUSSION POINTS ===
+  if (data.discussionPoints && data.discussionPoints.length > 0) {
     // Check if we need a new page
     if (yPosition > pageHeight - 60) {
       doc.addPage();
@@ -471,29 +484,49 @@ export async function generateClinicalNotePDF(
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Clinical Recommendations', margin, yPosition);
+    doc.text('Discussion Points for Your Visit', margin, yPosition);
+    yPosition += 5;
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Conversation starters based on data patterns - not medical advice or recommendations', margin, yPosition);
+    doc.setTextColor(0, 0, 0);
     yPosition += 7;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
-    data.recommendations.forEach((rec, index) => {
-      if (yPosition > pageHeight - margin - 35) {
+    data.discussionPoints.forEach((point, index) => {
+      if (yPosition > pageHeight - margin - 45) {
         doc.addPage();
         yPosition = margin;
       }
-      const bullet = `${index + 1}. `;
-      const lines = doc.splitTextToSize(rec, pageWidth - 2 * margin - 10);
-      doc.text(bullet, margin, yPosition);
-      doc.text(lines, margin + 10, yPosition);
-      yPosition += lines.length * 5 + 2;
+
+      // Topic header
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${index + 1}. ${point.topic}`, margin, yPosition);
+      yPosition += 5;
+
+      // Observation
+      doc.setFont('helvetica', 'normal');
+      const obsLines = doc.splitTextToSize(`Data shows: ${point.observation}`, pageWidth - 2 * margin - 5);
+      doc.text(obsLines, margin + 5, yPosition);
+      yPosition += obsLines.length * 4 + 2;
+
+      // Discussion prompt
+      doc.setFont('helvetica', 'italic');
+      const promptLines = doc.splitTextToSize(point.discussionPrompt, pageWidth - 2 * margin - 5);
+      doc.text(promptLines, margin + 5, yPosition);
+      doc.setFont('helvetica', 'normal');
+      yPosition += promptLines.length * 4 + 5;
     });
 
     yPosition += 5;
   }
 
-  // === QUESTIONS FOR DOCTOR ===
-  if (data.questionsForDoctor && data.questionsForDoctor.length > 0) {
+  // === QUESTIONS FOR PROVIDER ===
+  if (data.questionsForProvider && data.questionsForProvider.length > 0) {
     // Check if we need a new page
     if (yPosition > pageHeight - 60) {
       doc.addPage();
@@ -502,22 +535,39 @@ export async function generateClinicalNotePDF(
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Questions for Healthcare Provider', margin, yPosition);
+    doc.text('Questions for Your Healthcare Provider', margin, yPosition);
+    yPosition += 5;
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Open-ended questions to help you gather information during your appointment', margin, yPosition);
+    doc.setTextColor(0, 0, 0);
     yPosition += 7;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
-    data.questionsForDoctor.forEach((question, index) => {
-      if (yPosition > pageHeight - margin - 35) {
+    data.questionsForProvider.forEach((q, index) => {
+      if (yPosition > pageHeight - margin - 40) {
         doc.addPage();
         yPosition = margin;
       }
-      const bullet = `${index + 1}. `;
-      const lines = doc.splitTextToSize(question, pageWidth - 2 * margin - 10);
-      doc.text(bullet, margin, yPosition);
-      doc.text(lines, margin + 10, yPosition);
-      yPosition += lines.length * 5 + 2;
+
+      // Context
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      const contextLines = doc.splitTextToSize(`Based on: ${q.context}`, pageWidth - 2 * margin - 5);
+      doc.text(contextLines, margin, yPosition);
+      yPosition += contextLines.length * 4 + 2;
+
+      // Question
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      const questionLines = doc.splitTextToSize(`${index + 1}. "${q.question}"`, pageWidth - 2 * margin);
+      doc.text(questionLines, margin, yPosition);
+      doc.setFont('helvetica', 'normal');
+      yPosition += questionLines.length * 5 + 5;
     });
 
     yPosition += 10;
@@ -536,8 +586,8 @@ export async function generateClinicalNotePDF(
 
   const disclaimer = 'MEDICAL DISCLAIMER: This report is AI-generated to assist clinical discussions. ' +
     'It does NOT constitute medical advice, diagnosis, or treatment recommendations. ' +
-    'All medical decisions should be made by licensed healthcare providers. ' +
-    'This information should be reviewed and verified by a qualified healthcare professional.';
+    'Discussion points and questions are conversation starters based on data patterns, not clinical guidance. ' +
+    'All medical decisions should be made by licensed healthcare providers.';
 
   const disclaimerLines = doc.splitTextToSize(disclaimer, pageWidth - 2 * margin);
   let disclaimerYPos = disclaimerY;

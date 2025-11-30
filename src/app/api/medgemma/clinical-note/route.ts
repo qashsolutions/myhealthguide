@@ -4,10 +4,16 @@
  * POST /api/medgemma/clinical-note
  *
  * Generates a comprehensive clinical summary report using MedGemma AI
+ * including:
+ * - Observational summary (factual data only)
+ * - Discussion points (conversation starters for provider visits)
+ * - Questions for provider (open-ended questions based on data patterns)
+ *
+ * All outputs are validated to ensure NO medical advice is provided.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { generateClinicalNote } from '@/lib/ai/medgemmaService';
+import { generateClinicalNote, DiscussionPoint, ProviderQuestion } from '@/lib/ai/medgemmaService';
 import { UserRole } from '@/lib/medical/phiAuditLog';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -140,10 +146,15 @@ export async function POST(request: NextRequest) {
           };
         }),
         complianceAnalysis: { overallRate: complianceRate, totalDoses, takenDoses, missedDoses },
-        recommendations: clinicalNote.recommendations,
-        questionsForDoctor: clinicalNote.questionsForDoctor,
         patientInfo: { name: elderName, age: elderAge, dateOfBirth: elderDateOfBirth, medicalConditions, allergies },
         timeframeDays,
+        // Discussion points - conversation starters for healthcare provider visits
+        // These are NOT recommendations - they are topics based on data patterns
+        discussionPoints: clinicalNote.discussionPoints,
+        // Questions for provider - open-ended questions based on data patterns
+        // These help caregivers advocate during appointments
+        questionsForProvider: clinicalNote.questionsForProvider,
+        disclaimer: 'This is an observational summary of logged health data. It does not contain medical advice or recommendations. Discussion points and questions are conversation starters based on data patterns, not clinical guidance. Please discuss all health decisions with your healthcare provider.',
       },
     });
   } catch (error) {
