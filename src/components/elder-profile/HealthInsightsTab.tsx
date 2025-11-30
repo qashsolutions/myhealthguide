@@ -30,6 +30,7 @@ import {
 import { dismissHealthInsight } from '@/lib/firebase/elderHealthProfile';
 import { checkUnifiedConsent } from '@/lib/consent/unifiedConsentManagement';
 import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ElderHealthInsight } from '@/types';
 import { format } from 'date-fns';
 
@@ -92,7 +93,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `/api/elder-insights?elderId=${elderId}&groupId=${groupId}&includeDismissed=${showDismissed}&limit=50`
       );
       const data = await response.json();
@@ -115,13 +116,12 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
     setError(null);
     setSummary(null);
     try {
-      const response = await fetch('/api/elder-insights', {
+      const response = await authenticatedFetch('/api/elder-insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           elderId,
           groupId,
-          userId,
           days: parseInt(periodDays),
           includeSummary: true,
         }),

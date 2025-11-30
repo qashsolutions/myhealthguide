@@ -10,6 +10,7 @@ import { Loader2, FileText, Download, Printer, Sparkles, AlertCircle, MessageSqu
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { generateClinicalNotePDF, ClinicalNotePDFData } from '@/lib/utils/pdfExport';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import { format } from 'date-fns';
 
 // Types for the API response
@@ -40,12 +41,10 @@ export default function ClinicalNotesPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/medgemma/clinical-note', {
+      const response = await authenticatedFetch('/api/medgemma/clinical-note', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
-          userRole: 'admin',
           groupId: selectedElder.groupId,
           elderId: selectedElder.id,
           elderName: selectedElder.name,

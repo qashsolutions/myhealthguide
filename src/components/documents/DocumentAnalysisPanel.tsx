@@ -29,6 +29,7 @@ import {
   ChevronUp,
   Info,
 } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { DocumentAnalysis, ExtractedData } from '@/lib/ai/documentAnalysis';
 
 interface DocumentAnalysisPanelProps {
@@ -74,7 +75,7 @@ export function DocumentAnalysisPanel({
     setError(null);
 
     try {
-      const response = await fetch('/api/documents/analyze', {
+      const response = await authenticatedFetch('/api/documents/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,7 +84,6 @@ export function DocumentAnalysisPanel({
           fileName,
           fileType,
           fileSize,
-          userId,
           groupId,
           elderId,
         }),

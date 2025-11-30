@@ -10,18 +10,26 @@
  * - Questions for provider (open-ended questions based on data patterns)
  *
  * All outputs are validated to ensure NO medical advice is provided.
+ *
+ * AUTHENTICATION: Requires Firebase ID token in Authorization header
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { generateClinicalNote, DiscussionPoint, ProviderQuestion } from '@/lib/ai/medgemmaService';
+import { generateClinicalNote } from '@/lib/ai/medgemmaService';
 import { UserRole } from '@/lib/medical/phiAuditLog';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import {
+  verifyAuthToken,
+  canAccessElderProfileServer,
+  getUserDataServer,
+} from '@/lib/api/verifyAuth';
+import {
+  getMedicationsServer,
+  getMedicationLogsServer,
+  getDietEntriesServer,
+} from '@/lib/api/firestoreAdmin';
 import type { Medication } from '@/types';
 
 interface RequestBody {
-  userId: string;
-  userRole: UserRole;
   groupId: string;
   elderId: string;
   elderName: string;
@@ -34,11 +42,19 @@ interface RequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const userId = authResult.userId;
     const body: RequestBody = await request.json();
 
     const {
-      userId,
-      userRole,
       groupId,
       elderId,
       elderName,
@@ -49,70 +65,51 @@ export async function POST(request: NextRequest) {
       timeframeDays,
     } = body;
 
-    if (!userId || !userRole || !groupId || !elderId || !elderName || !elderAge || !timeframeDays) {
+    if (!groupId || !elderId || !elderName || !elderAge || !timeframeDays) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // Verify user has access to this elder
+    const hasAccess = await canAccessElderProfileServer(userId, elderId, groupId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'You do not have permission to access this elder\'s data' },
+        { status: 403 }
+      );
+    }
+
+    // Get user data for role
+    const userData = await getUserDataServer(userId);
+    const userRole: UserRole = userData?.role || 'member';
 
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - timeframeDays);
 
-    const medicationsQuery = query(
-      collection(db, 'medications'),
-      where('groupId', '==', groupId),
-      where('elderId', '==', elderId)
-    );
-    const medicationsSnap = await getDocs(medicationsQuery);
-    const medications = medicationsSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      startDate: doc.data().startDate?.toDate?.() || new Date(doc.data().startDate),
-    })) as Medication[];
+    // Fetch data using Admin SDK
+    const medications = await getMedicationsServer(groupId, elderId) as Medication[];
+    const complianceLogsRaw = await getMedicationLogsServer(groupId, elderId, startDate, endDate);
 
-    const complianceLogsQuery = query(
-      collection(db, 'medicationLogs'),
-      where('groupId', '==', groupId),
-      where('elderId', '==', elderId),
-      where('scheduledTime', '>=', startDate),
-      where('scheduledTime', '<=', endDate),
-      orderBy('scheduledTime', 'desc')
-    );
-    const complianceLogsSnap = await getDocs(complianceLogsQuery);
-    const complianceLogs = complianceLogsSnap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        medicationName: medications.find(m => m.id === data.medicationId)?.name || 'Unknown',
-        scheduledTime: data.scheduledTime?.toDate?.() || new Date(data.scheduledTime),
-        status: data.status as 'taken' | 'missed' | 'skipped',
-        notes: data.notes,
-      };
-    });
+    const complianceLogs = complianceLogsRaw.map((log: any) => ({
+      medicationName: medications.find(m => m.id === log.medicationId)?.name || 'Unknown',
+      scheduledTime: log.scheduledTime,
+      status: log.status as 'taken' | 'missed' | 'skipped',
+      notes: log.notes,
+    }));
 
-    const dietEntriesQuery = query(
-      collection(db, 'dietEntries'),
-      where('groupId', '==', groupId),
-      where('elderId', '==', elderId),
-      where('timestamp', '>=', startDate),
-      where('timestamp', '<=', endDate),
-      orderBy('timestamp', 'desc'),
-      limit(50)
-    );
-    const dietEntriesSnap = await getDocs(dietEntriesQuery);
-    const dietEntries = dietEntriesSnap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        meal: data.meal,
-        items: data.items || [],
-        timestamp: data.timestamp?.toDate?.() || new Date(data.timestamp),
-      };
-    });
+    const dietEntriesRaw = await getDietEntriesServer(groupId, elderId, startDate, endDate, 50);
+    const dietEntries = dietEntriesRaw.map((entry: any) => ({
+      meal: entry.meal,
+      items: entry.items || [],
+      timestamp: entry.timestamp,
+    }));
 
     const medgemmaData = {
       elder: { name: elderName, age: elderAge, medicalConditions, allergies },
       medications: medications.map(med => ({
         name: med.name,
         dosage: med.dosage,
-        frequency: Array.isArray(med.frequency.times) ? med.frequency.times.length + 'x daily' : med.frequency.type,
+        frequency: Array.isArray(med.frequency?.times) ? med.frequency.times.length + 'x daily' : med.frequency?.type || 'as needed',
         startDate: med.startDate,
         prescribedBy: med.prescribedBy,
       })),
@@ -141,18 +138,14 @@ export async function POST(request: NextRequest) {
           return {
             name: med.name,
             dosage: med.dosage,
-            frequency: Array.isArray(med.frequency.times) ? med.frequency.times.length + 'x daily' : med.frequency.type,
+            frequency: Array.isArray(med.frequency?.times) ? med.frequency.times.length + 'x daily' : med.frequency?.type || 'as needed',
             compliance: medCompliance,
           };
         }),
         complianceAnalysis: { overallRate: complianceRate, totalDoses, takenDoses, missedDoses },
         patientInfo: { name: elderName, age: elderAge, dateOfBirth: elderDateOfBirth, medicalConditions, allergies },
         timeframeDays,
-        // Discussion points - conversation starters for healthcare provider visits
-        // These are NOT recommendations - they are topics based on data patterns
         discussionPoints: clinicalNote.discussionPoints,
-        // Questions for provider - open-ended questions based on data patterns
-        // These help caregivers advocate during appointments
         questionsForProvider: clinicalNote.questionsForProvider,
         disclaimer: 'This is an observational summary of logged health data. It does not contain medical advice or recommendations. Discussion points and questions are conversation starters based on data patterns, not clinical guidance. Please discuss all health decisions with your healthcare provider.',
       },

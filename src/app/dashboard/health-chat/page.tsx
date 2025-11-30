@@ -15,6 +15,7 @@ import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info, Ale
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { validateNoProfanity } from '@/lib/utils/profanityFilter';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import {
   checkUnifiedConsent,
   verifyAndLogAccess
@@ -124,12 +125,10 @@ export default function HealthChatPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/medgemma/query', {
+      const response = await authenticatedFetch('/api/medgemma/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
-          userRole: 'admin',
           groupId: selectedElder.groupId,
           elderId: selectedElder.id,
           elderName: selectedElder.name,

@@ -4,33 +4,50 @@
  * POST /api/elder-insights
  * Generate health insights for an elder (observation-only)
  *
- * GET /api/elder-insights?elderId=xxx&limit=20&includeDismissed=false
+ * GET /api/elder-insights?elderId=xxx&groupId=xxx&limit=20&includeDismissed=false
  * Get existing insights for an elder
+ *
+ * AUTHENTICATION: Requires Firebase ID token in Authorization header
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  verifyAuthToken,
+  canAccessElderProfileServer,
+  verifyAndLogAccessServer,
+  getUserDataServer,
+} from '@/lib/api/verifyAuth';
+import { getElderHealthInsightsServer } from '@/lib/api/firestoreAdmin';
+import {
   generateElderHealthInsights,
   generateAISummaryObservation,
 } from '@/lib/ai/elderHealthInsights';
-import {
-  getElderHealthInsights,
-  canAccessElderProfile,
-} from '@/lib/firebase/elderHealthProfile';
-import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 
 /**
  * GET - Retrieve existing insights for an elder
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('[elder-insights GET] Starting request');
+
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    console.log('[elder-insights GET] Auth result:', { success: authResult.success, userId: authResult.userId, error: authResult.error });
+
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const elderId = searchParams.get('elderId');
     const groupId = searchParams.get('groupId');
     const limitParam = searchParams.get('limit');
     const includeDismissed = searchParams.get('includeDismissed') === 'true';
+
+    console.log('[elder-insights GET] Params:', { elderId, groupId, limitParam, includeDismissed });
 
     if (!elderId || !groupId) {
       return NextResponse.json(
@@ -39,8 +56,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Verify user has access to this elder
+    console.log('[elder-insights GET] Checking access for userId:', authResult.userId);
+    const hasAccess = await canAccessElderProfileServer(authResult.userId, elderId, groupId);
+    console.log('[elder-insights GET] hasAccess result:', hasAccess);
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'You do not have permission to access this elder\'s health profile' },
+        { status: 403 }
+      );
+    }
+
     const limit = limitParam ? parseInt(limitParam, 10) : 20;
-    const insights = await getElderHealthInsights(elderId, groupId, includeDismissed, limit);
+    const insights = await getElderHealthInsightsServer(elderId, groupId, includeDismissed, limit);
 
     return NextResponse.json({
       success: true,
@@ -61,19 +90,38 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('[elder-insights POST] Starting request');
+
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    console.log('[elder-insights POST] Auth result:', { success: authResult.success, userId: authResult.userId, error: authResult.error });
+
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const userId = authResult.userId;
     const body = await request.json();
-    const { elderId, groupId, userId, days = 7, includeSummary = false } = body;
+    const { elderId, groupId, days = 7, includeSummary = false } = body;
+
+    console.log('[elder-insights POST] Body:', { elderId, groupId, days, includeSummary });
 
     // Validate required fields
-    if (!elderId || !groupId || !userId) {
+    if (!elderId || !groupId) {
       return NextResponse.json(
-        { error: 'Missing required fields: elderId, groupId, userId' },
+        { error: 'Missing required fields: elderId, groupId' },
         { status: 400 }
       );
     }
 
     // Check if user can access this elder's profile
-    const hasAccess = await canAccessElderProfile(userId, elderId, groupId);
+    console.log('[elder-insights POST] Checking access for userId:', userId);
+    const hasAccess = await canAccessElderProfileServer(userId, elderId, groupId);
+    console.log('[elder-insights POST] hasAccess result:', hasAccess);
+
     if (!hasAccess) {
       return NextResponse.json(
         { error: 'You do not have permission to access this elder\'s health profile' },
@@ -81,11 +129,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check AI consent (health insights use AI for data aggregation)
-    const consentCheck = await verifyAndLogAccess(
+    // Check AI consent
+    const consentCheck = await verifyAndLogAccessServer(
       userId,
       groupId,
-      'health_change_detection', // Using existing feature type
+      'health_change_detection',
       elderId
     );
 
@@ -101,8 +149,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user role
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    const userData = userDoc.data();
+    const userData = await getUserDataServer(userId);
     const userRole = userData?.role || 'member';
 
     // Generate insights

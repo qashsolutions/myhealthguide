@@ -1,6 +1,24 @@
+/**
+ * Weekly Summary API Route
+ *
+ * GET /api/weekly-summary?groupId=xxx&elderId=xxx&limit=4
+ * Fetch past weekly summaries for an elder
+ *
+ * POST /api/weekly-summary
+ * Generate a new weekly summary for an elder
+ *
+ * AUTHENTICATION: Requires Firebase ID token in Authorization header
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { generateWeeklySummary, getWeeklySummaries } from '@/lib/ai/weeklySummary';
-import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
+import { generateWeeklySummary } from '@/lib/ai/weeklySummary';
+import {
+  verifyAuthToken,
+  canAccessElderProfileServer,
+  verifyAndLogAccessServer,
+  getUserDataServer,
+} from '@/lib/api/verifyAuth';
+import { getWeeklySummariesServer } from '@/lib/api/firestoreAdmin';
 
 /**
  * GET /api/weekly-summary
@@ -8,6 +26,15 @@ import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { success: false, error: authResult.error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('groupId');
     const elderId = searchParams.get('elderId');
@@ -20,7 +47,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const summaries = await getWeeklySummaries(groupId, elderId, limit);
+    // Verify user has access to this elder
+    const hasAccess = await canAccessElderProfileServer(authResult.userId, elderId, groupId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { success: false, error: 'You do not have permission to access this elder\'s data' },
+        { status: 403 }
+      );
+    }
+
+    const summaries = await getWeeklySummariesServer(groupId, elderId, limit);
 
     return NextResponse.json({
       success: true,
@@ -42,19 +78,38 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { success: false, error: authResult.error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const userId = authResult.userId;
     const body = await request.json();
-    const { userId, groupId, elderId, elderName, userRole, weekOffset } = body;
+    const { groupId, elderId, elderName, weekOffset } = body;
 
     // Validate required fields
-    if (!userId || !groupId || !elderId || !elderName) {
+    if (!groupId || !elderId || !elderName) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: userId, groupId, elderId, elderName' },
+        { success: false, error: 'Missing required fields: groupId, elderId, elderName' },
         { status: 400 }
       );
     }
 
+    // Verify user has access to this elder
+    const hasAccess = await canAccessElderProfileServer(userId, elderId, groupId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { success: false, error: 'You do not have permission to access this elder\'s data' },
+        { status: 403 }
+      );
+    }
+
     // Verify consent
-    const { allowed, reason } = await verifyAndLogAccess(
+    const { allowed, reason } = await verifyAndLogAccessServer(
       userId,
       groupId,
       'weekly_summary',
@@ -68,13 +123,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get user role
+    const userData = await getUserDataServer(userId);
+    const userRole = userData?.role || 'admin';
+
     // Generate summary
     const summary = await generateWeeklySummary(
       groupId,
       elderId,
       elderName,
       userId,
-      userRole || 'admin',
+      userRole,
       weekOffset || 0
     );
 

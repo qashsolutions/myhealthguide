@@ -5,21 +5,28 @@
  *
  * Processes natural language queries about health data using MedGemma AI.
  * All responses are OBSERVATIONAL ONLY - no medical advice or recommendations.
+ *
+ * AUTHENTICATION: Requires Firebase ID token in Authorization header
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { processNaturalLanguageQuery } from '@/lib/ai/medgemmaService';
 import { UserRole } from '@/lib/medical/phiAuditLog';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import type { Medication, MedicationLog, DietEntry } from '@/types';
+import {
+  verifyAuthToken,
+  canAccessElderProfileServer,
+  getUserDataServer,
+} from '@/lib/api/verifyAuth';
+import {
+  getMedicationsServer,
+  getMedicationLogsServer,
+  getDietEntriesServer,
+} from '@/lib/api/firestoreAdmin';
 
 // Standard disclaimer appended to all responses
 const RESPONSE_DISCLAIMER = '\n\nThis is based on logged data only. Please discuss any concerns with your healthcare provider.';
 
 interface RequestBody {
-  userId: string;
-  userRole: UserRole;
   groupId: string;
   elderId?: string;
   elderName?: string;
@@ -28,12 +35,37 @@ interface RequestBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: RequestBody = await request.json();
-    const { userId, userRole, groupId, elderId, elderName, query: userQuery } = body;
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
 
-    if (!userId || !userRole || !groupId || !userQuery) {
+    const userId = authResult.userId;
+    const body: RequestBody = await request.json();
+    const { groupId, elderId, elderName, query: userQuery } = body;
+
+    if (!groupId || !userQuery) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // If elderId is provided, verify access
+    if (elderId) {
+      const hasAccess = await canAccessElderProfileServer(userId, elderId, groupId);
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: 'You do not have permission to access this elder\'s data' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Get user data for role
+    const userData = await getUserDataServer(userId);
+    const userRole: UserRole = userData?.role || 'member';
 
     const queryIntent = await processNaturalLanguageQuery(
       userQuery,
@@ -56,64 +88,41 @@ export async function POST(request: NextRequest) {
     startDate.setDate(startDate.getDate() - timeframeDays);
 
     if (needsData.includes('medications') && elderId) {
-      const medicationsQuery = query(
-        collection(db, 'medications'),
-        where('groupId', '==', groupId),
-        where('elderId', '==', elderId)
-      );
-      const medicationsSnap = await getDocs(medicationsQuery);
-      responseData.medications = medicationsSnap.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name,
-        dosage: doc.data().dosage,
-        frequency: doc.data().frequency,
+      const medications = await getMedicationsServer(groupId, elderId);
+      responseData.medications = medications.map((med: any) => ({
+        id: med.id,
+        name: med.name,
+        dosage: med.dosage,
+        frequency: med.frequency,
       }));
     }
 
     if (needsData.includes('compliance_logs') && elderId) {
-      const logsQuery = query(
-        collection(db, 'medicationLogs'),
-        where('groupId', '==', groupId),
-        where('elderId', '==', elderId),
-        where('scheduledTime', '>=', startDate),
-        where('scheduledTime', '<=', endDate),
-        orderBy('scheduledTime', 'desc')
-      );
-      const logsSnap = await getDocs(logsQuery);
-      const logs = logsSnap.docs.map(doc => ({
-        medicationId: doc.data().medicationId,
-        status: doc.data().status,
-        scheduledTime: doc.data().scheduledTime?.toDate?.() || new Date(doc.data().scheduledTime),
-      }));
+      const logs = await getMedicationLogsServer(groupId, elderId, startDate, endDate);
 
       const totalDoses = logs.length;
-      const takenDoses = logs.filter(l => l.status === 'taken').length;
+      const takenDoses = logs.filter((l: any) => l.status === 'taken').length;
       const complianceRate = totalDoses > 0 ? ((takenDoses / totalDoses) * 100).toFixed(1) : '0';
 
       responseData.compliance = {
         totalDoses,
         takenDoses,
-        missedDoses: logs.filter(l => l.status === 'missed').length,
+        missedDoses: logs.filter((l: any) => l.status === 'missed').length,
         complianceRate,
-        logs: logs.slice(0, 10),
+        logs: logs.slice(0, 10).map((l: any) => ({
+          medicationId: l.medicationId,
+          status: l.status,
+          scheduledTime: l.scheduledTime,
+        })),
       };
     }
 
     if (needsData.includes('diet_entries') && elderId) {
-      const dietQuery = query(
-        collection(db, 'dietEntries'),
-        where('groupId', '==', groupId),
-        where('elderId', '==', elderId),
-        where('timestamp', '>=', startDate),
-        where('timestamp', '<=', endDate),
-        orderBy('timestamp', 'desc'),
-        limit(20)
-      );
-      const dietSnap = await getDocs(dietQuery);
-      responseData.dietEntries = dietSnap.docs.map(doc => ({
-        meal: doc.data().meal,
-        items: doc.data().items || [],
-        timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().timestamp),
+      const dietEntries = await getDietEntriesServer(groupId, elderId, startDate, endDate, 20);
+      responseData.dietEntries = dietEntries.map((entry: any) => ({
+        meal: entry.meal,
+        items: entry.items || [],
+        timestamp: entry.timestamp,
       }));
     }
 

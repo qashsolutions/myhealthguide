@@ -6,14 +6,20 @@
  *
  * GET /api/documents/analyze?documentId=xxx
  * Gets existing analysis for a document
+ *
+ * AUTHENTICATION: Requires Firebase ID token in Authorization header
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeDocument, getDocumentAnalysis } from '@/lib/ai/documentAnalysis';
-import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
-import { getDownloadURL, ref } from 'firebase/storage';
-import { storage, db } from '@/lib/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { analyzeDocument } from '@/lib/ai/documentAnalysis';
+import {
+  verifyAuthToken,
+  canAccessElderProfileServer,
+  verifyAndLogAccessServer,
+  getUserDataServer,
+} from '@/lib/api/verifyAuth';
+import { getDocumentAnalysisServer } from '@/lib/api/firestoreAdmin';
+import { getAdminDb } from '@/lib/firebase/admin';
 
 // Maximum file size for analysis (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -32,6 +38,15 @@ const SUPPORTED_TYPES = [
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const documentId = searchParams.get('documentId');
 
@@ -42,7 +57,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const analysis = await getDocumentAnalysis(documentId);
+    const analysis = await getDocumentAnalysisServer(documentId);
 
     if (!analysis) {
       return NextResponse.json(
@@ -66,6 +81,16 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { error: authResult.error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const userId = authResult.userId;
     const body = await request.json();
     const {
       documentId,
@@ -73,15 +98,14 @@ export async function POST(request: NextRequest) {
       fileName,
       fileType,
       fileSize,
-      userId,
       groupId,
       elderId,
     } = body;
 
     // Validate required fields
-    if (!documentId || !filePath || !fileName || !fileType || !userId || !groupId || !elderId) {
+    if (!documentId || !filePath || !fileName || !fileType || !groupId || !elderId) {
       return NextResponse.json(
-        { error: 'Missing required fields: documentId, filePath, fileName, fileType, userId, groupId, elderId' },
+        { error: 'Missing required fields: documentId, filePath, fileName, fileType, groupId, elderId' },
         { status: 400 }
       );
     }
@@ -104,8 +128,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify user has access to this elder
+    const hasAccess = await canAccessElderProfileServer(userId, elderId, groupId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'You do not have permission to access this elder\'s data' },
+        { status: 403 }
+      );
+    }
+
     // Check unified AI consent
-    const consentCheck = await verifyAndLogAccess(
+    const consentCheck = await verifyAndLogAccessServer(
       userId,
       groupId,
       'document_analysis',
@@ -123,27 +156,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user role from Firestore
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    const userData = userDoc.data();
+    // Get user role
+    const userData = await getUserDataServer(userId);
     const userRole = userData?.role || 'member';
 
-    // Get download URL for the file
-    let fileUrl: string;
-    try {
-      const storageRef = ref(storage, filePath);
-      fileUrl = await getDownloadURL(storageRef);
-    } catch (error) {
-      console.error('Error getting file URL:', error);
-      return NextResponse.json(
-        { error: 'Could not access the document file' },
-        { status: 404 }
-      );
-    }
+    // Get download URL for the file using Admin SDK
+    // Note: For storage, we need to construct the URL or use a signed URL
+    // The file should already be uploaded and accessible
+    const fileUrl = `https://firebasestorage.googleapis.com/v0/b/${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}/o/${encodeURIComponent(filePath)}?alt=media`;
 
     // Check if analysis already exists
-    const existingAnalysis = await getDocumentAnalysis(documentId);
-    if (existingAnalysis && existingAnalysis.status === 'completed') {
+    const existingAnalysis = await getDocumentAnalysisServer(documentId);
+    if (existingAnalysis && (existingAnalysis as any).status === 'completed') {
       return NextResponse.json({
         analysis: existingAnalysis,
         message: 'Analysis already exists for this document',
