@@ -6,22 +6,60 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { ElderService } from '@/lib/firebase/elders';
+import { User, Info } from 'lucide-react';
+import type { Elder } from '@/types';
+
+// Common languages for eldercare
+const COMMON_LANGUAGES = [
+  'English',
+  'Spanish',
+  'Mandarin',
+  'Cantonese',
+  'Tagalog',
+  'Vietnamese',
+  'Korean',
+  'Japanese',
+  'Hindi',
+  'Arabic',
+  'Portuguese',
+  'Russian',
+  'French',
+  'German',
+  'Italian',
+  'Polish',
+  'Other',
+];
 
 export default function NewElderPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
+    preferredName: '',
+    approximateAge: '',
     dateOfBirth: '',
-    notes: ''
+    gender: '' as Elder['gender'] | '',
+    primaryLanguage: '',
+    additionalLanguages: [] as string[],
+    notes: '',
   });
+  const [useExactDOB, setUseExactDOB] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Calculate DOB from approximate age
+  const calculateDOBFromAge = (age: number): Date => {
+    const today = new Date();
+    const birthYear = today.getFullYear() - age;
+    // Use July 1 as default birth date when only age is known
+    return new Date(birthYear, 6, 1);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,12 +84,49 @@ export default function NewElderPage() {
         throw new Error('Unable to determine user role');
       }
 
+      // Validate required fields
+      if (!formData.name.trim()) {
+        throw new Error('Name is required');
+      }
+
+      if (!useExactDOB && !formData.approximateAge) {
+        throw new Error('Please enter approximate age or exact date of birth');
+      }
+
+      if (useExactDOB && !formData.dateOfBirth) {
+        throw new Error('Please enter date of birth');
+      }
+
+      // Calculate date of birth
+      let dateOfBirth: Date;
+      if (useExactDOB && formData.dateOfBirth) {
+        dateOfBirth = new Date(formData.dateOfBirth);
+      } else {
+        const age = parseInt(formData.approximateAge, 10);
+        if (isNaN(age) || age < 1 || age > 120) {
+          throw new Error('Please enter a valid age between 1 and 120');
+        }
+        dateOfBirth = calculateDOBFromAge(age);
+      }
+
+      // Build languages array
+      const languages: string[] = [];
+      if (formData.primaryLanguage) {
+        languages.push(formData.primaryLanguage);
+      }
+      if (formData.additionalLanguages.length > 0) {
+        languages.push(...formData.additionalLanguages.filter(l => l !== formData.primaryLanguage));
+      }
+
       await ElderService.createElder(groupId, userId, userRole, {
-        name: formData.name,
+        name: formData.name.trim(),
+        preferredName: formData.preferredName.trim() || undefined,
         groupId,
-        dateOfBirth: new Date(formData.dateOfBirth),
-        notes: formData.notes,
-        createdAt: new Date()
+        dateOfBirth,
+        gender: formData.gender || undefined,
+        languages: languages.length > 0 ? languages : undefined,
+        notes: formData.notes.trim(),
+        createdAt: new Date(),
       });
 
       router.push('/dashboard/elders');
@@ -62,61 +137,209 @@ export default function NewElderPage() {
     }
   };
 
+  const handleLanguageToggle = (language: string) => {
+    setFormData(prev => {
+      const current = prev.additionalLanguages;
+      if (current.includes(language)) {
+        return { ...prev, additionalLanguages: current.filter(l => l !== language) };
+      } else {
+        return { ...prev, additionalLanguages: [...current, language] };
+      }
+    });
+  };
+
   return (
     <TrialExpirationGate featureName="elder profiles">
       <EmailVerificationGate featureName="elder profiles">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto p-4">
           <Card>
             <CardHeader>
-              <CardTitle>Add New Elder</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <CardTitle>Add New Elder</CardTitle>
+                  <CardDescription>Enter the basic information for the person you'll be caring for</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="John Smith"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
-                    className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                  />
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Information Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    Basic Information
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="name"
+                        placeholder="e.g., John Smith"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        required
+                        className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="preferredName">Preferred Name / Nickname</Label>
+                      <Input
+                        id="preferredName"
+                        placeholder="e.g., Johnny, Grandpa"
+                        value={formData.preferredName}
+                        onChange={(e) => setFormData({...formData, preferredName: e.target.value})}
+                        className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Age / DOB Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Age <span className="text-red-500">*</span></Label>
+                      <button
+                        type="button"
+                        onClick={() => setUseExactDOB(!useExactDOB)}
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {useExactDOB ? 'Use approximate age instead' : 'I know the exact date of birth'}
+                      </button>
+                    </div>
+
+                    {useExactDOB ? (
+                      <Input
+                        id="dateOfBirth"
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+                        required={useExactDOB}
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="approximateAge"
+                          type="number"
+                          min="1"
+                          max="120"
+                          placeholder="e.g., 78"
+                          value={formData.approximateAge}
+                          onChange={(e) => setFormData({...formData, approximateAge: e.target.value})}
+                          required={!useExactDOB}
+                          className="w-32 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                        />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">years old</span>
+                      </div>
+                    )}
+
+                    {!useExactDOB && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <Info className="h-3 w-3" />
+                        Approximate age is fine if exact birth date is unknown
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Gender */}
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select
+                      value={formData.gender || ''}
+                      onValueChange={(v) => setFormData({...formData, gender: v as Elder['gender']})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-                    required
-                    className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                  />
+                {/* Language Section */}
+                <div className="space-y-4 pt-4 border-t dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    Language Preferences
+                  </h3>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="primaryLanguage">Primary Language</Label>
+                    <Select
+                      value={formData.primaryLanguage || ''}
+                      onValueChange={(v) => setFormData({...formData, primaryLanguage: v})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select primary language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMMON_LANGUAGES.map(lang => (
+                          <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.primaryLanguage && (
+                    <div className="space-y-2">
+                      <Label>Additional Languages Spoken</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {COMMON_LANGUAGES.filter(l => l !== formData.primaryLanguage).slice(0, 8).map(lang => (
+                          <button
+                            key={lang}
+                            type="button"
+                            onClick={() => handleLanguageToggle(lang)}
+                            className={`px-3 py-1 text-sm rounded-full border transition-colors ${
+                              formData.additionalLanguages.includes(lang)
+                                ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300'
+                                : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400'
+                            }`}
+                          >
+                            {lang}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (Optional)</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Medical conditions, preferences, etc."
-                    rows={4}
-                    value={formData.notes}
-                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                    className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                  />
+                {/* Notes Section */}
+                <div className="space-y-4 pt-4 border-t dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    Additional Notes
+                  </h3>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Important Notes</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Any important information about care preferences, medical conditions, allergies, etc."
+                      rows={3}
+                      value={formData.notes}
+                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      You can add detailed health information later in the Health Profile section
+                    </p>
+                  </div>
                 </div>
 
                 {error && (
-                  <div className="text-sm text-red-600 dark:text-red-400">
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
                     {error}
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-4">
+                <div className="flex gap-3 pt-4">
                   <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? 'Saving...' : 'Add Elder'}
+                    {loading ? 'Adding Elder...' : 'Add Elder'}
                   </Button>
                   <Button type="button" variant="outline" onClick={() => router.back()}>
                     Cancel
