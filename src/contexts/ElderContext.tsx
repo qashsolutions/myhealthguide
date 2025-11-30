@@ -128,10 +128,14 @@ export function ElderProvider({ children }: { children: ReactNode }) {
 
         const eldersSnap = await getDocs(eldersQuery);
         eldersSnap.docs.forEach(doc => {
-          elders.push({
-            id: doc.id,
-            ...doc.data()
-          } as Elder);
+          const data = doc.data();
+          // Only include non-archived elders in sidebar
+          if (!data.archived) {
+            elders.push({
+              id: doc.id,
+              ...data
+            } as Elder);
+          }
         });
       } catch (error) {
         console.error(`[ElderContext] Error loading elders for agency group ${groupId}:`, error);
@@ -155,10 +159,14 @@ export function ElderProvider({ children }: { children: ReactNode }) {
       try {
         const elderDoc = await getDoc(doc(db, 'elders', elderId));
         if (elderDoc.exists()) {
-          elders.push({
-            id: elderDoc.id,
-            ...elderDoc.data()
-          } as Elder);
+          const data = elderDoc.data();
+          // Only include non-archived elders in sidebar
+          if (!data.archived) {
+            elders.push({
+              id: elderDoc.id,
+              ...data
+            } as Elder);
+          }
         }
       } catch (error) {
         console.error(`[ElderContext] Error loading elder ${elderId}:`, error);
@@ -188,10 +196,14 @@ export function ElderProvider({ children }: { children: ReactNode }) {
 
         const eldersSnap = await getDocs(eldersQuery);
         eldersSnap.docs.forEach(doc => {
-          elders.push({
-            id: doc.id,
-            ...doc.data()
-          } as Elder);
+          const data = doc.data();
+          // Only include non-archived elders in sidebar
+          if (!data.archived) {
+            elders.push({
+              id: doc.id,
+              ...data
+            } as Elder);
+          }
         });
       } catch (error) {
         console.error(`[ElderContext] Error loading elders for group ${groupId}:`, error);

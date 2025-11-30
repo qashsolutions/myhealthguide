@@ -298,6 +298,11 @@ export interface Elder {
   mobilityLevel?: 'independent' | 'minimal_assistance' | 'moderate_assistance' | 'extensive_assistance' | 'dependent' | 'bedridden';
   cognitiveStatus?: 'sharp' | 'mild_decline' | 'moderate_decline' | 'severe_decline';
   communicationNotes?: string[];
+
+  // Archive status
+  archived?: boolean;
+  archivedAt?: Date;
+  archivedBy?: string;
 }
 
 // ============= Elder Health Profile Types =============

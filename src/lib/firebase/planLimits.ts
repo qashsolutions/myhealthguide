@@ -55,13 +55,16 @@ export async function canCreateElder(
       };
     }
 
-    // Count existing elders in the group
+    // Count existing active (non-archived) elders in the group
     const eldersQuery = query(
       collection(db, 'elders'),
       where('groupId', '==', groupId)
     );
     const eldersSnap = await getDocs(eldersQuery);
-    const currentElderCount = eldersSnap.size;
+    // Only count non-archived elders
+    const currentElderCount = eldersSnap.docs.filter(
+      doc => !doc.data().archived
+    ).length;
 
     // Get limit based on tier
     let maxElders: number;
@@ -73,7 +76,7 @@ export async function canCreateElder(
         maxElders = PLAN_LIMITS.SINGLE_AGENCY.maxElders;
         break;
       case 'multi_agency':
-        // For multi-agency, check total elders across all groups
+        // For multi-agency, check total active (non-archived) elders across all groups
         const userDoc = await getDoc(doc(db, 'users', userId));
         const userData = userDoc.data();
         const groupIds = userData?.groups?.map((g: any) => g.groupId) || [];
@@ -82,7 +85,8 @@ export async function canCreateElder(
         for (const gId of groupIds) {
           const q = query(collection(db, 'elders'), where('groupId', '==', gId));
           const snap = await getDocs(q);
-          totalElders += snap.size;
+          // Only count non-archived elders
+          totalElders += snap.docs.filter(d => !d.data().archived).length;
         }
 
         if (totalElders >= PLAN_LIMITS.MULTI_AGENCY.maxElders) {

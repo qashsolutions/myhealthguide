@@ -179,7 +179,85 @@ export class ElderService {
   }
 
   /**
-   * Delete elder
+   * Archive elder (soft delete - preserves data, can be reactivated)
+   */
+  static async archiveElder(
+    elderId: string,
+    userId: string,
+    userRole: UserRole
+  ): Promise<void> {
+    const docRef = doc(db, this.COLLECTION, elderId);
+    const snapshot = await getDoc(docRef);
+
+    if (!snapshot.exists()) {
+      throw new Error('Elder not found');
+    }
+
+    const elder = snapshot.data() as Elder;
+
+    // Update elder with archived status
+    await updateDoc(docRef, {
+      archived: true,
+      archivedAt: Timestamp.now(),
+      archivedBy: userId,
+    });
+
+    // HIPAA Audit Log: Record PHI archive
+    await logPHIAccess({
+      userId,
+      userRole,
+      groupId: elder.groupId,
+      phiType: 'elder',
+      phiId: elderId,
+      elderId,
+      action: 'update',
+      actionDetails: `Archived elder profile: ${elder.name}`,
+      purpose: 'operations',
+      method: 'web_app',
+    });
+  }
+
+  /**
+   * Unarchive elder (reactivate archived elder)
+   */
+  static async unarchiveElder(
+    elderId: string,
+    userId: string,
+    userRole: UserRole
+  ): Promise<void> {
+    const docRef = doc(db, this.COLLECTION, elderId);
+    const snapshot = await getDoc(docRef);
+
+    if (!snapshot.exists()) {
+      throw new Error('Elder not found');
+    }
+
+    const elder = snapshot.data() as Elder;
+
+    // Remove archived status
+    await updateDoc(docRef, {
+      archived: false,
+      archivedAt: null,
+      archivedBy: null,
+    });
+
+    // HIPAA Audit Log: Record PHI unarchive
+    await logPHIAccess({
+      userId,
+      userRole,
+      groupId: elder.groupId,
+      phiType: 'elder',
+      phiId: elderId,
+      elderId,
+      action: 'update',
+      actionDetails: `Reactivated elder profile: ${elder.name}`,
+      purpose: 'operations',
+      method: 'web_app',
+    });
+  }
+
+  /**
+   * Delete elder (permanent - use with caution)
    */
   static async deleteElder(
     elderId: string,
@@ -205,7 +283,7 @@ export class ElderService {
         phiId: elderId,
         elderId,
         action: 'delete',
-        actionDetails: `Deleted elder profile: ${elder.name}`,
+        actionDetails: `Permanently deleted elder profile: ${elder.name}`,
         purpose: 'operations',
         method: 'web_app',
       });

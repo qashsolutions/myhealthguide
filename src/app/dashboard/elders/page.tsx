@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, User, Calendar, Languages, Heart, Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, User, Calendar, Languages, Heart, Loader2, Archive, RotateCcw, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -26,9 +26,10 @@ export default function EldersPage() {
   const [elders, setElders] = useState<Elder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [elderToDelete, setElderToDelete] = useState<Elder | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [elderToArchive, setElderToArchive] = useState<Elder | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     fetchElders();
@@ -65,41 +66,74 @@ export default function EldersPage() {
     return age;
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, elder: Elder) => {
-    e.preventDefault(); // Prevent navigation to elder profile
+  const handleArchiveClick = (e: React.MouseEvent, elder: Elder) => {
+    e.preventDefault();
     e.stopPropagation();
-    setElderToDelete(elder);
-    setDeleteDialogOpen(true);
+    setElderToArchive(elder);
+    setArchiveDialogOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!elderToDelete || !user) return;
+  const handleConfirmArchive = async () => {
+    if (!elderToArchive || !user) return;
 
-    setDeleting(true);
+    setArchiving(true);
     try {
       const userRole = (user.groups?.[0]?.role || 'member') as 'admin' | 'caregiver' | 'member';
-      await ElderService.deleteElder(elderToDelete.id, user.id, userRole);
+      await ElderService.archiveElder(elderToArchive.id, user.id, userRole);
 
-      // Update local state
-      setElders(prev => prev.filter(e => e.id !== elderToDelete.id));
+      // Update local state - mark as archived
+      setElders(prev => prev.map(e =>
+        e.id === elderToArchive.id
+          ? { ...e, archived: true, archivedAt: new Date(), archivedBy: user.id }
+          : e
+      ));
 
       // Refresh the ElderContext to update sidebar
       await refreshElders();
 
-      setDeleteDialogOpen(false);
-      setElderToDelete(null);
+      setArchiveDialogOpen(false);
+      setElderToArchive(null);
     } catch (err) {
-      console.error('Error deleting elder:', err);
-      setError('Failed to delete elder. Please try again.');
+      console.error('Error archiving elder:', err);
+      setError('Failed to archive elder. Please try again.');
     } finally {
-      setDeleting(false);
+      setArchiving(false);
     }
   };
 
-  const handleCancelDelete = () => {
-    setDeleteDialogOpen(false);
-    setElderToDelete(null);
+  const handleUnarchive = async (e: React.MouseEvent, elder: Elder) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) return;
+
+    try {
+      const userRole = (user.groups?.[0]?.role || 'member') as 'admin' | 'caregiver' | 'member';
+      await ElderService.unarchiveElder(elder.id, user.id, userRole);
+
+      // Update local state - remove archived status
+      setElders(prev => prev.map(e =>
+        e.id === elder.id
+          ? { ...e, archived: false, archivedAt: undefined, archivedBy: undefined }
+          : e
+      ));
+
+      // Refresh the ElderContext to update sidebar
+      await refreshElders();
+    } catch (err) {
+      console.error('Error reactivating elder:', err);
+      setError('Failed to reactivate elder. Please try again.');
+    }
   };
+
+  const handleCancelArchive = () => {
+    setArchiveDialogOpen(false);
+    setElderToArchive(null);
+  };
+
+  // Separate active and archived elders
+  const activeElders = elders.filter(e => !e.archived);
+  const archivedElders = elders.filter(e => e.archived);
 
   if (loading) {
     return (
@@ -120,12 +154,33 @@ export default function EldersPage() {
             Manage elder profiles in your care
           </p>
         </div>
-        <Link href="/dashboard/elders/new">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Elder
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {archivedElders.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setShowArchived(!showArchived)}
+              className="text-gray-600"
+            >
+              {showArchived ? (
+                <>
+                  <EyeOff className="w-4 h-4 mr-2" />
+                  Hide Archived ({archivedElders.length})
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4 mr-2" />
+                  Show Archived ({archivedElders.length})
+                </>
+              )}
+            </Button>
+          )}
+          <Link href="/dashboard/elders/new">
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Elder
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {error && (
@@ -134,114 +189,193 @@ export default function EldersPage() {
         </div>
       )}
 
-      {elders.length === 0 ? (
+      {activeElders.length === 0 && !showArchived ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            No elders added yet
+            {archivedElders.length > 0
+              ? 'No active elders. You have archived elders that can be reactivated.'
+              : 'No elders added yet'}
           </p>
-          <Link href="/dashboard/elders/new">
-            <Button>
-              Add Your First Elder
-            </Button>
-          </Link>
+          <div className="flex justify-center gap-2">
+            {archivedElders.length > 0 && (
+              <Button variant="outline" onClick={() => setShowArchived(true)}>
+                View Archived
+              </Button>
+            )}
+            <Link href="/dashboard/elders/new">
+              <Button>
+                Add Your First Elder
+              </Button>
+            </Link>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {elders.map((elder) => (
-            <Card
-              key={elder.id}
-              className="p-4 hover:shadow-lg transition-shadow cursor-pointer relative group"
-              onClick={() => router.push(`/dashboard/elder-profile?elderId=${elder.id}`)}
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                  <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                    {elder.name}
-                  </h3>
-                  {elder.preferredName && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      "{elder.preferredName}"
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {elder.dateOfBirth
-                        ? `${calculateAge(elder.dateOfBirth)} years old`
-                        : elder.approximateAge
-                          ? `~${elder.approximateAge} years old`
-                          : 'Age not specified'}
-                    </span>
-                  </div>
-                  {elder.languages && elder.languages.length > 0 && (
-                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      <Languages className="h-4 w-4" />
-                      <span>{elder.languages.join(', ')}</span>
-                    </div>
-                  )}
-                  {elder.knownConditions && elder.knownConditions.length > 0 && (
-                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      <Heart className="h-4 w-4" />
-                      <span>{elder.knownConditions.length} condition(s)</span>
-                    </div>
-                  )}
-                </div>
-                {/* Delete button - only visible on hover */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  onClick={(e) => handleDeleteClick(e, elder)}
+        <>
+          {/* Active Elders */}
+          {activeElders.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeElders.map((elder) => (
+                <Card
+                  key={elder.id}
+                  className="p-4 hover:shadow-lg transition-shadow cursor-pointer relative group"
+                  onClick={() => router.push(`/dashboard/elder-profile?elderId=${elder.id}`)}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                      <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                        {elder.name}
+                      </h3>
+                      {elder.preferredName && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          "{elder.preferredName}"
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {elder.dateOfBirth
+                            ? `${calculateAge(elder.dateOfBirth)} years old`
+                            : elder.approximateAge
+                              ? `~${elder.approximateAge} years old`
+                              : 'Age not specified'}
+                        </span>
+                      </div>
+                      {elder.languages && elder.languages.length > 0 && (
+                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                          <Languages className="h-4 w-4" />
+                          <span>{elder.languages.join(', ')}</span>
+                        </div>
+                      )}
+                      {elder.knownConditions && elder.knownConditions.length > 0 && (
+                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                          <Heart className="h-4 w-4" />
+                          <span>{elder.knownConditions.length} condition(s)</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Archive button - only visible on hover */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                      onClick={(e) => handleArchiveClick(e, elder)}
+                      title="Archive elder"
+                    >
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Archived Elders */}
+          {showArchived && archivedElders.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                <Archive className="h-5 w-5" />
+                Archived Elders
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {archivedElders.map((elder) => (
+                  <Card
+                    key={elder.id}
+                    className="p-4 opacity-60 hover:opacity-80 transition-opacity relative group border-dashed"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full">
+                        <User className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-500 dark:text-gray-400 truncate">
+                          {elder.name}
+                        </h3>
+                        {elder.preferredName && (
+                          <p className="text-sm text-gray-400 dark:text-gray-500">
+                            "{elder.preferredName}"
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-400">
+                          <Calendar className="h-4 w-4" />
+                          <span>
+                            {elder.dateOfBirth
+                              ? `${calculateAge(elder.dateOfBirth)} years old`
+                              : elder.approximateAge
+                                ? `~${elder.approximateAge} years old`
+                                : 'Age not specified'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Archived
+                        </p>
+                      </div>
+                      {/* Reactivate button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                        onClick={(e) => handleUnarchive(e, elder)}
+                        title="Reactivate elder"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-1" />
+                        Reactivate
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
               </div>
-            </Card>
-          ))}
-        </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Archive Confirmation Dialog */}
+      <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
               <AlertTriangle className="h-5 w-5" />
-              Remove Elder Profile
+              Archive Elder Profile
             </DialogTitle>
             <DialogDescription className="pt-2">
-              Are you sure you want to remove <strong>{elderToDelete?.name}</strong> from your care?
+              Are you sure you want to archive <strong>{elderToArchive?.name}</strong>?
               <br /><br />
-              <span className="text-red-600 font-medium">
-                This will permanently delete all associated data including medications, diet entries, and health records.
+              <span className="text-gray-600">
+                Archiving will hide this elder from your active list, but all data will be preserved. You can reactivate this elder at any time.
               </span>
               <br /><br />
-              This action cannot be undone.
+              <span className="text-green-600 font-medium">
+                This will free up your elder slot, allowing you to add a new elder.
+              </span>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={handleCancelDelete}
-              disabled={deleting}
+              onClick={handleCancelArchive}
+              disabled={archiving}
             >
               Cancel
             </Button>
             <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={deleting}
+              variant="default"
+              className="bg-amber-600 hover:bg-amber-700"
+              onClick={handleConfirmArchive}
+              disabled={archiving}
             >
-              {deleting ? (
+              {archiving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Removing...
+                  Archiving...
                 </>
               ) : (
-                'Remove Elder'
+                <>
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archive Elder
+                </>
               )}
             </Button>
           </DialogFooter>
