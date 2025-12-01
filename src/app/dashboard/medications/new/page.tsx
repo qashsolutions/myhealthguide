@@ -9,16 +9,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
-import { ElderService } from '@/lib/firebase/elders';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
-import { Elder } from '@/types';
 
 export default function NewMedicationPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [elders, setElders] = useState<Elder[]>([]);
+  const { selectedElder, availableElders } = useElder();
+
+  // Check if user is on multi-agency plan (can have multiple active elders)
+  const isMultiAgencyPlan = user?.subscriptionTier === 'multi_agency';
+
+  // For family/single-agency: only show active (non-archived) elders
+  // For multi-agency: show all, but archived ones will be disabled
+  const activeElders = availableElders.filter(e => !e.archived);
+
   const [formData, setFormData] = useState({
     elderId: '',
     name: '',
@@ -31,26 +38,40 @@ export default function NewMedicationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Load elders for selection
+  // Pre-fill elder selection from context or auto-select if only one
   useEffect(() => {
-    async function loadElders() {
-      if (user?.groups[0]?.groupId && user?.id) {
-        try {
-          // Get user's role for HIPAA audit logging
-          const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
-          const eldersList = await ElderService.getEldersByGroup(
-            user.groups[0].groupId,
-            user.id,
-            userRole
-          );
-          setElders(eldersList);
-        } catch (err) {
-          console.error('Error loading elders:', err);
-        }
-      }
+    if (formData.elderId) return; // Already set
+
+    // If only one active elder, auto-select it
+    if (activeElders.length === 1) {
+      setFormData(prev => ({ ...prev, elderId: activeElders[0].id }));
+      return;
     }
-    loadElders();
-  }, [user]);
+
+    // Otherwise, pre-fill with selected elder from context (if active)
+    if (selectedElder && !selectedElder.archived) {
+      setFormData(prev => ({ ...prev, elderId: selectedElder.id }));
+    }
+  }, [selectedElder, activeElders, formData.elderId]);
+
+  // Determine user's role for HIPAA audit logging
+  // Check both group role and agency role (caregivers have write access)
+  const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
+    // Check agency role first (caregivers)
+    const agencyRole = user?.agencies?.[0]?.role;
+    if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') {
+      return 'admin';
+    }
+    if (agencyRole === 'caregiver') {
+      return 'caregiver';
+    }
+    // Fall back to group role
+    const groupRole = user?.groups?.[0]?.role;
+    if (groupRole === 'admin') {
+      return 'admin';
+    }
+    return 'member';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +83,10 @@ export default function NewMedicationPage() {
         throw new Error('You must be signed in');
       }
 
-      const groupId = user.groups[0]?.groupId;
+      // Get groupId from selected elder or user's group
+      const selectedElderData = availableElders.find(e => e.id === formData.elderId);
+      const groupId = selectedElderData?.groupId || user.groups?.[0]?.groupId;
+
       if (!groupId) {
         throw new Error('You must be part of a group');
       }
@@ -77,8 +101,7 @@ export default function NewMedicationPage() {
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      // Get user's role for HIPAA audit logging
-      const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
+      const userRole = getUserRole();
 
       await MedicationService.createMedication(
         {
@@ -110,8 +133,8 @@ export default function NewMedicationPage() {
     }
   };
 
-  // Check if no elders exist
-  if (elders.length === 0) {
+  // Check if no active elders exist
+  if (activeElders.length === 0) {
     return (
       <TrialExpirationGate featureName="medications">
         <EmailVerificationGate featureName="medications">
@@ -149,18 +172,41 @@ export default function NewMedicationPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="elderId">Elder</Label>
-                <Select value={formData.elderId} onValueChange={(value) => setFormData({...formData, elderId: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an elder" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {elders.map((elder) => (
-                      <SelectItem key={elder.id} value={elder.id}>
-                        {elder.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {activeElders.length === 1 ? (
+                  // Single elder - show as static text
+                  <div className="flex items-center h-10 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                    <span className="text-gray-900 dark:text-gray-100">{activeElders[0].name}</span>
+                  </div>
+                ) : (
+                  // Multiple elders - show dropdown
+                  <Select value={formData.elderId} onValueChange={(value) => setFormData({...formData, elderId: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an elder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isMultiAgencyPlan ? (
+                        // Multi-agency: show all elders, archived ones disabled and greyed
+                        availableElders.map((elder) => (
+                          <SelectItem
+                            key={elder.id}
+                            value={elder.id}
+                            disabled={elder.archived}
+                            className={elder.archived ? 'text-gray-400 dark:text-gray-600' : ''}
+                          >
+                            {elder.name}{elder.archived ? ' (Archived)' : ''}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        // Family/Single-agency: only show active elders
+                        activeElders.map((elder) => (
+                          <SelectItem key={elder.id} value={elder.id}>
+                            {elder.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">
