@@ -65,7 +65,7 @@ export default function VoiceMedicationPage() {
       }
 
       // Try to find medication by name
-      const medications = await MedicationService.getMedicationsByElder(elder.id, userId, userRole);
+      const medications = await MedicationService.getMedicationsByElder(elder.id, elder.groupId, userId, userRole);
       const medication = medications.find(m =>
         m.name.toLowerCase().trim() === parsedData.itemName.toLowerCase().trim()
       );

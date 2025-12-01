@@ -44,6 +44,7 @@ export default function MedicationsPage() {
       try {
         const meds = await MedicationService.getMedicationsByElder(
           selectedElder.id,
+          selectedElder.groupId,
           user.id,
           getUserRole()
         );

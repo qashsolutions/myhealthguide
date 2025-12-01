@@ -236,7 +236,7 @@ export class ActionHandler {
       // Note: For actionHandler, we don't have explicit user role information in context
       // We'll use 'member' as default role since context.userId exists and has access to this elder
       const userRole = 'member' as 'admin' | 'caregiver' | 'member';
-      const medications = await MedicationService.getMedicationsByElder(elderId, context.userId, userRole);
+      const medications = await MedicationService.getMedicationsByElder(elderId, context.groupId, context.userId, userRole);
 
       // Find matching medication (fuzzy match)
       const medication = medications?.find(med =>

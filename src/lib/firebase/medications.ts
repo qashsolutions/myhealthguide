@@ -96,14 +96,17 @@ export class MedicationService {
 
   /**
    * Get medications by elder
+   * Note: groupId is required for Firestore security rules to evaluate properly
    */
   static async getMedicationsByElder(
     elderId: string,
+    groupId: string,
     userId: string,
     userRole: UserRole
   ): Promise<Medication[]> {
     const q = query(
       collection(db, this.MEDICATIONS),
+      where('groupId', '==', groupId),
       where('elderId', '==', elderId)
     );
 
