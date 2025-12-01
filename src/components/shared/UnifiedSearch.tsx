@@ -16,6 +16,7 @@ import { MicrophonePermissionDialog } from '@/components/voice/MicrophonePermiss
 import { checkVoiceInputSupport } from '@/lib/voice/browserSupport';
 import { helpArticles, HelpArticle } from '@/lib/help/articles';
 import type { VoiceSearchResult } from '@/lib/ai/voiceSearch';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 
 /**
  * UnifiedSearch Component
@@ -120,17 +121,18 @@ export function UnifiedSearch() {
     setSearchMode('ai');
 
     try {
-      const response = await fetch('/api/voice-search', {
+      // Use authenticatedFetch for logged-in users, regular fetch for public
+      const fetchFn = user ? authenticatedFetch : fetch;
+      const response = await fetchFn('/api/voice-search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: searchQuery,
-          userId: user?.id || 'public',
-          context: {
+          context: user ? {
             currentPage: typeof window !== 'undefined' ? window.location.pathname : '/',
-            userPermissions: user ? {
+            userPermissions: {
               subscriptionStatus: user.subscriptionStatus,
               subscriptionTier: user.subscriptionTier,
               emailVerified: user.emailVerified,
@@ -144,8 +146,8 @@ export function UnifiedSearch() {
                 role: a.role,
                 assignedElderIds: a.assignedElderIds,
               })) || [],
-            } : undefined,
-          },
+            },
+          } : undefined,
         }),
       });
 

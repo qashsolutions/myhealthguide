@@ -4,6 +4,7 @@ import { checkUpcomingAppointments } from '@/lib/ai/appointmentReminders';
 import { detectEmergencyPatterns } from '@/lib/ai/emergencyPatternDetection';
 import { generateRefillAlerts } from '@/lib/ai/medicationRefillPrediction';
 import { getUserAlertPreferences } from '@/lib/ai/userAlertPreferences';
+import { verifyAuthToken, canAccessElderProfileServer } from '@/lib/api/verifyAuth';
 import type { Alert } from '@/types';
 
 /**
@@ -16,18 +17,40 @@ import type { Alert } from '@/types';
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, groupId, elderId, elderName, userRole } = body;
-
-    if (!userId || !groupId) {
+    // Verify Firebase ID token
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: userId, groupId' },
+        { success: false, error: authResult.error || 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const authenticatedUserId = authResult.userId;
+
+    const body = await request.json();
+    const { groupId, elderId, elderName, userRole } = body;
+
+    if (!groupId) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required field: groupId' },
         { status: 400 }
       );
     }
 
-    // Get user alert preferences
-    const preferences = await getUserAlertPreferences(userId, groupId);
+    // Verify user can access this elder's data
+    if (elderId) {
+      const canAccess = await canAccessElderProfileServer(authenticatedUserId, elderId, groupId);
+      if (!canAccess) {
+        return NextResponse.json(
+          { success: false, error: 'Access denied to this elder' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Get user alert preferences (use authenticated user ID)
+    const preferences = await getUserAlertPreferences(authenticatedUserId, groupId);
     const allAlerts: Alert[] = [];
 
     // 1. Check for missed doses (medications, supplements, meals)
@@ -36,7 +59,7 @@ export async function POST(request: NextRequest) {
         groupId,
         elderId,
         elderName,
-        userId,
+        authenticatedUserId,
         userRole || 'admin'
       );
       allAlerts.push(...missedDosesAlerts);
@@ -122,23 +145,42 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify Firebase ID token
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json(
+        { success: false, error: authResult.error || 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const authenticatedUserId = authResult.userId;
+
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('groupId');
     const elderId = searchParams.get('elderId');
-    const userId = searchParams.get('userId');
     const userRole = searchParams.get('userRole') as 'admin' | 'caregiver' | 'member' | null;
 
-    if (!groupId || !elderId || !userId) {
+    if (!groupId || !elderId) {
       return NextResponse.json(
-        { success: false, error: 'Missing required params: groupId, elderId, userId' },
+        { success: false, error: 'Missing required params: groupId, elderId' },
         { status: 400 }
+      );
+    }
+
+    // Verify user can access this elder's data
+    const canAccess = await canAccessElderProfileServer(authenticatedUserId, elderId, groupId);
+    if (!canAccess) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied to this elder' },
+        { status: 403 }
       );
     }
 
     const summary = await getMissedDosesSummary(
       groupId,
       elderId,
-      userId,
+      authenticatedUserId,
       userRole || 'admin'
     );
 

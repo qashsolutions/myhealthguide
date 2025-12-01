@@ -247,3 +247,51 @@ export async function getUserDataServer(userId: string): Promise<any | null> {
     return null;
   }
 }
+
+/**
+ * Check if user can access agency data (super_admin or caregiver_admin only)
+ *
+ * Uses Admin SDK to verify agency membership.
+ *
+ * @param userId - Verified user ID from token
+ * @param agencyId - Agency document ID
+ * @returns Object with access status and user's role in the agency
+ */
+export async function canAccessAgencyServer(
+  userId: string,
+  agencyId: string
+): Promise<{ canAccess: boolean; role?: string }> {
+  try {
+    const adminDb = getAdminDb();
+
+    // Get user document to check agency membership
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+
+    if (!userDoc.exists) {
+      console.log('[canAccessAgencyServer] User not found:', userId);
+      return { canAccess: false };
+    }
+
+    const userData = userDoc.data();
+    const agencies = userData?.agencies || [];
+
+    // Find the user's membership in this agency
+    const agencyMembership = agencies.find((a: any) => a.agencyId === agencyId);
+
+    if (!agencyMembership) {
+      console.log('[canAccessAgencyServer] User not a member of agency:', { userId, agencyId });
+      return { canAccess: false };
+    }
+
+    // Only super_admin and caregiver_admin can access billing data
+    const role = agencyMembership.role;
+    const hasAccess = role === 'super_admin' || role === 'caregiver_admin';
+
+    console.log('[canAccessAgencyServer] Access check:', { userId, agencyId, role, hasAccess });
+
+    return { canAccess: hasAccess, role };
+  } catch (error) {
+    console.error('[canAccessAgencyServer] Error:', error);
+    return { canAccess: false };
+  }
+}

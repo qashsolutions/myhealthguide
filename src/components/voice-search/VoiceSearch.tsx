@@ -10,6 +10,7 @@ import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 import { MicrophonePermissionDialog } from '@/components/voice/MicrophonePermissionDialog';
 import { checkVoiceInputSupport } from '@/lib/voice/browserSupport';
 import type { VoiceSearchResult } from '@/lib/ai/voiceSearch';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 
 /**
  * VoiceSearch Component
@@ -66,17 +67,18 @@ export function VoiceSearch() {
     setError(null);
 
     try {
-      const response = await fetch('/api/voice-search', {
+      // Use authenticatedFetch for logged-in users, regular fetch for public
+      const fetchFn = user ? authenticatedFetch : fetch;
+      const response = await fetchFn('/api/voice-search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query,
-          userId: user?.id || 'public',
-          context: {
+          context: user ? {
             currentPage: typeof window !== 'undefined' ? window.location.pathname : '/',
-            userPermissions: user ? {
+            userPermissions: {
               subscriptionStatus: user.subscriptionStatus,
               subscriptionTier: user.subscriptionTier,
               emailVerified: user.emailVerified,
@@ -90,8 +92,8 @@ export function VoiceSearch() {
                 role: a.role,
                 assignedElderIds: a.assignedElderIds,
               })) || [],
-            } : undefined,
-          },
+            },
+          } : undefined,
         }),
       });
 

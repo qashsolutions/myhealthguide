@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 
 interface AgencyBillingDashboardProps {
   agencyId: string;
@@ -41,7 +42,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
   const loadBillingData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/billing/subscriptions?agencyId=${agencyId}`);
+      const response = await authenticatedFetch(`/api/billing/subscriptions?agencyId=${agencyId}`);
       if (response.ok) {
         const data = await response.json();
         setSubscriptions(data.subscriptions);
@@ -55,7 +56,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
 
   const handleCancelSubscription = async (subscriptionId: string) => {
     try {
-      const response = await fetch('/api/billing/cancel-subscription', {
+      const response = await authenticatedFetch('/api/billing/cancel-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
