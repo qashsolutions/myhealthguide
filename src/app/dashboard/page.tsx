@@ -316,7 +316,14 @@ export default function DashboardPage() {
                       {elder.dateOfBirth && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           <Calendar className="w-3 h-3 inline mr-1" />
-                          Born {format(new Date(elder.dateOfBirth), 'MMM dd, yyyy')}
+                          Born {format(
+                            elder.dateOfBirth instanceof Date
+                              ? elder.dateOfBirth
+                              : typeof elder.dateOfBirth === 'object' && 'seconds' in elder.dateOfBirth
+                                ? new Date((elder.dateOfBirth as any).seconds * 1000)
+                                : new Date(elder.dateOfBirth),
+                            'MMM dd, yyyy'
+                          )}
                         </p>
                       )}
                     </div>
