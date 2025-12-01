@@ -27,11 +27,64 @@ import {
 const RESPONSE_DISCLAIMER = '\n\nThis is based on logged data only. Please discuss any concerns with your healthcare provider.';
 
 /**
+ * Check if query is asking for medical advice (which we cannot provide)
+ */
+function isMedicalAdviceQuery(query: string): boolean {
+  const lowerQuery = query.toLowerCase();
+
+  // Phrases that indicate user is asking for medical advice
+  const advicePhrases = [
+    'what should i take',
+    'what should i do',
+    'should i take',
+    'should i stop',
+    'should i change',
+    'can i take',
+    'is it safe to',
+    'recommend',
+    'suggest',
+    'what medicine',
+    'what drug',
+    'what pill',
+    'prescribe',
+    'treatment for',
+    'cure for',
+    'remedy for',
+    'how to treat',
+    'how to cure',
+    'best medicine',
+    'best treatment',
+    'what helps with',
+    'what works for',
+    'due to my',  // "what should I take due to my..."
+    'because of my',
+    'for my condition',
+    'for my symptoms',
+  ];
+
+  return advicePhrases.some(phrase => lowerQuery.includes(phrase));
+}
+
+/**
  * Simple keyword-based query parsing fallback
  * Used when AI query parsing fails
  */
 function parseQueryKeywords(query: string, elderName?: string) {
   const lowerQuery = query.toLowerCase();
+
+  // Check if this is a medical advice query first
+  if (isMedicalAdviceQuery(query)) {
+    return {
+      intent: 'medical_advice_request',
+      parameters: {
+        elderName,
+        timeframe: 'last 7 days',
+        metric: 'health',
+      },
+      needsData: [],
+      responseTemplate: '',
+    };
+  }
 
   // Simple intent detection
   let intent = 'general_query';
@@ -190,6 +243,23 @@ export async function POST(request: NextRequest) {
 
     // Build factual, observational response (NO advice or recommendations)
     let answer = '';
+
+    // Handle medical advice requests with a friendly, helpful message
+    if (intent === 'medical_advice_request') {
+      return NextResponse.json({
+        success: true,
+        data: {
+          query: userQuery,
+          intent,
+          parameters,
+          answer: `I'm here to help you track and view your health records, but I'm not able to provide medical advice or recommendations about treatments or medications.\n\nFor questions about what to take or how to manage your health conditions, please speak with your doctor or healthcare provider - they know your medical history and can give you personalized guidance.\n\nHere's what I can help you with:\n• "What medications are logged?" - View your medication list\n• "Show my compliance this week" - See medication tracking data\n• "What meals were recorded today?" - Review diet entries`,
+          chartData: {},
+          sources: [],
+          disclaimer: 'This assistant provides health record summaries only and cannot give medical advice.',
+        },
+      });
+    }
+
     if (intent === 'view_compliance') {
       if (responseData.compliance && responseData.compliance.totalDoses > 0) {
         answer = `Based on the logged data from the last ${timeframeDays} days, the medication compliance rate is ${responseData.compliance.complianceRate}%. ` +
