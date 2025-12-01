@@ -9,20 +9,27 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DietAnalysisPanel } from '@/components/ai/DietAnalysisPanel';
 import { analyzeDietEntry } from '@/lib/ai/geminiService';
-import { DietAnalysis, Elder } from '@/types';
+import { DietAnalysis } from '@/types';
 import { Utensils, Plus, X, Sparkles, ArrowLeft, Loader } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
+import { useElder } from '@/contexts/ElderContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { DietService } from '@/lib/firebase/diet';
-import { ElderService } from '@/lib/firebase/elders';
 
 export default function NewDietEntryPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [elders, setElders] = useState<Elder[]>([]);
+  const { selectedElder, availableElders } = useElder();
+
+  // Check if user is on multi-agency plan (can have multiple active elders)
+  const isMultiAgencyPlan = user?.subscriptionTier === 'multi_agency';
+
+  // For family/single-agency: only show active (non-archived) elders
+  const activeElders = availableElders.filter(e => !e.archived);
+
   const [elderId, setElderId] = useState('');
   const [meal, setMeal] = useState('breakfast');
   const [itemInput, setItemInput] = useState('');
@@ -32,22 +39,21 @@ export default function NewDietEntryPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Load elders for selection
+  // Pre-fill elder selection from context or auto-select if only one
   useEffect(() => {
-    async function loadElders() {
-      if (user?.groups[0]?.groupId) {
-        try {
-          const userId = user.id;
-          const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
-          const eldersList = await ElderService.getEldersByGroup(user.groups[0].groupId, userId, userRole);
-          setElders(eldersList);
-        } catch (err) {
-          console.error('Error loading elders:', err);
-        }
-      }
+    if (elderId) return; // Already set
+
+    // If only one active elder, auto-select it
+    if (activeElders.length === 1) {
+      setElderId(activeElders[0].id);
+      return;
     }
-    loadElders();
-  }, [user]);
+
+    // Otherwise, pre-fill with selected elder from context (if active)
+    if (selectedElder && !selectedElder.archived) {
+      setElderId(selectedElder.id);
+    }
+  }, [selectedElder, activeElders, elderId]);
 
   const addItem = () => {
     if (itemInput.trim()) {
@@ -165,8 +171,8 @@ export default function NewDietEntryPage() {
     }
   };
 
-  // Check if no elders exist
-  if (elders.length === 0) {
+  // Check if no active elders exist
+  if (activeElders.length === 0) {
     return (
       <TrialExpirationGate featureName="diet tracking">
         <EmailVerificationGate featureName="diet tracking">
@@ -238,18 +244,41 @@ export default function NewDietEntryPage() {
             {/* Elder Selection */}
             <div className="space-y-2">
               <Label htmlFor="elderId">Elder</Label>
-              <Select value={elderId} onValueChange={setElderId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an elder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {elders.map((elder) => (
-                    <SelectItem key={elder.id} value={elder.id}>
-                      {elder.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {activeElders.length === 1 ? (
+                // Single elder - show as static text
+                <div className="flex items-center h-10 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                  <span className="text-gray-900 dark:text-gray-100">{activeElders[0].name}</span>
+                </div>
+              ) : (
+                // Multiple elders - show dropdown
+                <Select value={elderId} onValueChange={setElderId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an elder" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isMultiAgencyPlan ? (
+                      // Multi-agency: show all elders, archived ones disabled and greyed
+                      availableElders.map((elder) => (
+                        <SelectItem
+                          key={elder.id}
+                          value={elder.id}
+                          disabled={elder.archived}
+                          className={elder.archived ? 'text-gray-400 dark:text-gray-600' : ''}
+                        >
+                          {elder.name}{elder.archived ? ' (Archived)' : ''}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      // Family/Single-agency: only show active elders
+                      activeElders.map((elder) => (
+                        <SelectItem key={elder.id} value={elder.id}>
+                          {elder.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Meal Type */}
@@ -324,7 +353,7 @@ export default function NewDietEntryPage() {
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Get AI Analysis
+                    Smart Nutrition Analysis
                   </>
                 )}
               </Button>
@@ -358,20 +387,17 @@ export default function NewDietEntryPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-purple-600" />
-                AI Nutrition Analysis
+                Smart Nutrition
               </CardTitle>
               <CardDescription>
-                Add food items and click "Get AI Analysis" to receive nutrition insights
+                Add food items and click "Smart Nutrition Analysis" to receive insights
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Sparkles className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
-                <p className="text-gray-500 dark:text-gray-400 mb-2">
+                <p className="text-gray-500 dark:text-gray-400">
                   No analysis yet
-                </p>
-                <p className="text-sm text-gray-400 dark:text-gray-500">
-                  Add items and click "Get AI Analysis" to see nutrition insights powered by Gemini AI
                 </p>
               </div>
             </CardContent>

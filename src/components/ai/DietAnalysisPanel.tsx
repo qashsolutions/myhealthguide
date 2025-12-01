@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DietAnalysis } from '@/types';
 import { Utensils, AlertTriangle, TrendingUp, Sparkles } from 'lucide-react';
@@ -30,11 +30,8 @@ export function DietAnalysisPanel({ analysis, meal, items }: DietAnalysisPanelPr
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-orange-600" />
-          AI Nutrition Analysis
+          Smart Nutrition
         </CardTitle>
-        <CardDescription>
-          Powered by Gemini AI
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Meal Details */}
