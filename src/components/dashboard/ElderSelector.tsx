@@ -46,16 +46,9 @@ export function ElderSelector() {
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
         <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-            {elder.name}
-          </span>
-          {elder.dateOfBirth && (
-            <span className="text-xs text-blue-700 dark:text-blue-300">
-              DOB: {new Date(elder.dateOfBirth).toLocaleDateString()}
-            </span>
-          )}
-        </div>
+        <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+          {elder.name}
+        </span>
       </div>
     );
   }
@@ -82,16 +75,9 @@ export function ElderSelector() {
         )} />
         <div className="flex flex-col items-start min-w-[140px]">
           {selectedElder ? (
-            <>
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {selectedElder.name}
-              </span>
-              {selectedElder.dateOfBirth && (
-                <span className="text-xs text-gray-600 dark:text-gray-400">
-                  DOB: {new Date(selectedElder.dateOfBirth).toLocaleDateString()}
-                </span>
-              )}
-            </>
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {selectedElder.name}
+            </span>
           ) : (
             <span className="text-sm text-gray-600 dark:text-gray-400">
               Select elder
@@ -153,11 +139,11 @@ export function ElderSelector() {
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-3 mt-1 text-xs text-gray-600 dark:text-gray-400">
-                    {elder.dateOfBirth && (
-                      <span>DOB: {new Date(elder.dateOfBirth).toLocaleDateString()}</span>
-                    )}
-                  </div>
+                  {elder.approximateAge && (
+                    <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                      ~{elder.approximateAge} years old
+                    </div>
+                  )}
                   {elder.notes && (
                     <div className="mt-1 text-xs text-gray-500 dark:text-gray-500">
                       Notes: {elder.notes.length > 50 ? elder.notes.substring(0, 50) + '...' : elder.notes}

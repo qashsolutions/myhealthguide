@@ -313,17 +313,9 @@ export default function DashboardPage() {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {elder.name}
                       </h3>
-                      {elder.dateOfBirth && (
+                      {elder.approximateAge && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          <Calendar className="w-3 h-3 inline mr-1" />
-                          Born {format(
-                            elder.dateOfBirth instanceof Date
-                              ? elder.dateOfBirth
-                              : typeof elder.dateOfBirth === 'object' && 'seconds' in elder.dateOfBirth
-                                ? new Date((elder.dateOfBirth as any).seconds * 1000)
-                                : new Date(elder.dateOfBirth),
-                            'MMM dd, yyyy'
-                          )}
+                          ~{elder.approximateAge} years old
                         </p>
                       )}
                     </div>
