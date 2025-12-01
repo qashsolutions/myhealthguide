@@ -370,7 +370,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           </span>
         </Link>
 
-        {/* Health Assistant Features */}
+        {/* Health Records Lookup */}
         <Link
           href="/dashboard/health-chat"
           className={cn(
@@ -381,7 +381,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           )}
         >
           <MessageSquare className="w-4 h-4" />
-          Ask a Question
+          Records Lookup
         </Link>
 
         <Link

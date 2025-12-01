@@ -182,10 +182,10 @@ export default function HealthChatPage() {
   };
 
   const exampleQueries = [
-    'What is the medication compliance for the last 30 days?',
-    'How many doses were missed this week?',
-    'Show me the diet entries from yesterday',
-    'What medications is grandma taking?',
+    'What medications are currently logged?',
+    'Show medication compliance for the last 7 days',
+    'How many doses were recorded this week?',
+    'What meals were logged yesterday?',
   ];
 
   return (
@@ -196,10 +196,10 @@ export default function HealthChatPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
               <Brain className="h-8 w-8 text-purple-600" />
-              Ask a Question
+              Health Records Lookup
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Ask about medications, meals, or how your loved one is doing - in your own words
+              View summaries of medications, meals, and compliance data you've logged
             </p>
           </div>
         </div>
@@ -241,11 +241,11 @@ export default function HealthChatPage() {
 
       <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4 mb-4">
         <div className="flex items-start gap-3">
-          <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold text-blue-900 dark:text-blue-100">Your Health Assistant</p>
+            <p className="font-semibold text-blue-900 dark:text-blue-100">Data Summary Tool</p>
             <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-              Ask questions like "How did Mom do this week?" or "Did Dad take his heart medication?" and get instant answers.
+              This tool shows <strong>observations from your logged data only</strong>. It does not provide medical advice, analysis, or recommendations. For any health questions, please consult your healthcare provider.
             </p>
           </div>
         </div>
@@ -259,10 +259,10 @@ export default function HealthChatPage() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Start a conversation about {selectedElder?.name || 'your elder'}'s health
+                View {selectedElder?.name || 'your elder'}'s logged health data
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Try asking questions like:
+                Ask about recorded information like:
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -365,7 +365,7 @@ export default function HealthChatPage() {
               setInputValue(e.target.value);
               setProfanityError(null);
             }}
-            placeholder={!consentValid ? "AI consent required" : "Ask about health data..."}
+            placeholder={!consentValid ? "Consent required to view data" : "Ask about logged records..."}
             disabled={loading || !selectedElder || !consentValid}
             className="flex-1"
           />
