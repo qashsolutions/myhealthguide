@@ -27,9 +27,9 @@ export default function MedicationsPage() {
             </Button>
           </Link>
           <Link href="/dashboard/medications/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Medication
+            <Button size="icon" className="rounded-full w-10 h-10">
+              <Plus className="w-5 h-5" />
+              <span className="sr-only">Add Medication</span>
             </Button>
           </Link>
         </div>

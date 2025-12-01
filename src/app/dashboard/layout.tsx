@@ -3,7 +3,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { DashboardHeader } from '@/components/shared/DashboardHeader';
-import { QuickActions } from '@/components/shared/QuickActions';
 import { VerificationBanner } from '@/components/auth/VerificationBanner';
 import { TrialExpirationBanner } from '@/components/auth/TrialExpirationBanner';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -51,8 +50,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
             </main>
           </div>
-          {/* Floating Quick Action Buttons */}
-          <QuickActions />
         </div>
       </ElderProvider>
     </ProtectedRoute>
