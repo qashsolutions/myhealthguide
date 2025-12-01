@@ -156,7 +156,7 @@ export function VoiceRecordButton({
       } else if (consentStatus === 'denied' || permissionStatus === 'denied') {
         console.log('[VoiceRecordButton] Permission denied');
         if (onError) {
-          onError(new Error('Microphone access denied. Please use manual entry or change browser settings.'));
+          onError(new Error('Microphone access was denied. To enable voice input:\n\n1. Click the lock/info icon in your browser address bar\n2. Find "Microphone" and change it to "Allow"\n3. Refresh the page and try again\n\nOr simply type your question instead.'));
         }
       } else {
         // Request permission (will show consent dialog if needed)

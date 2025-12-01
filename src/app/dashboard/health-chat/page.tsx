@@ -38,6 +38,7 @@ export default function HealthChatPage() {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [profanityError, setProfanityError] = useState<string | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Unified consent management
@@ -173,7 +174,12 @@ export default function HealthChatPage() {
   };
 
   const handleVoiceInput = (transcript: string) => {
+    setVoiceError(null);
     setInputValue(transcript);
+  };
+
+  const handleVoiceError = (error: Error) => {
+    setVoiceError(error.message);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -371,6 +377,7 @@ export default function HealthChatPage() {
           />
           <VoiceRecordButton
             onRecordingComplete={handleVoiceInput}
+            onError={handleVoiceError}
             disabled={loading || !selectedElder || !consentValid}
             variant="outline"
           />
@@ -382,6 +389,14 @@ export default function HealthChatPage() {
           <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400 text-sm">
             <AlertTriangle className="h-4 w-4" />
             <p>{profanityError}</p>
+          </div>
+        )}
+        {voiceError && (
+          <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-start gap-2 text-amber-800 dark:text-amber-200 text-sm">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <p className="whitespace-pre-line">{voiceError}</p>
+            </div>
           </div>
         )}
         {!selectedElder && (
