@@ -85,7 +85,7 @@ function validateNoAdvice(
 
 // Initialize Vertex AI client
 const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-const location = process.env.VERTEX_AI_LOCATION || 'us-central1';
+const location = process.env.VERTEX_AI_LOCATION || 'global';
 
 let vertexAI: VertexAI | null = null;
 
@@ -96,13 +96,20 @@ let vertexAI: VertexAI | null = null;
  * 2. GOOGLE_APPLICATION_CREDENTIALS (for local dev) - file path
  */
 function getVertexAI(): VertexAI {
+  console.log('[MedGemma Service] getVertexAI called');
+  console.log('[MedGemma Service] projectId:', projectId);
+  console.log('[MedGemma Service] location:', location);
+
   if (!vertexAI && projectId) {
     const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    console.log('[MedGemma Service] Has GOOGLE_APPLICATION_CREDENTIALS_JSON:', !!credentialsJson);
+    console.log('[MedGemma Service] GOOGLE_APPLICATION_CREDENTIALS_JSON length:', credentialsJson?.length || 0);
 
     if (credentialsJson) {
       // Production (Vercel): Use JSON credentials from environment variable
       try {
         const credentials = JSON.parse(credentialsJson);
+        console.log('[MedGemma Service] Parsed credentials, project_id:', credentials.project_id);
         vertexAI = new VertexAI({
           project: projectId,
           location: location,
@@ -110,20 +117,24 @@ function getVertexAI(): VertexAI {
             credentials: credentials,
           },
         });
+        console.log('[MedGemma Service] VertexAI initialized with JSON credentials');
       } catch (error) {
-        console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
+        console.error('[MedGemma Service] Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
         throw new Error('Invalid GOOGLE_APPLICATION_CREDENTIALS_JSON format');
       }
     } else {
       // Local Dev: Use GOOGLE_APPLICATION_CREDENTIALS file path (auto-detected by SDK)
+      console.log('[MedGemma Service] Using default credentials (file path or ADC)');
       vertexAI = new VertexAI({
         project: projectId,
         location: location,
       });
+      console.log('[MedGemma Service] VertexAI initialized with default credentials');
     }
   }
 
   if (!vertexAI) {
+    console.error('[MedGemma Service] VertexAI not configured - projectId:', projectId);
     throw new Error('Vertex AI not configured. Set GOOGLE_CLOUD_PROJECT_ID environment variable.');
   }
 
@@ -957,17 +968,23 @@ Return JSON only:
   "responseTemplate": "factual template like: Based on the logged data, the compliance rate was {compliance}%"
 }`;
 
+    console.log('[MedGemma Service] processNaturalLanguageQuery - getting VertexAI client');
     const vertex = getVertexAI();
+
+    console.log('[MedGemma Service] processNaturalLanguageQuery - creating model with:', MEDGEMMA_CONFIG.fallbackModel);
     const model = vertex.preview.getGenerativeModel({
       model: MEDGEMMA_CONFIG.fallbackModel,
       generationConfig: { ...MEDGEMMA_CONFIG.generationConfig, temperature: 0.1 },
     });
 
+    console.log('[MedGemma Service] processNaturalLanguageQuery - calling generateContent...');
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
+    console.log('[MedGemma Service] processNaturalLanguageQuery - got response');
 
     const responseText = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    console.log('[MedGemma Service] processNaturalLanguageQuery - responseText length:', responseText.length);
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
 
     if (jsonMatch) {
@@ -976,7 +993,9 @@ Return JSON only:
 
     throw new Error('Failed to parse response');
   } catch (error) {
-    console.error('Query parsing error, using keyword fallback:', error);
+    console.error('[MedGemma Service] Query parsing error:', error);
+    console.error('[MedGemma Service] Error details:', error instanceof Error ? error.message : String(error));
+    console.log('[MedGemma Service] Using keyword fallback');
     return parseQueryKeywords(query, context);
   }
 }
