@@ -31,310 +31,305 @@ export default function FeaturesPage() {
   const featureCategories = [
     {
       id: 'voice',
-      title: 'Voice-Powered Caregiving',
-      description: 'Log medications, meals, and activities hands-free using natural language',
+      title: 'Just Speak to Log',
+      description: 'No typing needed — just say what happened and we\'ll record it',
       icon: Mic,
       color: 'blue',
       features: [
         {
-          name: 'Voice Medication Logging',
-          description: 'Say "John took Lisinopril 10mg at 9am" and it\'s instantly logged',
+          name: 'Log Medications by Voice',
+          description: 'Say "Mom took her blood pressure pill at 9am" and it\'s saved',
           icon: Pill
         },
         {
-          name: 'Voice Diet Tracking',
-          description: 'Record meals naturally: "Mary ate oatmeal with blueberries for breakfast"',
+          name: 'Log Meals by Voice',
+          description: 'Say "Dad had oatmeal and coffee for breakfast" — done!',
           icon: Utensils
         },
         {
-          name: 'Web Speech API Integration',
-          description: 'Browser-based speech recognition with fallback to Google Cloud Speech-to-Text',
+          name: 'Works on Any Device',
+          description: 'Use your phone, tablet, or computer — whatever is handy',
           icon: Mic
         }
       ]
     },
     {
       id: 'ai',
-      title: 'AI-Driven Intelligence',
-      description: 'Advanced AI powered by Google Gemini and MedGemma for clinical-grade insights',
+      title: 'Helpful Summaries',
+      description: 'See what\'s happening at a glance — no digging through records',
       icon: Brain,
       color: 'purple',
       features: [
         {
-          name: 'Daily Health Summaries',
-          description: 'AI analyzes medication compliance, diet patterns, and health changes every day',
+          name: 'Daily Overview',
+          description: 'See a simple summary of medications taken, meals logged, and anything missed',
           icon: Sparkles
         },
         {
-          name: 'Clinical Note Generation',
-          description: 'MedGemma creates comprehensive clinical notes for doctor visits',
+          name: 'Notes for Doctor Visits',
+          description: 'Get a printable summary to share with your loved one\'s doctor',
           icon: FileText
         },
         {
-          name: 'Health Chat Assistant',
-          description: 'Ask questions about care, medications, and health in natural language',
+          name: 'Ask Questions',
+          description: 'Type a question like "What medications did Mom take this week?" and get answers',
           icon: MessageSquare
         },
         {
-          name: 'Pattern Detection',
-          description: 'AI identifies missed doses, health changes, and concerning trends',
+          name: 'Spot Patterns',
+          description: 'Notice things like "morning doses are often missed" so you can adjust',
           icon: TrendingUp
         },
         {
-          name: 'Doctor Visit Preparation',
-          description: 'Automated visit summaries with key questions and concerns',
+          name: 'Prepare for Appointments',
+          description: 'Have all the info ready before seeing the doctor',
           icon: Stethoscope
         }
       ]
     },
     {
       id: 'tracking',
-      title: 'Comprehensive Health Tracking',
-      description: 'Track medications, diet, supplements, and activities in one place',
+      title: 'Everything in One Place',
+      description: 'Medications, meals, vitamins — all organized and easy to find',
       icon: Heart,
       color: 'red',
       features: [
         {
-          name: 'Medication Management',
-          description: 'Track doses, schedules, refills, and compliance with ease',
+          name: 'Medication List',
+          description: 'Keep track of all pills, doses, and when to take them',
           icon: Pill
         },
         {
-          name: 'Diet & Nutrition',
-          description: 'Log meals with AI-powered nutritional analysis and concerns',
+          name: 'Meal Tracking',
+          description: 'Log what your loved one eats each day',
           icon: Utensils
         },
         {
-          name: 'Supplement Tracking',
-          description: 'Monitor vitamins and supplements alongside medications',
+          name: 'Vitamins & Supplements',
+          description: 'Track vitamins alongside regular medications',
           icon: Apple
         },
         {
-          name: 'Activity Logging',
-          description: 'Record daily activities, exercise, and mobility',
+          name: 'Daily Activities',
+          description: 'Note walks, exercises, or other activities',
           icon: Activity
         },
         {
-          name: 'Refill Predictions',
-          description: 'AI predicts when medications need refilling based on usage patterns',
+          name: 'Refill Reminders',
+          description: 'Get reminded when it\'s time to refill prescriptions',
           icon: Clock
         }
       ]
     },
     {
       id: 'safety',
-      title: 'Medical Safety Features',
-      description: 'FDA-integrated drug checking and clinical screening tools',
+      title: 'Safety Checks',
+      description: 'Catch potential problems before they become serious',
       icon: AlertTriangle,
       color: 'orange',
       features: [
         {
-          name: 'Drug Interaction Detection',
-          description: 'Real-time FDA drug label checking for interactions between medications',
+          name: 'Drug Interaction Warnings',
+          description: 'Get alerted if two medications shouldn\'t be taken together',
           icon: AlertTriangle
         },
         {
-          name: 'Schedule Conflict Detection',
-          description: 'Identifies timing conflicts between multiple medications',
+          name: 'Timing Conflicts',
+          description: 'Know if medications need to be taken at different times',
           icon: Clock
         },
         {
-          name: 'Dementia Screening',
-          description: 'Pattern-based screening flags behavioral changes for professional assessment',
+          name: 'Health Change Alerts',
+          description: 'Notice when eating or activity patterns change unexpectedly',
           icon: Brain
         },
         {
-          name: 'Caregiver Burnout Detection',
-          description: 'AI monitors caregiver activity patterns and alerts for burnout risk',
+          name: 'Caregiver Support',
+          description: 'Reminders to take care of yourself too',
           icon: Heart
         }
       ]
     },
     {
       id: 'notifications',
-      title: 'Smart Notifications',
-      description: 'Push notifications to keep everyone informed and on schedule',
+      title: 'Reminders That Work',
+      description: 'Never forget a dose or appointment again',
       icon: Bell,
       color: 'green',
       features: [
         {
           name: 'Medication Reminders',
-          description: 'Push notifications for upcoming doses across all devices',
+          description: 'Get a notification when it\'s time for each dose',
           icon: Bell
         },
         {
           name: 'Missed Dose Alerts',
-          description: 'Automatic alerts when medications are missed',
+          description: 'Know right away if a dose was missed',
           icon: AlertTriangle
         },
         {
-          name: 'Daily Compliance Updates',
-          description: 'Summary notifications showing daily adherence progress',
+          name: 'Daily Summary',
+          description: 'See how the day went with a simple end-of-day update',
           icon: TrendingUp
         },
         {
-          name: 'Multi-Device Support',
-          description: 'Firebase Cloud Messaging syncs across web, mobile, and tablet',
+          name: 'Works Everywhere',
+          description: 'Get reminders on your phone, tablet, or computer',
           icon: Bell
         }
       ]
     },
     {
       id: 'collaboration',
-      title: 'Real-Time Collaboration',
-      description: 'Multiple family members and caregivers coordinating seamlessly',
+      title: 'Share with Family',
+      description: 'Keep everyone in the loop — siblings, spouse, or hired help',
       icon: Users,
       color: 'indigo',
       features: [
         {
-          name: 'Family Groups',
-          description: 'Up to 4 members per group with role-based permissions',
+          name: 'Invite Family Members',
+          description: 'Add up to 4 people to help with caregiving',
           icon: Users
         },
         {
-          name: 'Granular Permissions',
-          description: 'Control who can view, edit, or manage each type of data',
+          name: 'Control Who Sees What',
+          description: 'Decide what each person can view or change',
           icon: UserCheck
         },
         {
-          name: 'Secure Invite System',
-          description: 'Encrypted invite codes with expiration and usage limits',
+          name: 'Easy Invites',
+          description: 'Send a simple link to invite someone',
           icon: Shield
         },
         {
-          name: 'Activity History',
-          description: 'Complete audit trail of who did what and when',
+          name: 'See Who Did What',
+          description: 'Know who logged medications or made changes',
           icon: FileText
         },
         {
-          name: 'Member Approval Workflow',
-          description: 'Admin approval required for new members joining groups',
+          name: 'Approve New Members',
+          description: 'You control who joins your care team',
           icon: UserCheck
         }
       ]
     },
     {
       id: 'agency',
-      title: 'Agency Management',
-      description: 'Professional caregiving agencies managing multiple client groups',
+      title: 'For Professional Caregivers',
+      description: 'Home care agencies can manage multiple clients easily',
       icon: Building2,
       color: 'teal',
       features: [
         {
-          name: 'Multi-Tenant Support',
-          description: 'Agencies manage multiple caregiver groups from one dashboard',
+          name: 'Manage Multiple Clients',
+          description: 'See all your clients from one dashboard',
           icon: Building2
         },
         {
-          name: 'Caregiver Assignment',
-          description: 'Assign specific caregivers to specific elders with access control',
+          name: 'Assign Caregivers',
+          description: 'Match the right caregiver to each client',
           icon: Users
         },
         {
-          name: 'Agency Analytics',
-          description: 'Aggregate compliance, alerts, and performance metrics',
+          name: 'Track Performance',
+          description: 'See how well medications are being given on time',
           icon: TrendingUp
         },
         {
-          name: 'Role-Based Access',
-          description: 'Super admin, caregiver admin, and caregiver roles with different permissions',
+          name: 'Staff Access Levels',
+          description: 'Give managers and caregivers different permissions',
           icon: Shield
         }
       ]
     },
     {
       id: 'analytics',
-      title: 'Health Analytics',
-      description: 'Insights and trends to improve care quality over time',
+      title: 'See the Big Picture',
+      description: 'Understand trends and spot changes over time',
       icon: TrendingUp,
       color: 'pink',
       features: [
         {
-          name: 'Medication Adherence Tracking',
-          description: 'Compliance predictions and pattern analysis',
+          name: 'Medication Tracking',
+          description: 'See how well medications are being taken each week',
           icon: TrendingUp
         },
         {
-          name: 'Nutrition Analysis',
-          description: 'Dietary pattern analysis with nutritional recommendations',
+          name: 'Eating Patterns',
+          description: 'Notice if eating habits are changing',
           icon: Apple
         },
         {
-          name: 'Weekly Trends Dashboard',
-          description: 'Week-over-week health metric comparisons',
+          name: 'Weekly Updates',
+          description: 'Compare this week to last week at a glance',
           icon: TrendingUp
         },
         {
-          name: 'Family Update Reports',
-          description: 'Automated summaries for family members',
+          name: 'Family Updates',
+          description: 'Send reports to family members who live far away',
           icon: FileText
         },
         {
-          name: 'Health Change Detection',
-          description: 'AI alerts for significant changes in health patterns',
+          name: 'Change Alerts',
+          description: 'Get notified when something seems different',
           icon: AlertTriangle
         }
       ]
     },
     {
       id: 'security',
-      title: 'HIPAA-Aware Security',
-      description: 'Enterprise-grade security and privacy protection',
+      title: 'Your Information is Safe',
+      description: 'We protect your loved one\'s health information',
       icon: Shield,
       color: 'gray',
       features: [
         {
-          name: 'PHI Audit Logging',
-          description: 'Complete audit trail of all PHI access with WHO, WHAT, WHEN, WHERE',
+          name: 'Private & Secure',
+          description: 'Health information is encrypted and protected',
           icon: FileText
         },
         {
-          name: 'Third-Party Disclosure Tracking',
-          description: '6-year accounting of disclosures for HIPAA compliance',
+          name: 'HIPAA Standards',
+          description: 'We follow the same rules as hospitals and doctors',
           icon: Database
         },
         {
-          name: 'Encrypted Invite Codes',
-          description: 'End-to-end encryption for group invitation system',
+          name: 'Safe Sharing',
+          description: 'Invite links expire and can only be used once',
           icon: Shield
         },
         {
-          name: 'IP Address Hashing',
-          description: 'SHA-256 hashed IP addresses, never stored in plain text',
-          icon: Shield
-        },
-        {
-          name: 'Medical Consent Management',
-          description: 'Granular consent tracking for AI features and data usage',
+          name: 'You\'re in Control',
+          description: 'Choose what features to use and what data to share',
           icon: UserCheck
         }
       ]
     },
     {
       id: 'data',
-      title: 'Data Ownership',
-      description: 'Your data, your control, with easy export and deletion',
+      title: 'Your Data, Your Choice',
+      description: 'Download or delete your information anytime',
       icon: Download,
       color: 'blue',
       features: [
         {
-          name: 'Complete Data Export',
-          description: 'Download all data in JSON/CSV formats for portability',
+          name: 'Download Everything',
+          description: 'Get a copy of all your data whenever you want',
           icon: Download
         },
         {
-          name: 'PDF Export',
-          description: 'Generate PDF reports for medications, diet, and health summaries',
+          name: 'Print Reports',
+          description: 'Create PDF reports to take to doctor appointments',
           icon: FileText
         },
         {
-          name: 'GDPR Compliance',
-          description: 'Right to portability and right to erasure fully supported',
+          name: 'Take It With You',
+          description: 'Your data belongs to you — export it anytime',
           icon: Shield
         },
         {
-          name: 'Account Deletion',
-          description: 'Complete data deletion within 48 hours of account closure',
+          name: 'Delete Anytime',
+          description: 'Close your account and we\'ll delete everything',
           icon: AlertTriangle
         }
       ]
@@ -382,34 +377,34 @@ export default function FeaturesPage() {
       <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-20 sm:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            {/* AI Badge */}
-            <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800">
-              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
-                Powered by Google MedGemma & Gemini AI
+            {/* Simple Badge */}
+            <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
+              <Heart className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                Built for Family Caregivers
               </span>
             </div>
 
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Clinical-Grade AI for Everyday Caregiving
+              Keep Track of Your Loved One's Health — Simply
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Voice-powered logging with MedGemma clinical notes, predictive insights, and real-time collaboration
+              Log medications, meals, and daily activities. Get reminders. Share updates with family. All in one easy-to-use app.
             </p>
 
-            {/* Key Highlights */}
+            {/* Key Highlights - Simple Language */}
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-2">
-                <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>Agentic AI Automation</span>
+                <Mic className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Speak to Log</span>
               </div>
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span>HIPAA-Aware Security</span>
+                <Bell className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span>Never Miss a Dose</span>
               </div>
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Google MedGemma</span>
+                <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span>Share with Family</span>
               </div>
             </div>
           </div>
