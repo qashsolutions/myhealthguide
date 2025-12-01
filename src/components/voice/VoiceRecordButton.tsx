@@ -29,6 +29,7 @@ export function VoiceRecordButton({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
+  const [pendingStart, setPendingStart] = useState(false);
 
   // Microphone permission management
   const {
@@ -142,36 +143,46 @@ export function VoiceRecordButton({
     }
   };
 
-  const handleClick = () => {
+  const handleClick = async () => {
+    console.log('[VoiceRecordButton] Click - permissionStatus:', permissionStatus, 'consentStatus:', consentStatus, 'isRecording:', isRecording);
+
     if (isRecording) {
       stopRecording();
     } else {
       // Check if we have permission first
       if (permissionStatus === 'granted') {
+        console.log('[VoiceRecordButton] Permission granted, starting recording');
         startRecording();
       } else if (consentStatus === 'denied' || permissionStatus === 'denied') {
+        console.log('[VoiceRecordButton] Permission denied');
         if (onError) {
           onError(new Error('Microphone access denied. Please use manual entry or change browser settings.'));
         }
       } else {
         // Request permission (will show consent dialog if needed)
+        console.log('[VoiceRecordButton] Requesting permission, setting pendingStart');
+        setPendingStart(true);
         requestPermission();
       }
     }
   };
 
-  // Auto-start recording when permission is granted
+  // Auto-start recording when permission is granted after user requested it
   useEffect(() => {
-    if (permissionStatus === 'granted' && consentStatus === 'consented') {
+    console.log('[VoiceRecordButton] Permission/consent changed - permissionStatus:', permissionStatus, 'consentStatus:', consentStatus, 'pendingStart:', pendingStart);
+
+    if (pendingStart && permissionStatus === 'granted') {
+      console.log('[VoiceRecordButton] Auto-starting recording after permission granted');
       // Small delay to ensure dialog has closed
       const timer = setTimeout(() => {
         if (!isRecording && !isProcessing) {
           startRecording();
+          setPendingStart(false);
         }
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [permissionStatus, consentStatus]);
+  }, [permissionStatus, pendingStart]);
 
   const effectiveIsRecording = externalIsRecording ?? isRecording;
   const isCheckingPermission = permissionStatus === 'checking';
