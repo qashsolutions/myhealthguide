@@ -26,6 +26,45 @@ import {
 // Standard disclaimer appended to all responses
 const RESPONSE_DISCLAIMER = '\n\nThis is based on logged data only. Please discuss any concerns with your healthcare provider.';
 
+/**
+ * Simple keyword-based query parsing fallback
+ * Used when AI query parsing fails
+ */
+function parseQueryKeywords(query: string, elderName?: string) {
+  const lowerQuery = query.toLowerCase();
+
+  // Simple intent detection
+  let intent = 'general_query';
+  if (lowerQuery.includes('compliance') || lowerQuery.includes('adherence') || lowerQuery.includes('taken') || lowerQuery.includes('missed')) {
+    intent = 'view_compliance';
+  } else if (lowerQuery.includes('medication') || lowerQuery.includes('medicine') || lowerQuery.includes('pills') || lowerQuery.includes('drug')) {
+    intent = 'check_medications';
+  } else if (lowerQuery.includes('diet') || lowerQuery.includes('meal') || lowerQuery.includes('eat') || lowerQuery.includes('food')) {
+    intent = 'analyze_diet';
+  }
+
+  // Extract timeframe
+  let timeframe = 'last 7 days';
+  if (lowerQuery.includes('yesterday')) timeframe = 'yesterday';
+  if (lowerQuery.includes('today')) timeframe = 'today';
+  if (lowerQuery.includes('week')) timeframe = 'last 7 days';
+  if (lowerQuery.includes('month') || lowerQuery.includes('30 day')) timeframe = 'last 30 days';
+
+  return {
+    intent,
+    parameters: {
+      elderName,
+      timeframe,
+      metric: intent.replace('view_', '').replace('check_', '').replace('analyze_', ''),
+    },
+    needsData: intent === 'view_compliance' ? ['medications', 'compliance_logs'] :
+                intent === 'check_medications' ? ['medications'] :
+                intent === 'analyze_diet' ? ['diet_entries'] :
+                ['medications', 'compliance_logs', 'diet_entries'],
+    responseTemplate: `Based on the data, here's what I found about {metric}...`,
+  };
+}
+
 interface RequestBody {
   groupId: string;
   elderId?: string;
@@ -81,15 +120,23 @@ export async function POST(request: NextRequest) {
       hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
     });
 
-    const queryIntent = await processNaturalLanguageQuery(
-      userQuery,
-      { elderName, availableData: ['medications', 'diet', 'compliance'] },
-      userId,
-      userRole,
-      groupId,
-      elderId
-    );
-    console.log('[MedGemma Query API] Query intent result:', queryIntent);
+    let queryIntent;
+    try {
+      queryIntent = await processNaturalLanguageQuery(
+        userQuery,
+        { elderName, availableData: ['medications', 'diet', 'compliance'] },
+        userId,
+        userRole,
+        groupId,
+        elderId
+      );
+      console.log('[MedGemma Query API] Query intent result:', queryIntent);
+    } catch (queryError) {
+      console.error('[MedGemma Query API] processNaturalLanguageQuery failed:', queryError);
+      // Use simple keyword-based parsing as fallback
+      queryIntent = parseQueryKeywords(userQuery, elderName);
+      console.log('[MedGemma Query API] Using keyword fallback:', queryIntent);
+    }
 
     const { intent, parameters, needsData } = queryIntent;
     const responseData: any = {};
@@ -143,17 +190,30 @@ export async function POST(request: NextRequest) {
 
     // Build factual, observational response (NO advice or recommendations)
     let answer = '';
-    if (intent === 'view_compliance' && responseData.compliance) {
-      answer = `Based on the logged data from the last ${timeframeDays} days, the medication compliance rate is ${responseData.compliance.complianceRate}%. ` +
-               `${responseData.compliance.takenDoses} doses were recorded as taken out of ${responseData.compliance.totalDoses} scheduled doses, ` +
-               `with ${responseData.compliance.missedDoses} doses marked as missed.`;
-    } else if (intent === 'check_medications' && responseData.medications) {
-      answer = `The records show ${responseData.medications.length} medications currently logged: ` +
-               responseData.medications.map((m: any) => m.name).join(', ') + '.';
-    } else if (intent === 'analyze_diet' && responseData.dietEntries) {
-      answer = `The log shows ${responseData.dietEntries.length} meals were recorded in the last ${timeframeDays} days.`;
+    if (intent === 'view_compliance') {
+      if (responseData.compliance && responseData.compliance.totalDoses > 0) {
+        answer = `Based on the logged data from the last ${timeframeDays} days, the medication compliance rate is ${responseData.compliance.complianceRate}%. ` +
+                 `${responseData.compliance.takenDoses} doses were recorded as taken out of ${responseData.compliance.totalDoses} scheduled doses, ` +
+                 `with ${responseData.compliance.missedDoses} doses marked as missed.`;
+      } else {
+        answer = `No medication compliance data has been recorded for the last ${timeframeDays} days. To track compliance, first add medications and then log when doses are taken or missed.`;
+      }
+    } else if (intent === 'check_medications') {
+      if (responseData.medications && responseData.medications.length > 0) {
+        answer = `The records show ${responseData.medications.length} medications currently logged: ` +
+                 responseData.medications.map((m: any) => m.name).join(', ') + '.';
+      } else {
+        answer = `No medications are currently logged in the records. Add medications to start tracking.`;
+      }
+    } else if (intent === 'analyze_diet') {
+      if (responseData.dietEntries && responseData.dietEntries.length > 0) {
+        answer = `The log shows ${responseData.dietEntries.length} meals were recorded in the last ${timeframeDays} days.`;
+      } else {
+        answer = `No diet entries have been recorded for the last ${timeframeDays} days. Add meals to start tracking nutrition.`;
+      }
     } else {
-      answer = `Here is the information from the logged data about ${parameters.metric || 'health records'}.`;
+      // General query - provide helpful guidance
+      answer = `I can help you with information about medications, compliance tracking, and diet entries. Try asking about specific topics like "What medications are logged?" or "Show compliance for last week".`;
     }
 
     // Always append disclaimer to remind users this is observational only
