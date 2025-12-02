@@ -108,14 +108,17 @@ export class DietService {
 
   /**
    * Get entries by elder
+   * Note: groupId is required for Firestore security rules to evaluate properly
    */
   static async getEntriesByElder(
     elderId: string,
+    groupId: string,
     userId: string,
     userRole: UserRole
   ): Promise<DietEntry[]> {
     const q = query(
       collection(db, this.COLLECTION),
+      where('groupId', '==', groupId),
       where('elderId', '==', elderId),
       orderBy('timestamp', 'desc')
     );
