@@ -64,11 +64,12 @@ export default function IncidentsPage() {
   }, [selectedElder]);
 
   const loadIncidents = async () => {
-    if (!selectedElder) return;
+    if (!selectedElder || !selectedElder.groupId) return;
 
     try {
       const incidentsQuery = query(
         collection(db, 'incidents'),
+        where('groupId', '==', selectedElder.groupId),
         where('elderId', '==', selectedElder.id),
         orderBy('occurredAt', 'desc'),
         limit(20)

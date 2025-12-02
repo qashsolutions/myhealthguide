@@ -472,16 +472,25 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             {elderCentricSections.map((section) => {
               const SectionIcon = section.icon;
               const isCollapsed = collapsedSections[section.id];
+              // Check if any item in this section is active
+              const isSectionActive = section.items.some(
+                item => pathname === item.href || pathname.startsWith(item.href + '/')
+              );
 
               return (
                 <div key={section.id} className="space-y-1">
                   {/* Section Header - Collapsible */}
                   <button
                     onClick={() => toggleSection(section.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className={cn(
+                      'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors',
+                      isSectionActive
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-l-4 border-blue-500'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    )}
                   >
                     <div className="flex items-center gap-2">
-                      <SectionIcon className="w-4 h-4" />
+                      <SectionIcon className={cn('w-4 h-4', isSectionActive && 'text-blue-600 dark:text-blue-400')} />
                       <span>{section.title}</span>
                     </div>
                     {isCollapsed ? (
