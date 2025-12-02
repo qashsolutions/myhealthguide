@@ -1395,6 +1395,26 @@ service cloud.firestore {
       allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
+    // ============= Dementia Screenings Collection =============
+    // AI-generated cognitive pattern analysis reports
+
+    match /dementiaScreenings/{screeningId} {
+      // Group admin or members can read screenings
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System/AI creates screenings
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Screenings are immutable once created
+      allow update: if false;
+
+      // Group admin can delete screenings
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
     // ============= Incidents Collection =============
     // Incident reports for falls, medication errors, behavioral issues, etc.
 

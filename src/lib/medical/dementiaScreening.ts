@@ -229,7 +229,7 @@ async function getCareLogs(
 
   // Get medication logs with notes
   const medLogsQuery = query(
-    collection(db, 'medicationLogs'),
+    collection(db, 'medication_logs'),
     where('groupId', '==', groupId),
     where('elderId', '==', elderId),
     where('takenAt', '>=', Timestamp.fromDate(startDate)),
@@ -253,7 +253,7 @@ async function getCareLogs(
 
   // Get diet entries with notes
   const dietLogsQuery = query(
-    collection(db, 'dietEntries'),
+    collection(db, 'diet_entries'),
     where('groupId', '==', groupId),
     where('elderId', '==', elderId),
     where('timestamp', '>=', Timestamp.fromDate(startDate)),

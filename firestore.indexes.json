@@ -48,6 +48,15 @@
         { "fieldPath": "isPrimary", "order": "DESCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "dementiaScreenings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId", "order": "ASCENDING" },
+        { "fieldPath": "elderId", "order": "ASCENDING" },
+        { "fieldPath": "screeningDate", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
