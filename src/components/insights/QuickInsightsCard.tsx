@@ -15,7 +15,9 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronUp,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import type { QuickInsightsData } from '@/lib/utils/complianceCalculation';
 
@@ -102,22 +104,61 @@ export function QuickInsightsCard({
           <TrendingUp className="w-4 h-4 text-purple-600" />
           <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Status</span>
         </div>
-        {insights.pendingItems > 0 ? (
-          <>
-            <div className="text-2xl font-bold text-yellow-600">
-              {insights.pendingItems}
-            </div>
-            <div className="text-xs text-gray-500">items pending</div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-1">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              <span className="text-sm font-medium text-green-600">All done!</span>
-            </div>
-            <div className="text-xs text-gray-500 mt-1">Great job today</div>
-          </>
-        )}
+        {(() => {
+          const totalMissed = insights.medications.missed + insights.supplements.missed;
+          const compliance = insights.overallCompliance;
+
+          // Critical: compliance < 50% or multiple missed
+          if (compliance < 50 || totalMissed >= 3) {
+            return (
+              <>
+                <div className="flex items-center gap-1">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                  <span className="text-sm font-medium text-red-600">Needs Attention</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">{totalMissed} missed today</div>
+              </>
+            );
+          }
+
+          // Warning: compliance < 80% or has missed items
+          if (compliance < 80 || totalMissed > 0) {
+            return (
+              <>
+                <div className="flex items-center gap-1">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                  <span className="text-sm font-medium text-yellow-600">Keep Going</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {totalMissed > 0 ? `${totalMissed} missed` : `${insights.pendingItems} pending`}
+                </div>
+              </>
+            );
+          }
+
+          // Pending items but good compliance so far
+          if (insights.pendingItems > 0) {
+            return (
+              <>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {insights.pendingItems}
+                </div>
+                <div className="text-xs text-gray-500">items pending</div>
+              </>
+            );
+          }
+
+          // All done with good compliance
+          return (
+            <>
+              <div className="flex items-center gap-1">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium text-green-600">All done!</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">Great job today</div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
