@@ -21,9 +21,10 @@ import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { ElderService } from '@/lib/firebase/elders';
 import { GroupService } from '@/lib/firebase/groups';
+import { SupplementService } from '@/lib/firebase/supplements';
 import { DailySummary, Elder } from '@/types';
 import { Sparkles, RefreshCw, Calendar, TrendingUp, AlertCircle, FileDown } from 'lucide-react';
-import { subWeeks } from 'date-fns';
+import { subWeeks, startOfDay, endOfDay } from 'date-fns';
 import type { TrendsData } from '@/lib/utils/trendsCalculation';
 import type { ChatContext } from '@/lib/ai/chatService';
 
@@ -159,33 +160,54 @@ export default function InsightsPage() {
       const userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
       const elderId = selectedElder.id!;
 
-      // Mock data for development
-      // In production, fetch actual logs from Firebase
-      const mockData = {
-        medicationLogs: [
-          { status: 'taken', medicationName: 'Lisinopril', time: '8:00 AM' },
-          { status: 'taken', medicationName: 'Metformin', time: '8:00 AM' },
-          { status: 'taken', medicationName: 'Aspirin', time: '6:00 PM' },
-          { status: 'missed', medicationName: 'Vitamin D', time: '8:00 AM' },
-        ],
-        supplementLogs: [
-          { status: 'taken', supplementName: 'Omega-3', time: '8:00 AM' },
-          { status: 'taken', supplementName: 'Calcium', time: '8:00 AM' },
-        ],
-        dietEntries: [
-          { meal: 'breakfast', items: ['oatmeal', 'banana', 'coffee'] },
-          { meal: 'lunch', items: ['chicken', 'salad', 'water'] },
-          { meal: 'dinner', items: ['salmon', 'vegetables', 'rice'] },
-        ],
+      // Fetch real data from Firestore for the selected date
+      const dayStart = startOfDay(selectedDate);
+      const dayEnd = endOfDay(selectedDate);
+
+      const [medications, medicationLogs, supplements, supplementLogs, dietEntries] = await Promise.all([
+        MedicationService.getMedicationsByElder(elderId, groupId, userId, userRole),
+        MedicationService.getLogsByDateRange(groupId, dayStart, dayEnd, userId, userRole),
+        SupplementService.getSupplementsByElder(elderId, groupId, userId, userRole),
+        SupplementService.getLogsByDateRange(groupId, dayStart, dayEnd, userId, userRole),
+        DietService.getEntriesByDateRange(groupId, dayStart, dayEnd, userId, userRole)
+      ]);
+
+      // Filter logs for selected elder
+      const elderMedLogs = medicationLogs.filter(log => log.elderId === elderId);
+      const elderSuppLogs = supplementLogs.filter(log => log.elderId === elderId);
+      const elderDietEntries = dietEntries.filter(entry => entry.elderId === elderId);
+
+      // Build data object for AI analysis
+      const realData = {
+        medicationLogs: elderMedLogs.map(log => {
+          const med = medications.find(m => m.id === log.medicationId);
+          return {
+            status: log.status,
+            medicationName: med?.name || 'Unknown',
+            time: new Date(log.scheduledTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+          };
+        }),
+        supplementLogs: elderSuppLogs.map(log => {
+          const supp = supplements.find(s => s.id === log.supplementId);
+          return {
+            status: log.status,
+            supplementName: supp?.name || 'Unknown',
+            time: new Date(log.scheduledTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+          };
+        }),
+        dietEntries: elderDietEntries.map(entry => ({
+          meal: entry.meal,
+          items: entry.items
+        })),
         elderName
       };
 
-      // Generate AI summary
-      const summary = await generateDailySummary(mockData, userId, userRole, groupId, elderId);
+      // Generate AI summary from real data
+      const summary = await generateDailySummary(realData, userId, userRole, groupId, elderId);
       setDailySummary(summary);
 
-      // Detect compliance patterns
-      const compliancePatterns = await detectCompliancePatterns(mockData.medicationLogs, userId, userRole, groupId, elderId);
+      // Detect compliance patterns from real data
+      const compliancePatterns = await detectCompliancePatterns(realData.medicationLogs, userId, userRole, groupId, elderId);
       setPatterns(compliancePatterns);
 
     } catch (error) {
@@ -196,8 +218,10 @@ export default function InsightsPage() {
   };
 
   useEffect(() => {
-    loadInsights();
-  }, [selectedDate]);
+    if (selectedElder) {
+      loadInsights();
+    }
+  }, [selectedDate, selectedElder]);
 
   if (loadingElders) {
     return (
@@ -343,34 +367,49 @@ export default function InsightsPage() {
         </Card>
       )}
 
-      {/* Quick Insights */}
-      {selectedElder && (
+      {/* Quick Insights - Generated from real data */}
+      {selectedElder && dailySummary && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Medication Compliance Insight */}
             <AIInsightCard
-              type="positive"
-              title="Excellent Medication Compliance"
-              description={`${elderName} has maintained 90%+ medication compliance this week. Great job!`}
+              type={dailySummary.medicationCompliance.percentage >= 90 ? 'positive' :
+                    dailySummary.medicationCompliance.percentage >= 70 ? 'info' : 'warning'}
+              title={dailySummary.medicationCompliance.percentage >= 90 ? 'Excellent Medication Compliance' :
+                     dailySummary.medicationCompliance.percentage >= 70 ? 'Good Medication Compliance' : 'Medication Compliance Needs Attention'}
+              description={`${elderName} has ${dailySummary.medicationCompliance.percentage}% medication compliance today. ${dailySummary.medicationCompliance.taken} taken, ${dailySummary.medicationCompliance.missed} missed.`}
             />
+
+            {/* Diet Insight */}
             <AIInsightCard
-              type="info"
-              title="Diet Pattern Detected"
-              description="Regular meal times observed. Breakfast consistently logged at 8:00 AM."
+              type={dailySummary.dietSummary.mealsLogged >= 3 ? 'positive' :
+                    dailySummary.dietSummary.mealsLogged >= 1 ? 'info' : 'warning'}
+              title={dailySummary.dietSummary.mealsLogged >= 3 ? 'Meals Well Tracked' :
+                     dailySummary.dietSummary.mealsLogged >= 1 ? 'Some Meals Logged' : 'No Meals Logged Yet'}
+              description={dailySummary.dietSummary.mealsLogged > 0
+                ? `${dailySummary.dietSummary.mealsLogged} meal(s) logged today.`
+                : 'No meals have been logged today. Consider adding meal entries.'}
             />
-            <AIInsightCard
-              type="warning"
-              title="Weekend Compliance Dip"
-              description="Compliance drops by 15% on weekends. Consider setting weekend reminders."
-              actionLabel="Set Reminder"
-              onAction={() => console.log('Navigate to reminders')}
-            />
-            <AIInsightCard
-              type="insight"
-              title="Hydration Opportunity"
-              description="AI suggests tracking water intake to ensure adequate hydration throughout the day."
-              actionLabel="Learn More"
-              onAction={() => console.log('Learn more about hydration')}
-            />
+
+            {/* Supplement Compliance Insight */}
+            {dailySummary.supplementCompliance && (dailySummary.supplementCompliance.taken > 0 || dailySummary.supplementCompliance.missed > 0) && (
+              <AIInsightCard
+                type={dailySummary.supplementCompliance.percentage >= 90 ? 'positive' :
+                      dailySummary.supplementCompliance.percentage >= 70 ? 'info' : 'warning'}
+                title={dailySummary.supplementCompliance.percentage >= 90 ? 'Supplements On Track' :
+                       dailySummary.supplementCompliance.percentage >= 70 ? 'Supplement Compliance Good' : 'Supplements Need Attention'}
+                description={`${dailySummary.supplementCompliance.percentage}% supplement compliance. ${dailySummary.supplementCompliance.taken} taken, ${dailySummary.supplementCompliance.missed} missed.`}
+              />
+            )}
+
+            {/* Missed Doses Alert */}
+            {dailySummary.missedDoses && dailySummary.missedDoses.length > 0 && (
+              <AIInsightCard
+                type="warning"
+                title={`${dailySummary.missedDoses.length} Missed Dose${dailySummary.missedDoses.length > 1 ? 's' : ''}`}
+                description={dailySummary.missedDoses.slice(0, 2).map(d => `${d.medicationName} at ${d.scheduledTime}`).join(', ')}
+              />
+            )}
           </div>
 
           {/* Daily Summary */}
