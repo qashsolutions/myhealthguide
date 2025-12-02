@@ -100,29 +100,73 @@ export function countTodaysMeals(
 }
 
 /**
+ * Parse time string like "7 am", "12 pm", "2:30 pm" to { hours, minutes }
+ */
+function parseTimeString(time: string): { hours: number; minutes: number } {
+  const match = time.toLowerCase().match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+  if (!match) return { hours: 0, minutes: 0 };
+
+  let hours = parseInt(match[1]);
+  const minutes = match[2] ? parseInt(match[2]) : 0;
+  const period = match[3];
+
+  if (period === 'pm' && hours !== 12) hours += 12;
+  if (period === 'am' && hours === 12) hours = 0;
+
+  return { hours, minutes };
+}
+
+/**
+ * Check if a scheduled time has passed (is overdue)
+ */
+function isOverdue(scheduledTime: string): boolean {
+  const now = new Date();
+  const { hours, minutes } = parseTimeString(scheduledTime);
+  const scheduledDate = new Date();
+  scheduledDate.setHours(hours, minutes, 0, 0);
+
+  // Add 30-minute grace period
+  scheduledDate.setMinutes(scheduledDate.getMinutes() + 30);
+
+  return now > scheduledDate;
+}
+
+/**
  * Calculate quick insights from schedule items
  * Used by Activity page where we have schedule-based data
+ * Now considers time - pending items past their scheduled time count as overdue/missed
  */
 export function calculateQuickInsightsFromSchedule(
   scheduleItems: Array<{
     type: 'medication' | 'supplement';
     status: 'pending' | 'taken' | 'skipped' | 'late';
+    time?: string; // Optional time for overdue detection
   }>,
   mealsLogged: number
 ): QuickInsightsData {
   const medItems = scheduleItems.filter(s => s.type === 'medication');
   const suppItems = scheduleItems.filter(s => s.type === 'supplement');
 
+  // For medications
   const medTaken = medItems.filter(s => s.status === 'taken').length;
-  const medMissed = medItems.filter(s => s.status === 'skipped' || s.status === 'late').length;
-  const medPending = medItems.filter(s => s.status === 'pending').length;
+  const medSkipped = medItems.filter(s => s.status === 'skipped' || s.status === 'late').length;
+  const medPendingItems = medItems.filter(s => s.status === 'pending');
+  // Count overdue pending items as missed
+  const medOverdue = medPendingItems.filter(s => s.time && isOverdue(s.time)).length;
+  const medPending = medPendingItems.length - medOverdue;
+  const medMissed = medSkipped + medOverdue;
   const medTotal = medItems.length;
   const medCompleted = medTaken + medMissed;
   const medCompliance = medCompleted > 0 ? Math.round((medTaken / medCompleted) * 100) : 100;
 
+  // For supplements
   const suppTaken = suppItems.filter(s => s.status === 'taken').length;
-  const suppMissed = suppItems.filter(s => s.status === 'skipped' || s.status === 'late').length;
-  const suppPending = suppItems.filter(s => s.status === 'pending').length;
+  const suppSkipped = suppItems.filter(s => s.status === 'skipped' || s.status === 'late').length;
+  const suppPendingItems = suppItems.filter(s => s.status === 'pending');
+  // Count overdue pending items as missed
+  const suppOverdue = suppPendingItems.filter(s => s.time && isOverdue(s.time)).length;
+  const suppPending = suppPendingItems.length - suppOverdue;
+  const suppMissed = suppSkipped + suppOverdue;
   const suppTotal = suppItems.length;
   const suppCompleted = suppTaken + suppMissed;
   const suppCompliance = suppCompleted > 0 ? Math.round((suppTaken / suppCompleted) * 100) : 100;
