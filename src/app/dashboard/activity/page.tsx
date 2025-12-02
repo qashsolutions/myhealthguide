@@ -341,10 +341,17 @@ export default function ActivityPage() {
         }, user.id, userRole);
       }
 
-      // Update local state
-      setSchedule(prev => prev.map(s =>
-        s.id === item.id ? { ...s, status: action } : s
-      ));
+      // Update local state and recalculate insights
+      setSchedule(prev => {
+        const updated = prev.map(s =>
+          s.id === item.id ? { ...s, status: action } : s
+        );
+        // Recalculate insights with updated schedule
+        const mealsCount = insights?.mealsLogged || 0;
+        const newInsights = calculateQuickInsightsFromSchedule(updated, mealsCount);
+        setInsights(newInsights);
+        return updated;
+      });
 
       // Add to activities
       setActivities(prev => [{
