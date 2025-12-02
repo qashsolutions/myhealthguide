@@ -19,24 +19,19 @@ import {
   XCircle,
   AlertCircle,
   ChevronDown,
-  ChevronUp,
   Loader2,
-  Sparkles,
   TrendingUp,
   ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { format, isToday, startOfDay, endOfDay } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
 import { SupplementService } from '@/lib/firebase/supplements';
 import { DietService } from '@/lib/firebase/diet';
+import { QuickInsightsCard } from '@/components/insights/QuickInsightsCard';
+import { calculateQuickInsightsFromSchedule, type QuickInsightsData } from '@/lib/utils/complianceCalculation';
 import type { Medication, Supplement, DietEntry, MedicationLog, SupplementLog } from '@/types';
 
 interface ScheduleItem {
@@ -59,16 +54,6 @@ interface ActivityItem {
   status?: string;
 }
 
-interface QuickInsights {
-  medicationCompliance: number;
-  medicationsTaken: number;
-  medicationsMissed: number;
-  medicationsPending: number;
-  supplementsTaken: number;
-  supplementsMissed: number;
-  supplementsPending: number;
-  mealsLogged: number;
-}
 
 export default function ActivityPage() {
   const { user } = useAuth();
@@ -78,7 +63,7 @@ export default function ActivityPage() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(true);
-  const [insights, setInsights] = useState<QuickInsights | null>(null);
+  const [insights, setInsights] = useState<QuickInsightsData | null>(null);
 
   // Determine user's role
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
@@ -122,28 +107,10 @@ export default function ActivityPage() {
         const activityItems = buildActivities(medLogs, suppLogs, dietEntries);
         setActivities(activityItems);
 
-        // Calculate quick insights
-        const medPending = scheduleItems.filter(s => s.type === 'medication' && s.status === 'pending').length;
-        const medTaken = scheduleItems.filter(s => s.type === 'medication' && s.status === 'taken').length;
-        const medMissed = scheduleItems.filter(s => s.type === 'medication' && (s.status === 'skipped' || s.status === 'late')).length;
-        const suppPending = scheduleItems.filter(s => s.type === 'supplement' && s.status === 'pending').length;
-        const suppTaken = scheduleItems.filter(s => s.type === 'supplement' && s.status === 'taken').length;
-        const suppMissed = scheduleItems.filter(s => s.type === 'supplement' && (s.status === 'skipped' || s.status === 'late')).length;
+        // Calculate quick insights using shared utility
         const todaysMeals = dietEntries.filter(e => isToday(new Date(e.timestamp))).length;
-
-        const totalMedScheduled = medPending + medTaken + medMissed;
-        const medCompliance = totalMedScheduled > 0 ? Math.round((medTaken / totalMedScheduled) * 100) : 100;
-
-        setInsights({
-          medicationCompliance: medCompliance,
-          medicationsTaken: medTaken,
-          medicationsMissed: medMissed,
-          medicationsPending: medPending,
-          supplementsTaken: suppTaken,
-          supplementsMissed: suppMissed,
-          supplementsPending: suppPending,
-          mealsLogged: todaysMeals
-        });
+        const quickInsights = calculateQuickInsightsFromSchedule(scheduleItems, todaysMeals);
+        setInsights(quickInsights);
       } catch (err) {
         console.error('Error loading activity data:', err);
       } finally {
@@ -207,7 +174,7 @@ export default function ActivityPage() {
 
     // Add medications
     medications.forEach(med => {
-      const times = med.schedule?.times || [];
+      const times = med.frequency?.times || [];
       times.forEach(time => {
         // Check if already logged for this time today
         const logged = medLogs.find(log =>
@@ -344,6 +311,9 @@ export default function ActivityPage() {
     const scheduledTime = new Date();
     scheduledTime.setHours(hours, minutes, 0, 0);
 
+    // Map UI action to database status ('late' is stored as 'taken' with late actualTime)
+    const dbStatus: 'taken' | 'missed' | 'skipped' = action === 'late' ? 'taken' : action;
+
     try {
       if (item.type === 'medication') {
         await MedicationService.logDose({
@@ -352,7 +322,7 @@ export default function ActivityPage() {
           medicationId: item.sourceId,
           scheduledTime: scheduledTime,
           actualTime: now,
-          status: action,
+          status: dbStatus,
           loggedBy: user.id,
           method: 'manual',
           createdAt: now
@@ -364,7 +334,7 @@ export default function ActivityPage() {
           supplementId: item.sourceId,
           scheduledTime: scheduledTime,
           actualTime: now,
-          status: action,
+          status: dbStatus,
           loggedBy: user.id,
           method: 'manual',
           createdAt: now
@@ -476,122 +446,12 @@ export default function ActivityPage() {
 
       {/* Quick Insights - Collapsible */}
       {insights && (
-        <Collapsible open={insightsOpen} onOpenChange={setInsightsOpen}>
-          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-purple-200 dark:border-purple-800">
-            <CollapsibleTrigger asChild>
-              <CardHeader className="pb-3 cursor-pointer hover:bg-purple-100/50 dark:hover:bg-purple-900/30 transition-colors rounded-t-lg">
-                <CardTitle className="text-lg flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-purple-600" />
-                    Quick Insights
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={insights.medicationCompliance >= 80 ? 'default' : 'destructive'}
-                      className="text-xs"
-                    >
-                      {insights.medicationCompliance}% Compliance
-                    </Badge>
-                    {insightsOpen ? (
-                      <ChevronUp className="w-4 h-4 text-gray-500" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
-                    )}
-                  </div>
-                </CardTitle>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {/* Medications */}
-                  <div className="p-3 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Pill className="w-4 h-4 text-blue-600" />
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Medications</span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-green-600">Taken</span>
-                        <span className="font-medium">{insights.medicationsTaken}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-yellow-600">Pending</span>
-                        <span className="font-medium">{insights.medicationsPending}</span>
-                      </div>
-                      {insights.medicationsMissed > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-red-600">Missed</span>
-                          <span className="font-medium">{insights.medicationsMissed}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Supplements */}
-                  <div className="p-3 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-green-200 dark:border-green-800">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Apple className="w-4 h-4 text-green-600" />
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Supplements</span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-green-600">Taken</span>
-                        <span className="font-medium">{insights.supplementsTaken}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-yellow-600">Pending</span>
-                        <span className="font-medium">{insights.supplementsPending}</span>
-                      </div>
-                      {insights.supplementsMissed > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-red-600">Missed</span>
-                          <span className="font-medium">{insights.supplementsMissed}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Meals */}
-                  <div className="p-3 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-orange-200 dark:border-orange-800">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Utensils className="w-4 h-4 text-orange-600" />
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Meals</span>
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {insights.mealsLogged}
-                    </div>
-                    <div className="text-xs text-gray-500">logged today</div>
-                  </div>
-
-                  {/* Status */}
-                  <div className="p-3 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-purple-200 dark:border-purple-800">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="w-4 h-4 text-purple-600" />
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Status</span>
-                    </div>
-                    {pendingItems.length > 0 ? (
-                      <>
-                        <div className="text-2xl font-bold text-yellow-600">
-                          {pendingItems.length}
-                        </div>
-                        <div className="text-xs text-gray-500">items pending</div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-1">
-                          <CheckCircle2 className="w-5 h-5 text-green-600" />
-                          <span className="text-sm font-medium text-green-600">All done!</span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">Great job today</div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+        <QuickInsightsCard
+          insights={insights}
+          isOpen={insightsOpen}
+          onOpenChange={setInsightsOpen}
+          showCollapsible={true}
+        />
       )}
 
       {/* Today's Schedule */}

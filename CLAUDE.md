@@ -241,3 +241,69 @@ if (!allowed) {
   // Show UnifiedAIConsentDialog
 }
 ```
+
+### 8. Insights & Compliance System Architecture (CONSOLIDATED: Dec 1, 2025)
+
+**IMPORTANT:** The insights system uses shared utilities to prevent code duplication.
+
+**Shared Compliance Calculation Utility:**
+- `src/lib/utils/complianceCalculation.ts` - Single source of truth for compliance calculations
+
+**Available Functions:**
+```typescript
+import {
+  calculateComplianceStats,
+  calculateMedicationCompliance,
+  calculateSupplementCompliance,
+  countTodaysMeals,
+  calculateQuickInsightsFromSchedule, // For Activity page (schedule-based)
+  calculateQuickInsightsFromLogs,     // For Insights page (log-based)
+  getComplianceStatus,
+  type QuickInsightsData
+} from '@/lib/utils/complianceCalculation';
+```
+
+**Shared QuickInsights Component:**
+- `src/components/insights/QuickInsightsCard.tsx` - Reusable quick insights display
+
+**Usage:**
+```typescript
+// Activity page - collapsible mode
+<QuickInsightsCard
+  insights={insights}
+  isOpen={insightsOpen}
+  onOpenChange={setInsightsOpen}
+  showCollapsible={true}
+/>
+
+// Insights page - static mode
+<QuickInsightsCard
+  insights={quickInsights}
+  showCollapsible={false}
+/>
+```
+
+**Component Hierarchy (No Duplicates):**
+| Component | Purpose | Used In |
+|-----------|---------|---------|
+| `QuickInsightsCard` | Quick stats (meds/supps/meals/status) | Activity, Insights |
+| `DailySummaryCard` | AI-generated daily summary | Insights |
+| `WeeklySummaryCard` | Weekly summaries with export | Insights |
+| `WeeklyTrendsDashboard` | Line charts for trends | Insights |
+| `AIInsightsContainer` | Health alerts, refill predictions | Insights |
+| `AIInsightCard` | Individual AI insight cards | Insights |
+
+**Type Definitions:**
+- Medication uses `frequency.times` (NOT `schedule.times`)
+- MedicationLog status: `'scheduled' | 'taken' | 'missed' | 'skipped'` (NO 'late')
+- UI 'late' action maps to 'taken' status in database
+
+**Firestore Collections for Insights:**
+- `weeklySummaries` - Stored weekly summaries
+- `user_notifications` - In-app notifications including weekly_summary type
+- `notification_logs` - Notification audit trail
+
+**Do NOT:**
+- Create new compliance calculation functions - use shared utility
+- Create new QuickInsights-style components - use `QuickInsightsCard`
+- Use 'late' as a database status - map to 'taken' instead

@@ -38,6 +38,7 @@ export function NotificationHistory({ groupId }: NotificationHistoryProps) {
       medication_missed: 'Missed Dose Alert',
       supplement_reminder: 'Supplement Reminder',
       daily_summary: 'Daily Summary',
+      weekly_summary: 'Weekly Summary',
       compliance_alert: 'Compliance Alert'
     };
     return labels[type];
@@ -49,6 +50,7 @@ export function NotificationHistory({ groupId }: NotificationHistoryProps) {
       medication_missed: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
       supplement_reminder: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
       daily_summary: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400',
+      weekly_summary: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400',
       compliance_alert: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
     };
     return colors[type];

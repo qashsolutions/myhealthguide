@@ -13,6 +13,8 @@ import { AIChat } from '@/components/ai/AIChat';
 import { WeeklySummaryCard } from '@/components/ai/WeeklySummaryCard';
 import { ExportDataDialog } from '@/components/export/ExportDataDialog';
 import { WeeklyTrendsDashboard } from '@/components/trends/WeeklyTrendsDashboard';
+import { QuickInsightsCard } from '@/components/insights/QuickInsightsCard';
+import { calculateQuickInsightsFromLogs, type QuickInsightsData } from '@/lib/utils/complianceCalculation';
 import { generateDailySummary, detectCompliancePatterns } from '@/lib/ai/geminiService';
 import { calculateWeeklyTrends } from '@/lib/utils/trendsCalculation';
 import { MedicationService } from '@/lib/firebase/medications';
@@ -43,6 +45,7 @@ export default function InsightsPage() {
   const [loadingTrends, setLoadingTrends] = useState(false);
   const [selectedTrendsWeeks, setSelectedTrendsWeeks] = useState<number>(12);
   const [chatContext, setChatContext] = useState<ChatContext | null>(null);
+  const [quickInsights, setQuickInsights] = useState<QuickInsightsData | null>(null);
 
   // Load elders from group
   useEffect(() => {
@@ -202,6 +205,15 @@ export default function InsightsPage() {
         })),
         elderName
       };
+
+      // Calculate quick insights using shared utility
+      const quickInsightsData = calculateQuickInsightsFromLogs(
+        elderMedLogs,
+        elderSuppLogs,
+        elderDietEntries,
+        elderId
+      );
+      setQuickInsights(quickInsightsData);
 
       // Generate AI summary from real data
       const summary = await generateDailySummary(realData, userId, userRole, groupId, elderId);
@@ -379,7 +391,15 @@ export default function InsightsPage() {
         </Card>
       )}
 
-      {/* Quick Insights - Generated from real data */}
+      {/* Quick Insights Summary - Using shared component */}
+      {selectedElder && quickInsights && (
+        <QuickInsightsCard
+          insights={quickInsights}
+          showCollapsible={false}
+        />
+      )}
+
+      {/* Detailed AI Insights - Generated from real data */}
       {selectedElder && dailySummary && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
