@@ -272,12 +272,12 @@ export default function DementiaScreeningPage() {
                 What data is needed?
               </p>
               <ul className="text-sm text-blue-800 dark:text-blue-200 list-disc list-inside space-y-1">
-                <li><strong>Care notes</strong> from medication logs</li>
-                <li><strong>Notes</strong> from diet entries</li>
-                <li>At least <strong>30 days</strong> of observations</li>
+                <li>At least <strong>1 care note</strong> from medication or diet logs</li>
+                <li>Notes should describe observations (mood, behavior, memory)</li>
+                <li>More notes over <strong>30+ days</strong> gives better pattern detection</li>
               </ul>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                The system scans notes for behavioral patterns like memory issues, confusion, mood changes, etc.
+                The system scans notes for keywords like: forgot, confused, agitated, withdrawn, trouble speaking.
               </p>
             </div>
             <Button onClick={runNewScreening} disabled={runningScreening}>
