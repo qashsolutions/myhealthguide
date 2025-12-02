@@ -275,17 +275,24 @@ export async function logUnifiedConsentAccess(
   elderId?: string
 ): Promise<void> {
   try {
-    const accessLog = {
+    // Build access log object, excluding undefined values (Firestore doesn't allow undefined)
+    const accessLog: Record<string, any> = {
       consentId,
       userId,
       groupId,
-      elderId,
       featureAccessed,
       action,
       consentValid,
       timestamp: new Date(),
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
     };
+
+    // Only add optional fields if they have values
+    if (elderId) {
+      accessLog.elderId = elderId;
+    }
+    if (typeof navigator !== 'undefined' && navigator.userAgent) {
+      accessLog.userAgent = navigator.userAgent;
+    }
 
     await addDoc(collection(db, 'unifiedConsentAccessLogs'), accessLog);
   } catch (error) {
