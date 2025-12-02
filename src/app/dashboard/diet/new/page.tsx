@@ -42,16 +42,16 @@ export default function NewDietEntryPage() {
   // Pre-fill elder selection from context or auto-select if only one
   useEffect(() => {
     // If only one active elder, always auto-select it
-    if (activeElders.length === 1) {
+    if (activeElders.length === 1 && activeElders[0]?.id) {
       setElderId(activeElders[0].id);
       return;
     }
 
     // For multiple elders, only pre-fill if not already set
-    if (!elderId && selectedElder && !selectedElder.archived) {
+    if (!elderId && selectedElder && !selectedElder.archived && selectedElder.id) {
       setElderId(selectedElder.id);
     }
-  }, [selectedElder, activeElders]);
+  }, [selectedElder, activeElders, elderId]);
 
   const addItem = () => {
     if (itemInput.trim()) {
@@ -303,7 +303,12 @@ export default function NewDietEntryPage() {
                   id="items"
                   value={itemInput}
                   onChange={(e) => setItemInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addItem()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addItem();
+                    }
+                  }}
                   placeholder="e.g., oatmeal, banana"
                   className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
                 />
