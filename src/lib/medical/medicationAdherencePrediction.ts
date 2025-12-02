@@ -74,7 +74,7 @@ export async function predictMedicationAdherence(
 
     // Get medication logs for analysis period
     const logsQuery = query(
-      collection(db, 'medicationLogs'),
+      collection(db, 'medication_logs'),
       where('groupId', '==', groupId),
       where('elderId', '==', elderId),
       where('medicationId', '==', medicationId),

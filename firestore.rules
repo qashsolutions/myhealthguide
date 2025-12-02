@@ -1395,6 +1395,68 @@ service cloud.firestore {
       allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
+    // ============= Incidents Collection =============
+    // Incident reports for falls, medication errors, behavioral issues, etc.
+
+    match /incidents/{incidentId} {
+      // Group admin or members can read incidents
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Group members with write permission can create incidents
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Group members with write permission can update incidents
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // Group admin can delete incidents
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Medication Adherence Predictions Collection =============
+    // AI-generated adherence risk predictions
+
+    match /medicationAdherencePredictions/{predictionId} {
+      // Group admin or members can read predictions
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System/AI creates predictions
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Members can update (to mark as reviewed/resolved)
+      allow update: if hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(resource.data.groupId);
+
+      // Group admin can delete predictions
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
+    // ============= Nutrition Analysis Reports Collection =============
+    // AI-generated nutrition pattern analysis
+
+    match /nutritionAnalysisReports/{reportId} {
+      // Group admin or members can read reports
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // System/AI creates reports
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Reports are immutable once created
+      allow update: if false;
+
+      // Group admin can delete reports
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default

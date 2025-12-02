@@ -100,7 +100,7 @@ export async function analyzeNutrition(
 
     // Get diet entries
     const entriesQuery = query(
-      collection(db, 'dietEntries'),
+      collection(db, 'diet_entries'),
       where('groupId', '==', groupId),
       where('elderId', '==', elderId),
       where('timestamp', '>=', Timestamp.fromDate(startDate)),

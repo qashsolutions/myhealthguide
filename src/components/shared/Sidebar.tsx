@@ -35,6 +35,45 @@ import {
   ClockIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+// Tooltip descriptions for features - simple English explanations
+const featureTooltips: Record<string, string> = {
+  // Daily Care
+  '/dashboard/medications': 'Add, edit, and track all medications',
+  '/dashboard/supplements': 'Manage vitamins and supplements',
+  '/dashboard/diet': 'Log meals and track eating habits',
+  '/dashboard/activity': 'View today\'s schedule and mark items complete',
+
+  // Medical Safety
+  '/dashboard/incidents': 'Document falls, injuries, or medication errors',
+  '/dashboard/drug-interactions': 'Check if medications interact with each other',
+  '/dashboard/schedule-conflicts': 'Find overlapping medication times',
+  '/dashboard/dementia-screening': 'Track cognitive assessments over time',
+
+  // Health Analytics
+  '/dashboard/medication-adherence': 'See which medications might be missed and get reminders',
+  '/dashboard/nutrition-analysis': 'Analyze eating patterns and food variety',
+  '/dashboard/insights': 'View weekly summaries, charts, and health patterns',
+
+  // Care Management
+  '/dashboard/shift-handoff': 'Share notes between caregivers at shift change',
+  '/dashboard/timesheet': 'Track caregiver hours worked',
+  '/dashboard/documents': 'Store medical records and documents',
+  '/dashboard/family-updates': 'Send updates to family members',
+  '/dashboard/caregiver-burnout': 'Check caregiver stress levels',
+  '/dashboard/alerts': 'View all notifications and alerts',
+
+  // Ask Questions
+  '/dashboard/medgemma': 'Your health assistant - ask questions about care',
+  '/dashboard/clinical-notes': 'Generate a summary report for doctor visits',
+  '/dashboard/reports': 'View all reports in one place',
+};
 
 // Define collapsible sections structure
 const elderCentricSections = [
@@ -128,7 +167,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   };
 
   return (
-    <>
+    <TooltipProvider delayDuration={300}>
       {/* Mobile Overlay */}
       {isOpen && (
         <div
@@ -354,48 +393,70 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </div>
 
         {/* Health Assistant Hub */}
-        <Link
-          href="/dashboard/medgemma"
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-            pathname === '/dashboard/medgemma'
-              ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800'
-              : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10'
-          )}
-        >
-          <Brain className="w-5 h-5" />
-          Health Assistant
-          <span className="ml-auto text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-semibold">
-            NEW
-          </span>
-        </Link>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/dashboard/medgemma"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                pathname === '/dashboard/medgemma'
+                  ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10'
+              )}
+            >
+              <Brain className="w-5 h-5" />
+              Health Assistant
+              <span className="ml-auto text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-semibold">
+                NEW
+              </span>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{featureTooltips['/dashboard/medgemma']}</p>
+          </TooltipContent>
+        </Tooltip>
 
-        {/* Health Records Lookup */}
-        <Link
-          href="/dashboard/health-chat"
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
-            pathname === '/dashboard/health-chat'
-              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-          )}
-        >
-          <MessageSquare className="w-4 h-4" />
-          Records Lookup
-        </Link>
+        {/* Clinical Notes */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/dashboard/clinical-notes"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/clinical-notes'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <FileText className="w-4 h-4" />
+              Clinical Notes
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{featureTooltips['/dashboard/clinical-notes']}</p>
+          </TooltipContent>
+        </Tooltip>
 
-        <Link
-          href="/dashboard/clinical-notes"
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
-            pathname === '/dashboard/clinical-notes'
-              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-          )}
-        >
-          <FileText className="w-4 h-4" />
-          Clinical Notes
-        </Link>
+        {/* Reports Center - All reports in one place */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/dashboard/reports"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/reports'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Reports
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{featureTooltips['/dashboard/reports']}</p>
+          </TooltipContent>
+        </Tooltip>
 
         {/* Elder-specific sections - Only show when elder is selected */}
         {selectedElder && (
@@ -436,21 +497,30 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                       {section.items.map((item) => {
                         const ItemIcon = item.icon;
                         const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                        const tooltip = featureTooltips[item.href];
 
                         return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                              isActive
-                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          <Tooltip key={item.href}>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={item.href}
+                                className={cn(
+                                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                                  isActive
+                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                )}
+                              >
+                                <ItemIcon className="w-4 h-4" />
+                                {item.label}
+                              </Link>
+                            </TooltipTrigger>
+                            {tooltip && (
+                              <TooltipContent side="right">
+                                <p>{tooltip}</p>
+                              </TooltipContent>
                             )}
-                          >
-                            <ItemIcon className="w-4 h-4" />
-                            {item.label}
-                          </Link>
+                          </Tooltip>
                         );
                       })}
                     </div>
@@ -489,6 +559,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </Link>
       </div>
       </aside>
-    </>
+    </TooltipProvider>
   );
 }
