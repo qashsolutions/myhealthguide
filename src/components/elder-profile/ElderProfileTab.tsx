@@ -386,7 +386,9 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
               <p className="font-medium">{elder.preferredName}</p>
             </div>
           )}
-          {elder.dateOfBirth && (
+          {/* Only show DOB if it was explicitly entered (not calculated from age) */}
+          {/* If approximateAge exists, DOB was likely calculated, so hide it */}
+          {elder.dateOfBirth && !elder.approximateAge && (
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Date of Birth</p>
               <p className="font-medium flex items-center gap-1">
@@ -398,10 +400,10 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
           <div className="space-y-1">
             <p className="text-sm text-gray-500">Age</p>
             <p className="font-medium">
-              {elder.dateOfBirth
-                ? `${calculateAge(elder.dateOfBirth)} years`
-                : elder.approximateAge
-                  ? `~${elder.approximateAge} years`
+              {elder.approximateAge
+                ? `~${elder.approximateAge} years`
+                : elder.dateOfBirth
+                  ? `${calculateAge(elder.dateOfBirth)} years`
                   : 'Not specified'}
             </p>
           </div>

@@ -103,7 +103,7 @@ export interface DashboardData {
 
 /**
  * Calculate compliance stats from logs
- * Skipped doses are excluded from compliance percentage but shown separately
+ * Skipped doses count as missed for compliance calculation (dose wasn't taken)
  */
 function calculateComplianceFromLogs(
   logs: (MedicationLog | SupplementLog)[]
@@ -113,8 +113,9 @@ function calculateComplianceFromLogs(
   const skipped = logs.filter(l => l.status === 'skipped').length;
   const total = logs.length;
 
-  // Compliance = taken / (taken + missed), skipped excluded
-  const denominator = taken + missed;
+  // Compliance = taken / (taken + missed + skipped)
+  // Skipped counts against compliance because the dose wasn't taken
+  const denominator = taken + missed + skipped;
   const compliancePercentage = denominator > 0
     ? Math.round((taken / denominator) * 100)
     : 0;

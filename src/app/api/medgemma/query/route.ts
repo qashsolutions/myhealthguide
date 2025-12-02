@@ -213,14 +213,17 @@ export async function POST(request: NextRequest) {
         frequency: med.frequency,
       }));
 
-      // Also get supplements
-      const supplements = await getSupplementsServer(groupId, elderId);
-      responseData.supplements = supplements.map((supp: any) => ({
-        id: supp.id,
-        name: supp.name,
-        dosage: supp.dosage,
-        frequency: supp.frequency,
-      }));
+      // Only get supplements if specifically requested or for compliance queries
+      // Don't include supplements when user asks specifically about medications
+      if (intent !== 'check_medications') {
+        const supplements = await getSupplementsServer(groupId, elderId);
+        responseData.supplements = supplements.map((supp: any) => ({
+          id: supp.id,
+          name: supp.name,
+          dosage: supp.dosage,
+          frequency: supp.frequency,
+        }));
+      }
     }
 
     if (needsData.includes('compliance_logs') && elderId) {
@@ -343,18 +346,14 @@ export async function POST(request: NextRequest) {
         answer = `No compliance data has been recorded for ${timeframeDays === 1 ? 'today' : `the last ${timeframeDays} days`}. To track compliance, log when medications and supplements are taken or missed.`;
       }
     } else if (intent === 'check_medications') {
-      let items: string[] = [];
+      // Only show medications (not supplements) when user asks about medications specifically
       if (responseData.medications && responseData.medications.length > 0) {
-        items.push(`**Medications (${responseData.medications.length}):** ` + responseData.medications.map((m: any) => m.name).join(', '));
-      }
-      if (responseData.supplements && responseData.supplements.length > 0) {
-        items.push(`**Supplements (${responseData.supplements.length}):** ` + responseData.supplements.map((s: any) => s.name).join(', '));
-      }
-
-      if (items.length > 0) {
-        answer = `The records show:\n\n${items.join('\n\n')}`;
+        answer = `**Medications (${responseData.medications.length}):**\n\n`;
+        responseData.medications.forEach((m: any) => {
+          answer += `• ${m.name}${m.dosage ? ` - ${m.dosage}` : ''}\n`;
+        });
       } else {
-        answer = `No medications or supplements are currently logged. Add them to start tracking.`;
+        answer = `No medications are currently logged. Add medications to start tracking.`;
       }
     } else if (intent === 'analyze_diet') {
       if (responseData.dietEntries && responseData.dietEntries.length > 0) {

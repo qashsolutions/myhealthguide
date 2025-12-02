@@ -129,13 +129,22 @@ export default function DashboardPage() {
     totalMealsLoggedToday: 0
   };
 
-  // Calculate combined average compliance for header
-  const combinedAvgCompliance =
-    aggregate.totalActiveMedications > 0 || aggregate.totalActiveSupplements > 0
-      ? Math.round(
-          (aggregate.averageMedicationCompliance + aggregate.averageSupplementCompliance) / 2
-        )
-      : 0;
+  // Calculate combined average compliance for header (weighted by total logs)
+  // Use elder stats to get actual log counts for proper weighting
+  const totalMedLogs = dashboardData?.elderStats.reduce(
+    (sum, e) => sum + e.medicationCompliance.total, 0
+  ) || 0;
+  const totalSuppLogs = dashboardData?.elderStats.reduce(
+    (sum, e) => sum + e.supplementCompliance.total, 0
+  ) || 0;
+  const totalLogs = totalMedLogs + totalSuppLogs;
+
+  const combinedAvgCompliance = totalLogs > 0
+    ? Math.round(
+        (aggregate.averageMedicationCompliance * totalMedLogs +
+         aggregate.averageSupplementCompliance * totalSuppLogs) / totalLogs
+      )
+    : 0;
 
   return (
     <div className="space-y-6">
