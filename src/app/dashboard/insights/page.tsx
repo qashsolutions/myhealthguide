@@ -10,6 +10,7 @@ import { CompliancePatternChart } from '@/components/ai/CompliancePatternChart';
 import { AIInsightCard } from '@/components/ai/AIInsightCard';
 import { AIInsightsContainer } from '@/components/ai/AIInsightsContainer';
 import { AIChat } from '@/components/ai/AIChat';
+import { WeeklySummaryCard } from '@/components/ai/WeeklySummaryCard';
 import { ExportDataDialog } from '@/components/export/ExportDataDialog';
 import { WeeklyTrendsDashboard } from '@/components/trends/WeeklyTrendsDashboard';
 import { generateDailySummary, detectCompliancePatterns } from '@/lib/ai/geminiService';
@@ -315,6 +316,17 @@ export default function InsightsPage() {
           groupId={user.groups[0].groupId}
           showHealthChanges={true}
           showMedicationOptimization={true}
+        />
+      )}
+
+      {/* Weekly Summaries - Stored & Exportable */}
+      {selectedElder && user?.groups && user.groups.length > 0 && (
+        <WeeklySummaryCard
+          elderId={selectedElder.id!}
+          elderName={selectedElder.name}
+          groupId={user.groups[0].groupId}
+          userId={user.id}
+          userRole={user.groups[0].role as 'admin' | 'caregiver' | 'member'}
         />
       )}
 
