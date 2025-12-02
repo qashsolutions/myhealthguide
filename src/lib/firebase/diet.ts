@@ -26,11 +26,23 @@ export class DietService {
     userId: string,
     userRole: UserRole
   ): Promise<DietEntry> {
-    const docRef = await addDoc(collection(db, this.COLLECTION), {
-      ...entry,
+    // Build document data, excluding undefined fields (Firestore doesn't accept undefined)
+    const docData: Record<string, any> = {
+      elderId: entry.elderId,
+      groupId: entry.groupId,
+      meal: entry.meal,
+      items: entry.items,
+      loggedBy: entry.loggedBy,
+      method: entry.method,
       timestamp: Timestamp.fromDate(entry.timestamp),
       createdAt: Timestamp.fromDate(entry.createdAt)
-    });
+    };
+
+    // Only add optional fields if they have values
+    if (entry.notes) docData.notes = entry.notes;
+    if (entry.aiAnalysis) docData.aiAnalysis = entry.aiAnalysis;
+
+    const docRef = await addDoc(collection(db, this.COLLECTION), docData);
 
     const result = { ...entry, id: docRef.id };
 
