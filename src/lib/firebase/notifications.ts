@@ -39,7 +39,7 @@ export interface NotificationLog {
   id: string;
   groupId: string;
   elderId: string;
-  type: 'medication_reminder' | 'medication_missed' | 'supplement_reminder' | 'daily_summary' | 'compliance_alert';
+  type: 'medication_reminder' | 'medication_missed' | 'supplement_reminder' | 'daily_summary' | 'weekly_summary' | 'compliance_alert';
   recipient: string;
   message: string;
   status: 'sent' | 'failed' | 'scheduled';
@@ -321,6 +321,107 @@ export class NotificationService {
       }
     } catch (error) {
       console.error('Error sending compliance alert:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send weekly summary notification
+   * This creates an in-app notification and logs it for tracking
+   */
+  static async sendWeeklySummaryNotification(params: {
+    groupId: string;
+    elderId: string;
+    elderName: string;
+    weekStart: Date;
+    weekEnd: Date;
+    medicationCompliance: number;
+    totalMeals: number;
+    insightsPriority: 'low' | 'medium' | 'high';
+    topInsights: string[];
+  }): Promise<void> {
+    try {
+      const recipients = await this.getNotificationRecipients(params.groupId);
+      const preferences = await this.getGroupNotificationPreferences(params.groupId);
+
+      if (!preferences?.enabled) {
+        console.log('Notifications disabled for group');
+        return;
+      }
+
+      const weekRange = `${params.weekStart.toLocaleDateString()} - ${params.weekEnd.toLocaleDateString()}`;
+      const message = `Weekly summary for ${params.elderName} (${weekRange}): ${params.medicationCompliance}% medication compliance, ${params.totalMeals} meals logged. Priority: ${params.insightsPriority}`;
+
+      // Create in-app notification for each recipient
+      for (const recipient of recipients) {
+        // Log the notification (will show in notification history)
+        await this.logNotification({
+          groupId: params.groupId,
+          elderId: params.elderId,
+          type: 'weekly_summary',
+          recipient,
+          message,
+          status: 'sent'
+        });
+      }
+
+      // Also store as a user notification for in-app display
+      await addDoc(collection(db, 'user_notifications'), {
+        groupId: params.groupId,
+        elderId: params.elderId,
+        type: 'weekly_summary',
+        title: `Weekly Summary: ${params.elderName}`,
+        message: message,
+        priority: params.insightsPriority,
+        insights: params.topInsights.slice(0, 3),
+        weekStart: Timestamp.fromDate(params.weekStart),
+        weekEnd: Timestamp.fromDate(params.weekEnd),
+        read: false,
+        createdAt: Timestamp.now()
+      });
+
+    } catch (error) {
+      console.error('Error sending weekly summary notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get unread notifications for a user/group
+   */
+  static async getUnreadNotifications(groupId: string): Promise<any[]> {
+    try {
+      const q = query(
+        collection(db, 'user_notifications'),
+        where('groupId', '==', groupId),
+        where('read', '==', false)
+      );
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        weekStart: doc.data().weekStart?.toDate(),
+        weekEnd: doc.data().weekEnd?.toDate(),
+        createdAt: doc.data().createdAt?.toDate()
+      }));
+    } catch (error) {
+      console.error('Error fetching unread notifications:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Mark notification as read
+   */
+  static async markNotificationAsRead(notificationId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'user_notifications', notificationId), {
+        read: true,
+        readAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
       throw error;
     }
   }

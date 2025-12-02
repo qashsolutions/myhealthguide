@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { generateWeeklySummary, getWeeklySummaries, WeeklySummaryData } from '@/lib/ai/weeklySummary';
+import { NotificationService } from '@/lib/firebase/notifications';
 
 interface WeeklySummaryCardProps {
   elderId: string;
@@ -95,6 +96,24 @@ export function WeeklySummaryCard({
           return [newSummary, ...prev];
         });
         setExpandedWeek(newSummary.id || null);
+
+        // Send notification about the new summary
+        try {
+          await NotificationService.sendWeeklySummaryNotification({
+            groupId,
+            elderId,
+            elderName,
+            weekStart: newSummary.weekStart,
+            weekEnd: newSummary.weekEnd,
+            medicationCompliance: newSummary.medicationSummary.overallCompliance,
+            totalMeals: newSummary.dietSummary.totalMeals,
+            insightsPriority: newSummary.insights.priority,
+            topInsights: newSummary.insights.items
+          });
+        } catch (notifErr) {
+          console.error('Error sending weekly summary notification:', notifErr);
+          // Don't fail the whole operation if notification fails
+        }
       }
     } catch (err) {
       console.error('Error generating weekly summary:', err);
