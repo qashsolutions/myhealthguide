@@ -24,7 +24,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
-import { format, isToday, startOfDay, endOfDay } from 'date-fns';
+import { format, isToday, startOfDay, endOfDay, subDays, isYesterday } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
@@ -64,6 +64,8 @@ export default function ActivityPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(true);
   const [insights, setInsights] = useState<QuickInsightsData | null>(null);
+  const [yesterdayMissed, setYesterdayMissed] = useState<{medications: string[], supplements: string[]}>({ medications: [], supplements: [] });
+  const [showYesterdayAlert, setShowYesterdayAlert] = useState(true);
 
   // Determine user's role
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
@@ -111,6 +113,10 @@ export default function ActivityPage() {
         const todaysMeals = dietEntries.filter(e => isToday(new Date(e.timestamp))).length;
         const quickInsights = calculateQuickInsightsFromSchedule(scheduleItems, todaysMeals);
         setInsights(quickInsights);
+
+        // Load yesterday's missed items
+        const missed = await loadYesterdaysMissed(medications, supplements, groupId, user.id, userRole);
+        setYesterdayMissed(missed);
       } catch (err) {
         console.error('Error loading activity data:', err);
       } finally {
@@ -160,6 +166,75 @@ export default function ActivityPage() {
       );
     } catch {
       return [];
+    }
+  }
+
+  // Load yesterday's logs to find missed items
+  async function loadYesterdaysMissed(
+    medications: Medication[],
+    supplements: Supplement[],
+    groupId: string,
+    userId: string,
+    userRole: 'admin' | 'caregiver' | 'member'
+  ): Promise<{medications: string[], supplements: string[]}> {
+    try {
+      const yesterday = subDays(new Date(), 1);
+      const [medLogs, suppLogs] = await Promise.all([
+        MedicationService.getLogsByDateRange(groupId, startOfDay(yesterday), endOfDay(yesterday), userId, userRole),
+        SupplementService.getLogsByDateRange(groupId, startOfDay(yesterday), endOfDay(yesterday), userId, userRole)
+      ]);
+
+      // Find medications that were missed or skipped yesterday
+      const missedMeds: string[] = [];
+      medications.forEach(med => {
+        const times = med.frequency?.times || [];
+        times.forEach(time => {
+          const logged = medLogs.find(log =>
+            log.medicationId === med.id &&
+            (log.status === 'taken')
+          );
+          if (!logged) {
+            // Check if it was skipped or missed
+            const skippedOrMissed = medLogs.find(log =>
+              log.medicationId === med.id &&
+              (log.status === 'skipped' || log.status === 'missed')
+            );
+            if (skippedOrMissed || !medLogs.some(log => log.medicationId === med.id)) {
+              if (!missedMeds.includes(med.name)) {
+                missedMeds.push(med.name);
+              }
+            }
+          }
+        });
+      });
+
+      // Find supplements that were missed or skipped yesterday
+      const missedSupps: string[] = [];
+      supplements.forEach(supp => {
+        const times = supp.frequency?.times || [];
+        times.forEach(time => {
+          const logged = suppLogs.find(log =>
+            log.supplementId === supp.id &&
+            (log.status === 'taken')
+          );
+          if (!logged) {
+            const skippedOrMissed = suppLogs.find(log =>
+              log.supplementId === supp.id &&
+              (log.status === 'skipped' || log.status === 'missed')
+            );
+            if (skippedOrMissed || !suppLogs.some(log => log.supplementId === supp.id)) {
+              if (!missedSupps.includes(supp.name)) {
+                missedSupps.push(supp.name);
+              }
+            }
+          }
+        });
+      });
+
+      return { medications: missedMeds, supplements: missedSupps };
+    } catch (err) {
+      console.error('Error loading yesterday missed:', err);
+      return { medications: [], supplements: [] };
     }
   }
 
@@ -430,16 +505,22 @@ export default function ActivityPage() {
 
   const pendingItems = schedule.filter(s => s.status === 'pending');
   const completedItems = schedule.filter(s => s.status !== 'pending');
+  const totalYesterdayMissed = yesterdayMissed.medications.length + yesterdayMissed.supplements.length;
+
+  // Calculate today's progress
+  const totalItems = schedule.length;
+  const completedCount = completedItems.length;
+  const progressPercentage = totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Activity
+            Today&apos;s Focus
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Today&apos;s schedule and recent activities for {selectedElder.name}
+            {format(new Date(), 'EEEE, MMMM d, yyyy')} • {selectedElder.name}
           </p>
         </div>
         <Link href="/dashboard/insights">
@@ -450,6 +531,81 @@ export default function ActivityPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Yesterday's Missed Alert */}
+      {showYesterdayAlert && totalYesterdayMissed > 0 && (
+        <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-amber-900 dark:text-amber-100">
+                    Yesterday: {totalYesterdayMissed} item{totalYesterdayMissed > 1 ? 's' : ''} missed
+                  </p>
+                  <div className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                    {yesterdayMissed.medications.length > 0 && (
+                      <p>
+                        <span className="font-medium">Medications:</span> {yesterdayMissed.medications.join(', ')}
+                      </p>
+                    )}
+                    {yesterdayMissed.supplements.length > 0 && (
+                      <p>
+                        <span className="font-medium">Supplements:</span> {yesterdayMissed.supplements.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-amber-700 hover:text-amber-900 dark:text-amber-300 -mt-1 -mr-2"
+                onClick={() => setShowYesterdayAlert(false)}
+              >
+                <XCircle className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Today's Progress Bar */}
+      {totalItems > 0 && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Today&apos;s Progress
+            </span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+              {completedCount} of {totalItems} ({progressPercentage}%)
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+            <div
+              className={`h-3 rounded-full transition-all duration-500 ${
+                progressPercentage === 100
+                  ? 'bg-green-500'
+                  : progressPercentage >= 50
+                  ? 'bg-blue-500'
+                  : 'bg-amber-500'
+              }`}
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+          {progressPercentage === 100 && (
+            <p className="text-sm text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
+              <CheckCircle2 className="w-4 h-4" />
+              All done for today!
+            </p>
+          )}
+          {pendingItems.length > 0 && progressPercentage < 100 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              {pendingItems.length} item{pendingItems.length > 1 ? 's' : ''} remaining
+            </p>
+          )}
+        </Card>
+      )}
 
       {/* Quick Insights - Collapsible */}
       {insights && (
