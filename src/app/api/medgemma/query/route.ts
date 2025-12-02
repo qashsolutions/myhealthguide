@@ -21,6 +21,8 @@ import {
   getMedicationsServer,
   getMedicationLogsServer,
   getDietEntriesServer,
+  getSupplementsServer,
+  getSupplementLogsServer,
 } from '@/lib/api/firestoreAdmin';
 
 // Standard disclaimer appended to all responses
@@ -210,21 +212,73 @@ export async function POST(request: NextRequest) {
         dosage: med.dosage,
         frequency: med.frequency,
       }));
+
+      // Also get supplements
+      const supplements = await getSupplementsServer(groupId, elderId);
+      responseData.supplements = supplements.map((supp: any) => ({
+        id: supp.id,
+        name: supp.name,
+        dosage: supp.dosage,
+        frequency: supp.frequency,
+      }));
     }
 
     if (needsData.includes('compliance_logs') && elderId) {
-      const logs = await getMedicationLogsServer(groupId, elderId, startDate, endDate);
+      // Get medication logs
+      const medLogs = await getMedicationLogsServer(groupId, elderId, startDate, endDate);
+      const medications = responseData.medications || await getMedicationsServer(groupId, elderId);
 
-      const totalDoses = logs.length;
-      const takenDoses = logs.filter((l: any) => l.status === 'taken').length;
+      // Get supplement logs
+      const suppLogs = await getSupplementLogsServer(groupId, elderId, startDate, endDate);
+      const supplements = responseData.supplements || await getSupplementsServer(groupId, elderId);
+
+      // Calculate medication compliance
+      const medTaken = medLogs.filter((l: any) => l.status === 'taken').length;
+      const medMissed = medLogs.filter((l: any) => l.status === 'missed' || l.status === 'skipped').length;
+
+      // Calculate supplement compliance
+      const suppTaken = suppLogs.filter((l: any) => l.status === 'taken').length;
+      const suppMissed = suppLogs.filter((l: any) => l.status === 'missed' || l.status === 'skipped').length;
+
+      const totalDoses = medLogs.length + suppLogs.length;
+      const takenDoses = medTaken + suppTaken;
+      const missedDoses = medMissed + suppMissed;
       const complianceRate = totalDoses > 0 ? ((takenDoses / totalDoses) * 100).toFixed(1) : '0';
+
+      // Build list of missed items with names
+      const missedMedItems = medLogs
+        .filter((l: any) => l.status === 'missed' || l.status === 'skipped')
+        .map((l: any) => {
+          const med = medications.find((m: any) => m.id === l.medicationId);
+          return {
+            type: 'medication',
+            name: med?.name || 'Unknown medication',
+            time: l.scheduledTime,
+            status: l.status,
+          };
+        });
+
+      const missedSuppItems = suppLogs
+        .filter((l: any) => l.status === 'missed' || l.status === 'skipped')
+        .map((l: any) => {
+          const supp = supplements.find((s: any) => s.id === l.supplementId);
+          return {
+            type: 'supplement',
+            name: supp?.name || 'Unknown supplement',
+            time: l.scheduledTime,
+            status: l.status,
+          };
+        });
 
       responseData.compliance = {
         totalDoses,
         takenDoses,
-        missedDoses: logs.filter((l: any) => l.status === 'missed').length,
+        missedDoses,
         complianceRate,
-        logs: logs.slice(0, 10).map((l: any) => ({
+        medicationStats: { taken: medTaken, missed: medMissed, total: medLogs.length },
+        supplementStats: { taken: suppTaken, missed: suppMissed, total: suppLogs.length },
+        missedItems: [...missedMedItems, ...missedSuppItems],
+        logs: medLogs.slice(0, 10).map((l: any) => ({
           medicationId: l.medicationId,
           status: l.status,
           scheduledTime: l.scheduledTime,
@@ -262,24 +316,60 @@ export async function POST(request: NextRequest) {
 
     if (intent === 'view_compliance') {
       if (responseData.compliance && responseData.compliance.totalDoses > 0) {
-        answer = `Based on the logged data from the last ${timeframeDays} days, the medication compliance rate is ${responseData.compliance.complianceRate}%. ` +
-                 `${responseData.compliance.takenDoses} doses were recorded as taken out of ${responseData.compliance.totalDoses} scheduled doses, ` +
-                 `with ${responseData.compliance.missedDoses} doses marked as missed.`;
+        const { compliance } = responseData;
+        const timeLabel = timeframeDays === 1 ? 'today' : `the last ${timeframeDays} days`;
+
+        answer = `Based on the logged data for ${timeLabel}:\n\n`;
+        answer += `**Overall Compliance: ${compliance.complianceRate}%**\n`;
+        answer += `• ${compliance.takenDoses} doses taken\n`;
+        answer += `• ${compliance.missedDoses} doses missed/skipped\n\n`;
+
+        if (compliance.medicationStats?.total > 0) {
+          answer += `**Medications:** ${compliance.medicationStats.taken} taken, ${compliance.medicationStats.missed} missed\n`;
+        }
+        if (compliance.supplementStats?.total > 0) {
+          answer += `**Supplements:** ${compliance.supplementStats.taken} taken, ${compliance.supplementStats.missed} missed\n`;
+        }
+
+        // List specific missed items
+        if (compliance.missedItems && compliance.missedItems.length > 0) {
+          answer += `\n**Missed/Skipped Items:**\n`;
+          compliance.missedItems.forEach((item: any) => {
+            const time = item.time ? new Date(item.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+            answer += `• ${item.name} (${item.type}) - ${item.status}${time ? ` at ${time}` : ''}\n`;
+          });
+        }
       } else {
-        answer = `No medication compliance data has been recorded for the last ${timeframeDays} days. To track compliance, first add medications and then log when doses are taken or missed.`;
+        answer = `No compliance data has been recorded for ${timeframeDays === 1 ? 'today' : `the last ${timeframeDays} days`}. To track compliance, log when medications and supplements are taken or missed.`;
       }
     } else if (intent === 'check_medications') {
+      let items: string[] = [];
       if (responseData.medications && responseData.medications.length > 0) {
-        answer = `The records show ${responseData.medications.length} medications currently logged: ` +
-                 responseData.medications.map((m: any) => m.name).join(', ') + '.';
+        items.push(`**Medications (${responseData.medications.length}):** ` + responseData.medications.map((m: any) => m.name).join(', '));
+      }
+      if (responseData.supplements && responseData.supplements.length > 0) {
+        items.push(`**Supplements (${responseData.supplements.length}):** ` + responseData.supplements.map((s: any) => s.name).join(', '));
+      }
+
+      if (items.length > 0) {
+        answer = `The records show:\n\n${items.join('\n\n')}`;
       } else {
-        answer = `No medications are currently logged in the records. Add medications to start tracking.`;
+        answer = `No medications or supplements are currently logged. Add them to start tracking.`;
       }
     } else if (intent === 'analyze_diet') {
       if (responseData.dietEntries && responseData.dietEntries.length > 0) {
-        answer = `The log shows ${responseData.dietEntries.length} meals were recorded in the last ${timeframeDays} days.`;
+        const timeLabel = timeframeDays === 1 ? 'today' : `the last ${timeframeDays} days`;
+        answer = `**${responseData.dietEntries.length} meals** were logged ${timeLabel}:\n\n`;
+        responseData.dietEntries.slice(0, 5).forEach((entry: any) => {
+          const time = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+          const items = entry.items?.join(', ') || 'No items recorded';
+          answer += `• **${entry.meal}**${time ? ` at ${time}` : ''}: ${items}\n`;
+        });
+        if (responseData.dietEntries.length > 5) {
+          answer += `\n...and ${responseData.dietEntries.length - 5} more entries.`;
+        }
       } else {
-        answer = `No diet entries have been recorded for the last ${timeframeDays} days. Add meals to start tracking nutrition.`;
+        answer = `No diet entries have been recorded for ${timeframeDays === 1 ? 'today' : `the last ${timeframeDays} days`}.`;
       }
     } else {
       // General query - provide helpful guidance

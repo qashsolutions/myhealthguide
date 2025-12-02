@@ -48,7 +48,7 @@ export async function getMedicationLogsServer(
 ) {
   const adminDb = getAdminDb();
   const snapshot = await adminDb
-    .collection('medicationLogs')
+    .collection('medication_logs')
     .where('groupId', '==', groupId)
     .where('elderId', '==', elderId)
     .where('scheduledTime', '>=', Timestamp.fromDate(startDate))
@@ -76,7 +76,7 @@ export async function getDietEntriesServer(
 ) {
   const adminDb = getAdminDb();
   const snapshot = await adminDb
-    .collection('dietEntries')
+    .collection('diet_entries')
     .where('groupId', '==', groupId)
     .where('elderId', '==', elderId)
     .where('timestamp', '>=', Timestamp.fromDate(startDate))
@@ -89,6 +89,51 @@ export async function getDietEntriesServer(
     id: doc.id,
     ...doc.data(),
     timestamp: toDate(doc.data().timestamp),
+  }));
+}
+
+/**
+ * Get supplement logs for an elder within a date range
+ */
+export async function getSupplementLogsServer(
+  groupId: string,
+  elderId: string,
+  startDate: Date,
+  endDate: Date
+) {
+  const adminDb = getAdminDb();
+  const snapshot = await adminDb
+    .collection('supplement_logs')
+    .where('groupId', '==', groupId)
+    .where('elderId', '==', elderId)
+    .where('scheduledTime', '>=', Timestamp.fromDate(startDate))
+    .where('scheduledTime', '<=', Timestamp.fromDate(endDate))
+    .orderBy('scheduledTime', 'desc')
+    .get();
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+    scheduledTime: toDate(doc.data().scheduledTime),
+    takenAt: doc.data().takenAt ? toDate(doc.data().takenAt) : null,
+  }));
+}
+
+/**
+ * Get supplements for an elder
+ */
+export async function getSupplementsServer(groupId: string, elderId: string) {
+  const adminDb = getAdminDb();
+  const snapshot = await adminDb
+    .collection('supplements')
+    .where('groupId', '==', groupId)
+    .where('elderId', '==', elderId)
+    .get();
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+    startDate: toDate(doc.data().startDate),
   }));
 }
 
