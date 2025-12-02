@@ -33,6 +33,7 @@ export default function DementiaScreeningPage() {
   const [runningScreening, setRunningScreening] = useState(false);
   const [screenings, setScreenings] = useState<DementiaScreeningReport[]>([]);
   const [selectedScreening, setSelectedScreening] = useState<DementiaScreeningReport | null>(null);
+  const [insufficientData, setInsufficientData] = useState(false);
 
   // Check unified consent on mount
   useEffect(() => {
@@ -108,14 +109,19 @@ export default function DementiaScreeningPage() {
     if (!groupId || !elderId) return;
 
     setRunningScreening(true);
+    setInsufficientData(false);
     try {
       const report = await runDementiaScreening(groupId, elderId, elderName, 30);
       if (report) {
         await loadScreenings(); // Refresh list
         setSelectedScreening(report);
+      } else {
+        // No report returned - insufficient data
+        setInsufficientData(true);
       }
     } catch (error) {
       console.error('Error running screening:', error);
+      setInsufficientData(true);
     } finally {
       setRunningScreening(false);
     }
@@ -227,8 +233,29 @@ export default function DementiaScreeningPage() {
         </div>
       )}
 
+      {/* Insufficient Data Warning */}
+      {insufficientData && (
+        <Alert className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
+          <Info className="h-5 w-5 text-yellow-600" />
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+            <strong>Not enough data for screening.</strong>
+            <p className="mt-2 text-sm">
+              Behavioral pattern monitoring requires <strong>notes</strong> in your care logs. To run a screening:
+            </p>
+            <ul className="mt-2 text-sm list-disc list-inside space-y-1">
+              <li>Add notes when logging medications (e.g., "seemed confused about the time")</li>
+              <li>Add notes to diet entries (e.g., "didn't remember eating breakfast")</li>
+              <li>Record any behavioral observations you notice during care</li>
+            </ul>
+            <p className="mt-2 text-sm">
+              The system analyzes these notes to detect patterns. Keep logging for at least 30 days with descriptive notes.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* No Screenings */}
-      {!loading && screenings.length === 0 && (
+      {!loading && screenings.length === 0 && !insufficientData && (
         <Card className="p-12 text-center">
           <div className="max-w-md mx-auto">
             <div className="p-4 bg-purple-100 dark:bg-purple-900/20 rounded-full inline-block mb-4">
@@ -238,9 +265,21 @@ export default function DementiaScreeningPage() {
               No Screenings Yet
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Run your first behavioral screening to start monitoring patterns. The system needs at
-              least 30 days of care notes to detect meaningful patterns.
+              Run your first behavioral screening to start monitoring patterns.
             </p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4 text-left">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                What data is needed?
+              </p>
+              <ul className="text-sm text-blue-800 dark:text-blue-200 list-disc list-inside space-y-1">
+                <li><strong>Care notes</strong> from medication logs</li>
+                <li><strong>Notes</strong> from diet entries</li>
+                <li>At least <strong>30 days</strong> of observations</li>
+              </ul>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                The system scans notes for behavioral patterns like memory issues, confusion, mood changes, etc.
+              </p>
+            </div>
             <Button onClick={runNewScreening} disabled={runningScreening}>
               <RefreshCw className={`h-4 w-4 mr-2 ${runningScreening ? 'animate-spin' : ''}`} />
               Run First Screening
