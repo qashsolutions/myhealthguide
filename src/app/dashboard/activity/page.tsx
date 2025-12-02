@@ -40,6 +40,7 @@ interface ScheduleItem {
   name: string;
   dosage: string;
   time: string;
+  mealLabel: string; // Friendly label: Breakfast, Lunch, Dinner, Snack, etc.
   status: 'pending' | 'taken' | 'skipped' | 'late';
   sourceId: string;
 }
@@ -263,6 +264,7 @@ export default function ActivityPage() {
           name: med.name,
           dosage: med.dosage,
           time: time,
+          mealLabel: getMealLabel(time),
           status: logged ? (logged.status as 'taken' | 'skipped' | 'late') : 'pending',
           sourceId: med.id!
         });
@@ -285,6 +287,7 @@ export default function ActivityPage() {
           name: supp.name,
           dosage: supp.dosage,
           time: time,
+          mealLabel: getMealLabel(time),
           status: logged ? (logged.status as 'taken' | 'skipped' | 'late') : 'pending',
           sourceId: supp.id!
         });
@@ -321,6 +324,38 @@ export default function ActivityPage() {
     if (period === 'am' && hours === 12) hours = 0;
 
     return { hours, minutes };
+  }
+
+  // Convert time to friendly meal label
+  function getMealLabel(time: string): string {
+    const { hours } = parseTimeString(time);
+
+    // Morning: 5am - 10am = Breakfast
+    if (hours >= 5 && hours < 10) {
+      return 'Breakfast';
+    }
+    // Late Morning: 10am - 12pm = Morning Snack
+    if (hours >= 10 && hours < 12) {
+      return 'Morning';
+    }
+    // Midday: 12pm - 2pm = Lunch
+    if (hours >= 12 && hours < 14) {
+      return 'Lunch';
+    }
+    // Afternoon: 2pm - 5pm = Afternoon Snack
+    if (hours >= 14 && hours < 17) {
+      return 'Afternoon';
+    }
+    // Evening: 5pm - 8pm = Dinner
+    if (hours >= 17 && hours < 20) {
+      return 'Dinner';
+    }
+    // Night: 8pm - 10pm = Evening
+    if (hours >= 20 && hours < 22) {
+      return 'Evening';
+    }
+    // Late night/early morning: 10pm - 5am = Bedtime
+    return 'Bedtime';
   }
 
   // Build activities from logs
@@ -643,9 +678,14 @@ export default function ActivityPage() {
                       {getIcon(item.type)}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {item.name}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {item.name}
+                        </p>
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {item.mealLabel}
+                        </Badge>
+                      </div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {item.dosage} • {item.time}
                       </p>
@@ -697,9 +737,14 @@ export default function ActivityPage() {
                       {getIcon(item.type)}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-600 dark:text-gray-400">
-                        {item.name}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-600 dark:text-gray-400">
+                          {item.name}
+                        </p>
+                        <Badge variant="outline" className="text-xs font-normal opacity-60">
+                          {item.mealLabel}
+                        </Badge>
+                      </div>
                       <p className="text-sm text-gray-400 dark:text-gray-500">
                         {item.dosage} • {item.time}
                       </p>
