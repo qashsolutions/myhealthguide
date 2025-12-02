@@ -41,19 +41,17 @@ export default function NewDietEntryPage() {
 
   // Pre-fill elder selection from context or auto-select if only one
   useEffect(() => {
-    if (elderId) return; // Already set
-
-    // If only one active elder, auto-select it
+    // If only one active elder, always auto-select it
     if (activeElders.length === 1) {
       setElderId(activeElders[0].id);
       return;
     }
 
-    // Otherwise, pre-fill with selected elder from context (if active)
-    if (selectedElder && !selectedElder.archived) {
+    // For multiple elders, only pre-fill if not already set
+    if (!elderId && selectedElder && !selectedElder.archived) {
       setElderId(selectedElder.id);
     }
-  }, [selectedElder, activeElders, elderId]);
+  }, [selectedElder, activeElders]);
 
   const addItem = () => {
     if (itemInput.trim()) {
