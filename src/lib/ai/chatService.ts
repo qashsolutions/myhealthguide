@@ -85,7 +85,7 @@ Guidelines:
 
 User Question: ${userMessage}`;
 
-    // Call Gemini 3 Pro API
+    // Call Gemini 3 Pro API with thinking mode
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`,
       {
@@ -109,6 +109,15 @@ User Question: ${userMessage}`;
     );
 
     const data = await response.json();
+
+    // Log errors for debugging
+    if (data.error) {
+      console.error('Gemini API error:', data.error);
+      return {
+        response: `I'm having trouble connecting right now. Error: ${data.error.message || 'Unknown error'}`,
+      };
+    }
+
     const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text ||
       "I'm sorry, I couldn't process that. Could you rephrase?";
 
