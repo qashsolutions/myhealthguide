@@ -10,13 +10,43 @@ import { Timestamp } from 'firebase-admin/firestore';
 
 /**
  * Convert Firestore Timestamp to Date
+ * Handles multiple timestamp formats safely
  */
 function toDate(timestamp: any): Date {
   if (!timestamp) return new Date();
-  if (timestamp instanceof Date) return timestamp;
-  if (timestamp.toDate) return timestamp.toDate();
-  if (timestamp._seconds) return new Date(timestamp._seconds * 1000);
-  return new Date(timestamp);
+
+  // Already a valid Date
+  if (timestamp instanceof Date) {
+    return isNaN(timestamp.getTime()) ? new Date() : timestamp;
+  }
+
+  // Firestore Timestamp with toDate() method
+  if (typeof timestamp.toDate === 'function') {
+    try {
+      const date = timestamp.toDate();
+      return isNaN(date.getTime()) ? new Date() : date;
+    } catch {
+      return new Date();
+    }
+  }
+
+  // Firestore Timestamp object with _seconds (serialized)
+  if (timestamp._seconds !== undefined) {
+    return new Date(timestamp._seconds * 1000);
+  }
+
+  // Firestore Timestamp object with seconds (Admin SDK)
+  if (timestamp.seconds !== undefined) {
+    return new Date(timestamp.seconds * 1000);
+  }
+
+  // ISO string or number
+  try {
+    const date = new Date(timestamp);
+    return isNaN(date.getTime()) ? new Date() : date;
+  } catch {
+    return new Date();
+  }
 }
 
 /**

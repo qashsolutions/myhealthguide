@@ -419,6 +419,57 @@ interface DataPatterns {
 }
 
 /**
+ * Safely convert any timestamp to a valid Date
+ */
+function safeToDate(date: any): Date {
+  if (!date) return new Date();
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    return date;
+  }
+  if (date.seconds !== undefined) {
+    return new Date(date.seconds * 1000);
+  }
+  if (date._seconds !== undefined) {
+    return new Date(date._seconds * 1000);
+  }
+  if (typeof date.toDate === 'function') {
+    try {
+      const d = date.toDate();
+      return isNaN(d.getTime()) ? new Date() : d;
+    } catch {
+      return new Date();
+    }
+  }
+  try {
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? new Date() : d;
+  } catch {
+    return new Date();
+  }
+}
+
+/**
+ * Safely get hours from a Date object
+ */
+function safeGetHours(date: any): number {
+  return safeToDate(date).getHours();
+}
+
+/**
+ * Safely format date to locale string
+ */
+function safeDateString(date: any): string {
+  return safeToDate(date).toLocaleDateString();
+}
+
+/**
+ * Safely format time to locale string
+ */
+function safeTimeString(date: any): string {
+  return safeToDate(date).toLocaleTimeString();
+}
+
+/**
  * Analyze data to identify patterns for discussion points
  * This is deterministic - no AI hallucination possible
  */
@@ -431,7 +482,7 @@ function analyzeDataPatterns(
   let eveningMissedCount = 0;
 
   for (const log of data.complianceLogs.filter(l => l.status === 'missed')) {
-    const hour = log.scheduledTime.getHours();
+    const hour = safeGetHours(log.scheduledTime);
     if (hour < 12) {
       morningMissedCount++;
     } else if (hour >= 18) {
@@ -858,7 +909,7 @@ function generateTemplateBasedSummary(
   for (const med of data.medications) {
     lines.push(`- **${med.name}** ${med.dosage}, ${med.frequency}`);
     if (med.prescribedBy) lines.push(`  - Prescribed by: ${med.prescribedBy}`);
-    lines.push(`  - Started: ${med.startDate.toLocaleDateString()}`);
+    lines.push(`  - Started: ${safeDateString(med.startDate)}`);
   }
   lines.push('');
 
@@ -876,7 +927,7 @@ function generateTemplateBasedSummary(
   if (missedLogs.length > 0) {
     lines.push('#### Missed Dose Log');
     for (const log of missedLogs) {
-      lines.push(`- ${log.medicationName}: ${log.scheduledTime.toLocaleDateString()} at ${log.scheduledTime.toLocaleTimeString()}`);
+      lines.push(`- ${log.medicationName}: ${safeDateString(log.scheduledTime)} at ${safeTimeString(log.scheduledTime)}`);
     }
     lines.push('');
   }
@@ -885,7 +936,7 @@ function generateTemplateBasedSummary(
   if (data.dietEntries?.length > 0) {
     lines.push(`### Diet Entries (${data.dietEntries.length} logged)`);
     for (const entry of data.dietEntries.slice(0, 5)) {
-      lines.push(`- ${entry.meal}: ${entry.items.join(', ')} (${entry.timestamp.toLocaleDateString()})`);
+      lines.push(`- ${entry.meal}: ${entry.items.join(', ')} (${safeDateString(entry.timestamp)})`);
     }
     lines.push('');
   }
