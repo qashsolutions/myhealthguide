@@ -87,32 +87,99 @@ export async function POST(request: NextRequest) {
     startDate.setDate(startDate.getDate() - timeframeDays);
 
     // Fetch data using Admin SDK
-    const medications = await getMedicationsServer(groupId, elderId) as Medication[];
-    const complianceLogsRaw = await getMedicationLogsServer(groupId, elderId, startDate, endDate);
+    console.log('[Clinical Note] Fetching data for elder:', elderId, 'group:', groupId);
 
-    const complianceLogs = complianceLogsRaw.map((log: any) => ({
-      medicationName: medications.find(m => m.id === log.medicationId)?.name || 'Unknown',
-      scheduledTime: log.scheduledTime,
-      status: log.status as 'taken' | 'missed' | 'skipped',
-      notes: log.notes,
-    }));
+    const medications = await getMedicationsServer(groupId, elderId) as Medication[];
+    console.log('[Clinical Note] Medications fetched:', medications.length);
+
+    const complianceLogsRaw = await getMedicationLogsServer(groupId, elderId, startDate, endDate);
+    console.log('[Clinical Note] Compliance logs fetched:', complianceLogsRaw.length);
+
+    // Debug: Log raw scheduledTime values
+    if (complianceLogsRaw.length > 0) {
+      console.log('[Clinical Note] Sample log scheduledTime:', JSON.stringify(complianceLogsRaw[0]?.scheduledTime));
+      console.log('[Clinical Note] Sample log scheduledTime type:', typeof complianceLogsRaw[0]?.scheduledTime);
+    }
+
+    const complianceLogs = complianceLogsRaw.map((log: any) => {
+      // Ensure scheduledTime is a proper Date
+      let scheduledTime = log.scheduledTime;
+      if (scheduledTime && !(scheduledTime instanceof Date)) {
+        if (scheduledTime.seconds !== undefined) {
+          scheduledTime = new Date(scheduledTime.seconds * 1000);
+        } else if (scheduledTime._seconds !== undefined) {
+          scheduledTime = new Date(scheduledTime._seconds * 1000);
+        } else if (typeof scheduledTime.toDate === 'function') {
+          scheduledTime = scheduledTime.toDate();
+        } else {
+          scheduledTime = new Date(scheduledTime);
+        }
+      }
+
+      return {
+        medicationName: medications.find(m => m.id === log.medicationId)?.name || 'Unknown',
+        scheduledTime,
+        status: log.status as 'taken' | 'missed' | 'skipped',
+        notes: log.notes,
+      };
+    });
 
     const dietEntriesRaw = await getDietEntriesServer(groupId, elderId, startDate, endDate, 50);
-    const dietEntries = dietEntriesRaw.map((entry: any) => ({
-      meal: entry.meal,
-      items: entry.items || [],
-      timestamp: entry.timestamp,
-    }));
+    console.log('[Clinical Note] Diet entries fetched:', dietEntriesRaw.length);
+
+    const dietEntries = dietEntriesRaw.map((entry: any) => {
+      // Ensure timestamp is a proper Date
+      let timestamp = entry.timestamp;
+      if (timestamp && !(timestamp instanceof Date)) {
+        if (timestamp.seconds !== undefined) {
+          timestamp = new Date(timestamp.seconds * 1000);
+        } else if (timestamp._seconds !== undefined) {
+          timestamp = new Date(timestamp._seconds * 1000);
+        } else if (typeof timestamp.toDate === 'function') {
+          timestamp = timestamp.toDate();
+        } else {
+          timestamp = new Date(timestamp);
+        }
+      }
+
+      return {
+        meal: entry.meal,
+        items: entry.items || [],
+        timestamp,
+      };
+    });
+
+    // Debug: Log medication startDate
+    if (medications.length > 0) {
+      console.log('[Clinical Note] Sample medication startDate:', JSON.stringify(medications[0]?.startDate));
+      console.log('[Clinical Note] Sample medication startDate type:', typeof medications[0]?.startDate);
+    }
 
     const medgemmaData = {
       elder: { name: elderName, age: elderAge, medicalConditions, allergies },
-      medications: medications.map(med => ({
-        name: med.name,
-        dosage: med.dosage,
-        frequency: Array.isArray(med.frequency?.times) ? med.frequency.times.length + 'x daily' : med.frequency?.type || 'as needed',
-        startDate: med.startDate,
-        prescribedBy: med.prescribedBy,
-      })),
+      medications: medications.map(med => {
+        // Ensure startDate is a proper Date
+        let startDate = med.startDate;
+        if (startDate && !(startDate instanceof Date)) {
+          if ((startDate as any).seconds !== undefined) {
+            startDate = new Date((startDate as any).seconds * 1000);
+          } else if ((startDate as any)._seconds !== undefined) {
+            startDate = new Date((startDate as any)._seconds * 1000);
+          } else if (typeof (startDate as any).toDate === 'function') {
+            startDate = (startDate as any).toDate();
+          } else {
+            startDate = new Date(startDate as any);
+          }
+        }
+
+        return {
+          name: med.name,
+          dosage: med.dosage,
+          frequency: Array.isArray(med.frequency?.times) ? med.frequency.times.length + 'x daily' : med.frequency?.type || 'as needed',
+          startDate,
+          prescribedBy: med.prescribedBy,
+        };
+      }),
       complianceLogs,
       dietEntries,
       caregiverNotes: undefined,
