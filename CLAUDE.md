@@ -307,3 +307,37 @@ import {
 - Create new compliance calculation functions - use shared utility
 - Create new QuickInsights-style components - use `QuickInsightsCard`
 - Use 'late' as a database status - map to 'taken' instead
+
+### 9. Gemini API Configuration (CONFIRMED: Dec 2, 2025)
+
+**Model:** `gemini-3-pro-preview` with thinking mode
+
+**API Endpoint:**
+```
+https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent
+```
+
+**Configuration:**
+```typescript
+generationConfig: {
+  temperature: 0.7,
+  maxOutputTokens: 1024,
+  thinking_config: {
+    include_thoughts: false // Set to true for deep reasoning tasks
+  }
+}
+```
+
+**Environment Variable:**
+- `GEMINI_API_KEY` - Added to Vercel environment variables (NOT prefixed with NEXT_PUBLIC_ since it's server-side only)
+
+**Files using Gemini 3 Pro Preview:**
+- `src/lib/ai/chatService.ts` - Smart Assistant chat
+- `src/lib/ai/geminiService.ts` - General AI service
+- `src/lib/ai/voiceSearch.ts` - Voice search
+- `src/lib/ai/medgemmaService.ts` - Medical AI fallback
+
+**DO NOT:**
+- Change the model to gemini-1.5-flash or other models without confirming
+- Remove thinking_config - it's required for gemini-3-pro-preview
+- Expose GEMINI_API_KEY to client-side (must go through API routes)

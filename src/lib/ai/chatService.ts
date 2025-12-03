@@ -202,7 +202,12 @@ function buildContextPrompt(context: ChatContext): string {
   if (medications.length > 0) {
     prompt += 'Active medications:\n';
     medications.slice(0, 10).forEach(med => {
-      prompt += `- ${med.name}: ${med.dosage} ${med.frequency}\n`;
+      // Format frequency properly (it's an object with type and times)
+      const frequencyStr = med.frequency?.type || 'daily';
+      const timesStr = med.frequency?.times?.length > 0
+        ? ` at ${med.frequency.times.join(', ')}`
+        : '';
+      prompt += `- ${med.name}: ${med.dosage}, ${frequencyStr}${timesStr}\n`;
     });
     prompt += '\n';
   }
