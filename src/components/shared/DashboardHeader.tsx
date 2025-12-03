@@ -38,7 +38,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
     markAsRead,
     markAllAsRead,
     dismiss
-  } = useNotifications(user?.uid);
+  } = useNotifications(user?.id);
 
   const handleSignOut = async () => {
     try {
