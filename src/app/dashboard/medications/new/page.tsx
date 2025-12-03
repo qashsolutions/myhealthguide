@@ -95,9 +95,10 @@ export default function NewMedicationPage() {
         throw new Error('Please select an elder');
       }
 
-      // Parse times into array
+      // Parse times into array (accept comma, space, or both as separators)
+      // Examples: "7, 12, 3" or "7 12 3" or "7,12,3"
       const timesArray = formData.times
-        .split(',')
+        .split(/[,\s]+/)
         .map(t => t.trim())
         .filter(t => t.length > 0);
 

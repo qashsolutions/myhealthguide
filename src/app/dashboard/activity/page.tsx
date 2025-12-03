@@ -188,6 +188,12 @@ export default function ActivityPage() {
       // Find medications that were missed or skipped yesterday
       const missedMeds: string[] = [];
       medications.forEach(med => {
+        // Skip if medication was created today (didn't exist yesterday)
+        const medStartDate = med.startDate instanceof Date ? med.startDate : new Date(med.startDate);
+        if (medStartDate > endOfDay(yesterday)) {
+          return; // This medication didn't exist yesterday
+        }
+
         const times = med.frequency?.times || [];
         times.forEach(time => {
           const logged = medLogs.find(log =>
@@ -212,6 +218,12 @@ export default function ActivityPage() {
       // Find supplements that were missed or skipped yesterday
       const missedSupps: string[] = [];
       supplements.forEach(supp => {
+        // Skip if supplement was created today (didn't exist yesterday)
+        const suppCreatedAt = supp.createdAt instanceof Date ? supp.createdAt : new Date(supp.createdAt);
+        if (suppCreatedAt > endOfDay(yesterday)) {
+          return; // This supplement didn't exist yesterday
+        }
+
         const times = supp.frequency?.times || [];
         times.forEach(time => {
           const logged = suppLogs.find(log =>
@@ -322,6 +334,28 @@ export default function ActivityPage() {
 
     if (period === 'pm' && hours !== 12) hours += 12;
     if (period === 'am' && hours === 12) hours = 0;
+
+    // Smart inference when no AM/PM specified
+    // Assume caregivers enter times for reasonable medication schedules
+    if (!period) {
+      // 12 without AM/PM = noon (12 PM)
+      if (hours === 12) {
+        // Keep as 12 (noon)
+      }
+      // 1-4 without AM/PM = afternoon (1 PM - 4 PM)
+      else if (hours >= 1 && hours <= 4) {
+        hours += 12;
+      }
+      // 5-9 without AM/PM = likely evening (5 PM - 9 PM)
+      else if (hours >= 5 && hours <= 9) {
+        // Could be morning (5-9 AM) or evening (5-9 PM)
+        // For medication schedules, 5-6 is likely AM, 7-9 is ambiguous
+        // Default: 5-6 = AM (early morning), 7-9 = AM (breakfast time)
+        // This keeps 7, 8, 9 as morning which is common for medications
+      }
+      // 10-11 without AM/PM = morning (10 AM - 11 AM)
+      // Already correct as-is
+    }
 
     return { hours, minutes };
   }
