@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mic, MicOff, Send, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
-import { generateChatResponse, saveChatMessage, getChatHistory, ChatMessage, ChatContext } from '@/lib/ai/chatService';
+import { saveChatMessage, getChatHistory, ChatMessage, ChatContext } from '@/lib/ai/chatService';
 import { format } from 'date-fns';
 
 interface AIChatProps {
@@ -90,12 +90,24 @@ export function AIChat({ context }: AIChatProps) {
       // Save user message
       await saveChatMessage(userMessage);
 
-      // Get AI response
-      const { response, actions } = await generateChatResponse(
-        input,
-        context,
-        messages
-      );
+      // Get AI response via API route (server-side has GEMINI_API_KEY)
+      const apiResponse = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: input,
+          context,
+          conversationHistory: messages,
+        }),
+      });
+
+      if (!apiResponse.ok) {
+        throw new Error('Failed to get chat response');
+      }
+
+      const { response, actions } = await apiResponse.json();
 
       // Create assistant message
       const assistantMessage: ChatMessage = {
