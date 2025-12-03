@@ -27,6 +27,44 @@ interface ProviderQuestion {
 // Sparse data threshold - show warning if less than this many logs
 const SPARSE_DATA_THRESHOLD = 7;
 
+/**
+ * Safely convert Firestore Timestamp or any date value to a Date object
+ */
+function safeToDate(value: any): Date | null {
+  if (!value) return null;
+
+  // Already a valid Date
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value;
+  }
+
+  // Firestore Timestamp with toDate() method
+  if (typeof value.toDate === 'function') {
+    try {
+      const date = value.toDate();
+      return isNaN(date.getTime()) ? null : date;
+    } catch {
+      return null;
+    }
+  }
+
+  // Firestore Timestamp object with seconds
+  if (value.seconds !== undefined) {
+    return new Date(value.seconds * 1000);
+  }
+  if (value._seconds !== undefined) {
+    return new Date(value._seconds * 1000);
+  }
+
+  // String or number
+  try {
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+}
+
 export default function ClinicalNotesPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
@@ -43,6 +81,15 @@ export default function ClinicalNotesPage() {
     setError(null);
 
     try {
+      // Safely convert dateOfBirth to Date
+      const dob = safeToDate(selectedElder.dateOfBirth);
+      const elderAge = dob
+        ? new Date().getFullYear() - dob.getFullYear()
+        : selectedElder.approximateAge || 0;
+      const elderDateOfBirth = dob
+        ? format(dob, 'MMM dd, yyyy')
+        : undefined;
+
       const response = await authenticatedFetch('/api/medgemma/clinical-note', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,12 +97,8 @@ export default function ClinicalNotesPage() {
           groupId: selectedElder.groupId,
           elderId: selectedElder.id,
           elderName: selectedElder.name,
-          elderAge: selectedElder.dateOfBirth
-            ? new Date().getFullYear() - new Date(selectedElder.dateOfBirth).getFullYear()
-            : selectedElder.approximateAge || 0,
-          elderDateOfBirth: selectedElder.dateOfBirth
-            ? format(new Date(selectedElder.dateOfBirth), 'MMM dd, yyyy')
-            : undefined,
+          elderAge,
+          elderDateOfBirth,
           // Pass known conditions from elder profile for AI context
           medicalConditions: selectedElder.knownConditions || [],
           allergies: [],
