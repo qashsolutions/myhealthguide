@@ -1238,23 +1238,23 @@ export const processSMSQueue = functions.firestore
 
 /**
  * Scheduled Job: Check and trigger medication reminders
- * Runs every 5 minutes to check for due reminders
+ * Runs every 60 minutes to check for due reminders
  *
  * Flow:
- * 1. Query reminder_schedules where scheduledTime is within last 5 minutes
+ * 1. Query reminder_schedules where scheduledTime is within last hour
  * 2. For each reminder, create a user_notification
  * 3. Optionally queue FCM push notification
  * 4. Mark reminder as triggered for today
  */
 export const checkMedicationReminders = functions.pubsub
-  .schedule('*/5 * * * *') // Every 5 minutes
+  .schedule('0 * * * *') // Every hour at :00
   .timeZone('America/Los_Angeles')
   .onRun(async (context) => {
     console.log('Starting checkMedicationReminders job...');
 
     try {
       const now = new Date();
-      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
       // Get all enabled reminder schedules
       const remindersSnapshot = await admin.firestore()
@@ -1292,8 +1292,8 @@ export const checkMedicationReminders = functions.pubsub
         const todayScheduled = new Date(now);
         todayScheduled.setHours(scheduledHour, scheduledMinute, 0, 0);
 
-        // Check if scheduled time is within our 5-minute window
-        if (todayScheduled > fiveMinutesAgo && todayScheduled <= now) {
+        // Check if scheduled time is within our 1-hour window
+        if (todayScheduled > oneHourAgo && todayScheduled <= now) {
           console.log(`Triggering reminder ${reminderId} scheduled for ${scheduledHour}:${scheduledMinute}`);
 
           // Get elder info for notification message
@@ -1367,7 +1367,7 @@ export const checkMedicationReminders = functions.pubsub
 
 /**
  * Scheduled Job: Detect missed medication doses
- * Runs hourly at :30 (e.g., 8:30, 9:30, 10:30)
+ * Runs hourly at :00 (e.g., 8:00, 9:00, 10:00)
  *
  * Flow:
  * 1. For each group/elder, check medications scheduled in the past hour
@@ -1376,7 +1376,7 @@ export const checkMedicationReminders = functions.pubsub
  * 4. Create alert in alerts collection
  */
 export const detectMissedDoses = functions.pubsub
-  .schedule('30 * * * *') // Every hour at :30
+  .schedule('0 * * * *') // Every hour at :00
   .timeZone('America/Los_Angeles')
   .onRun(async (context) => {
     console.log('Starting detectMissedDoses job...');
