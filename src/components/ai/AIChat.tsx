@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mic, MicOff, Send, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
-import { saveChatMessage, getChatHistory, ChatMessage, ChatContext } from '@/lib/ai/chatService';
+import { saveChatMessage, getChatHistory, ChatMessage, ChatContext, ChatAction } from '@/lib/ai/chatService';
+import { ActionHandler } from '@/lib/ai/actionHandler';
 import { format } from 'date-fns';
 
 interface AIChatProps {
@@ -109,14 +110,53 @@ export function AIChat({ context }: AIChatProps) {
 
       const { response, actions } = await apiResponse.json();
 
+      // Execute actions CLIENT-SIDE (where Firebase auth context exists)
+      let finalResponse = response;
+      let executedActions: ChatAction[] | undefined = actions;
+
+      if (actions && actions.length > 0) {
+        const actionResults: string[] = [];
+
+        for (const action of actions) {
+          try {
+            const result = await ActionHandler.executeAction(action, {
+              userId: context.userId,
+              groupId: action.data?.groupId || context.groupId,
+              agencyId: action.data?.agencyId || context.agencyId,
+              agencyRole: action.data?.agencyRole || context.agencyRole,
+              assignedElderIds: action.data?.assignedElderIds || context.assignedElderIds,
+              elderIds: action.data?.elderIds || context.elders.map(e => e.id).filter(Boolean) as string[]
+            });
+
+            if (result.success) {
+              actionResults.push(result.message);
+              action.status = 'completed';
+            } else {
+              actionResults.push(`❌ ${result.message}`);
+              action.status = 'failed';
+              action.error = result.error;
+            }
+          } catch (error: any) {
+            action.status = 'failed';
+            action.error = error.message;
+            actionResults.push(`❌ Failed to execute action: ${error.message}`);
+          }
+        }
+
+        if (actionResults.length > 0) {
+          finalResponse += '\n\n' + actionResults.join('\n');
+        }
+        executedActions = actions;
+      }
+
       // Create assistant message
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: response,
+        content: finalResponse,
         timestamp: new Date(),
         userId: context.userId,
         groupId: context.groupId,
-        actions,
+        actions: executedActions,
       };
 
       // Add to UI

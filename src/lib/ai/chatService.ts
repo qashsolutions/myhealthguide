@@ -122,46 +122,27 @@ User Question: ${userMessage}`;
       "I'm sorry, I couldn't process that. Could you rephrase?";
 
     // Detect if actions are needed
+    // Note: Actions are NOT executed server-side - they are returned to client
+    // for execution where the user's Firebase auth context exists
     const actions = detectActions(userMessage, context);
 
-    // Execute actions if detected
-    let actionResults: string[] = [];
+    // Add elder context to actions for client-side execution
     if (actions.length > 0) {
-      for (const action of actions) {
-        try {
-          const result = await ActionHandler.executeAction(action, {
-            userId: context.userId,
-            groupId: context.groupId,
-            agencyId: context.agencyId,
-            agencyRole: context.agencyRole,
-            assignedElderIds: context.assignedElderIds,
-            elderIds: context.elders.map(e => e.id).filter(Boolean) as string[]
-          });
-
-          if (result.success) {
-            actionResults.push(result.message);
-            action.status = 'completed';
-          } else {
-            actionResults.push(`❌ ${result.message}`);
-            action.status = 'failed';
-            action.error = result.error;
-          }
-        } catch (error: any) {
-          action.status = 'failed';
-          action.error = error.message;
-          actionResults.push(`❌ Failed to execute action: ${error.message}`);
-        }
-      }
-    }
-
-    // Append action results to AI response
-    let finalResponse = aiResponse;
-    if (actionResults.length > 0) {
-      finalResponse += '\n\n' + actionResults.join('\n');
+      const elderIds = context.elders.map(e => e.id).filter(Boolean) as string[];
+      actions.forEach(action => {
+        action.data = {
+          ...action.data,
+          groupId: context.groupId,
+          elderIds,
+          agencyId: context.agencyId,
+          agencyRole: context.agencyRole,
+          assignedElderIds: context.assignedElderIds
+        };
+      });
     }
 
     return {
-      response: finalResponse,
+      response: aiResponse,
       actions: actions.length > 0 ? actions : undefined,
     };
   } catch (error) {
