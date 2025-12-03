@@ -195,8 +195,8 @@ export default function HealthChatPage() {
   ];
 
   return (
-    <TrialExpirationGate featureName="health chat AI assistant">
-      <EmailVerificationGate featureName="health chat AI assistant">
+    <TrialExpirationGate featureName="health assistant">
+      <EmailVerificationGate featureName="health assistant">
         <div className="p-6 max-w-7xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -231,7 +231,7 @@ export default function HealthChatPage() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                 <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-                  <strong>AI Consent Required:</strong> To use Health Chat, please review and accept the AI & Medical terms.
+                  <strong>Consent Required:</strong> To use Health Chat, please review and accept the terms.
                 </AlertDescription>
               </div>
               <Button

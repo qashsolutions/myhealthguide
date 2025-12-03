@@ -155,7 +155,7 @@ export function AIFeaturesSettings({
   const handleRevokeConsent = async () => {
     if (!consent?.id) return;
 
-    if (!confirm('Are you sure you want to revoke AI consent? This will disable all AI-powered features.')) {
+    if (!confirm('Are you sure you want to revoke consent? This will disable all smart features.')) {
       return;
     }
 
@@ -211,7 +211,7 @@ export function AIFeaturesSettings({
         <Shield className="h-4 w-4" />
         <AlertTitle>Admin Access Required</AlertTitle>
         <AlertDescription>
-          Only group administrators can manage AI feature settings.
+          Only group administrators can manage smart feature settings.
         </AlertDescription>
       </Alert>
     );
@@ -223,7 +223,7 @@ export function AIFeaturesSettings({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-blue-600" />
-            AI-Powered Caregiver Intelligence
+            Smart Caregiver Features
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -242,10 +242,10 @@ export function AIFeaturesSettings({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-blue-600" />
-            AI-Powered Caregiver Intelligence
+            Smart Caregiver Features
           </CardTitle>
           <CardDescription>
-            Enable advanced AI features that provide proactive health insights and save time
+            Enable smart features that provide proactive health insights and save time
           </CardDescription>
         </CardHeader>
 
@@ -274,7 +274,7 @@ export function AIFeaturesSettings({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Label htmlFor="ai-master" className="text-base font-semibold cursor-pointer">
-                  Enable AI Features
+                  Enable Smart Features
                 </Label>
                 {consentValid && (
                   <CheckCircle className="w-4 h-4 text-green-600" />
@@ -283,7 +283,7 @@ export function AIFeaturesSettings({
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {consentValid && consent
                   ? `Consent granted ${consent.consentedAt ? new Date(consent.consentedAt).toLocaleDateString() : ''}`
-                  : 'Requires consent to enable AI-powered insights'}
+                  : 'Requires consent to enable smart insights'}
               </p>
             </div>
             <Switch
@@ -481,7 +481,7 @@ export function AIFeaturesSettings({
               <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
                 <AlertCircle className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm">
-                  Changes are saved automatically. AI features will respect your selections when
+                  Changes are saved automatically. Smart features will respect your selections when
                   generating insights. You can modify these settings anytime.
                 </AlertDescription>
               </Alert>
@@ -491,7 +491,7 @@ export function AIFeaturesSettings({
               <Shield className="h-4 w-4" />
               <AlertTitle>Consent Required</AlertTitle>
               <AlertDescription>
-                Enable the master AI features toggle above to review and consent to AI-powered insights.
+                Enable the smart features toggle above to review and consent to intelligent insights.
                 You'll see detailed information about each feature and how your data is used.
               </AlertDescription>
             </Alert>

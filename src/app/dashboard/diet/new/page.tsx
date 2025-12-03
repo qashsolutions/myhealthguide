@@ -212,7 +212,7 @@ export default function NewDietEntryPage() {
             Log Meal Entry
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Track meals and get AI-powered nutrition insights
+            Track meals and get smart nutrition insights
           </p>
         </div>
       </div>

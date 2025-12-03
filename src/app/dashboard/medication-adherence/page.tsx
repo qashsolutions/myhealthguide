@@ -131,7 +131,7 @@ export default function MedicationAdherencePage() {
             Medication Adherence Prediction
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            AI-powered analysis to predict and prevent missed medications
+            Smart analysis to predict and prevent missed medications
           </p>
         </div>
         <Button onClick={runAdherenceAnalysis} disabled={analyzing || loading}>

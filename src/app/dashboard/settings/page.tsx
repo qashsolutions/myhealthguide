@@ -188,7 +188,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('ai')}
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              AI Features
+              Smart Features
             </Button>
             <Button
               variant={activeTab === 'alerts' ? 'default' : 'ghost'}

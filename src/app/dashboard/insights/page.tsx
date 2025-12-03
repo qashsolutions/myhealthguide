@@ -246,18 +246,18 @@ export default function InsightsPage() {
   }
 
   return (
-    <TrialExpirationGate featureName="AI health insights">
-      <EmailVerificationGate featureName="AI health insights">
+    <TrialExpirationGate featureName="smart health insights">
+      <EmailVerificationGate featureName="smart health insights">
         <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Sparkles className="w-8 h-8 text-purple-600" />
-              AI Insights
+              Smart Insights
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              AI-powered analysis and recommendations
+              Intelligent analysis and recommendations
             </p>
           </div>
         <div className="flex gap-2">

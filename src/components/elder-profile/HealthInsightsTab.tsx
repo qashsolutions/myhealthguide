@@ -131,7 +131,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
 
       if (!response.ok) {
         if (data.requiresConsent) {
-          setError('AI consent is required to generate insights. Please enable AI features in Settings.');
+          setError('Consent is required to generate insights. Please enable Smart Features in Settings.');
           return;
         }
         throw new Error(data.error || 'Failed to generate insights');
@@ -207,9 +207,9 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
               <AlertDescription className="text-amber-800 dark:text-amber-200">
                 <p className="font-semibold mb-2">Consent Required</p>
                 <p className="text-sm mb-4">
-                  Before generating AI-powered health insights, you must read and accept the AI features terms,
+                  Before generating health insights, you must read and accept the terms,
                   medical disclaimers, and data processing agreement. This ensures you understand how your data
-                  is used and the limitations of AI-generated observations.
+                  is used and the limitations of auto-generated observations.
                 </p>
                 <Button onClick={() => setShowConsentDialog(true)} size="sm">
                   <Shield className="w-4 h-4 mr-2" />

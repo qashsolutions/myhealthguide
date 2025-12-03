@@ -84,7 +84,7 @@ export function EmailVerificationGate({ children, featureName }: EmailVerificati
                 <p className="text-sm text-orange-800 dark:text-orange-200">
                   To protect your health information and comply with HIPAA regulations,
                   we require all users to verify their email address before accessing any
-                  medical data or AI features.
+                  medical data or smart features.
                 </p>
               </div>
             </div>
@@ -100,7 +100,7 @@ export function EmailVerificationGate({ children, featureName }: EmailVerificati
                 <ul className="list-disc list-inside space-y-1 ml-2">
                   <li>Add and manage medications</li>
                   <li>Track elders and their health data</li>
-                  <li>Use AI-powered health insights</li>
+                  <li>Use smart health insights</li>
                   <li>Generate clinical notes for doctors</li>
                   <li>Export your health data</li>
                 </ul>

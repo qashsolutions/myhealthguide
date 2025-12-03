@@ -112,7 +112,7 @@ export default function ClinicalNotesPage() {
               Clinical Notes Generator
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              AI-powered clinical summaries for healthcare provider consultations
+              Smart clinical summaries for healthcare provider consultations
             </p>
           </div>
         </div>
@@ -121,9 +121,9 @@ export default function ClinicalNotesPage() {
         <div className="flex items-start gap-3">
           <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold text-blue-900 dark:text-blue-100">Powered by MedGemma 27B</p>
+            <p className="font-semibold text-blue-900 dark:text-blue-100">Intelligent Summary Generator</p>
             <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-              This feature uses Google's medical AI to generate comprehensive clinical summaries from your health data.
+              This feature generates comprehensive clinical summaries from your health data.
               Perfect for doctor visits and medical consultations.
             </p>
           </div>
@@ -321,7 +321,7 @@ export default function ClinicalNotesPage() {
 
             <div className="border-t dark:border-gray-700 pt-4">
               <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                MEDICAL DISCLAIMER: This report is AI-generated to assist clinical discussions. It does NOT constitute
+                MEDICAL DISCLAIMER: This report is auto-generated to assist clinical discussions. It does NOT constitute
                 medical advice, diagnosis, or treatment recommendations. All medical decisions should be made by
                 licensed healthcare providers.
               </p>

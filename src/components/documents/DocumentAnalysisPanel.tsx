@@ -422,10 +422,10 @@ export function DocumentAnalysisPanel({
       <Dialog open={showConsentDialog} onOpenChange={setShowConsentDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>AI Consent Required</DialogTitle>
+            <DialogTitle>Consent Required</DialogTitle>
             <DialogDescription>
-              To analyze documents with AI, you need to accept the AI features terms and conditions.
-              Please go to Settings → AI Features to enable this functionality.
+              To analyze documents, you need to accept the terms and conditions.
+              Please go to Settings → Smart Features to enable this functionality.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">

@@ -157,10 +157,10 @@ export function UnifiedAIConsentDialog({
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-3 text-2xl">
             <Brain className="w-7 h-7 text-blue-600" />
-            AI & Medical Features - Terms of Use
+            Smart Features - Terms of Use
           </DialogTitle>
           <DialogDescription className="text-base">
-            Please read and accept the following terms to enable AI-powered features
+            Please read and accept the following terms to enable smart features
           </DialogDescription>
         </DialogHeader>
 
@@ -207,13 +207,12 @@ export function UnifiedAIConsentDialog({
           <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
             <Sparkles className="h-5 w-5 text-blue-600" />
             <AlertTitle className="text-blue-900 dark:text-blue-100 text-lg">
-              1. AI-Powered Features Overview
+              1. Smart Features Overview
             </AlertTitle>
             <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2 space-y-3">
               <p>
-                By enabling AI features, you gain access to advanced caregiving tools powered by
-                Google's MedGemma and Gemini AI models. These features analyze health data to
-                provide insights, detect patterns, and save you time.
+                By enabling smart features, you gain access to advanced caregiving tools that
+                analyze health data to provide insights, detect patterns, and save you time.
               </p>
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <div className="flex items-start gap-2">
@@ -233,7 +232,7 @@ export function UnifiedAIConsentDialog({
                 <div className="flex items-start gap-2">
                   <Brain className="w-4 h-4 text-green-600 mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">AI Health Chat</p>
+                    <p className="font-medium text-sm">Health Assistant</p>
                     <p className="text-xs">Ask questions about health data</p>
                   </div>
                 </div>
@@ -531,7 +530,7 @@ export function UnifiedAIConsentDialog({
 
           <DialogFooter className="flex gap-2 sm:gap-0 pt-4">
             <Button variant="outline" onClick={onDecline} disabled={isSubmitting}>
-              Decline - Don't Enable AI Features
+              Decline - Don't Enable Smart Features
             </Button>
             <Button
               onClick={handleConsent}
@@ -543,7 +542,7 @@ export function UnifiedAIConsentDialog({
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Accept & Enable AI Features
+                  Accept & Enable Smart Features
                 </>
               )}
             </Button>
