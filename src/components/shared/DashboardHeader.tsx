@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Moon, Sun, Menu, UserPlus, CheckCircle, HelpCircle } from 'lucide-react';
+import { Bell, Moon, Sun, Menu, CheckCircle, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -18,10 +18,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ElderSelector } from '@/components/dashboard/ElderSelector';
 import { UnifiedSearch } from '@/components/shared/UnifiedSearch';
-import { GroupService } from '@/lib/firebase/groups';
-import { PendingApproval } from '@/types';
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationItem } from '@/components/notifications/NotificationItem';
 
 interface DashboardHeaderProps {
   onMenuClick?: () => void;
@@ -31,75 +29,16 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { signOut, user } = useAuth();
-  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
-  const [notificationCount, setNotificationCount] = useState(0);
 
-  // Real-time listener for pending approvals (admin users only)
-  useEffect(() => {
-    if (!user) return;
-
-    // Check if user is admin of any group
-    const isAdmin = user.groups?.some(g => g.role === 'admin');
-    if (!isAdmin) return;
-
-    const groupId = user.groups?.find(g => g.role === 'admin')?.groupId;
-    if (!groupId) return;
-
-    // Set up real-time listener for pending approvals
-    const q = query(
-      collection(db, 'groups', groupId, 'pending_approvals'),
-      where('status', '==', 'pending')
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const approvals: PendingApproval[] = snapshot.docs.map(doc => {
-          const data = doc.data();
-
-          // Helper to safely convert Firestore Timestamp to Date
-          const toSafeDate = (timestamp: any): Date => {
-            if (!timestamp) return new Date();
-            if (typeof timestamp === 'object' && 'seconds' in timestamp) {
-              return new Date(timestamp.seconds * 1000);
-            }
-            if (timestamp instanceof Date) return timestamp;
-            if (typeof timestamp.toDate === 'function') {
-              try {
-                return timestamp.toDate();
-              } catch {
-                return new Date();
-              }
-            }
-            return new Date();
-          };
-
-          return {
-            id: doc.id,
-            groupId: data.groupId,
-            userId: data.userId,
-            userName: data.userName,
-            userEmail: data.userEmail,
-            userPhone: data.userPhone,
-            requestedAt: toSafeDate(data.requestedAt),
-            status: data.status,
-            processedAt: data.processedAt ? toSafeDate(data.processedAt) : undefined,
-            processedBy: data.processedBy,
-            notes: data.notes
-          };
-        });
-
-        setPendingApprovals(approvals);
-        setNotificationCount(approvals.length);
-      },
-      (error) => {
-        console.error('Error listening to pending approvals:', error);
-      }
-    );
-
-    // Cleanup listener on unmount
-    return () => unsubscribe();
-  }, [user]);
+  // Use unified notifications hook
+  const {
+    notifications,
+    unreadCount,
+    loading: notificationsLoading,
+    markAsRead,
+    markAllAsRead,
+    dismiss
+  } = useNotifications(user?.uid);
 
   const handleSignOut = async () => {
     try {
@@ -107,12 +46,6 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
       router.push('/login');
     } catch (error) {
       console.error('Sign out error:', error);
-    }
-  };
-
-  const handleNotificationClick = (type: string) => {
-    if (type === 'pending_approval') {
-      router.push('/dashboard/settings?tab=group');
     }
   };
 
@@ -181,77 +114,65 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="hidden sm:flex relative">
               <Bell className="w-5 h-5" />
-              {notificationCount > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium">
-                  {notificationCount > 9 ? '9+' : notificationCount}
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Notifications</span>
-              {notificationCount > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {notificationCount} new
-                </Badge>
+          <DropdownMenuContent align="end" className="w-80 p-0">
+            <div className="flex items-center justify-between p-3 border-b">
+              <span className="font-semibold text-sm">Notifications</span>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7 text-blue-600 hover:text-blue-700"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    markAllAsRead();
+                  }}
+                >
+                  Mark all read
+                </Button>
               )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
+            </div>
 
-            {notificationCount === 0 ? (
-              <div className="py-6 text-center">
-                <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+            {notifications.length === 0 ? (
+              <div className="py-8 text-center">
+                <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  All caught up!
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   No new notifications
                 </p>
               </div>
             ) : (
-              <>
-                {/* Pending Approvals */}
-                {pendingApprovals.length > 0 && (
-                  <>
-                    {pendingApprovals.slice(0, 3).map((approval) => (
-                      <DropdownMenuItem
-                        key={approval.id}
-                        onClick={() => handleNotificationClick('pending_approval')}
-                        className="cursor-pointer py-3"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
-                            <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              Join request from {approval.userName}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Waiting for approval
-                            </p>
-                          </div>
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                    {pendingApprovals.length > 3 && (
-                      <DropdownMenuItem
-                        onClick={() => handleNotificationClick('pending_approval')}
-                        className="cursor-pointer text-center text-sm text-blue-600 dark:text-blue-400"
-                      >
-                        View all {pendingApprovals.length} requests
-                      </DropdownMenuItem>
-                    )}
-                  </>
-                )}
-              </>
+              <div className="max-h-96 overflow-y-auto">
+                {notifications.slice(0, 10).map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                    onMarkRead={() => notification.id && markAsRead(notification.id)}
+                    onDismiss={() => notification.id && dismiss(notification.id)}
+                    compact
+                  />
+                ))}
+              </div>
             )}
 
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => router.push('/dashboard/settings?tab=notifications')}
-              className="cursor-pointer text-center text-sm text-gray-600 dark:text-gray-400"
-            >
-              Notification Settings
-            </DropdownMenuItem>
+            <div className="border-t p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-gray-600 dark:text-gray-400"
+                onClick={() => router.push('/dashboard/settings?tab=notifications')}
+              >
+                Notification Settings
+              </Button>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
 

@@ -1233,3 +1233,428 @@ export const processSMSQueue = functions.firestore
       };
     }
   });
+
+// ============= MEDICATION REMINDERS =============
+
+/**
+ * Scheduled Job: Check and trigger medication reminders
+ * Runs every 5 minutes to check for due reminders
+ *
+ * Flow:
+ * 1. Query reminder_schedules where scheduledTime is within last 5 minutes
+ * 2. For each reminder, create a user_notification
+ * 3. Optionally queue FCM push notification
+ * 4. Mark reminder as triggered for today
+ */
+export const checkMedicationReminders = functions.pubsub
+  .schedule('*/5 * * * *') // Every 5 minutes
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting checkMedicationReminders job...');
+
+    try {
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+      // Get all enabled reminder schedules
+      const remindersSnapshot = await admin.firestore()
+        .collection('reminder_schedules')
+        .where('enabled', '==', true)
+        .get();
+
+      if (remindersSnapshot.empty) {
+        console.log('No active reminders found');
+        return { success: true, processed: 0 };
+      }
+
+      let processedCount = 0;
+      const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      for (const reminderDoc of remindersSnapshot.docs) {
+        const reminder = reminderDoc.data();
+        const reminderId = reminderDoc.id;
+
+        // Check if already triggered today
+        const lastTriggeredDate = reminder.lastTriggeredDate;
+        if (lastTriggeredDate === today) {
+          continue; // Already fired today
+        }
+
+        // Get scheduled time and check if it's within our window
+        const scheduledTime = reminder.scheduledTime?.toDate();
+        if (!scheduledTime) continue;
+
+        // Extract hour and minute from scheduled time
+        const scheduledHour = scheduledTime.getHours();
+        const scheduledMinute = scheduledTime.getMinutes();
+
+        // Create today's scheduled datetime
+        const todayScheduled = new Date(now);
+        todayScheduled.setHours(scheduledHour, scheduledMinute, 0, 0);
+
+        // Check if scheduled time is within our 5-minute window
+        if (todayScheduled > fiveMinutesAgo && todayScheduled <= now) {
+          console.log(`Triggering reminder ${reminderId} scheduled for ${scheduledHour}:${scheduledMinute}`);
+
+          // Get elder info for notification message
+          let elderName = 'your loved one';
+          if (reminder.elderId) {
+            const elderDoc = await admin.firestore()
+              .collection('elders')
+              .doc(reminder.elderId)
+              .get();
+            if (elderDoc.exists) {
+              const elderData = elderDoc.data();
+              elderName = elderData?.firstName || elderName;
+            }
+          }
+
+          // Create notification for each recipient
+          for (const recipientId of reminder.recipients || []) {
+            await admin.firestore().collection('user_notifications').add({
+              userId: recipientId,
+              groupId: reminder.groupId,
+              elderId: reminder.elderId || null,
+              type: 'medication_reminder',
+              title: 'Medication Reminder',
+              message: `Time to give ${elderName} their medication`,
+              priority: 'high',
+              actionUrl: `/dashboard/activity?elder=${reminder.elderId}`,
+              read: false,
+              dismissed: false,
+              actionRequired: true,
+              sourceCollection: 'reminder_schedules',
+              sourceId: reminderId,
+              expiresAt: null,
+              createdAt: admin.firestore.Timestamp.now()
+            });
+
+            // Queue FCM push notification
+            await admin.firestore().collection('fcm_notification_queue').add({
+              userId: recipientId,
+              title: 'Medication Reminder',
+              body: `Time to give ${elderName} their medication`,
+              data: {
+                type: 'medication_reminder',
+                groupId: reminder.groupId,
+                elderId: reminder.elderId,
+                reminderId: reminderId
+              },
+              status: 'pending',
+              createdAt: admin.firestore.Timestamp.now()
+            });
+          }
+
+          // Mark reminder as triggered today
+          await reminderDoc.ref.update({
+            lastTriggeredDate: today,
+            lastTriggeredAt: admin.firestore.Timestamp.now()
+          });
+
+          processedCount++;
+        }
+      }
+
+      console.log(`Processed ${processedCount} reminders`);
+      return { success: true, processed: processedCount };
+    } catch (error) {
+      console.error('Error in checkMedicationReminders:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+// ============= MISSED DOSE DETECTION =============
+
+/**
+ * Scheduled Job: Detect missed medication doses
+ * Runs hourly at :30 (e.g., 8:30, 9:30, 10:30)
+ *
+ * Flow:
+ * 1. For each group/elder, check medications scheduled in the past hour
+ * 2. If no medication_log exists for that time, it's missed
+ * 3. Create user_notification for group admin
+ * 4. Create alert in alerts collection
+ */
+export const detectMissedDoses = functions.pubsub
+  .schedule('30 * * * *') // Every hour at :30
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting detectMissedDoses job...');
+
+    try {
+      const now = new Date();
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+      // Get all active groups
+      const groupsSnapshot = await admin.firestore()
+        .collection('groups')
+        .get();
+
+      let totalMissed = 0;
+
+      for (const groupDoc of groupsSnapshot.docs) {
+        const group = groupDoc.data();
+        const groupId = groupDoc.id;
+        const adminId = group.adminId;
+
+        // Get elders in this group
+        const eldersSnapshot = await admin.firestore()
+          .collection('elders')
+          .where('groupId', '==', groupId)
+          .get();
+
+        for (const elderDoc of eldersSnapshot.docs) {
+          const elder = elderDoc.data();
+          const elderId = elderDoc.id;
+          const elderName = elder.firstName || 'Elder';
+
+          // Get active medications for this elder
+          const medsSnapshot = await admin.firestore()
+            .collection('medications')
+            .where('groupId', '==', groupId)
+            .where('elderId', '==', elderId)
+            .where('status', '==', 'active')
+            .get();
+
+          const missedMeds: string[] = [];
+
+          for (const medDoc of medsSnapshot.docs) {
+            const med = medDoc.data();
+            const medId = medDoc.id;
+
+            // Get scheduled times from frequency
+            const scheduledTimes = med.frequency?.times || [];
+
+            for (const timeStr of scheduledTimes) {
+              // Parse time string (e.g., "08:00", "2:30 PM")
+              const scheduledDate = parseTimeToDate(timeStr, now);
+              if (!scheduledDate) continue;
+
+              // Check if this time was in the past hour window
+              if (scheduledDate >= twoHoursAgo && scheduledDate < oneHourAgo) {
+                // Check if there's a log for this medication around this time
+                const windowStart = new Date(scheduledDate.getTime() - 30 * 60 * 1000);
+                const windowEnd = new Date(scheduledDate.getTime() + 60 * 60 * 1000);
+
+                const logsSnapshot = await admin.firestore()
+                  .collection('medication_logs')
+                  .where('groupId', '==', groupId)
+                  .where('elderId', '==', elderId)
+                  .where('medicationId', '==', medId)
+                  .where('scheduledTime', '>=', admin.firestore.Timestamp.fromDate(windowStart))
+                  .where('scheduledTime', '<=', admin.firestore.Timestamp.fromDate(windowEnd))
+                  .limit(1)
+                  .get();
+
+                if (logsSnapshot.empty) {
+                  missedMeds.push(med.name);
+                }
+              }
+            }
+          }
+
+          // If there are missed medications, create notification
+          if (missedMeds.length > 0) {
+            const severity = missedMeds.length >= 3 ? 'high' : missedMeds.length >= 2 ? 'medium' : 'low';
+            const priority = severity === 'high' ? 'critical' : severity === 'medium' ? 'high' : 'medium';
+
+            // Create user notification
+            await admin.firestore().collection('user_notifications').add({
+              userId: adminId,
+              groupId: groupId,
+              elderId: elderId,
+              type: 'missed_dose',
+              title: 'Missed Dose Alert',
+              message: `${elderName} missed: ${missedMeds.join(', ')}`,
+              priority: priority,
+              actionUrl: `/dashboard/activity?elder=${elderId}`,
+              read: false,
+              dismissed: false,
+              actionRequired: true,
+              expiresAt: null,
+              createdAt: admin.firestore.Timestamp.now()
+            });
+
+            // Create alert in alerts collection
+            await admin.firestore().collection('alerts').add({
+              groupId: groupId,
+              elderId: elderId,
+              type: 'missed_dose',
+              severity: severity,
+              title: 'Missed Medication Dose',
+              message: `${elderName} missed ${missedMeds.length} medication(s): ${missedMeds.join(', ')}`,
+              data: {
+                missedMedications: missedMeds,
+                detectedAt: now.toISOString()
+              },
+              status: 'active',
+              createdAt: admin.firestore.Timestamp.now()
+            });
+
+            // Queue FCM push notification
+            await admin.firestore().collection('fcm_notification_queue').add({
+              userId: adminId,
+              title: 'Missed Dose Alert',
+              body: `${elderName} missed: ${missedMeds.join(', ')}`,
+              data: {
+                type: 'missed_dose',
+                groupId: groupId,
+                elderId: elderId
+              },
+              status: 'pending',
+              createdAt: admin.firestore.Timestamp.now()
+            });
+
+            totalMissed += missedMeds.length;
+          }
+        }
+      }
+
+      console.log(`Detected ${totalMissed} missed doses`);
+      return { success: true, missedCount: totalMissed };
+    } catch (error) {
+      console.error('Error in detectMissedDoses:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+/**
+ * Helper: Parse time string to Date object for today
+ */
+function parseTimeToDate(timeStr: string, referenceDate: Date): Date | null {
+  try {
+    // Handle formats like "08:00", "8:00 AM", "2:30 PM"
+    let hours = 0;
+    let minutes = 0;
+
+    const lowerTime = timeStr.toLowerCase().trim();
+
+    if (lowerTime.includes('am') || lowerTime.includes('pm')) {
+      // 12-hour format
+      const isPM = lowerTime.includes('pm');
+      const timePart = lowerTime.replace(/am|pm/gi, '').trim();
+      const parts = timePart.split(':');
+      hours = parseInt(parts[0], 10);
+      minutes = parts[1] ? parseInt(parts[1], 10) : 0;
+
+      if (isPM && hours !== 12) hours += 12;
+      if (!isPM && hours === 12) hours = 0;
+    } else {
+      // 24-hour format
+      const parts = timeStr.split(':');
+      hours = parseInt(parts[0], 10);
+      minutes = parts[1] ? parseInt(parts[1], 10) : 0;
+    }
+
+    if (isNaN(hours) || isNaN(minutes)) return null;
+
+    const result = new Date(referenceDate);
+    result.setHours(hours, minutes, 0, 0);
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+// ============= WEEKLY SUMMARY AUTO-GENERATION =============
+
+/**
+ * Scheduled Job: Generate weekly summaries
+ * Runs every Sunday at 8 AM
+ *
+ * Creates weekly summary and notification for each elder
+ */
+export const generateWeeklySummaries = functions.pubsub
+  .schedule('0 8 * * 0') // Every Sunday at 8 AM
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting generateWeeklySummaries job...');
+
+    try {
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - 7);
+
+      // Get all active groups
+      const groupsSnapshot = await admin.firestore()
+        .collection('groups')
+        .get();
+
+      let summariesGenerated = 0;
+
+      for (const groupDoc of groupsSnapshot.docs) {
+        const group = groupDoc.data();
+        const groupId = groupDoc.id;
+        const adminId = group.adminId;
+
+        // Get elders in this group
+        const eldersSnapshot = await admin.firestore()
+          .collection('elders')
+          .where('groupId', '==', groupId)
+          .get();
+
+        for (const elderDoc of eldersSnapshot.docs) {
+          const elder = elderDoc.data();
+          const elderId = elderDoc.id;
+          const elderName = elder.firstName || 'Elder';
+
+          // Calculate medication compliance
+          const logsSnapshot = await admin.firestore()
+            .collection('medication_logs')
+            .where('groupId', '==', groupId)
+            .where('elderId', '==', elderId)
+            .where('createdAt', '>=', admin.firestore.Timestamp.fromDate(weekStart))
+            .get();
+
+          const totalDoses = logsSnapshot.size;
+          const takenDoses = logsSnapshot.docs.filter(doc =>
+            doc.data().status === 'taken'
+          ).length;
+          const complianceRate = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 100;
+
+          // Create summary document
+          const summaryRef = await admin.firestore().collection('weeklySummaries').add({
+            groupId: groupId,
+            elderId: elderId,
+            elderName: elderName,
+            weekStart: admin.firestore.Timestamp.fromDate(weekStart),
+            weekEnd: admin.firestore.Timestamp.fromDate(now),
+            medicationCompliance: complianceRate,
+            totalDoses: totalDoses,
+            takenDoses: takenDoses,
+            missedDoses: totalDoses - takenDoses,
+            createdAt: admin.firestore.Timestamp.now()
+          });
+
+          // Create notification
+          const priority = complianceRate < 70 ? 'high' : 'low';
+          await admin.firestore().collection('user_notifications').add({
+            userId: adminId,
+            groupId: groupId,
+            elderId: elderId,
+            type: 'weekly_summary',
+            title: 'Weekly Summary Ready',
+            message: `${elderName}: ${complianceRate}% medication compliance`,
+            priority: priority,
+            actionUrl: `/dashboard/insights?elder=${elderId}`,
+            read: false,
+            dismissed: false,
+            actionRequired: complianceRate < 70,
+            sourceCollection: 'weeklySummaries',
+            sourceId: summaryRef.id,
+            expiresAt: null,
+            createdAt: admin.firestore.Timestamp.now()
+          });
+
+          summariesGenerated++;
+        }
+      }
+
+      console.log(`Generated ${summariesGenerated} weekly summaries`);
+      return { success: true, count: summariesGenerated };
+    } catch (error) {
+      console.error('Error in generateWeeklySummaries:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });

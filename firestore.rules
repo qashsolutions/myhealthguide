@@ -1489,6 +1489,30 @@ service cloud.firestore {
       allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
+    // ============= User Notifications Collection =============
+    // Unified notification system for bell icon
+    // All notification types flow into this collection
+
+    match /user_notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // System/Cloud Functions create notifications
+      // Users can create notifications for themselves (e.g., from client-side actions)
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Users can mark as read/dismissed only
+      allow update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'dismissed']);
+
+      // Users can delete their own notifications
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
