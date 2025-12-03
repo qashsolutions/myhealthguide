@@ -257,7 +257,7 @@ async function analyzeDietIntake(
 ): Promise<EmergencyFactor | null> {
   try {
     const dietQuery = query(
-      collection(db, 'dietEntries'),
+      collection(db, 'diet_entries'),
       where('groupId', '==', groupId),
       where('elderId', '==', elderId),
       where('timestamp', '>=', Timestamp.fromDate(startDate)),
@@ -270,7 +270,7 @@ async function analyzeDietIntake(
     const prevWeekStart = new Date(startDate);
     prevWeekStart.setDate(prevWeekStart.getDate() - 7);
     const prevDietQuery = query(
-      collection(db, 'dietEntries'),
+      collection(db, 'diet_entries'),
       where('groupId', '==', groupId),
       where('elderId', '==', elderId),
       where('timestamp', '>=', Timestamp.fromDate(prevWeekStart)),
@@ -610,7 +610,7 @@ async function getMedicationLogs(
   endDate: Date
 ): Promise<MedicationLog[]> {
   const q = query(
-    collection(db, 'medicationLogs'),
+    collection(db, 'medication_logs'),
     where('groupId', '==', groupId),
     where('elderId', '==', elderId),
     where('scheduledTime', '>=', Timestamp.fromDate(startDate)),
@@ -628,7 +628,7 @@ async function getDietEntries(
   endDate: Date
 ): Promise<DietEntry[]> {
   const q = query(
-    collection(db, 'dietEntries'),
+    collection(db, 'diet_entries'),
     where('groupId', '==', groupId),
     where('elderId', '==', elderId),
     where('timestamp', '>=', Timestamp.fromDate(startDate)),

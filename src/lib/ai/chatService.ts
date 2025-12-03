@@ -264,10 +264,24 @@ function detectActions(userMessage: string, context: ChatContext): ChatAction[] 
  */
 export async function saveChatMessage(message: Omit<ChatMessage, 'id'>): Promise<string> {
   try {
-    const docRef = await addDoc(collection(db, `chat_history/${message.userId}/messages`), {
-      ...message,
+    // Build the document data, excluding undefined fields
+    // Firestore doesn't accept undefined values
+    const docData: Record<string, any> = {
+      role: message.role,
+      content: message.content,
       timestamp: Timestamp.fromDate(message.timestamp),
-    });
+      userId: message.userId,
+    };
+
+    // Only add optional fields if they have values
+    if (message.groupId) {
+      docData.groupId = message.groupId;
+    }
+    if (message.actions && message.actions.length > 0) {
+      docData.actions = message.actions;
+    }
+
+    const docRef = await addDoc(collection(db, `chat_history/${message.userId}/messages`), docData);
     return docRef.id;
   } catch (error) {
     console.error('Error saving chat message:', error);

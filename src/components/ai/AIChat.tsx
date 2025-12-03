@@ -172,7 +172,7 @@ export function AIChat({ context }: AIChatProps) {
             </div>
             <div>
               <CardTitle className="flex items-center gap-2">
-                AI Care Assistant
+                Smart Assistant
               </CardTitle>
               <CardDescription>
                 Ask me anything about your care schedules, medications, or tasks
