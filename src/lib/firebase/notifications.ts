@@ -483,11 +483,22 @@ export class NotificationService {
    */
   static async createReminderSchedule(schedule: Omit<ReminderSchedule, 'id' | 'createdAt'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, 'reminder_schedules'), {
+      const docData = {
         ...schedule,
         scheduledTime: Timestamp.fromDate(schedule.scheduledTime),
         createdAt: Timestamp.now()
-      });
+      };
+
+      // Debug: Log exact data being sent to Firestore
+      console.log('Creating reminder schedule with data:', JSON.stringify({
+        groupId: docData.groupId,
+        elderId: docData.elderId,
+        type: docData.type,
+        enabled: docData.enabled,
+        recipients: docData.recipients
+      }));
+
+      const docRef = await addDoc(collection(db, 'reminder_schedules'), docData);
 
       return docRef.id;
     } catch (error) {

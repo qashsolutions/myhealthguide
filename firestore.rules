@@ -21,16 +21,19 @@ service cloud.firestore {
     }
 
     // Check if user has active trial OR subscription
+    // Optimized to use single get() call to reduce read count
     function hasActiveAccess(userId) {
+      let userData = get(/databases/$(database)/documents/users/$(userId)).data;
       return isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(userId)) &&
-        (get(/databases/$(database)/documents/users/$(userId)).data.subscriptionStatus == 'active' ||
-         (get(/databases/$(database)/documents/users/$(userId)).data.subscriptionStatus == 'trial' &&
-          get(/databases/$(database)/documents/users/$(userId)).data.trialEndDate != null &&
-          request.time < get(/databases/$(database)/documents/users/$(userId)).data.trialEndDate));
+        (userData.subscriptionStatus == 'active' ||
+         (userData.subscriptionStatus == 'trial' &&
+          userData.trialEndDate != null &&
+          request.time < userData.trialEndDate));
     }
 
     // Check if user has verified email
+    // Optimized to use single get() call
     function hasVerifiedEmail(userId) {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(userId)) &&
@@ -38,6 +41,7 @@ service cloud.firestore {
     }
 
     // Check if user has verified phone
+    // Optimized to use single get() call
     function hasVerifiedPhone(userId) {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(userId)) &&
@@ -46,12 +50,20 @@ service cloud.firestore {
 
     // Check if user has at least one verified contact method
     function hasVerifiedContact(userId) {
-      return hasVerifiedEmail(userId) || hasVerifiedPhone(userId);
+      let userData = get(/databases/$(database)/documents/users/$(userId)).data;
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        (userData.emailVerified == true || userData.phoneVerified == true);
     }
 
     // Check if user is fully verified (both email and phone)
+    // Optimized: single get() call instead of calling two functions
     function isFullyVerified(userId) {
-      return hasVerifiedEmail(userId) && hasVerifiedPhone(userId);
+      let userData = get(/databases/$(database)/documents/users/$(userId)).data;
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        userData.emailVerified == true &&
+        userData.phoneVerified == true;
     }
 
     // Check if user is a member of a group
