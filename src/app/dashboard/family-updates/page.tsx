@@ -26,6 +26,7 @@ export default function FamilyUpdatesPage() {
 
   useEffect(() => {
     loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, elderId]);
 
   async function loadReports() {

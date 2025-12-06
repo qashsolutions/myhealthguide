@@ -62,6 +62,7 @@ export default function HealthChatPage() {
     }
 
     checkConsent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, selectedElder]);
 
   const checkConsent = async () => {

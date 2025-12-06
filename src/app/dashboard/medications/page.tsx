@@ -58,6 +58,7 @@ export default function MedicationsPage() {
     }
 
     loadMedications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElder, user]);
 
   if (loading) {

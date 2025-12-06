@@ -43,6 +43,7 @@ export default function DrugInteractionsPage() {
     }
 
     checkConsent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, groupId]);
 
   async function checkConsent() {

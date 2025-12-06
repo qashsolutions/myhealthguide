@@ -115,6 +115,7 @@ export default function CalendarPage() {
         loadNotifications();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWeekStart, selectedCaregiverId, isMultiAgency, userAgency]);
 
   const loadSchedule = async () => {

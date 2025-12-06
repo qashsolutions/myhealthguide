@@ -54,6 +54,7 @@ export function HealthConditionsTab({ elderId, groupId, userId }: HealthConditio
 
   useEffect(() => {
     loadConditions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elderId, groupId]);
 
   const loadConditions = async () => {

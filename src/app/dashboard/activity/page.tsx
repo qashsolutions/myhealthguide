@@ -126,6 +126,7 @@ export default function ActivityPage() {
     }
 
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElder, user]);
 
   // Load today's medication logs

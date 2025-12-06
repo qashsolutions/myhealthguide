@@ -68,6 +68,7 @@ export default function AvailabilityPage() {
     if (user && userAgency && isCaregiver && isMultiAgency) {
       loadAvailability();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, userAgency, isCaregiver, isMultiAgency]);
 
   const loadAvailability = async () => {

@@ -146,6 +146,7 @@ export function AIInsightsContainer({
     }
 
     loadInsights();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elderId, groupId, showHealthChanges, showMedicationOptimization, user]);
 
   if (loading) {

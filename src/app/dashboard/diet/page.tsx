@@ -58,6 +58,7 @@ export default function DietPage() {
     }
 
     loadEntries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElder, user]);
 
   const getMealIcon = (meal: string) => {

@@ -369,6 +369,7 @@ export default function FeaturesPage() {
     });
 
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

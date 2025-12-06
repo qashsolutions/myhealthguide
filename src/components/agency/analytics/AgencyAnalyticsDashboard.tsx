@@ -48,6 +48,7 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
 
   useEffect(() => {
     loadAnalyticsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agencyId]);
 
   const loadAnalyticsData = async () => {

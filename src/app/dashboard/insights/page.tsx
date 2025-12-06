@@ -118,6 +118,7 @@ export default function InsightsPage() {
       loadTrendsData(selectedTrendsWeeks);
       loadChatContext();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElder, selectedTrendsWeeks]);
 
   // Load chat context
@@ -234,6 +235,7 @@ export default function InsightsPage() {
     if (selectedElder) {
       loadInsights();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedElder]);
 
   if (loadingElders) {

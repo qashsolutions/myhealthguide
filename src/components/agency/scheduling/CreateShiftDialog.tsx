@@ -73,6 +73,7 @@ export function CreateShiftDialog({
         setDate(initialDate);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, groupId, initialDate]);
 
   useEffect(() => {

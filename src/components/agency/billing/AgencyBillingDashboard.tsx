@@ -37,6 +37,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
 
   useEffect(() => {
     loadBillingData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agencyId]);
 
   const loadBillingData = async () => {

@@ -31,6 +31,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
 
   useEffect(() => {
     loadAgencyData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agencyId]);
 
   const loadAgencyData = async () => {

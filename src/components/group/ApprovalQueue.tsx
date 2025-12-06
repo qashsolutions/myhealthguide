@@ -52,6 +52,7 @@ export function ApprovalQueue({ groupId, adminId }: ApprovalQueueProps) {
 
   useEffect(() => {
     loadApprovals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
   const loadApprovals = async () => {

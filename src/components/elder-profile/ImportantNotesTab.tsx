@@ -63,6 +63,7 @@ export function ImportantNotesTab({ elderId, groupId, userId }: ImportantNotesTa
 
   useEffect(() => {
     loadNotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elderId, groupId]);
 
   const loadNotes = async () => {

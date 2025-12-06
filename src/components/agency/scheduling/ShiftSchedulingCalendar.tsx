@@ -93,6 +93,7 @@ export function ShiftSchedulingCalendar({
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agencyId, groupId, currentWeekStart]);
 
   const loadData = async () => {

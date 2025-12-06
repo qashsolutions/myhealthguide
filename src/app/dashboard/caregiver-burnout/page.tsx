@@ -23,6 +23,7 @@ export default function CaregiverBurnoutPage() {
     if (isAgencyAdmin && agencyId) {
       loadAssessments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAgencyAdmin, agencyId]);
 
   async function loadAssessments() {

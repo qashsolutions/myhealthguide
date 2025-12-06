@@ -39,6 +39,7 @@ export default function MedicationAdherencePage() {
 
   useEffect(() => {
     loadPredictions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, elderId]);
 
   async function loadPredictions() {

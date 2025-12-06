@@ -56,6 +56,7 @@ export default function ElderProfilePage() {
 
   useEffect(() => {
     loadElderData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elderId, groupId, user?.id]);
 
   const loadElderData = async () => {

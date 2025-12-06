@@ -54,6 +54,7 @@ export function AllergiesTab({ elderId, groupId, userId }: AllergiesTabProps) {
 
   useEffect(() => {
     loadAllergies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elderId, groupId]);
 
   const loadAllergies = async () => {

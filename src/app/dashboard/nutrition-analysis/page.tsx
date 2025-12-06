@@ -36,6 +36,7 @@ export default function NutritionAnalysisPage() {
 
   useEffect(() => {
     loadReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, elderId]);
 
   async function loadReport() {

@@ -35,6 +35,7 @@ export default function PHIDisclosuresPage() {
   // Load disclosures
   useEffect(() => {
     loadDisclosures();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, startDate, endDate]);
 
   const loadDisclosures = async () => {

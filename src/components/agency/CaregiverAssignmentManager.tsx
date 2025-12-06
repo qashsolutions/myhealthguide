@@ -61,6 +61,7 @@ export function CaregiverAssignmentManager({
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agencyId, groupId]);
 
   const loadData = async () => {

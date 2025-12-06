@@ -33,6 +33,7 @@ export default function DocumentsPage() {
     if (user) {
       loadDocuments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, selectedElder]);
 
   const loadDocuments = async () => {

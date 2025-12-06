@@ -61,6 +61,7 @@ export default function IncidentsPage() {
     if (selectedElder) {
       loadIncidents();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElder]);
 
   const loadIncidents = async () => {
