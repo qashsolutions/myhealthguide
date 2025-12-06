@@ -14,7 +14,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mt-8 mb-4">1. Acceptance of Terms</h2>
             <p className="mb-4">
-              These Terms of Service ("Terms") constitute a legally binding agreement between you and Qash Solutions Inc. ("Company," "we," "us," or "our") governing your use of myguide.health (the "Service").
+              These Terms of Service (&quot;Terms&quot;) constitute a legally binding agreement between you and Qash Solutions Inc. (&quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) governing your use of myguide.health (the &quot;Service&quot;).
             </p>
             <p className="mb-4">
               <strong>Company Information:</strong>
@@ -86,7 +86,7 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4.3 Plan Limits</h3>
             <p className="mb-4">
-              Plan limits are strictly enforced. If you exceed your plan's limits for elders, caregivers, groups, or storage, you must upgrade to a higher-tier plan. We reserve the right to restrict access to features if you exceed plan limits.
+              Plan limits are strictly enforced. If you exceed your plan&apos;s limits for elders, caregivers, groups, or storage, you must upgrade to a higher-tier plan. We reserve the right to restrict access to features if you exceed plan limits.
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4.4 Cancellation and Refunds</h3>

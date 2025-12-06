@@ -590,7 +590,7 @@ export default function VerifyPage() {
                       ) : (
                         <>
                           <RefreshCw className="mr-2 h-5 w-5" />
-                          I've verified my email
+                          I&apos;ve verified my email
                         </>
                       )}
                     </Button>

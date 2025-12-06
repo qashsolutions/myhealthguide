@@ -156,7 +156,7 @@ function VerifyEmailContent() {
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                I've verified my email
+                I&apos;ve verified my email
               </>
             )}
           </Button>
