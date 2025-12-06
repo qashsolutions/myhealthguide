@@ -1517,17 +1517,16 @@ service cloud.firestore {
     // Private notes for caregivers to capture insights and tips
 
     match /caregiver_notes/{noteId} {
-      // Users can read their own notes
-      // Group members can read notes shared within their group
+      // Users can read their own notes (primary use case)
+      // No group membership check needed for own notes
       allow read: if isSignedIn() &&
-        (resource.data.userId == request.auth.uid ||
-         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid)));
+        resource.data.userId == request.auth.uid;
 
       // Users can create their own notes
+      // Group membership validated at API level for flexibility
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        request.resource.data.userId == request.auth.uid &&
-        isMemberOfGroup(request.resource.data.groupId);
+        request.resource.data.userId == request.auth.uid;
 
       // Users can update their own notes
       allow update: if isSignedIn() &&
