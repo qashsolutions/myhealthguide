@@ -32,7 +32,8 @@ import {
   CalendarDays,
   UserCog,
   CalendarCheck,
-  ClockIcon
+  ClockIcon,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -73,6 +74,9 @@ const featureTooltips: Record<string, string> = {
   '/dashboard/medgemma': 'Your health assistant - ask questions about care',
   '/dashboard/clinical-notes': 'Generate a summary report for doctor visits',
   '/dashboard/reports': 'View all reports in one place',
+
+  // My Notes
+  '/dashboard/notes': 'Capture caregiving insights and share tips with the community',
 };
 
 // Define collapsible sections structure
@@ -118,6 +122,7 @@ const elderCentricSections = [
     icon: Mail,
     defaultOpen: false,
     items: [
+      { href: '/dashboard/notes', label: 'My Notes', icon: BookOpen },
       { href: '/dashboard/shift-handoff', label: 'Shift Handoff', icon: Clock },
       { href: '/dashboard/timesheet', label: 'Timesheet', icon: Clock },
       { href: '/dashboard/documents', label: 'Documents', icon: FolderOpen },

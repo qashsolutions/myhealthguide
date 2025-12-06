@@ -413,6 +413,62 @@ export interface ElderHealthInsight {
   dismissedBy?: string;
 }
 
+// ============= Caregiver Notes & Tips =============
+
+export type CaregiverNoteCategory = 'self_care' | 'communication' | 'medical_knowledge' | 'daily_care';
+
+export interface NoteSourceCitation {
+  authorName?: string;
+  sourceName?: string;
+  sourceType?: 'book' | 'article' | 'course' | 'experience' | 'other';
+  referencePage?: string;
+}
+
+export interface NoteAIMetadata {
+  generatedTitle: string;
+  keywords: string[];
+  summary: string;
+  category: CaregiverNoteCategory;
+  extractedAt: Date;
+}
+
+export interface CaregiverNote {
+  id?: string;
+  userId: string;
+  groupId: string;
+  title: string;
+  content: string;
+  userTags: string[];
+  source?: NoteSourceCitation;
+  inputMethod: 'manual' | 'voice';
+  voiceTranscript?: string;
+  aiMetadata?: NoteAIMetadata;
+  status: 'draft' | 'private' | 'published';
+  publishedTipId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PublishedTip {
+  id?: string;
+  sourceNoteId: string;
+  sourceUserId: string;
+  title: string;
+  content: string;
+  summary: string;
+  category: CaregiverNoteCategory;
+  keywords: string[];
+  userTags: string[];
+  authorFirstName?: string;
+  isAnonymous: boolean;
+  source?: NoteSourceCitation;
+  viewCount: number;
+  likeCount: number;
+  safetyScore: number;
+  publishedAt: Date;
+  algoliaObjectId?: string;
+}
+
 // ============= Medication Types =============
 export interface Medication {
   id: string;

@@ -1513,6 +1513,57 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
+    // ============= Caregiver Notes Collection =============
+    // Private notes for caregivers to capture insights and tips
+
+    match /caregiver_notes/{noteId} {
+      // Users can read their own notes
+      // Group members can read notes shared within their group
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid)));
+
+      // Users can create their own notes
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Users can update their own notes
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.userId == request.auth.uid;
+
+      // Users can delete their own notes
+      // GDPR: Allow even without active trial for Right to be Forgotten
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ============= Published Tips Collection =============
+    // Public tips shared by caregivers (anonymized)
+
+    match /published_tips/{tipId} {
+      // Anyone can read published tips (public content)
+      allow read: if true;
+
+      // Only the source note owner can create a published tip
+      // System validates this via API route
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.sourceUserId == request.auth.uid;
+
+      // Only the source note owner can update their tip
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.sourceUserId == request.auth.uid;
+
+      // Only the source note owner can delete (unpublish)
+      // GDPR: Allow even without active trial for Right to be Forgotten
+      allow delete: if isSignedIn() &&
+        resource.data.sourceUserId == request.auth.uid;
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
