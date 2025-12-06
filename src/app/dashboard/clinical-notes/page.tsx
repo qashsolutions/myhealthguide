@@ -455,7 +455,7 @@ export default function ClinicalNotesPage() {
               <p className="text-xs text-gray-500 dark:text-gray-400 italic">
                 <strong>MEDICAL DISCLAIMER:</strong> This SOAP note is auto-generated from caregiver-logged data to assist clinical discussions.
                 It does NOT constitute medical advice, diagnosis, or treatment recommendations.
-                The "Assessment" section contains AI-generated observations based on data patterns only.
+                The &quot;Assessment&quot; section contains AI-generated observations based on data patterns only.
                 All medical decisions should be made by licensed healthcare providers.
               </p>
             </div>

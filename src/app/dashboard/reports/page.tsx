@@ -226,7 +226,7 @@ export default function ReportsPage() {
 
           {/* Disclaimer */}
           <div className="text-xs text-gray-500 dark:text-gray-400 text-center p-4">
-            All reports analyze data you've logged. They do not provide medical advice, diagnosis, or treatment recommendations.
+            All reports analyze data you&apos;ve logged. They do not provide medical advice, diagnosis, or treatment recommendations.
             Always consult healthcare providers for medical decisions.
           </div>
         </div>

@@ -206,7 +206,7 @@ export default function HealthChatPage() {
               Health Records Lookup
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              View summaries of medications, meals, and compliance data you've logged
+              View summaries of medications, meals, and compliance data you&apos;ve logged
             </p>
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function HealthChatPage() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                View {selectedElder?.name || 'your elder'}'s logged health data
+                View {selectedElder?.name || 'your elder'}&apos;s logged health data
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Ask about recorded information like:

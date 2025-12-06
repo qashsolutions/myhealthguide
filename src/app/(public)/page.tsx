@@ -126,7 +126,7 @@ export default function LandingPage() {
                     </h3>
                   </div>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Simply say "John took Lisinopril at 9am" and we'll log it instantly.
+                    Simply say &quot;John took Lisinopril at 9am&quot; and we&apos;ll log it instantly.
                     No typing required.
                   </p>
                 </CardContent>
@@ -144,7 +144,7 @@ export default function LandingPage() {
                     </h3>
                   </div>
                   <p className="text-gray-600 dark:text-gray-300">
-                    See how your loved one is doing at a glance. We'll alert you when
+                    See how your loved one is doing at a glance. We&apos;ll alert you when
                     something looks off so you never miss a beat.
                   </p>
                 </CardContent>

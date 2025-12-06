@@ -138,7 +138,7 @@ export default function JoinGroupPage() {
             <div className="space-y-4">
               <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
                 <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm">
-                  You'll be notified once the admin approves your request. This usually happens within 24 hours.
+                  You&apos;ll be notified once the admin approves your request. This usually happens within 24 hours.
                 </AlertDescription>
               </Alert>
 
@@ -241,7 +241,7 @@ export default function JoinGroupPage() {
               <li>Enter the invite code shared by your group admin</li>
               <li>Your join request will be sent for approval</li>
               <li>The admin will review and approve your request</li>
-              <li>You'll get read-only access by default</li>
+              <li>You&apos;ll get read-only access by default</li>
               <li>Admin can grant you write permission if needed</li>
             </ol>
           </div>

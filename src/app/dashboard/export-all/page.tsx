@@ -93,7 +93,7 @@ export default function ExportAllDataPage() {
 
           {/* What's Included */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">What's Included in Your Export</h3>
+            <h3 className="font-semibold text-lg">What&apos;s Included in Your Export</h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
@@ -119,7 +119,7 @@ export default function ExportAllDataPage() {
                   <div>
                     <p className="font-medium">Group Data</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      All groups you're part of and their settings
+                      All groups you&apos;re part of and their settings
                     </p>
                   </div>
                 </div>

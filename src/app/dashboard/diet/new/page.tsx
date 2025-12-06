@@ -393,7 +393,7 @@ export default function NewDietEntryPage() {
                 Smart Nutrition
               </CardTitle>
               <CardDescription>
-                Add food items and click "Smart Nutrition Analysis" to receive insights
+                Add food items and click &quot;Smart Nutrition Analysis&quot; to receive insights
               </CardDescription>
             </CardHeader>
             <CardContent>

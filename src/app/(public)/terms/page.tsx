@@ -178,14 +178,14 @@ export default function TermsPage() {
                 AI OUTPUT ACCURACY DISCLAIMER
               </p>
               <p className="text-amber-700 dark:text-amber-400">
-                You acknowledge that the Services utilize artificial intelligence and machine learning technologies ("AI Technologies"). AI Technologies are probabilistic in nature and may generate output that is inaccurate, incomplete, misleading, or inappropriate.
+                You acknowledge that the Services utilize artificial intelligence and machine learning technologies (&quot;AI Technologies&quot;). AI Technologies are probabilistic in nature and may generate output that is inaccurate, incomplete, misleading, or inappropriate.
               </p>
             </div>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">7.1 Nature of AI Technology</h3>
             <p className="mb-4">You understand and acknowledge that:</p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>AI Technologies use statistical models to generate responses and may produce errors, inaccuracies, or "hallucinations" (confident statements that are factually incorrect)</li>
+              <li>AI Technologies use statistical models to generate responses and may produce errors, inaccuracies, or &quot;hallucinations&quot; (confident statements that are factually incorrect)</li>
               <li>AI-generated content may be incomplete, out of date, or inconsistent with current medical knowledge or best practices</li>
               <li>The AI may misinterpret, misclassify, or incorrectly analyze the information you provide</li>
               <li>AI outputs should be considered as one of many inputs to your decision-making, not as authoritative or definitive answers</li>
@@ -310,9 +310,9 @@ export default function TermsPage() {
               </p>
             </div>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">12.1 Service "As Is"</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">12.1 Service &quot;As Is&quot;</h3>
             <p className="mb-4">
-              THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.
+              THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">12.2 Limitation of Liability</h3>
@@ -332,7 +332,7 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">12.3 Liability Cap</h3>
             <p className="mb-4">
-              <strong>IN NO EVENT SHALL QASH SOLUTIONS INC.'S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE GREATER OF:</strong>
+              <strong>IN NO EVENT SHALL QASH SOLUTIONS INC.&apos;S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE GREATER OF:</strong>
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>ONE HUNDRED U.S. DOLLARS (US $100.00); OR</li>
@@ -356,7 +356,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mt-8 mb-4">13. Indemnification</h2>
             <p className="mb-4">
-              You agree to defend, indemnify, and hold harmless Qash Solutions Inc. and its licensees and licensors, and their respective employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs, or debt, and expenses (including but not limited to attorney's fees) resulting from or arising out of:
+              You agree to defend, indemnify, and hold harmless Qash Solutions Inc. and its licensees and licensors, and their respective employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs, or debt, and expenses (including but not limited to attorney&apos;s fees) resulting from or arising out of:
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Your access to and use of the Service, including any data or content transmitted or received by you</li>
@@ -364,7 +364,7 @@ export default function TermsPage() {
               <li>Your violation of any third-party right, including without limitation any intellectual property right, publicity right, confidentiality right, property right, or privacy right</li>
               <li>Your violation of any applicable law, rule, or regulation</li>
               <li>Any content you submit, post, or transmit through the Service, including but not limited to health information, medication data, or any other user content</li>
-              <li>Any other party's access to and use of the Service with your unique username, password, or other appropriate security code</li>
+              <li>Any other party&apos;s access to and use of the Service with your unique username, password, or other appropriate security code</li>
               <li>Any claim that your use of the Service caused damage to a third party</li>
             </ul>
             <p className="mb-4">
@@ -381,7 +381,7 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">14.2 Arbitration</h3>
             <p className="mb-4">
-              Any dispute arising from these Terms or the Service shall be resolved through binding arbitration in accordance with the American Arbitration Association's rules, conducted in Texas, United States.
+              Any dispute arising from these Terms or the Service shall be resolved through binding arbitration in accordance with the American Arbitration Association&apos;s rules, conducted in Texas, United States.
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">14.3 Class Action Waiver</h3>
@@ -400,7 +400,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mt-8 mb-4">16. Changes to Terms</h2>
             <p className="mb-4">
-              We may update these Terms from time to time. When we make changes, we will update the "Last Updated" date and post the revised Terms on this page.
+              We may update these Terms from time to time. When we make changes, we will update the &quot;Last Updated&quot; date and post the revised Terms on this page.
             </p>
             <p className="mb-4">
               Your continued use of the Service after changes are posted constitutes your acceptance of the updated Terms.

@@ -284,7 +284,7 @@ export default function HipaaNoticePage() {
             <p className="mb-4"><strong>To file a complaint with us:</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Email: admin@myguide.health</li>
-              <li>Subject Line: "HIPAA Privacy Complaint"</li>
+              <li>Subject Line: &quot;HIPAA Privacy Complaint&quot;</li>
               <li>Include: Your name, contact information, and description of the issue</li>
             </ul>
 

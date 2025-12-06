@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mt-8 mb-4">1. Introduction</h2>
             <p className="mb-4">
-              Qash Solutions Inc. ("we," "us," or "our") operates myguide.health (the "Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service.
+              Qash Solutions Inc. (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates myguide.health (the &quot;Service&quot;). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service.
             </p>
             <p className="mb-4">
               <strong>Business Information:</strong>
@@ -250,7 +250,7 @@ export default function PrivacyPage() {
             <p className="mb-4"><strong>Marketing Cookies:</strong> Currently not used</p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">7.3 Local Storage</h3>
-            <p className="mb-4">We store the following data in your browser's local storage:</p>
+            <p className="mb-4">We store the following data in your browser&apos;s local storage:</p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li><code>app_session_id</code> - Session identifier (persists across page reloads until logout)</li>
               <li><code>app_session_data</code> - Session metadata</li>
@@ -285,7 +285,7 @@ export default function PrivacyPage() {
             <h3 className="text-xl font-semibold mt-6 mb-3">8.1 Within the Application</h3>
             <p className="mb-4"><strong>Group Members:</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Family members in the same group can view shared elders' data</li>
+              <li>Family members in the same group can view shared elders&apos; data</li>
               <li>Permission levels control who can view vs. edit</li>
               <li>Group admins have full access to group data</li>
             </ul>
@@ -476,7 +476,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mt-8 mb-4">14. Changes to This Privacy Policy</h2>
             <p className="mb-4">
-              We may update our Privacy Policy from time to time. When we make changes, we will update the "Last Updated" date at the top of this policy and post the updated policy on this page.
+              We may update our Privacy Policy from time to time. When we make changes, we will update the &quot;Last Updated&quot; date at the top of this policy and post the updated policy on this page.
             </p>
             <p className="mb-4">
               We encourage you to review this Privacy Policy periodically for any changes. Your continued use of the Service after we post any modifications to the Privacy Policy constitutes your acknowledgment of the modifications and your consent to abide by the modified policy.

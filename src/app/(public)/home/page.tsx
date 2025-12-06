@@ -72,7 +72,7 @@ export default function LandingPage() {
                     </h3>
                   </div>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Simply say "John took Lisinopril at 9am" and we'll log it instantly.
+                    Simply say &quot;John took Lisinopril at 9am&quot; and we&apos;ll log it instantly.
                     No typing required.
                   </p>
                 </CardContent>

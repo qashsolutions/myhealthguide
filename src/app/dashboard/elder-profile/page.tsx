@@ -124,7 +124,7 @@ export default function ElderProfilePage() {
             Access Denied
           </CardTitle>
           <CardDescription>
-            You do not have permission to view this elder's health profile.
+            You do not have permission to view this elder&apos;s health profile.
             Only group admins and the primary caregiver can access this information.
           </CardDescription>
         </CardHeader>
@@ -164,7 +164,7 @@ export default function ElderProfilePage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Heart className="w-8 h-8 text-red-500" />
-            {elder.preferredName || elder.name}'s Health Profile
+            {elder.preferredName || elder.name}&apos;s Health Profile
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Comprehensive health information and care insights

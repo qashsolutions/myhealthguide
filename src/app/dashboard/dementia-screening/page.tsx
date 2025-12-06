@@ -244,8 +244,8 @@ export default function DementiaScreeningPage() {
               Behavioral pattern monitoring requires <strong>notes</strong> in your care logs. To run a screening:
             </p>
             <ul className="mt-2 text-sm list-disc list-inside space-y-1">
-              <li>Add notes when logging medications (e.g., "seemed confused about the time")</li>
-              <li>Add notes to diet entries (e.g., "didn't remember eating breakfast")</li>
+              <li>Add notes when logging medications (e.g., &quot;seemed confused about the time&quot;)</li>
+              <li>Add notes to diet entries (e.g., &quot;didn&apos;t remember eating breakfast&quot;)</li>
               <li>Record any behavioral observations you notice during care</li>
             </ul>
             <p className="mt-2 text-sm">
@@ -460,7 +460,7 @@ export default function DementiaScreeningPage() {
             <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 p-4">
               <p className="text-xs text-purple-800 dark:text-purple-200">
                 <strong>Next Steps:</strong> If you have concerns about these patterns, schedule
-                an appointment with {elderName}'s healthcare provider. Bring this report or share
+                an appointment with {elderName}&apos;s healthcare provider. Bring this report or share
                 specific examples from the care notes. Early detection and intervention can make a
                 significant difference.
               </p>

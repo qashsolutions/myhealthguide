@@ -272,7 +272,7 @@ export default function HelpPage() {
           {searchQuery ? (
             <>
               Found <strong>{filteredResults.length}</strong> result
-              {filteredResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+              {filteredResults.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;
             </>
           ) : (
             <>
@@ -378,7 +378,7 @@ export default function HelpPage() {
         {/* Popular Topics Hint */}
         {!searchQuery && (
           <div className="mt-12 text-center text-sm text-gray-500 dark:text-gray-500">
-            <p>💡 Tip: Try searching for "medication", "clinical notes", "AI", or "agency"</p>
+            <p>💡 Tip: Try searching for &quot;medication&quot;, &quot;clinical notes&quot;, &quot;AI&quot;, or &quot;agency&quot;</p>
           </div>
         )}
       </div>

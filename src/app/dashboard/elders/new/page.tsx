@@ -40,7 +40,7 @@ const COMMON_LANGUAGES = [
 const COMMON_CONDITIONS = [
   { id: 'diabetes', label: 'Diabetes', icon: '🩸' },
   { id: 'hypertension', label: 'Hypertension', icon: '❤️' },
-  { id: 'dementia', label: 'Dementia/Alzheimer\'s', icon: '🧠' },
+  { id: 'dementia', label: "Dementia/Alzheimer's", icon: '🧠' },
   { id: 'heart_disease', label: 'Heart Disease', icon: '💗' },
   { id: 'arthritis', label: 'Arthritis', icon: '🦴' },
 ];
@@ -185,7 +185,7 @@ export default function NewElderPage() {
                 </div>
                 <div>
                   <CardTitle>Add New Elder</CardTitle>
-                  <CardDescription>Enter the basic information for the person you'll be caring for</CardDescription>
+                  <CardDescription>Enter the basic information for the person you&apos;ll be caring for</CardDescription>
                 </div>
               </div>
             </CardHeader>

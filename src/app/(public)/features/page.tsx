@@ -387,7 +387,7 @@ export default function FeaturesPage() {
             </div>
 
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Keep Track of Your Loved One's Health — Simply
+              Keep Track of Your Loved One&apos;s Health — Simply
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
               Log medications, meals, and daily activities. Get reminders. Share updates with family. All in one easy-to-use app.

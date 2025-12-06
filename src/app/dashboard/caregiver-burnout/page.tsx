@@ -332,7 +332,7 @@ export default function CaregiverBurnoutPage() {
               {selectedAssessment.burnoutRisk !== 'low' && (
                 <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 p-4">
                   <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-3">
-                    ⚠️ <strong>Action Required:</strong> This caregiver's workload should be
+                    ⚠️ <strong>Action Required:</strong> This caregiver&apos;s workload should be
                     reviewed. Consider scheduling a check-in meeting to discuss their wellbeing and
                     workload distribution.
                   </p>
