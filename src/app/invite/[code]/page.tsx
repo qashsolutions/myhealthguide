@@ -27,6 +27,7 @@ export default function InviteAcceptPage({ params }: { params: { code: string } 
 
   useEffect(() => {
     validateInvite();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.code]);
 
   const validateInvite = async () => {
@@ -131,7 +132,7 @@ export default function InviteAcceptPage({ params }: { params: { code: string } 
             </div>
             <CardTitle className="text-center">Welcome to the Group!</CardTitle>
             <CardDescription className="text-center">
-              You've successfully joined {invite?.groupName}
+              You&apos;ve successfully joined {invite?.groupName}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -153,7 +154,7 @@ export default function InviteAcceptPage({ params }: { params: { code: string } 
               <Heart className="w-8 h-8 text-blue-600" />
             </div>
           </div>
-          <CardTitle className="text-center">You're Invited!</CardTitle>
+          <CardTitle className="text-center">You&apos;re Invited!</CardTitle>
           <CardDescription className="text-center">
             Join {invite?.groupName} on myguide.health
           </CardDescription>

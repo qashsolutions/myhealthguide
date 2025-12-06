@@ -182,6 +182,7 @@ export function VoiceRecordButton({
       }, 300);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionStatus, pendingStart]);
 
   const effectiveIsRecording = externalIsRecording ?? isRecording;

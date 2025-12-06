@@ -29,6 +29,7 @@ export default function ShiftHandoffPage() {
       loadScheduledShift();
       loadRecentHandoffs();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, selectedElder]);
 
   const loadScheduledShift = async () => {

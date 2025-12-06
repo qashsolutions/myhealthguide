@@ -231,6 +231,7 @@ export function ElderProvider({ children }: { children: ReactNode }) {
   // Load elders when user changes
   useEffect(() => {
     loadAvailableElders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const value = {

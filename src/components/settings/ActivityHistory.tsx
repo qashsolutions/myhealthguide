@@ -21,6 +21,7 @@ export function ActivityHistory({ userId }: ActivityHistoryProps) {
 
   useEffect(() => {
     loadActivities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const loadActivities = async () => {

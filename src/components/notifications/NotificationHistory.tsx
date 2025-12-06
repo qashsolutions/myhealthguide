@@ -18,6 +18,7 @@ export function NotificationHistory({ groupId }: NotificationHistoryProps) {
 
   useEffect(() => {
     loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
   const loadNotifications = async () => {

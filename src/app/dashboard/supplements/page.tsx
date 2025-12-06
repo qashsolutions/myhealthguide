@@ -56,6 +56,7 @@ export default function SupplementsPage() {
     }
 
     loadSupplements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElder, user]);
 
   if (loading) {

@@ -157,6 +157,7 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
 
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
   // Auto-add admin's phone if no recipients and admin has verified phone

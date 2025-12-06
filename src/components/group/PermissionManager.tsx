@@ -37,6 +37,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
   const loadData = async () => {

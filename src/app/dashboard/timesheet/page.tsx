@@ -23,6 +23,7 @@ export default function TimesheetPage() {
 
   useEffect(() => {
     loadShifts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, selectedElder, timeRange, viewMode]);
 
   const loadShifts = async () => {

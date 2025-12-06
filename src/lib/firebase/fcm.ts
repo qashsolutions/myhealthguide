@@ -200,7 +200,7 @@ export const removeFCMToken = async (userId: string, token: string): Promise<voi
   }
 };
 
-export default {
+const fcmService = {
   initializeMessaging,
   requestNotificationPermission,
   getFCMToken,
@@ -209,3 +209,5 @@ export default {
   getNotificationPermission,
   removeFCMToken
 };
+
+export default fcmService;
