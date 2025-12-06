@@ -251,7 +251,7 @@ export function InviteCodeDialog({
             {/* Info */}
             <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
               <p className="text-xs text-gray-700 dark:text-gray-300">
-                Share this link with someone to invite them to your group. They'll need to create an account or sign in to accept the invitation.
+                Share this link with someone to invite them to your group. They&apos;ll need to create an account or sign in to accept the invitation.
               </p>
             </div>
           </div>

@@ -81,7 +81,7 @@ export function DietEntryCard({ entry, elder, onDelete }: DietEntryCardProps) {
         {entry.voiceTranscript && (
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-2">
             <p className="text-xs text-blue-900 dark:text-blue-100 italic">
-              "{entry.voiceTranscript}"
+              &quot;{entry.voiceTranscript}&quot;
             </p>
           </div>
         )}

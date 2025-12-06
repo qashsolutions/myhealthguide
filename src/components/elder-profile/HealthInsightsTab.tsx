@@ -55,17 +55,6 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
   const [checkingConsent, setCheckingConsent] = useState(true);
   const [showConsentDialog, setShowConsentDialog] = useState(false);
 
-  // Check consent on mount
-  useEffect(() => {
-    checkConsent();
-  }, [userId, groupId]);
-
-  useEffect(() => {
-    if (hasConsent) {
-      loadInsights();
-    }
-  }, [elderId, groupId, showDismissed, hasConsent]);
-
   const checkConsent = async () => {
     setCheckingConsent(true);
     try {
@@ -110,6 +99,20 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
       setLoading(false);
     }
   };
+
+  // Check consent on mount
+  useEffect(() => {
+    checkConsent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, groupId]);
+
+  // Load insights when consent is granted
+  useEffect(() => {
+    if (hasConsent) {
+      loadInsights();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elderId, groupId, showDismissed, hasConsent]);
 
   const generateInsights = async () => {
     setGenerating(true);
@@ -198,7 +201,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
               Health Insights
             </CardTitle>
             <CardDescription>
-              AI-generated observations from {elderName}'s logged health data.
+              AI-generated observations from {elderName}&apos;s logged health data.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -281,7 +284,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
             </div>
           </CardTitle>
           <CardDescription>
-            AI-generated observations from {elderName}'s logged health data.
+            AI-generated observations from {elderName}&apos;s logged health data.
             Insights are generated twice weekly (Monday and Thursday).
           </CardDescription>
         </CardHeader>
@@ -293,7 +296,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
               <AlertDescription className="text-red-800 dark:text-red-200 text-sm">
                 <strong>Important:</strong> These observations are based solely on data logged in this app.
                 They are NOT medical advice and should NOT be used for medical decisions.
-                Always consult {elderName}'s healthcare provider for any health concerns.
+                Always consult {elderName}&apos;s healthcare provider for any health concerns.
               </AlertDescription>
             </Alert>
 
@@ -301,7 +304,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
               <Shield className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm">
                 <strong>What these insights are:</strong> Factual observations from logged data only.
-                Example: "Headache was logged 3 times between Nov 1-7."
+                Example: &quot;Headache was logged 3 times between Nov 1-7.&quot;
                 <br />
                 <strong>What they are NOT:</strong> Diagnoses, recommendations, medical interpretations, or treatment suggestions.
               </AlertDescription>
@@ -365,7 +368,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
               <Sparkles className="w-12 h-12 mx-auto mb-2 text-gray-300" />
               <p>No insights generated yet.</p>
               <p className="text-sm mt-1">
-                Click "Generate" to analyze {elderName}'s health data.
+                Click &quot;Generate&quot; to analyze {elderName}&apos;s health data.
               </p>
               <Button
                 variant="outline"

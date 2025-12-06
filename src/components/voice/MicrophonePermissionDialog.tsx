@@ -59,7 +59,7 @@ export function MicrophonePermissionDialog({
                   Voice Recording
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  We'll use your microphone to record your voice commands for logging medications, meals, and health data.
+                  We&apos;ll use your microphone to record your voice commands for logging medications, meals, and health data.
                 </p>
               </div>
             </div>

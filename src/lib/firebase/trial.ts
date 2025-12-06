@@ -1,6 +1,6 @@
 /**
  * Trial Period Management
- * Tracks 14-day trial from FIRST USE (not signup)
+ * Tracks 45-day trial from FIRST USE (not signup)
  */
 
 import { doc, getDoc, updateDoc, Timestamp, setDoc } from 'firebase/firestore';
@@ -25,7 +25,7 @@ export class TrialService {
       if (userData.trialStartDate === null) {
         const now = new Date();
         const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 14); // 14 days from now
+        trialEnd.setDate(trialEnd.getDate() + 45); // 45 days from now
 
         await updateDoc(doc(db, 'users', userId), {
           trialStartDate: Timestamp.fromDate(now),

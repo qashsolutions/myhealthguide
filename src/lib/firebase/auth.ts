@@ -56,9 +56,9 @@ export class AuthService {
     // Create user document in Firestore
     const phoneHash = userData.phoneNumber ? hashPhoneNumber(userData.phoneNumber) : '';
 
-    // Set trial dates - 14 days from now
+    // Set trial dates - 45 days from now
     const now = new Date();
-    const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const trialEnd = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000);
     // Password expires in 75 days (HIPAA compliance)
     const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000);
 
@@ -83,7 +83,7 @@ export class AuthService {
         }
       },
       trialStartDate: now,              // Set to current date
-      trialEndDate: trialEnd,            // Set to 14 days from now
+      trialEndDate: trialEnd,            // Set to 45 days from now
       gracePeriodStartDate: null,        // Set when trial expires
       gracePeriodEndDate: null,          // Set when trial expires (48 hours after)
       dataExportRequested: false,        // User hasn't requested export yet
@@ -109,7 +109,7 @@ export class AuthService {
     await setDoc(doc(db, 'users', firebaseUser.uid), user);
 
     // Create a default group and agency for the user
-    const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    const trialEndDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
 
     // Create group first
     const group = await GroupService.createGroup({
@@ -378,7 +378,7 @@ export class AuthService {
       }
 
       const now = new Date();
-      const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const trialEnd = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000);
       // Password expires in 75 days (HIPAA compliance) - for phone signups, set when they add email/password
       const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000);
 
@@ -439,7 +439,7 @@ export class AuthService {
       });
 
       // Create default group and agency
-      const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+      const trialEndDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
 
       // Create group first
       const group = await GroupService.createGroup({

@@ -464,7 +464,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <div className="pt-4 pb-2">
               <div className="px-3">
                 <p className="text-xs font-semibold text-gray-400 dark:text-gray-500">
-                  {selectedElder.name}'s Care
+                  {selectedElder.name}&apos;s Care
                 </p>
               </div>
             </div>

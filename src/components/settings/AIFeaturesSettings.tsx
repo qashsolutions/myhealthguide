@@ -83,6 +83,7 @@ export function AIFeaturesSettings({
     if (!user?.id || !groupId) return;
 
     checkExistingConsent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, groupId]);
 
   const checkExistingConsent = async () => {
@@ -492,7 +493,7 @@ export function AIFeaturesSettings({
               <AlertTitle>Consent Required</AlertTitle>
               <AlertDescription>
                 Enable the smart features toggle above to review and consent to intelligent insights.
-                You'll see detailed information about each feature and how your data is used.
+                You&apos;ll see detailed information about each feature and how your data is used.
               </AlertDescription>
             </Alert>
           )}

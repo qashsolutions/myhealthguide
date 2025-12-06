@@ -54,7 +54,7 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">3.2 Trial Period</h3>
             <p className="mb-4">
-              Each phone number is eligible for <strong>one 14-day free trial</strong>. We enforce this by storing a hash of your phone number. Attempting to create multiple trial accounts with the same phone number violates these Terms.
+              Each phone number is eligible for <strong>one 45-day free trial</strong>. We enforce this by storing a hash of your phone number. Attempting to create multiple trial accounts with the same phone number violates these Terms.
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">3.3 Account Security</h3>

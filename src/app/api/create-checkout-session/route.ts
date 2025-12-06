@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       ],
       subscription_data: {
         // Don't add trial if user already had their trial
-        ...(skipTrial ? {} : { trial_period_days: 14 }),
+        ...(skipTrial ? {} : { trial_period_days: 45 }),
         metadata: {
           userId,
           planName,

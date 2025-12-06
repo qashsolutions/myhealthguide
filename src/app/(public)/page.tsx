@@ -89,7 +89,7 @@ export default function LandingPage() {
               Choose the plan that fits your needs
             </p>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              All plans include 14-day free trial. No credit card required.
+              All plans include 45-day free trial. No credit card required.
             </p>
           </div>
 

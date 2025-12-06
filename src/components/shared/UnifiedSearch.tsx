@@ -339,6 +339,7 @@ export function UnifiedSearch() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Click outside to close (desktop only)
@@ -360,6 +361,7 @@ export function UnifiedSearch() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isMobileOverlay]);
 
   const voiceNotSupported = browserSupport && !browserSupport.isSupported;
@@ -550,7 +552,7 @@ export function UnifiedSearch() {
                 <div className="text-center py-8">
                   <Search className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                   <p className="text-gray-600 dark:text-gray-400">
-                    No results found for "{query}"
+                    No results found for &quot;{query}&quot;
                   </p>
                   <Button
                     variant="outline"
@@ -569,19 +571,19 @@ export function UnifiedSearch() {
                       onClick={() => setQuery('medications')}
                       className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      "medications"
+                      &quot;medications&quot;
                     </button>
                     <button
                       onClick={() => setQuery('how to add elder')}
                       className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      "how to add elder"
+                      &quot;how to add elder&quot;
                     </button>
                     <button
                       onClick={() => setQuery('pricing')}
                       className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      "pricing"
+                      &quot;pricing&quot;
                     </button>
                   </div>
                 </div>

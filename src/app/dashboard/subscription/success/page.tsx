@@ -56,17 +56,17 @@ export default function SubscriptionSuccessPage() {
             </p>
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <p className="text-sm text-blue-900 dark:text-blue-100">
-                <strong>🎉 You're on a 14-day free trial!</strong>
+                <strong>🎉 You&apos;re on a 45-day free trial!</strong>
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-200 mt-2">
-                Your trial ends in 14 days. You won't be charged until then. Cancel anytime
+                Your trial ends in 45 days. You won&apos;t be charged until then. Cancel anytime
                 during the trial period for a full refund.
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">What's next?</h3>
+            <h3 className="font-semibold text-lg">What&apos;s next?</h3>
             <ul className="space-y-2">
               <li className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />

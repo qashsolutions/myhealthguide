@@ -107,6 +107,7 @@ export default function SettingsPage() {
     if (tabParam && ['profile', 'security', 'subscription', 'notifications', 'group', 'ai', 'alerts', 'data'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -920,6 +921,7 @@ function GroupSettings() {
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
   const loadMembers = async () => {
@@ -991,7 +993,7 @@ function GroupSettings() {
           No Group Found
         </h3>
         <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-          You haven't created or joined a group yet. Create a group to start managing family members or caregivers.
+          You haven&apos;t created or joined a group yet. Create a group to start managing family members or caregivers.
         </p>
         <Button onClick={() => window.location.href = '/dashboard/join'}>
           <UserPlus className="w-4 h-4 mr-2" />
@@ -1008,7 +1010,7 @@ function GroupSettings() {
         <CardHeader>
           <CardTitle>Group Information</CardTitle>
           <CardDescription>
-            Update your group's basic information
+            Update your group&apos;s basic information
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

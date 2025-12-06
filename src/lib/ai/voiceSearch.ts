@@ -85,8 +85,8 @@ const SEARCH_KNOWLEDGE_BASE = {
       url: '/pricing',
     },
     trial: {
-      title: '14-Day Free Trial',
-      description: 'All plans include a 14-day free trial. You can cancel anytime during the trial for a full refund. No credit card required upfront.',
+      title: '45-Day Free Trial',
+      description: 'All plans include a 45-day free trial. You can cancel anytime during the trial for a full refund. No credit card required upfront.',
       url: '/pricing',
     },
     refund: {
@@ -234,7 +234,7 @@ IMPORTANT:
 - If asking about pricing, provide exact numbers
 - If asking about features, explain clearly how to use them
 - If asking "how to" questions, provide step-by-step guidance
-${isPublicUser ? '- If public user asks about personal data features, encourage them to sign up for 14-day free trial' : ''}
+${isPublicUser ? '- If public user asks about personal data features, encourage them to sign up for 45-day free trial' : ''}
 - If you don't know, suggest contacting support
 
 Respond in JSON format:
@@ -349,14 +349,14 @@ function buildKnowledgeContext(permissions?: {
     });
 
     context += '\n## HOW TO GET STARTED:\n';
-    context += '- Sign Up: Go to /signup for 14-day free trial\n';
+    context += '- Sign Up: Go to /signup for 45-day free trial\n';
     context += '- Login: Go to /login if you already have an account\n';
     context += '- Contact Us: Visit /contact for questions\n';
     context += '- View Pricing: Visit /pricing to compare plans\n';
 
     context += '\nIMPORTANT FOR PUBLIC USERS:\n';
     context += '- Cannot access personal health data (medications, elders, logs)\n';
-    context += '- Must sign up for 14-day free trial to use the app\n';
+    context += '- Must sign up for 45-day free trial to use the app\n';
     context += '- All plans include full features during trial\n';
     context += '- Can ask about pricing, features, and how the app works\n';
 
@@ -504,7 +504,7 @@ function buildKnowledgeContext(permissions?: {
 
     // Payment status context
     if (permissions.subscriptionStatus === 'trial') {
-      context += '\n- User is on FREE TRIAL (14 days)\n';
+      context += '\n- User is on FREE TRIAL (45 days)\n';
       context += '- Full features available during trial\n';
     } else if (permissions.subscriptionStatus === 'active') {
       context += '\n- User is PAYING SUBSCRIBER (full access)\n';

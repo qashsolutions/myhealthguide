@@ -22,11 +22,6 @@ export function AIChat({ context }: AIChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
-  // Load chat history on mount
-  useEffect(() => {
-    loadChatHistory();
-  }, [context.userId]);
-
   // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
@@ -58,14 +53,18 @@ export function AIChat({ context }: AIChatProps) {
     }
   }, []);
 
-  const loadChatHistory = async () => {
-    try {
-      const history = await getChatHistory(context.userId, 20);
-      setMessages(history);
-    } catch (error) {
-      console.error('Error loading chat history:', error);
-    }
-  };
+  // Load chat history on mount
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      try {
+        const history = await getChatHistory(context.userId, 20);
+        setMessages(history);
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+      }
+    };
+    loadChatHistory();
+  }, [context.userId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -269,31 +268,31 @@ export function AIChat({ context }: AIChatProps) {
                   onClick={() => setInput("What medication is coming up for Dad?")}
                   className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  💬 "What medication is coming up for Dad?"
+                  💬 &quot;What medication is coming up for Dad?&quot;
                 </button>
                 <button
                   onClick={() => setInput("Show me today's schedule")}
                   className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  💬 "Show me today's schedule"
+                  💬 &quot;Show me today&apos;s schedule&quot;
                 </button>
                 <button
                   onClick={() => setInput("Remind me to give Mom her medicine at 8pm")}
                   className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  ⏰ "Remind me to give Mom her medicine at 8pm"
+                  ⏰ &quot;Remind me to give Mom her medicine at 8pm&quot;
                 </button>
                 <button
                   onClick={() => setInput("Mark Dad's blood pressure medicine as taken")}
                   className="block w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 rounded hover:bg-green-100 dark:hover:bg-green-900/30"
                 >
-                  ✅ "Mark Dad's blood pressure medicine as taken"
+                  ✅ &quot;Mark Dad&apos;s blood pressure medicine as taken&quot;
                 </button>
                 <button
                   onClick={() => setInput("Invite Sarah to the group")}
                   className="block w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30"
                 >
-                  👥 "Invite Sarah to the group"
+                  👥 &quot;Invite Sarah to the group&quot;
                 </button>
               </div>
             </div>

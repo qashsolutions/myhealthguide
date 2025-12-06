@@ -452,7 +452,7 @@ export function UnifiedAIConsentDialog({
             </p>
             <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
               <li>Discuss all AI-generated findings with your healthcare providers</li>
-              <li>Follow your doctor's advice over any information shown by AI</li>
+              <li>Follow your doctor&apos;s advice over any information shown by AI</li>
               <li>Verify AI outputs before using them for any health-related decisions</li>
               <li>Report any concerning AI behavior or outputs to admin@myguide.health</li>
               <li>Keep your medication and health records accurate and up-to-date</li>
@@ -499,7 +499,7 @@ export function UnifiedAIConsentDialog({
               />
               <span className={`text-sm ${hasScrolledToBottom && hasMetReadingTime ? '' : 'opacity-50'}`}>
                 I accept the <strong>Google Health AI Developer Foundations Terms of Use</strong> and
-                understand MedGemma's capabilities and limitations
+                understand MedGemma&apos;s capabilities and limitations
               </span>
             </label>
 
@@ -530,7 +530,7 @@ export function UnifiedAIConsentDialog({
 
           <DialogFooter className="flex gap-2 sm:gap-0 pt-4">
             <Button variant="outline" onClick={onDecline} disabled={isSubmitting}>
-              Decline - Don't Enable Smart Features
+              Decline - Don&apos;t Enable Smart Features
             </Button>
             <Button
               onClick={handleConsent}

@@ -111,10 +111,12 @@ export function getProfaneWords(text: string): string[] {
   return profaneWords;
 }
 
-export default {
+const profanityFilter = {
   containsProfanity,
   cleanProfanity,
   validateNoProfanity,
   validateObjectNoProfanity,
   getProfaneWords
 };
+
+export default profanityFilter;

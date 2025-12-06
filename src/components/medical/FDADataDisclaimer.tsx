@@ -59,7 +59,7 @@ export function FDADataDisclaimer({
                 <li>Is for <strong>INFORMATIONAL PURPOSES ONLY</strong></li>
                 <li>Is <strong>NOT personalized medical advice</strong> for this patient</li>
                 <li>Does <strong>NOT replace consultation</strong> with a doctor or pharmacist</li>
-                <li>May <strong>NOT apply</strong> to this patient's specific situation</li>
+                <li>May <strong>NOT apply</strong> to this patient&apos;s specific situation</li>
               </ul>
 
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-3 mt-3">

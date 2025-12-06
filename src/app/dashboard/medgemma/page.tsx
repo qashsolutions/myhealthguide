@@ -191,15 +191,15 @@ export default function MedGemmaHubPage() {
                     <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <li className="flex items-start gap-2">
                         <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                        "What medications did mom miss this week?"
+                        &quot;What medications did mom miss this week?&quot;
                       </li>
                       <li className="flex items-start gap-2">
                         <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                        "When should I give the evening medications?"
+                        &quot;When should I give the evening medications?&quot;
                       </li>
                       <li className="flex items-start gap-2">
                         <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                        "How has blood pressure medication been taken lately?"
+                        &quot;How has blood pressure medication been taken lately?&quot;
                       </li>
                     </ul>
                   </div>

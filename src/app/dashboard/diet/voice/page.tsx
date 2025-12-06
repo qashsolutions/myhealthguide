@@ -214,9 +214,9 @@ export default function VoiceDietPage() {
             <AlertDescription className="ml-2">
               <p className="font-medium mb-2">How to use voice input:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Click the "Start Recording" button below</li>
-                <li>Speak clearly: "[Name] had [Meal]: [food items]"</li>
-                <li>Example: "Mary had breakfast: oatmeal, orange juice, and toast"</li>
+                <li>Click the &quot;Start Recording&quot; button below</li>
+                <li>Speak clearly: &quot;[Name] had [Meal]: [food items]&quot;</li>
+                <li>Example: &quot;Mary had breakfast: oatmeal, orange juice, and toast&quot;</li>
                 <li>Review and confirm the transcription</li>
               </ul>
             </AlertDescription>
@@ -249,10 +249,10 @@ export default function VoiceDietPage() {
               Example phrases:
             </p>
             <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-              <p>• "John had breakfast: eggs, toast, and coffee"</p>
-              <p>• "Mary had lunch: chicken salad and water"</p>
-              <p>• "Sarah ate dinner: pasta and vegetables"</p>
-              <p>• "Tom had a snack: apple and crackers"</p>
+              <p>• &quot;John had breakfast: eggs, toast, and coffee&quot;</p>
+              <p>• &quot;Mary had lunch: chicken salad and water&quot;</p>
+              <p>• &quot;Sarah ate dinner: pasta and vegetables&quot;</p>
+              <p>• &quot;Tom had a snack: apple and crackers&quot;</p>
             </div>
           </div>
 

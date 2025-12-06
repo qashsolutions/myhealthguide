@@ -21,11 +21,7 @@ export default function ScheduleConflictsPage() {
   const [conflicts, setConflicts] = useState<MedicationScheduleConflict[]>([]);
   const [hasMedications, setHasMedications] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    loadConflicts();
-  }, [groupId, elderId]);
-
-  async function loadConflicts() {
+  const loadConflicts = async () => {
     if (!groupId || !elderId) {
       setHasMedications(null);
       return;
@@ -49,7 +45,12 @@ export default function ScheduleConflictsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    loadConflicts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId, elderId]);
 
   const getConflictIcon = (type: string) => {
     switch (type) {
@@ -89,7 +90,7 @@ export default function ScheduleConflictsPage() {
             </p>
             <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
               Any conflicts shown are informational notifications based on general medication guidelines.
-              <strong> Always follow your physician's, PCP's, or pharmacist's instructions.</strong> Do not
+              <strong> Always follow your physician&apos;s, PCP&apos;s, or pharmacist&apos;s instructions.</strong> Do not
               change your medication schedule without consulting your healthcare provider.
             </p>
           </div>

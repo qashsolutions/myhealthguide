@@ -42,6 +42,7 @@ export default function EldersPage() {
 
   useEffect(() => {
     fetchElders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   async function fetchElders() {
@@ -268,7 +269,7 @@ export default function EldersPage() {
                       </h3>
                       {elder.preferredName && (
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          "{elder.preferredName}"
+                          &quot;{elder.preferredName}&quot;
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -362,7 +363,7 @@ export default function EldersPage() {
                         </h3>
                         {elder.preferredName && (
                           <p className="text-sm text-gray-400 dark:text-gray-500">
-                            "{elder.preferredName}"
+                            &quot;{elder.preferredName}&quot;
                           </p>
                         )}
                         <div className="flex items-center gap-2 mt-2 text-sm text-gray-400">

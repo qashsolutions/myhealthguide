@@ -122,7 +122,7 @@ export function VoiceTranscriptDialog({
             ) : (
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
                 <p className="text-sm italic text-gray-900 dark:text-white">
-                  "{editedTranscript}"
+                  &quot;{editedTranscript}&quot;
                 </p>
               </div>
             )}
@@ -199,7 +199,7 @@ export function VoiceTranscriptDialog({
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription className="ml-2 text-xs">
-              <strong>Voice tips:</strong> Say "[Name] took [Medication] [Dosage] at [Time]" or "[Name] had [Meal]: [items]"
+              <strong>Voice tips:</strong> Say &quot;[Name] took [Medication] [Dosage] at [Time]&quot; or &quot;[Name] had [Meal]: [items]&quot;
             </AlertDescription>
           </Alert>
         </div>

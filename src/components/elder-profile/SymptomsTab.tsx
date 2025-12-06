@@ -61,6 +61,7 @@ export function SymptomsTab({ elderId, groupId, userId, elderName }: SymptomsTab
   useEffect(() => {
     checkPermissions();
     loadSymptoms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elderId, groupId, userId]);
 
   const checkPermissions = async () => {
@@ -213,7 +214,7 @@ export function SymptomsTab({ elderId, groupId, userId, elderName }: SymptomsTab
             <Alert className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
               <Info className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800 dark:text-blue-200">
-                Only the group admin or {elderName}'s primary caregiver can log symptoms.
+                Only the group admin or {elderName}&apos;s primary caregiver can log symptoms.
                 You can view the symptom history below.
               </AlertDescription>
             </Alert>
@@ -224,7 +225,7 @@ export function SymptomsTab({ elderId, groupId, userId, elderName }: SymptomsTab
             <Info className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-800 dark:text-amber-200 text-sm">
               <strong>Important:</strong> This symptom log is for caregiving reference only.
-              If you observe severe or concerning symptoms, contact the elder's healthcare provider immediately.
+              If you observe severe or concerning symptoms, contact the elder&apos;s healthcare provider immediately.
               This is not a substitute for professional medical assessment.
             </AlertDescription>
           </Alert>

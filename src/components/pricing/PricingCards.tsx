@@ -158,7 +158,7 @@ export function PricingCards({
             </p>
             {showTrialInfo && (
               <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-                All plans include 14-day free trial. Cancel anytime for a full refund.
+                All plans include 45-day free trial. Cancel anytime for a full refund.
               </p>
             )}
           </div>
@@ -260,7 +260,7 @@ export function PricingCards({
                         Processing...
                       </>
                     ) : (
-                      'Start 14-Day Free Trial'
+                      'Start 45-Day Free Trial'
                     )}
                   </Button>
                 </CardContent>
@@ -273,7 +273,7 @@ export function PricingCards({
         {showTrialInfo && (
           <div className="mt-16 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              All plans include a 14-day free trial. Cancel anytime for a full refund.
+              All plans include a 45-day free trial. Cancel anytime for a full refund.
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               Need help choosing?{' '}

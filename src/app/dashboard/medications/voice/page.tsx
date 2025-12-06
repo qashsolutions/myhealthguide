@@ -169,9 +169,9 @@ export default function VoiceMedicationPage() {
             <AlertDescription className="ml-2">
               <p className="font-medium mb-2">How to use voice input:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Click the "Start Recording" button below</li>
-                <li>Speak clearly: "[Name] took [Medication] [Dosage] at [Time]"</li>
-                <li>Example: "John took Lisinopril 10mg at 9am"</li>
+                <li>Click the &quot;Start Recording&quot; button below</li>
+                <li>Speak clearly: &quot;[Name] took [Medication] [Dosage] at [Time]&quot;</li>
+                <li>Example: &quot;John took Lisinopril 10mg at 9am&quot;</li>
                 <li>Review and confirm the transcription</li>
               </ul>
             </AlertDescription>
@@ -204,9 +204,9 @@ export default function VoiceMedicationPage() {
               Example phrases:
             </p>
             <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-              <p>• "Mary took Metformin 500mg at 8am"</p>
-              <p>• "John had his morning Lisinopril"</p>
-              <p>• "Sarah took aspirin 81mg"</p>
+              <p>• &quot;Mary took Metformin 500mg at 8am&quot;</p>
+              <p>• &quot;John had his morning Lisinopril&quot;</p>
+              <p>• &quot;Sarah took aspirin 81mg&quot;</p>
             </div>
           </div>
 

@@ -36,6 +36,7 @@ export function AlertPreferencesSettings() {
     if (userId && groupId) {
       loadPreferences();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, groupId]);
 
   const loadPreferences = async () => {
@@ -309,7 +310,7 @@ export function AlertPreferencesSettings() {
                   className="w-32"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Default: 7 days. You'll be alerted when medication supply drops below this threshold.
+                  Default: 7 days. You&apos;ll be alerted when medication supply drops below this threshold.
                 </p>
               </div>
             </>

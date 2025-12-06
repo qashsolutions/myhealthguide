@@ -462,8 +462,8 @@ export default function DashboardPage() {
               Welcome to Careguide!
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Get started by adding your first elder profile. You'll be able to track medications,
-              diet, and activities - and we'll help you spot anything that needs attention.
+              Get started by adding your first elder profile. You&apos;ll be able to track medications,
+              diet, and activities - and we&apos;ll help you spot anything that needs attention.
             </p>
             <Link href="/dashboard/elders/new">
               <Button size="lg">

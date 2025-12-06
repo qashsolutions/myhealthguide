@@ -150,7 +150,7 @@ export function ExportDataDialog({
             Export Health Data
           </DialogTitle>
           <DialogDescription>
-            Generate a PDF report for {elderName}'s health data
+            Generate a PDF report for {elderName}&apos;s health data
           </DialogDescription>
         </DialogHeader>
 

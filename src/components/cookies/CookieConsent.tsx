@@ -61,6 +61,7 @@ export function CookieConsent() {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const acceptAll = async () => {
@@ -148,7 +149,7 @@ export function CookieConsent() {
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
             We use cookies and similar technologies to help personalize content, tailor and measure
             ads, provide a better experience, and ensure the app functions properly. By clicking
-            "Accept All", you agree to the storing of cookies on your device.
+            &quot;Accept All&quot;, you agree to the storing of cookies on your device.
           </p>
 
           {/* DNT Notice */}
@@ -157,7 +158,7 @@ export function CookieConsent() {
               <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
                 <Info className="h-4 w-4 flex-shrink-0" />
                 <span>
-                  Your browser's "Do Not Track" setting is enabled. We respect this preference and analytics cookies will remain disabled.
+                  Your browser&apos;s &quot;Do Not Track&quot; setting is enabled. We respect this preference and analytics cookies will remain disabled.
                 </span>
               </p>
             </div>

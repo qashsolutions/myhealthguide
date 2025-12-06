@@ -69,6 +69,7 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
 
   useEffect(() => {
     loadContacts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elderId, groupId]);
 
   const loadContacts = async () => {
@@ -508,7 +509,7 @@ function ContactCard({
 
             {contact.specialInstructions && (
               <p className="text-gray-500 italic mt-2">
-                "{contact.specialInstructions}"
+                &quot;{contact.specialInstructions}&quot;
               </p>
             )}
           </div>
