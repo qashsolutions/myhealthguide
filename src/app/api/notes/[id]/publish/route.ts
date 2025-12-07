@@ -75,7 +75,7 @@ export async function POST(
           canAutoApprove: false
         },
         message: 'Content did not pass safety moderation',
-        reason: moderation.reason || 'Safety score below threshold (90). Please review flagged concerns and try again.'
+        reason: moderation.reason || 'Content contains potentially harmful material. Please review and remove any profanity, personal information, or unsafe advice.'
       }, { status: 400 });
     }
 

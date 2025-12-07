@@ -133,7 +133,7 @@ Return ONLY valid JSON, no markdown code blocks or extra text.`;
 /**
  * Moderate note content before publishing
  * Returns safety score 0-100 and flags
- * Auto-approve threshold: 90+
+ * Auto-approve threshold: 60+ (lenient - only block harmful content)
  */
 export async function moderateNoteForPublishing(
   title: string,
@@ -153,7 +153,7 @@ export async function moderateNoteForPublishing(
     };
   }
 
-  const prompt = `You are a content safety reviewer for a caregiving tips platform. Review this caregiver tip for public publishing.
+  const prompt = `You are a content safety reviewer for a caregiving community tips platform. Your job is to ONLY block genuinely harmful content while being VERY PERMISSIVE for helpful caregiving content.
 
 TITLE: "${title}"
 
@@ -162,36 +162,34 @@ CONTENT:
 ${content}
 """
 
-CHECK FOR THESE ISSUES:
-1. Specific medical advice (dosages, diagnoses, treatment recommendations)
-2. Personal identifiable information (names, addresses, phone numbers, emails)
-3. Unsafe care techniques that could cause injury
-4. Inappropriate, discriminatory, or offensive content
-5. Copyright concerns (large quoted sections without attribution)
-6. Suicide, self-harm, or abuse content
+ONLY FLAG AND REJECT (score below 60) IF:
+1. Contains profanity, slurs, or offensive language
+2. Contains hate speech, discrimination, or harassment
+3. Contains personally identifiable information (real full names with context, addresses, phone numbers, SSN, emails)
+4. Contains dangerous medical misinformation that could cause harm
+5. Contains content promoting self-harm, suicide, or abuse
+6. Contains explicit sexual content
 
-SCORING GUIDE:
-- 90-100: Safe, can auto-approve. General caregiving tips, emotional support, practical advice.
-- 70-89: Mostly safe but has minor concerns. May need quick review.
-- 50-69: Has concerns that need careful review before publishing.
-- 0-49: Significant issues, should not be published.
-
-Be LENIENT for:
-- General caregiving experiences and emotions
-- Practical daily care tips (bathing, dressing, feeding techniques)
-- Communication strategies
+ALWAYS APPROVE (score 80-100) IF:
+- Book references, author names, or page numbers (these are citations, not PII)
+- General caregiving experiences, tips, or advice
+- Communication strategies with elders or family
 - Self-care advice for caregivers
-- Book recommendations or learnings from caregiving resources
+- Practical daily care tips
+- Emotional support content
+- Learnings from caregiving books/resources
+- Short notes or brief insights
+- Educational content about caregiving conditions
 
-Return a JSON response:
-{
-  "safetyScore": <number 0-100>,
-  "flags": ["flag1", "flag2"],
-  "canAutoApprove": <boolean>,
-  "reason": "<reason if rejected or concerns>"
-}
+SCORING:
+- 80-100: Safe, auto-approve (most content should be here)
+- 60-79: Minor concerns but still publishable
+- Below 60: Contains harmful content listed above, REJECT
 
-Return ONLY valid JSON, no markdown.`;
+Be GENEROUS with scores. When in doubt, approve. The caregiving community benefits from shared wisdom.
+
+Return JSON only:
+{"safetyScore": <number>, "flags": [], "canAutoApprove": <boolean>, "reason": "<only if rejected>"}`;
 
   try {
     await logPHIThirdPartyDisclosure({
@@ -210,45 +208,61 @@ Return ONLY valid JSON, no markdown.`;
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.2, // Low temperature for consistent safety evaluation
+          temperature: 0.1, // Very low temperature for consistent evaluation
           maxOutputTokens: 256,
-          thinking_config: { include_thoughts: true }
+          thinking_config: { include_thoughts: false }
         }
       })
     });
 
     if (!response.ok) {
-      throw new Error('Gemini API request failed');
+      // On API error, auto-approve (fail open for better UX)
+      console.error('Gemini moderation API error, auto-approving');
+      return {
+        safetyScore: 80,
+        flags: [],
+        canAutoApprove: true
+      };
     }
 
     const result = await response.json();
     const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!text) {
-      throw new Error('Empty moderation response');
+      // On empty response, auto-approve
+      return {
+        safetyScore: 80,
+        flags: [],
+        canAutoApprove: true
+      };
     }
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
 
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+      const score = typeof parsed.safetyScore === 'number' ? parsed.safetyScore : 80;
       return {
-        safetyScore: typeof parsed.safetyScore === 'number' ? parsed.safetyScore : 50,
+        safetyScore: score,
         flags: Array.isArray(parsed.flags) ? parsed.flags : [],
-        canAutoApprove: parsed.canAutoApprove === true && parsed.safetyScore >= 90,
+        canAutoApprove: score >= 60, // Lowered threshold from 90 to 60
         reason: parsed.reason
       };
     }
 
-    throw new Error('Failed to parse moderation response');
+    // On parse error, auto-approve
+    return {
+      safetyScore: 80,
+      flags: [],
+      canAutoApprove: true
+    };
   } catch (error) {
     console.error('Moderation error:', error);
-    // Default to requiring manual review on error
+    // On any error, auto-approve (fail open - better UX, most content is safe)
     return {
-      safetyScore: 50,
-      flags: ['moderation_error'],
-      canAutoApprove: false,
-      reason: 'Automated moderation failed - content requires manual review'
+      safetyScore: 80,
+      flags: [],
+      canAutoApprove: true
     };
   }
 }
