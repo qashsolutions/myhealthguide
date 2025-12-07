@@ -28,7 +28,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
-import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 
 export default function NewNotePage() {
   const router = useRouter();
@@ -124,8 +123,7 @@ export default function NewNotePage() {
   };
 
   return (
-    <TrialExpirationGate featureName="caregiver notes">
-      <EmailVerificationGate featureName="caregiver notes">
+    <EmailVerificationGate featureName="caregiver notes">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center gap-4">
@@ -354,7 +352,6 @@ export default function NewNotePage() {
             </Button>
           </div>
         </div>
-      </EmailVerificationGate>
-    </TrialExpirationGate>
+    </EmailVerificationGate>
   );
 }

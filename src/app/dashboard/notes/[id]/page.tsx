@@ -39,7 +39,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
-import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import type { CaregiverNote } from '@/types';
 import { format } from 'date-fns';
 
@@ -242,43 +241,38 @@ export default function NoteDetailPage() {
 
   if (loading) {
     return (
-      <TrialExpirationGate featureName="caregiver notes">
-        <EmailVerificationGate featureName="caregiver notes">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        </EmailVerificationGate>
-      </TrialExpirationGate>
+      <EmailVerificationGate featureName="caregiver notes">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      </EmailVerificationGate>
     );
   }
 
   if (!note) {
     return (
-      <TrialExpirationGate featureName="caregiver notes">
-        <EmailVerificationGate featureName="caregiver notes">
-          <div className="max-w-4xl mx-auto">
-            <Alert className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
-              <AlertDescription className="text-red-800 dark:text-red-200">
-                {error || 'Note not found'}
-              </AlertDescription>
-            </Alert>
-            <div className="mt-4">
-              <Link href="/dashboard/notes">
-                <Button variant="outline">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Notes
-                </Button>
-              </Link>
-            </div>
+      <EmailVerificationGate featureName="caregiver notes">
+        <div className="max-w-4xl mx-auto">
+          <Alert className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+            <AlertDescription className="text-red-800 dark:text-red-200">
+              {error || 'Note not found'}
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Link href="/dashboard/notes">
+              <Button variant="outline">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Notes
+              </Button>
+            </Link>
           </div>
-        </EmailVerificationGate>
-      </TrialExpirationGate>
+        </div>
+      </EmailVerificationGate>
     );
   }
 
   return (
-    <TrialExpirationGate featureName="caregiver notes">
-      <EmailVerificationGate featureName="caregiver notes">
+    <EmailVerificationGate featureName="caregiver notes">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -795,7 +789,6 @@ export default function NoteDetailPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </EmailVerificationGate>
-    </TrialExpirationGate>
+    </EmailVerificationGate>
   );
 }

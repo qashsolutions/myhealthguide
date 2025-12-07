@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,12 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Search,
   Lightbulb,
   Loader2,
@@ -23,8 +30,11 @@ import {
   Heart,
   Sparkles,
   Filter,
-  ArrowLeft
+  ArrowLeft,
+  LogIn,
+  ShieldCheck
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import type { PublishedTip, CaregiverNoteCategory } from '@/types';
 import { format, isToday, isThisWeek, isThisMonth, parseISO } from 'date-fns';
 
@@ -39,6 +49,8 @@ interface GroupedTips {
 }
 
 export default function TipsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [tips, setTips] = useState<PublishedTip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +64,42 @@ export default function TipsPage() {
   const [weekOpen, setWeekOpen] = useState(true);
   const [monthOpen, setMonthOpen] = useState(true);
   const [olderOpen, setOlderOpen] = useState(false);
+
+  // Check if user can share tips (signed in + email verified + phone verified)
+  // NOTE: Subscription is NOT required for notes/tips feature
+  const isSignedIn = !!user;
+  const isEmailVerified = user?.emailVerified === true;
+  const isPhoneVerified = user?.phoneVerified === true;
+  const canShareTip = isSignedIn && isEmailVerified && isPhoneVerified;
+
+  // Determine what message to show
+  const getShareTipMessage = () => {
+    if (!isSignedIn) {
+      return 'Sign in to share tips with the community';
+    }
+    if (!isEmailVerified && !isPhoneVerified) {
+      return 'Verify your email and phone number to share tips';
+    }
+    if (!isEmailVerified) {
+      return 'Verify your email address to share tips';
+    }
+    if (!isPhoneVerified) {
+      return 'Verify your phone number to share tips';
+    }
+    return '';
+  };
+
+  const handleShareTipClick = () => {
+    if (!isSignedIn) {
+      router.push('/login?redirect=/tips');
+    } else if (!isEmailVerified) {
+      router.push('/verify-email');
+    } else if (!isPhoneVerified) {
+      router.push('/dashboard/settings?tab=security');
+    } else {
+      router.push('/dashboard/notes/new');
+    }
+  };
 
   // Load tips
   useEffect(() => {
@@ -323,25 +371,44 @@ export default function TipsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Lightbulb className="w-8 h-8 text-yellow-500" />
-            Caregiver Tips
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Insights and tips shared by fellow caregivers
-          </p>
+    <TooltipProvider>
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Lightbulb className="w-8 h-8 text-yellow-500" />
+              Caregiver Tips
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Insights and tips shared by fellow caregivers
+            </p>
+          </div>
+          {canShareTip ? (
+            <Link href="/dashboard/notes/new">
+              <Button>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Share a Tip
+              </Button>
+            </Link>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleShareTipClick} variant="outline">
+                  {!isSignedIn ? (
+                    <LogIn className="w-4 h-4 mr-2" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                  )}
+                  Share a Tip
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{getShareTipMessage()}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
-        <Link href="/dashboard/notes/new">
-          <Button>
-            <Sparkles className="w-4 h-4 mr-2" />
-            Share a Tip
-          </Button>
-        </Link>
-      </div>
 
       {/* Search and Filters */}
       <Card>
@@ -428,12 +495,23 @@ export default function TipsPage() {
                 : 'Be the first to share a caregiving tip with the community!'}
             </p>
             {!searchQuery && (
-              <Link href="/dashboard/notes/new">
-                <Button>
-                  <Sparkles className="w-4 h-4 mr-2" />
+              canShareTip ? (
+                <Link href="/dashboard/notes/new">
+                  <Button>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Share the First Tip
+                  </Button>
+                </Link>
+              ) : (
+                <Button onClick={handleShareTipClick} variant="outline">
+                  {!isSignedIn ? (
+                    <LogIn className="w-4 h-4 mr-2" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                  )}
                   Share the First Tip
                 </Button>
-              </Link>
+              )
             )}
           </CardContent>
         </Card>
@@ -497,6 +575,7 @@ export default function TipsPage() {
           Showing {filteredTips.length} of {tips.length} tips
         </div>
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
