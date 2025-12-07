@@ -122,7 +122,6 @@ const elderCentricSections = [
     icon: Mail,
     defaultOpen: false,
     items: [
-      { href: '/dashboard/notes', label: 'My Notes', icon: BookOpen },
       { href: '/dashboard/shift-handoff', label: 'Shift Handoff', icon: Clock },
       { href: '/dashboard/timesheet', label: 'Timesheet', icon: Clock },
       { href: '/dashboard/documents', label: 'Documents', icon: FolderOpen },
@@ -460,6 +459,27 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           </TooltipTrigger>
           <TooltipContent side="right">
             <p>{featureTooltips['/dashboard/reports']}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* My Notes - Caregiver insights and tips */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/dashboard/notes"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ml-2',
+                pathname === '/dashboard/notes' || pathname.startsWith('/dashboard/notes/')
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              )}
+            >
+              <BookOpen className="w-4 h-4" />
+              My Notes
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{featureTooltips['/dashboard/notes']}</p>
           </TooltipContent>
         </Tooltip>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Moon, Sun, Menu, CheckCircle, HelpCircle } from 'lucide-react';
+import { Bell, Moon, Sun, Menu, CheckCircle, HelpCircle, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -96,6 +96,17 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
           ) : (
             <Moon className="w-5 h-5" />
           )}
+        </Button>
+
+        {/* Community Tips - Hidden on small mobile */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push('/tips')}
+          className="hidden sm:flex"
+          title="Community Tips - Share & discover caregiving insights"
+        >
+          <Lightbulb className="w-5 h-5" />
         </Button>
 
         {/* Help - Hidden on small mobile */}

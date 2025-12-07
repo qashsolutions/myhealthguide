@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken, getUserDataServer } from '@/lib/api/verifyAuth';
-import { CaregiverNotesService } from '@/lib/firebase/caregiverNotes';
+import * as NotesAdmin from '@/lib/firebase/caregiverNotesAdmin';
 import { processNoteContent, cleanupVoiceTranscript } from '@/lib/ai/noteProcessingService';
 
 /**
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const userRole = (userData?.groups?.[0]?.role as any) || 'member';
     const groupId = userData?.groups?.[0]?.groupId || '';
 
-    const notes = await CaregiverNotesService.getNotesByUser(
+    const notes = await NotesAdmin.getNotesByUser(
       authResult.userId,
       userRole,
       groupId,
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Create note
-    const note = await CaregiverNotesService.createNote({
+    const note = await NotesAdmin.createNote({
       userId: authResult.userId,
       groupId,
       title: title?.trim() || aiMetadata.generatedTitle,

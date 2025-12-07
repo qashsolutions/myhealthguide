@@ -11,7 +11,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { CaregiverNotesService } from '@/lib/firebase/caregiverNotes';
+import * as NotesAdmin from '@/lib/firebase/caregiverNotesAdmin';
 
 /**
  * GET - Get all published tips (public endpoint)
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const tips = await CaregiverNotesService.getPublishedTips(limit, sortBy);
+    const tips = await NotesAdmin.getPublishedTips(limit, sortBy);
 
     return NextResponse.json({
       success: true,

@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken, getUserDataServer } from '@/lib/api/verifyAuth';
-import { CaregiverNotesService } from '@/lib/firebase/caregiverNotes';
+import * as NotesAdmin from '@/lib/firebase/caregiverNotesAdmin';
 import { processNoteContent } from '@/lib/ai/noteProcessingService';
 
 /**
@@ -33,7 +33,7 @@ export async function GET(
     const userData = await getUserDataServer(authResult.userId);
     const userRole = (userData?.groups?.[0]?.role as any) || 'member';
 
-    const note = await CaregiverNotesService.getNote(
+    const note = await NotesAdmin.getNote(
       params.id,
       authResult.userId,
       userRole
@@ -118,16 +118,9 @@ export async function PUT(
       updates.source = source;
     }
 
-    await CaregiverNotesService.updateNote(
+    const updatedNote = await NotesAdmin.updateNote(
       params.id,
       updates,
-      authResult.userId,
-      userRole
-    );
-
-    // Fetch and return updated note
-    const updatedNote = await CaregiverNotesService.getNote(
-      params.id,
       authResult.userId,
       userRole
     );
@@ -173,7 +166,7 @@ export async function DELETE(
     const userData = await getUserDataServer(authResult.userId);
     const userRole = (userData?.groups?.[0]?.role as any) || 'member';
 
-    await CaregiverNotesService.deleteNote(
+    await NotesAdmin.deleteNote(
       params.id,
       authResult.userId,
       userRole

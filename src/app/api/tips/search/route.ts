@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { searchTips, isAlgoliaConfigured } from '@/lib/search/algoliaClient';
-import { CaregiverNotesService } from '@/lib/firebase/caregiverNotes';
+import * as NotesAdmin from '@/lib/firebase/caregiverNotesAdmin';
 import { CaregiverNoteCategory } from '@/types';
 
 /**
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fallback to Firestore (basic listing, no full-text search)
-    const tips = await CaregiverNotesService.getPublishedTips(hitsPerPage, 'date');
+    const tips = await NotesAdmin.getPublishedTips(hitsPerPage, 'date');
 
     // Basic client-side filtering if query provided
     let filteredTips = tips;

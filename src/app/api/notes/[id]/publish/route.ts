@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken, getUserDataServer } from '@/lib/api/verifyAuth';
-import { CaregiverNotesService } from '@/lib/firebase/caregiverNotes';
+import * as NotesAdmin from '@/lib/firebase/caregiverNotesAdmin';
 import { moderateNoteForPublishing } from '@/lib/ai/noteProcessingService';
 import { syncTipToAlgolia, isAlgoliaConfigured } from '@/lib/search/algoliaClient';
 
@@ -36,7 +36,7 @@ export async function POST(
     const userRole = (userData?.groups?.[0]?.role as any) || 'member';
 
     // Get the note first to verify ownership and get content
-    const note = await CaregiverNotesService.getNote(
+    const note = await NotesAdmin.getNote(
       params.id,
       authResult.userId,
       userRole
@@ -80,7 +80,7 @@ export async function POST(
     }
 
     // Publish the note as a tip
-    const tip = await CaregiverNotesService.publishNote(
+    const tip = await NotesAdmin.publishNote(
       params.id,
       authorFirstName?.trim() || null,
       moderation.safetyScore,
@@ -93,7 +93,7 @@ export async function POST(
       try {
         const algoliaId = await syncTipToAlgolia(tip);
         if (algoliaId) {
-          await CaregiverNotesService.updateTipAlgoliaId(tip.id!, algoliaId);
+          await NotesAdmin.updateTipAlgoliaId(tip.id!, algoliaId);
         }
       } catch (algoliaError) {
         console.error('Failed to sync to Algolia:', algoliaError);
@@ -148,7 +148,7 @@ export async function DELETE(
     const userData = await getUserDataServer(authResult.userId);
     const userRole = (userData?.groups?.[0]?.role as any) || 'member';
 
-    await CaregiverNotesService.unpublishNote(
+    await NotesAdmin.unpublishNote(
       params.id,
       authResult.userId,
       userRole
