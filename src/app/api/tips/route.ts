@@ -8,6 +8,8 @@
  * - sortBy: 'date' | 'author' (default 'date')
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { CaregiverNotesService } from '@/lib/firebase/caregiverNotes';
 

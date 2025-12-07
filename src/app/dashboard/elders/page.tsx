@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, User, Calendar, Languages, Heart, Loader2, Archive, RotateCcw, AlertTriangle, Eye, EyeOff, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, User, Calendar, Languages, Heart, Loader2, Archive, RotateCcw, AlertTriangle, Eye, EyeOff, Trash2, MoreVertical, Crown, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -24,7 +24,14 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { ElderService } from '@/lib/firebase/elders';
+import { canCreateElder, PlanValidationResult } from '@/lib/firebase/planLimits';
 import type { Elder } from '@/types';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type DialogType = 'archive' | 'delete' | null;
 
@@ -39,6 +46,7 @@ export default function EldersPage() {
   const [selectedElder, setSelectedElder] = useState<Elder | null>(null);
   const [processing, setProcessing] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [elderLimitCheck, setElderLimitCheck] = useState<PlanValidationResult | null>(null);
 
   useEffect(() => {
     fetchElders();
@@ -56,6 +64,10 @@ export default function EldersPage() {
       const userRole = (user.groups[0].role || 'member') as 'admin' | 'caregiver' | 'member';
       const fetchedElders = await ElderService.getEldersByGroup(groupId, user.id, userRole);
       setElders(fetchedElders);
+
+      // Check if user can add more elders
+      const limitCheck = await canCreateElder(user.id, groupId);
+      setElderLimitCheck(limitCheck);
     } catch (err) {
       console.error('Error fetching elders:', err);
       setError('Failed to load elders');
@@ -182,45 +194,91 @@ export default function EldersPage() {
     );
   }
 
+  // Determine if user can add elders
+  const canAddElder = elderLimitCheck?.allowed ?? true;
+  const isAtLimit = elderLimitCheck && !elderLimitCheck.allowed;
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Elders
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage elder profiles in your care
-          </p>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Elders
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Manage elder profiles in your care
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {archivedElders.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowArchived(!showArchived)}
+                className="text-gray-600"
+              >
+                {showArchived ? (
+                  <>
+                    <EyeOff className="w-4 h-4 mr-2" />
+                    Hide Archived ({archivedElders.length})
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Show Archived ({archivedElders.length})
+                  </>
+                )}
+              </Button>
+            )}
+            {canAddElder ? (
+              <Link href="/dashboard/elders/new">
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Elder
+                </Button>
+              </Link>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button disabled className="cursor-not-allowed opacity-60">
+                    <Lock className="w-4 h-4 mr-2" />
+                    Add Elder
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p>
+                    {elderLimitCheck?.message || 'You have reached your plan limit.'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {archivedElders.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={() => setShowArchived(!showArchived)}
-              className="text-gray-600"
-            >
-              {showArchived ? (
-                <>
-                  <EyeOff className="w-4 h-4 mr-2" />
-                  Hide Archived ({archivedElders.length})
-                </>
-              ) : (
-                <>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Show Archived ({archivedElders.length})
-                </>
-              )}
-            </Button>
-          )}
-          <Link href="/dashboard/elders/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Elder
-            </Button>
-          </Link>
-        </div>
-      </div>
+
+        {/* Upgrade Banner when at limit */}
+        {isAtLimit && (
+          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-full">
+                <Crown className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="font-medium text-amber-900 dark:text-amber-100">
+                  Elder Limit Reached ({elderLimitCheck.current}/{elderLimitCheck.limit})
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Upgrade your plan to add more elders, or archive an existing elder to free up a slot.
+                </p>
+              </div>
+            </div>
+            <Link href="/pricing">
+              <Button className="bg-amber-600 hover:bg-amber-700 text-white">
+                <Crown className="w-4 h-4 mr-2" />
+                Upgrade Plan
+              </Button>
+            </Link>
+          </div>
+        )}
 
       {error && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400">
@@ -241,11 +299,25 @@ export default function EldersPage() {
                 View Archived
               </Button>
             )}
-            <Link href="/dashboard/elders/new">
-              <Button>
-                Add Your First Elder
-              </Button>
-            </Link>
+            {canAddElder ? (
+              <Link href="/dashboard/elders/new">
+                <Button>
+                  Add Your First Elder
+                </Button>
+              </Link>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button disabled className="cursor-not-allowed opacity-60">
+                    <Lock className="w-4 h-4 mr-2" />
+                    Add Your First Elder
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{elderLimitCheck?.message || 'Plan limit reached'}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
       ) : (
@@ -517,6 +589,7 @@ export default function EldersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

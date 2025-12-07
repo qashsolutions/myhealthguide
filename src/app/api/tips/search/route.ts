@@ -10,6 +10,8 @@
  * - category: filter by category (optional)
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { searchTips, isAlgoliaConfigured } from '@/lib/search/algoliaClient';
 import { CaregiverNotesService } from '@/lib/firebase/caregiverNotes';
