@@ -328,16 +328,64 @@ generationConfig: {
 }
 ```
 
-**Environment Variable:**
-- `GEMINI_API_KEY` - Added to Vercel environment variables (NOT prefixed with NEXT_PUBLIC_ since it's server-side only)
+**Environment Variables:**
+- `GEMINI_API_KEY` - Primary AI provider (Vercel environment variable)
+- `ANTHROPIC_API_KEY` - Claude fallback when Gemini unavailable (Vercel environment variable)
 
 **Files using Gemini 3 Pro Preview:**
 - `src/lib/ai/chatService.ts` - Smart Assistant chat
 - `src/lib/ai/geminiService.ts` - General AI service
 - `src/lib/ai/voiceSearch.ts` - Voice search
 - `src/lib/ai/medgemmaService.ts` - Medical AI fallback
+- `src/lib/ai/agenticAnalytics.ts` - AI-driven analytics (with Claude fallback)
 
 **DO NOT:**
 - Change the model to gemini-1.5-flash or other models without confirming
 - Remove thinking_config - it's required for gemini-3-pro-preview
-- Expose GEMINI_API_KEY to client-side (must go through API routes)
+- Expose GEMINI_API_KEY or ANTHROPIC_API_KEY to client-side (must go through API routes)
+
+### 10. Agentic AI Analytics (IMPLEMENTED: Dec 8, 2025)
+
+**Primary:** Gemini 3 Pro Preview with thinking mode
+**Fallback:** Claude Opus 4.5 (`claude-opus-4-5-20250514`)
+
+**How Fallback Works:**
+```typescript
+// In agenticAnalytics.ts - automatic fallback chain:
+// 1. Try Gemini API
+// 2. If Gemini fails → Try Claude API
+// 3. If both fail → Intelligent rule-based fallback
+```
+
+**Environment Variables Required:**
+```
+GEMINI_API_KEY=your-gemini-key
+ANTHROPIC_API_KEY=your-anthropic-key  # Optional but recommended
+```
+
+**AI Analytics Features (all use Gemini → Claude fallback):**
+1. Medication Adherence Prediction - Personalized risk assessment
+2. Caregiver Burnout Detection - Trajectory prediction with adaptive thresholds
+3. Medication Refill Prediction - Smart supply forecasting
+4. Trend Change Detection - Adaptive significance thresholds
+5. Alert System Intelligence - Prioritization & grouping
+6. Compliance Status - Context-aware status labels
+
+**Files:**
+- `src/lib/ai/agenticAnalytics.ts` - Core AI analytics service
+- `src/app/api/ai-analytics/route.ts` - API endpoint
+- `src/app/api/caregiver-burnout/route.ts` - Uses AI analytics (useAI=true param)
+
+**Usage:**
+```typescript
+// API call with AI analytics
+const response = await authenticatedFetch('/api/ai-analytics', {
+  method: 'POST',
+  body: JSON.stringify({
+    type: 'adherence', // or 'burnout', 'refill', 'trends', 'alerts', 'compliance-status'
+    groupId: '...',
+    elderId: '...',
+    data: { ... }
+  })
+});
+```

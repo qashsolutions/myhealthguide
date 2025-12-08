@@ -1219,6 +1219,25 @@ export interface CaregiverBurnoutAssessment {
   reviewedBy?: string; // Agency admin
   reviewedAt?: Date;
   actionTaken?: string;
+  // AI-specific analysis data (when useAI=true)
+  aiAnalysis?: {
+    trajectory: 'improving' | 'stable' | 'worsening';
+    predictedDaysToHighRisk: number | null;
+    personalizedThresholds: {
+      lowRisk: number;
+      moderateRisk: number;
+      highRisk: number;
+      criticalRisk: number;
+      reasoning: string;
+    };
+    workloadAnalysis: {
+      sustainabilityScore: number;
+      optimalHoursPerWeek: number;
+      currentHoursPerWeek: number;
+      insight: string;
+    };
+    reasoning: string;
+  };
 }
 
 export interface BurnoutFactor {

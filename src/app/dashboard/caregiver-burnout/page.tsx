@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw, Brain, Sparkles } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { CaregiverBurnoutAssessment } from '@/types';
 
@@ -18,20 +19,21 @@ export default function CaregiverBurnoutPage() {
   const [loading, setLoading] = useState(false);
   const [assessments, setAssessments] = useState<CaregiverBurnoutAssessment[]>([]);
   const [selectedAssessment, setSelectedAssessment] = useState<CaregiverBurnoutAssessment | null>(null);
+  const [useAI, setUseAI] = useState(true); // Default to AI mode
 
   useEffect(() => {
     if (isAgencyAdmin && agencyId) {
       loadAssessments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAgencyAdmin, agencyId]);
+  }, [isAgencyAdmin, agencyId, useAI]);
 
   async function loadAssessments() {
     if (!agencyId) return;
 
     setLoading(true);
     try {
-      const response = await authenticatedFetch(`/api/caregiver-burnout?agencyId=${agencyId}&periodDays=14`);
+      const response = await authenticatedFetch(`/api/caregiver-burnout?agencyId=${agencyId}&periodDays=14&useAI=${useAI}`);
       const data = await response.json();
 
       if (data.success) {
@@ -109,29 +111,60 @@ export default function CaregiverBurnoutPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <Users className="h-8 w-8 text-blue-600" />
             Caregiver Burnout Monitoring
+            {useAI && (
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">
+                <Sparkles className="h-3 w-3" />
+                AI-Powered
+              </span>
+            )}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Monitor workload metrics and burnout risk for all caregivers
           </p>
         </div>
-        <Button onClick={loadAssessments} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Assessments
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-purple-600" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">AI Analysis</span>
+            <Switch
+              checked={useAI}
+              onCheckedChange={setUseAI}
+              className="data-[state=checked]:bg-purple-600"
+            />
+          </div>
+          <Button onClick={loadAssessments} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh Assessments
+          </Button>
+        </div>
       </div>
 
       {/* Info Card */}
-      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4">
+      <Card className={`${useAI ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'} p-4`}>
         <div className="flex items-start gap-3">
-          <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+          {useAI ? (
+            <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5" />
+          ) : (
+            <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+          )}
           <div className="flex-1">
-            <p className="font-semibold text-blue-900 dark:text-blue-100">
-              Workload Analysis
+            <p className={`font-semibold ${useAI ? 'text-purple-900 dark:text-purple-100' : 'text-blue-900 dark:text-blue-100'}`}>
+              {useAI ? 'AI-Powered Burnout Analysis' : 'Workload Analysis'}
             </p>
-            <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
-              This system analyzes the last 14 days of shift data to identify caregivers at risk of
-              burnout based on overtime hours, consecutive days worked, number of elders assigned,
-              and average shift length.
+            <p className={`text-sm mt-1 ${useAI ? 'text-purple-800 dark:text-purple-200' : 'text-blue-800 dark:text-blue-200'}`}>
+              {useAI ? (
+                <>
+                  Using Gemini AI with deep reasoning to analyze workload patterns, predict burnout trajectory,
+                  and provide personalized thresholds based on each caregiver&apos;s unique situation.
+                  AI identifies patterns that traditional rule-based systems might miss.
+                </>
+              ) : (
+                <>
+                  This system analyzes the last 14 days of shift data to identify caregivers at risk of
+                  burnout based on overtime hours, consecutive days worked, number of elders assigned,
+                  and average shift length.
+                </>
+              )}
             </p>
           </div>
         </div>

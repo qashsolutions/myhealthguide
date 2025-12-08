@@ -96,18 +96,39 @@ export function calculateWeeklyTrends(
     ? weeks.reduce((sum, week) => sum + week.dietEntries, 0) / weeks.length
     : 0;
 
-  // Detect significant changes (>15% change from previous week)
+  // Detect significant changes using adaptive thresholds
+  // NOTE: For full AI-driven analysis, use /api/ai-analytics with type='trends'
   const significantChanges: TrendsData['significantChanges'] = [];
-  const threshold = 15; // 15% change threshold
+
+  // Calculate baseline variance for adaptive thresholds
+  const complianceRates = weeks.filter(w => w.totalDoses > 0).map(w => w.complianceRate);
+  const avgCompliance = complianceRates.length > 0
+    ? complianceRates.reduce((sum, r) => sum + r, 0) / complianceRates.length
+    : 0;
+  const complianceStdDev = complianceRates.length > 1
+    ? Math.sqrt(complianceRates.reduce((sum, r) => sum + Math.pow(r - avgCompliance, 2), 0) / complianceRates.length)
+    : 10;
+
+  // Adaptive threshold: 1.5 standard deviations, minimum 10%, maximum 25%
+  const adaptiveComplianceThreshold = Math.min(25, Math.max(10, complianceStdDev * 1.5));
+
+  // For diet entries, calculate relative threshold based on average
+  const dietCounts = weeks.map(w => w.dietEntries);
+  const avgDiet = dietCounts.reduce((sum, d) => sum + d, 0) / dietCounts.length;
+  const adaptiveDietThreshold = avgDiet > 10 ? 20 : avgDiet > 5 ? 30 : 50; // More lenient for low-volume
+
+  // For missed doses, threshold based on average total doses
+  const avgTotalDoses = weeks.reduce((sum, w) => sum + w.totalDoses, 0) / weeks.length;
+  const adaptiveMissedThreshold = Math.max(2, Math.round(avgTotalDoses * 0.1)); // 10% of average total doses
 
   for (let i = 1; i < weeks.length; i++) {
     const prevWeek = weeks[i - 1];
     const currWeek = weeks[i];
 
-    // Check compliance change
+    // Check compliance change with adaptive threshold
     if (prevWeek.totalDoses > 0 && currWeek.totalDoses > 0) {
       const complianceChange = Math.abs(currWeek.complianceRate - prevWeek.complianceRate);
-      if (complianceChange >= threshold) {
+      if (complianceChange >= adaptiveComplianceThreshold) {
         significantChanges.push({
           weekLabel: currWeek.weekLabel,
           type: 'compliance',
@@ -117,12 +138,12 @@ export function calculateWeeklyTrends(
       }
     }
 
-    // Check diet change
+    // Check diet change with adaptive threshold
     if (prevWeek.dietEntries > 0) {
       const dietChangePercent = Math.abs(
         ((currWeek.dietEntries - prevWeek.dietEntries) / prevWeek.dietEntries) * 100
       );
-      if (dietChangePercent >= threshold) {
+      if (dietChangePercent >= adaptiveDietThreshold) {
         significantChanges.push({
           weekLabel: currWeek.weekLabel,
           type: 'diet',
@@ -132,8 +153,8 @@ export function calculateWeeklyTrends(
       }
     }
 
-    // Check missed doses increase
-    if (currWeek.missedDoses > prevWeek.missedDoses + 3) { // More than 3 additional missed doses
+    // Check missed doses increase with adaptive threshold
+    if (currWeek.missedDoses > prevWeek.missedDoses + adaptiveMissedThreshold) {
       significantChanges.push({
         weekLabel: currWeek.weekLabel,
         type: 'missed',

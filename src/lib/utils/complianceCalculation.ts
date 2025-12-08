@@ -233,12 +233,74 @@ export function calculateQuickInsightsFromLogs(
 
 /**
  * Get compliance status label
+ * NOTE: This is a synchronous fallback. For AI-driven personalized status,
+ * use the /api/ai-analytics endpoint with type='compliance-status'
+ *
+ * @param percentage - Current compliance percentage
+ * @param context - Optional context for smarter status calculation
  */
-export function getComplianceStatus(percentage: number): {
+export function getComplianceStatus(
+  percentage: number,
+  context?: {
+    historicalAverage?: number;
+    hasCriticalMedications?: boolean;
+    recentTrend?: 'improving' | 'stable' | 'declining';
+  }
+): {
   label: string;
   variant: 'default' | 'destructive' | 'secondary';
   color: string;
+  insight?: string;
 } {
+  // Use context-aware calculation if context provided
+  if (context) {
+    const { historicalAverage, hasCriticalMedications, recentTrend } = context;
+
+    // Personalized thresholds based on context
+    const baselineDeviation = historicalAverage
+      ? percentage - historicalAverage
+      : 0;
+
+    // Critical medication patients need higher standards
+    const excellentThreshold = hasCriticalMedications ? 95 : 90;
+    const goodThreshold = hasCriticalMedications ? 85 : 75;
+    const concernThreshold = hasCriticalMedications ? 70 : 50;
+
+    // Declining trend shifts thresholds up (more conservative)
+    const trendAdjustment = recentTrend === 'declining' ? 5 : recentTrend === 'improving' ? -5 : 0;
+
+    if (percentage >= excellentThreshold - trendAdjustment) {
+      return {
+        label: 'Excellent',
+        variant: 'default',
+        color: 'green',
+        insight: baselineDeviation > 5 ? 'Above historical average' : undefined,
+      };
+    } else if (percentage >= goodThreshold - trendAdjustment) {
+      return {
+        label: 'Good',
+        variant: 'default',
+        color: 'blue',
+        insight: recentTrend === 'improving' ? 'Trending upward' : undefined,
+      };
+    } else if (percentage >= concernThreshold - trendAdjustment) {
+      return {
+        label: 'Needs Attention',
+        variant: 'secondary',
+        color: 'yellow',
+        insight: baselineDeviation < -10 ? 'Below historical average' : 'Monitor closely',
+      };
+    } else {
+      return {
+        label: 'Critical',
+        variant: 'destructive',
+        color: 'red',
+        insight: hasCriticalMedications ? 'Critical medications at risk' : 'Immediate attention needed',
+      };
+    }
+  }
+
+  // Fallback to simple thresholds when no context
   if (percentage >= 90) {
     return { label: 'Excellent', variant: 'default', color: 'green' };
   } else if (percentage >= 75) {
