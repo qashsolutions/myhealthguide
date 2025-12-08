@@ -107,7 +107,7 @@ export default function ActivityPage() {
         setSchedule(scheduleItems);
 
         // Build recent activities
-        const activityItems = buildActivities(medLogs, suppLogs, dietEntries);
+        const activityItems = buildActivities(medLogs, suppLogs, dietEntries, medications, supplements);
         setActivities(activityItems);
 
         // Calculate quick insights using shared utility
@@ -397,18 +397,25 @@ export default function ActivityPage() {
   function buildActivities(
     medLogs: MedicationLog[],
     suppLogs: SupplementLog[],
-    dietEntries: DietEntry[]
+    dietEntries: DietEntry[],
+    medications: Medication[],
+    supplements: Supplement[]
   ): ActivityItem[] {
     const items: ActivityItem[] = [];
 
+    // Create lookup maps for medication and supplement names
+    const medNameMap = new Map(medications.map(m => [m.id, m.name]));
+    const suppNameMap = new Map(supplements.map(s => [s.id, s.name]));
+
     // Add medication logs
     medLogs.forEach(log => {
+      const medicationName = medNameMap.get(log.medicationId) || 'Unknown Medication';
       items.push({
         id: `med-log-${log.id}`,
         type: 'medication',
         action: log.status === 'taken' ? 'Medication taken' :
                 log.status === 'skipped' ? 'Medication skipped' : 'Medication logged late',
-        name: log.medicationId, // Will be resolved to name in a full implementation
+        name: medicationName,
         timestamp: log.actualTime || log.scheduledTime,
         status: log.status
       });
@@ -416,12 +423,13 @@ export default function ActivityPage() {
 
     // Add supplement logs
     suppLogs.forEach(log => {
+      const supplementName = suppNameMap.get(log.supplementId) || 'Unknown Supplement';
       items.push({
         id: `supp-log-${log.id}`,
         type: 'supplement',
         action: log.status === 'taken' ? 'Supplement taken' :
                 log.status === 'skipped' ? 'Supplement skipped' : 'Supplement logged late',
-        name: log.supplementId,
+        name: supplementName,
         timestamp: log.actualTime || log.scheduledTime,
         status: log.status
       });
