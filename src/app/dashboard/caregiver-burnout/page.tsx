@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw } from 'lucide-react';
-import { assessCaregiverBurnout, assessAllCaregivers } from '@/lib/medical/caregiverBurnoutDetection';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { CaregiverBurnoutAssessment } from '@/types';
 
 export default function CaregiverBurnoutPage() {
@@ -31,12 +31,25 @@ export default function CaregiverBurnoutPage() {
 
     setLoading(true);
     try {
-      const results = await assessAllCaregivers(agencyId, 14);
-      // Sort by risk score (highest first)
-      results.sort((a, b) => b.riskScore - a.riskScore);
-      setAssessments(results);
-      if (results.length > 0) {
-        setSelectedAssessment(results[0]);
+      const response = await authenticatedFetch(`/api/caregiver-burnout?agencyId=${agencyId}&periodDays=14`);
+      const data = await response.json();
+
+      if (data.success) {
+        // Convert date strings back to Date objects
+        const results = data.assessments.map((a: any) => ({
+          ...a,
+          assessmentDate: new Date(a.assessmentDate),
+          period: {
+            start: new Date(a.period.start),
+            end: new Date(a.period.end)
+          }
+        }));
+        setAssessments(results);
+        if (results.length > 0) {
+          setSelectedAssessment(results[0]);
+        }
+      } else {
+        console.error('Error loading assessments:', data.error);
       }
     } catch (error) {
       console.error('Error loading assessments:', error);
