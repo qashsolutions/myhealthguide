@@ -11,10 +11,7 @@ import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDia
 import { FDADataDisclaimer } from '@/components/medical/FDADataDisclaimer';
 import { FDADataDisplay } from '@/components/medical/FDADataDisplay';
 import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
-import {
-  runInteractionCheck,
-  getFDADataForMedication
-} from '@/lib/medical/drugInteractionDetection';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { FDADrugLabelData } from '@/lib/medical/fdaApi';
 
 export default function DrugInteractionsPage() {
@@ -90,12 +87,20 @@ export default function DrugInteractionsPage() {
   };
 
   async function loadInteractions() {
-    if (!groupId) return;
+    if (!groupId || !elderId) return;
 
     setLoading(true);
     try {
-      const result = await runInteractionCheck(groupId, elderId || '');
-      setInteractions(result.interactions);
+      const response = await authenticatedFetch(
+        `/api/drug-interactions?groupId=${groupId}&elderId=${elderId}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setInteractions(data.interactions);
+      } else {
+        console.error('Error loading interactions:', data.error);
+      }
     } catch (error) {
       console.error('Error loading interactions:', error);
     } finally {
@@ -103,13 +108,22 @@ export default function DrugInteractionsPage() {
     }
   }
 
-  async function viewFDAData(medicationId: string, medicationName: string) {
+  function viewFDAData(medicationId: string, medicationName: string) {
     setMedicationNameForFDA(medicationName);
     setShowFDADisclaimer(true);
 
-    // Pre-load FDA data while user reads disclaimer
-    const fdaData = await getFDADataForMedication(medicationId, medicationName);
-    setFdaDataToShow(fdaData);
+    // Find FDA data from already loaded interactions
+    for (const interaction of interactions) {
+      if (interaction.medication1.id === medicationId && interaction.fdaData1) {
+        setFdaDataToShow(interaction.fdaData1);
+        return;
+      }
+      if (interaction.medication2.id === medicationId && interaction.fdaData2) {
+        setFdaDataToShow(interaction.fdaData2);
+        return;
+      }
+    }
+    setFdaDataToShow(null);
   }
 
   function handleFDADisclaimerAccept() {
