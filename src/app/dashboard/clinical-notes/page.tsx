@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, Download, Printer, Sparkles, AlertCircle, MessageSquare, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, FileText, Download, Printer, Sparkles, AlertCircle, MessageSquare, HelpCircle, AlertTriangle, User, Pill, Activity, Utensils, ShieldAlert } from 'lucide-react';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { generateClinicalNotePDF, ClinicalNotePDFData } from '@/lib/utils/pdfExport';
@@ -26,6 +26,84 @@ interface ProviderQuestion {
 
 // Sparse data threshold - show warning if less than this many logs
 const SPARSE_DATA_THRESHOLD = 7;
+
+/**
+ * Parse the AI-generated summary into structured sections
+ */
+function parseSummaryIntoSections(summary: string): {
+  disclaimer: string;
+  patientInfo: string[];
+  medications: string[];
+  adherenceData: string[];
+  dietEntries: string[];
+  footer: string;
+} {
+  const result = {
+    disclaimer: '',
+    patientInfo: [] as string[],
+    medications: [] as string[],
+    adherenceData: [] as string[],
+    dietEntries: [] as string[],
+    footer: '',
+  };
+
+  if (!summary) return result;
+
+  // Split by sections (### headers)
+  const sections = summary.split(/###\s*/);
+
+  for (const section of sections) {
+    const lines = section.trim().split('\n').filter(line => line.trim());
+    if (lines.length === 0) continue;
+
+    const header = lines[0].toLowerCase();
+
+    if (header.includes('important') || header.includes('factual data')) {
+      // This is the disclaimer section
+      result.disclaimer = lines.slice(1).join(' ')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .trim();
+    } else if (header.includes('patient info')) {
+      result.patientInfo = lines.slice(1).map(line =>
+        line.replace(/^-\s*/, '').replace(/\*\*/g, '').replace(/\*/g, '').trim()
+      ).filter(Boolean);
+    } else if (header.includes('current medication')) {
+      result.medications = lines.slice(1).map(line =>
+        line.replace(/^-\s*/, '').replace(/\*\*/g, '').replace(/\*/g, '').trim()
+      ).filter(Boolean);
+    } else if (header.includes('adherence') || header.includes('medication adherence')) {
+      result.adherenceData = lines.slice(1).map(line =>
+        line.replace(/^-\s*/, '').replace(/\*\*/g, '').replace(/\*/g, '').trim()
+      ).filter(Boolean);
+    } else if (header.includes('diet')) {
+      result.dietEntries = lines.slice(1).map(line =>
+        line.replace(/^-\s*/, '').replace(/\*\*/g, '').replace(/\*/g, '').trim()
+      ).filter(Boolean);
+    } else if (header.includes('disclaimer')) {
+      result.footer = lines.slice(1).join(' ')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .trim();
+    }
+  }
+
+  // Also check for ## headers
+  if (summary.includes('## FACTUAL DATA SUMMARY')) {
+    const disclaimerMatch = summary.match(/\*\*IMPORTANT:([^*]+)\*\*/);
+    if (disclaimerMatch) {
+      result.disclaimer = disclaimerMatch[1].trim();
+    }
+  }
+
+  // Parse footer disclaimer
+  const footerMatch = summary.match(/---\s*\n\s*\*\*Disclaimer:\*\*([^*]+)/i);
+  if (footerMatch) {
+    result.footer = footerMatch[1].trim();
+  }
+
+  return result;
+}
 
 /**
  * Safely convert Firestore Timestamp or any date value to a Date object
@@ -396,9 +474,106 @@ export default function ClinicalNotesPage() {
                 <p className="text-sm italic text-gray-500 dark:text-gray-400 mb-3">
                   AI-generated observational analysis (not medical advice)
                 </p>
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{clinicalNote.summary}</p>
-                </div>
+
+                {/* Parsed Summary Cards */}
+                {(() => {
+                  const parsed = parseSummaryIntoSections(clinicalNote.summary);
+                  return (
+                    <div className="space-y-4">
+                      {/* Important Notice */}
+                      {parsed.disclaimer && (
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <ShieldAlert className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">Important Notice</h4>
+                              <p className="text-sm text-amber-800 dark:text-amber-200">{parsed.disclaimer}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Patient Information Card */}
+                      {parsed.patientInfo.length > 0 && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <h4 className="font-semibold text-blue-900 dark:text-blue-100">Patient Information</h4>
+                          </div>
+                          <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
+                            {parsed.patientInfo.map((item, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-blue-500 mt-1">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Current Medications Card */}
+                      {parsed.medications.length > 0 && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Pill className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            <h4 className="font-semibold text-green-900 dark:text-green-100">Current Medications</h4>
+                          </div>
+                          <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
+                            {parsed.medications.map((item, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-green-500 mt-1">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Medication Adherence Card */}
+                      {parsed.adherenceData.length > 0 && (
+                        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Activity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            <h4 className="font-semibold text-purple-900 dark:text-purple-100">Medication Adherence Data</h4>
+                          </div>
+                          <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
+                            {parsed.adherenceData.map((item, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-purple-500 mt-1">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Diet Entries Card */}
+                      {parsed.dietEntries.length > 0 && (
+                        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Utensils className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                            <h4 className="font-semibold text-orange-900 dark:text-orange-100">Diet Entries</h4>
+                          </div>
+                          <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
+                            {parsed.dietEntries.map((item, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-orange-500 mt-1">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Footer Disclaimer */}
+                      {parsed.footer && (
+                        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs text-gray-600 dark:text-gray-400 italic">
+                          <strong>Disclaimer:</strong> {parsed.footer}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Discussion Points */}
                 {clinicalNote.discussionPoints && clinicalNote.discussionPoints.length > 0 && (
