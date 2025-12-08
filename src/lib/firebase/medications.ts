@@ -264,6 +264,7 @@ export class MedicationService {
   ): Promise<MedicationLog> {
     const docRef = await addDoc(collection(db, this.LOGS), {
       ...log,
+      loggedBy: userId, // Include userId for notifications to other group members
       scheduledTime: Timestamp.fromDate(log.scheduledTime),
       actualTime: log.actualTime ? Timestamp.fromDate(log.actualTime) : null,
       createdAt: Timestamp.fromDate(log.createdAt)

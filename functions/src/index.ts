@@ -352,6 +352,422 @@ async function deleteCollection(query: admin.firestore.Query): Promise<number> {
 // ============= REALTIME TRIGGERS =============
 
 /**
+ * Send FCM notification when a medication log is created (dose taken/skipped/missed)
+ *
+ * Trigger: Firestore onCreate in 'medication_logs' collection
+ *
+ * Flow:
+ * 1. Get the log data (status, medication info)
+ * 2. Get all group members from the group
+ * 3. Collect FCM tokens from all members EXCEPT the user who logged it
+ * 4. Send push notification to other members
+ * 5. Handle errors for invalid/expired tokens
+ */
+export const onMedicationLogCreated = functions.firestore
+  .document('medication_logs/{logId}')
+  .onCreate(async (snapshot, context) => {
+    try {
+      const logData = snapshot.data();
+      const logId = context.params.logId;
+
+      // Log for debugging
+      console.log('New medication log:', {
+        id: logId,
+        status: logData.status,
+        medicationId: logData.medicationId,
+        groupId: logData.groupId,
+        elderId: logData.elderId,
+        loggedBy: logData.loggedBy
+      });
+
+      // Only notify for taken, skipped, or missed status
+      const notifiableStatuses = ['taken', 'skipped', 'missed'];
+      if (!notifiableStatuses.includes(logData.status)) {
+        console.log('Status not notifiable:', logData.status);
+        return null;
+      }
+
+      // Get groupId from log
+      const groupId = logData.groupId;
+      if (!groupId) {
+        console.error('No groupId found in medication log');
+        return null;
+      }
+
+      // Get group document to find all members
+      const groupDoc = await admin.firestore().collection('groups').doc(groupId).get();
+
+      if (!groupDoc.exists) {
+        console.error('Group not found:', groupId);
+        return null;
+      }
+
+      const groupData = groupDoc.data();
+      if (!groupData) {
+        console.error('Group data is empty');
+        return null;
+      }
+
+      // Get member IDs from the group, excluding the user who logged
+      const memberIds: string[] = (groupData.memberIds || []).filter(
+        (id: string) => id !== logData.loggedBy
+      );
+
+      if (memberIds.length === 0) {
+        console.log('No other members in group to notify');
+        return null;
+      }
+
+      // Get medication name
+      let medicationName = 'Medication';
+      if (logData.medicationId) {
+        const medDoc = await admin.firestore()
+          .collection('medications')
+          .doc(logData.medicationId)
+          .get();
+        if (medDoc.exists) {
+          medicationName = medDoc.data()?.name || medicationName;
+        }
+      }
+
+      // Get elder name
+      let elderName = 'care recipient';
+      if (logData.elderId) {
+        const elderDoc = await admin.firestore()
+          .collection('elders')
+          .doc(logData.elderId)
+          .get();
+        if (elderDoc.exists) {
+          const elderData = elderDoc.data();
+          elderName = elderData?.firstName || elderName;
+        }
+      }
+
+      // Get logger name
+      let loggerName = 'A caregiver';
+      if (logData.loggedBy) {
+        const userDoc = await admin.firestore()
+          .collection('users')
+          .doc(logData.loggedBy)
+          .get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          loggerName = userData?.firstName || userData?.email?.split('@')[0] || loggerName;
+        }
+      }
+
+      // Collect FCM tokens from other group members
+      const tokens: string[] = [];
+
+      for (const memberId of memberIds) {
+        try {
+          const userDoc = await admin.firestore().collection('users').doc(memberId).get();
+
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            const userTokens = userData?.fcmTokens || [];
+
+            if (Array.isArray(userTokens) && userTokens.length > 0) {
+              tokens.push(...userTokens);
+              console.log(`Added ${userTokens.length} token(s) for user ${memberId}`);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching user ${memberId}:`, error);
+        }
+      }
+
+      console.log(`Total tokens collected: ${tokens.length}`);
+
+      if (tokens.length === 0) {
+        console.log('No FCM tokens found for other group members');
+        return null;
+      }
+
+      // Build notification content based on status
+      let title = '';
+      let body = '';
+
+      switch (logData.status) {
+        case 'taken':
+          title = '✅ Medication Taken';
+          body = `${loggerName} logged ${medicationName} as taken for ${elderName}`;
+          break;
+        case 'skipped':
+          title = '⏭️ Medication Skipped';
+          body = `${loggerName} skipped ${medicationName} for ${elderName}`;
+          break;
+        case 'missed':
+          title = '⚠️ Medication Missed';
+          body = `${medicationName} was marked as missed for ${elderName}`;
+          break;
+      }
+
+      // Prepare notification payload
+      const payload: admin.messaging.MulticastMessage = {
+        tokens: tokens,
+        notification: {
+          title,
+          body
+        },
+        data: {
+          type: 'medication_logged',
+          status: logData.status,
+          logId: logId,
+          medicationId: logData.medicationId || '',
+          medicationName: medicationName,
+          groupId: groupId,
+          elderId: logData.elderId || '',
+          url: '/dashboard/activity'
+        },
+        webpush: {
+          fcmOptions: {
+            link: '/dashboard/activity'
+          },
+          notification: {
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            vibrate: [100, 50, 100],
+            tag: `medication-log-${logId}`,
+            requireInteraction: logData.status === 'missed'
+          }
+        }
+      };
+
+      // Send notification to all tokens
+      console.log('Sending notifications to tokens:', tokens.length);
+      const response = await admin.messaging().sendEachForMulticast(payload);
+
+      console.log('Notification sent:', {
+        successCount: response.successCount,
+        failureCount: response.failureCount
+      });
+
+      // Handle invalid or expired tokens
+      if (response.failureCount > 0) {
+        const failedTokens: string[] = [];
+
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            const token = tokens[idx];
+            failedTokens.push(token);
+
+            console.error('Failed to send to token:', {
+              token: token.substring(0, 20) + '...',
+              error: resp.error?.message
+            });
+
+            // Remove invalid tokens
+            if (
+              resp.error?.code === 'messaging/invalid-registration-token' ||
+              resp.error?.code === 'messaging/registration-token-not-registered'
+            ) {
+              removeInvalidToken(token, memberIds).catch(err =>
+                console.error('Error removing invalid token:', err)
+              );
+            }
+          }
+        });
+
+        console.log('Failed tokens:', failedTokens.length);
+      }
+
+      return {
+        success: true,
+        tokensCount: tokens.length,
+        successCount: response.successCount,
+        failureCount: response.failureCount
+      };
+
+    } catch (error) {
+      console.error('Error in onMedicationLogCreated:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  });
+
+/**
+ * Send FCM notification when a supplement log is created (dose taken/skipped/missed)
+ *
+ * Trigger: Firestore onCreate in 'supplement_logs' collection
+ */
+export const onSupplementLogCreated = functions.firestore
+  .document('supplement_logs/{logId}')
+  .onCreate(async (snapshot, context) => {
+    try {
+      const logData = snapshot.data();
+      const logId = context.params.logId;
+
+      console.log('New supplement log:', {
+        id: logId,
+        status: logData.status,
+        supplementId: logData.supplementId,
+        groupId: logData.groupId
+      });
+
+      // Only notify for taken, skipped, or missed status
+      const notifiableStatuses = ['taken', 'skipped', 'missed'];
+      if (!notifiableStatuses.includes(logData.status)) {
+        return null;
+      }
+
+      const groupId = logData.groupId;
+      if (!groupId) {
+        console.error('No groupId found in supplement log');
+        return null;
+      }
+
+      // Get group document
+      const groupDoc = await admin.firestore().collection('groups').doc(groupId).get();
+      if (!groupDoc.exists) {
+        console.error('Group not found:', groupId);
+        return null;
+      }
+
+      const groupData = groupDoc.data();
+      if (!groupData) return null;
+
+      // Get member IDs excluding the logger
+      const memberIds: string[] = (groupData.memberIds || []).filter(
+        (id: string) => id !== logData.loggedBy
+      );
+
+      if (memberIds.length === 0) {
+        console.log('No other members in group to notify');
+        return null;
+      }
+
+      // Get supplement name
+      let supplementName = 'Supplement';
+      if (logData.supplementId) {
+        const suppDoc = await admin.firestore()
+          .collection('supplements')
+          .doc(logData.supplementId)
+          .get();
+        if (suppDoc.exists) {
+          supplementName = suppDoc.data()?.name || supplementName;
+        }
+      }
+
+      // Get elder name
+      let elderName = 'care recipient';
+      if (logData.elderId) {
+        const elderDoc = await admin.firestore()
+          .collection('elders')
+          .doc(logData.elderId)
+          .get();
+        if (elderDoc.exists) {
+          elderName = elderDoc.data()?.firstName || elderName;
+        }
+      }
+
+      // Get logger name
+      let loggerName = 'A caregiver';
+      if (logData.loggedBy) {
+        const userDoc = await admin.firestore()
+          .collection('users')
+          .doc(logData.loggedBy)
+          .get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          loggerName = userData?.firstName || userData?.email?.split('@')[0] || loggerName;
+        }
+      }
+
+      // Collect FCM tokens
+      const tokens: string[] = [];
+      for (const memberId of memberIds) {
+        try {
+          const userDoc = await admin.firestore().collection('users').doc(memberId).get();
+          if (userDoc.exists) {
+            const userTokens = userDoc.data()?.fcmTokens || [];
+            if (Array.isArray(userTokens)) {
+              tokens.push(...userTokens);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching user ${memberId}:`, error);
+        }
+      }
+
+      if (tokens.length === 0) {
+        console.log('No FCM tokens found for other group members');
+        return null;
+      }
+
+      // Build notification content
+      let title = '';
+      let body = '';
+
+      switch (logData.status) {
+        case 'taken':
+          title = '💊 Supplement Taken';
+          body = `${loggerName} logged ${supplementName} as taken for ${elderName}`;
+          break;
+        case 'skipped':
+          title = '⏭️ Supplement Skipped';
+          body = `${loggerName} skipped ${supplementName} for ${elderName}`;
+          break;
+        case 'missed':
+          title = '⚠️ Supplement Missed';
+          body = `${supplementName} was marked as missed for ${elderName}`;
+          break;
+      }
+
+      // Send notification
+      const payload: admin.messaging.MulticastMessage = {
+        tokens,
+        notification: { title, body },
+        data: {
+          type: 'supplement_logged',
+          status: logData.status,
+          logId,
+          supplementId: logData.supplementId || '',
+          groupId,
+          elderId: logData.elderId || '',
+          url: '/dashboard/activity'
+        },
+        webpush: {
+          fcmOptions: { link: '/dashboard/activity' },
+          notification: {
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            tag: `supplement-log-${logId}`,
+            requireInteraction: logData.status === 'missed'
+          }
+        }
+      };
+
+      const response = await admin.messaging().sendEachForMulticast(payload);
+
+      console.log('Supplement notification sent:', {
+        successCount: response.successCount,
+        failureCount: response.failureCount
+      });
+
+      // Handle invalid tokens
+      if (response.failureCount > 0) {
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success &&
+            (resp.error?.code === 'messaging/invalid-registration-token' ||
+             resp.error?.code === 'messaging/registration-token-not-registered')) {
+            removeInvalidToken(tokens[idx], memberIds).catch(err =>
+              console.error('Error removing invalid token:', err)
+            );
+          }
+        });
+      }
+
+      return { success: true, successCount: response.successCount };
+    } catch (error) {
+      console.error('Error in onSupplementLogCreated:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+/**
  * Send FCM notification when a new medication is added to a group
  *
  * Trigger: Firestore onCreate in 'medications' collection
