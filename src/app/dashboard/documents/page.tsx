@@ -12,8 +12,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { FileText, Upload, Trash2, Eye, AlertCircle, FolderOpen, Sparkles, X } from 'lucide-react';
-import { uploadFileWithQuota, getUserFiles, deleteFileWithQuota } from '@/lib/firebase/storage';
+import { uploadFileWithQuota, deleteFileWithQuota } from '@/lib/firebase/storage';
 import { DocumentAnalysisPanel } from '@/components/documents/DocumentAnalysisPanel';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { StorageMetadata } from '@/types';
 import { format } from 'date-fns';
 
@@ -40,14 +41,24 @@ export default function DocumentsPage() {
     if (!user) return;
 
     try {
-      const allFiles = await getUserFiles(user.id);
+      const params = new URLSearchParams();
+      if (selectedElder) {
+        params.set('elderId', selectedElder.id);
+      }
 
-      // Filter by selected elder if one is selected
-      const filteredFiles = selectedElder
-        ? allFiles.filter(f => f.filePath.includes(selectedElder.id))
-        : allFiles;
+      const response = await authenticatedFetch(`/api/documents?${params.toString()}`);
+      const data = await response.json();
 
-      setDocuments(filteredFiles);
+      if (data.success) {
+        const docs = data.documents.map((d: any) => ({
+          ...d,
+          uploadedAt: d.uploadedAt ? new Date(d.uploadedAt) : null
+        }));
+        setDocuments(docs);
+      } else {
+        console.error('Error loading documents:', data.error);
+        setError('Failed to load documents');
+      }
     } catch (err: any) {
       console.error('Error loading documents:', err);
       setError('Failed to load documents');

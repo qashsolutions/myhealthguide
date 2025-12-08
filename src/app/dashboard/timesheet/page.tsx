@@ -6,8 +6,7 @@ import { useElder } from '@/contexts/ElderContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, Download, Calendar, Filter } from 'lucide-react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ShiftSession } from '@/types';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
 
@@ -33,46 +32,33 @@ export default function TimesheetPage() {
     try {
       const { startDate, endDate } = getDateRange(timeRange);
 
-      let shiftsQuery;
-      if (viewMode === 'caregiver') {
-        // Show all shifts for this caregiver
-        shiftsQuery = query(
-          collection(db, 'shiftSessions'),
-          where('caregiverId', '==', user.id),
-          where('status', '==', 'completed'),
-          orderBy('startTime', 'desc')
-        );
-      } else if (selectedElder) {
-        // Show all shifts for this elder (all caregivers)
-        shiftsQuery = query(
-          collection(db, 'shiftSessions'),
-          where('elderId', '==', selectedElder.id),
-          where('status', '==', 'completed'),
-          orderBy('startTime', 'desc')
-        );
-      } else {
-        setShifts([]);
-        setLoading(false);
-        return;
-      }
-
-      const snapshot = await getDocs(shiftsQuery);
-      const allShifts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        startTime: doc.data().startTime?.toDate(),
-        endTime: doc.data().endTime?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate()
-      })) as ShiftSession[];
-
-      // Filter by date range
-      const filteredShifts = allShifts.filter(shift => {
-        if (!shift.startTime) return false;
-        return shift.startTime >= startDate && shift.startTime <= endDate;
+      const params = new URLSearchParams({
+        viewMode,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
       });
 
-      setShifts(filteredShifts);
+      if (viewMode === 'elder' && selectedElder) {
+        params.set('elderId', selectedElder.id);
+      }
+
+      const response = await authenticatedFetch(`/api/timesheet?${params.toString()}`);
+      const data = await response.json();
+
+      if (data.success) {
+        const allShifts = data.shifts.map((s: any) => ({
+          ...s,
+          startTime: s.startTime ? new Date(s.startTime) : null,
+          endTime: s.endTime ? new Date(s.endTime) : null,
+          createdAt: s.createdAt ? new Date(s.createdAt) : null,
+          updatedAt: s.updatedAt ? new Date(s.updatedAt) : null
+        })) as ShiftSession[];
+
+        setShifts(allShifts);
+      } else {
+        console.error('Error loading shifts:', data.error);
+        setShifts([]);
+      }
     } catch (err: any) {
       console.error('Error loading shifts:', err);
     } finally {

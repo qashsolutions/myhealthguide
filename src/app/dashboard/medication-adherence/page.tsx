@@ -17,14 +17,8 @@ import {
   Lightbulb,
   RefreshCw
 } from 'lucide-react';
-import {
-  predictMedicationAdherence,
-  getAllAdherencePredictions,
-  type MedicationAdherencePrediction
-} from '@/lib/medical/medicationAdherencePrediction';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import type { Medication } from '@/types';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
+import type { MedicationAdherencePrediction } from '@/lib/medical/medicationAdherencePrediction';
 
 export default function MedicationAdherencePage() {
   const { user } = useAuth();
@@ -47,10 +41,23 @@ export default function MedicationAdherencePage() {
 
     setLoading(true);
     try {
-      const results = await getAllAdherencePredictions(groupId, elderId);
-      setPredictions(results);
-      if (results.length > 0) {
-        setSelectedPrediction(results[0]);
+      const response = await authenticatedFetch(
+        `/api/medication-adherence?groupId=${groupId}&elderId=${elderId}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        const results = data.predictions.map((p: any) => ({
+          ...p,
+          predictedAt: p.predictedAt ? new Date(p.predictedAt) : null,
+          validUntil: p.validUntil ? new Date(p.validUntil) : null
+        }));
+        setPredictions(results);
+        if (results.length > 0) {
+          setSelectedPrediction(results[0]);
+        }
+      } else {
+        console.error('Error loading predictions:', data.error);
       }
     } catch (error) {
       console.error('Error loading predictions:', error);
@@ -64,31 +71,26 @@ export default function MedicationAdherencePage() {
 
     setAnalyzing(true);
     try {
-      // Get all active medications
-      const medicationsQuery = query(
-        collection(db, 'medications'),
-        where('groupId', '==', groupId),
-        where('elderId', '==', elderId)
-      );
+      const response = await authenticatedFetch('/api/medication-adherence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId, elderId })
+      });
+      const data = await response.json();
 
-      const medicationsSnap = await getDocs(medicationsQuery);
-      const medications = medicationsSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Medication));
-
-      // Run predictions for each medication
-      for (const med of medications) {
-        await predictMedicationAdherence(
-          groupId,
-          elderId,
-          med.id,
-          med.name,
-          30
-        );
+      if (data.success) {
+        const results = data.predictions.map((p: any) => ({
+          ...p,
+          predictedAt: p.predictedAt ? new Date(p.predictedAt) : null,
+          validUntil: p.validUntil ? new Date(p.validUntil) : null
+        }));
+        setPredictions(results);
+        if (results.length > 0) {
+          setSelectedPrediction(results[0]);
+        }
+      } else {
+        console.error('Error running analysis:', data.error);
       }
-
-      await loadPredictions();
     } catch (error) {
       console.error('Error running analysis:', error);
     } finally {

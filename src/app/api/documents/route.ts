@@ -1,0 +1,51 @@
+/**
+ * Documents API
+ * Uses Admin SDK for document metadata queries
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { verifyAuthToken } from '@/lib/api/verifyAuth';
+
+export async function GET(request: NextRequest) {
+  try {
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.success || !authResult.userId) {
+      return NextResponse.json({ success: false, error: authResult.error || 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const elderId = searchParams.get('elderId');
+
+    const db = getAdminDb();
+
+    // Get all files for this user
+    const filesSnap = await db.collection('storageMetadata')
+      .where('userId', '==', authResult.userId)
+      .orderBy('uploadedAt', 'desc')
+      .get();
+
+    let documents = filesSnap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        uploadedAt: data.uploadedAt?.toDate()
+      };
+    }) as any[];
+
+    // Filter by elder if specified
+    if (elderId) {
+      documents = documents.filter(doc => doc.filePath?.includes(elderId));
+    }
+
+    return NextResponse.json({ success: true, documents });
+
+  } catch (error) {
+    console.error('Error in documents API:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

@@ -7,9 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar } from 'lucide-react';
 import { startShiftSession, endShiftSession } from '@/lib/ai/shiftHandoffGeneration';
-import { findScheduledShiftForClockIn, linkShiftToSession } from '@/lib/firebase/scheduleShifts';
-import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { linkShiftToSession } from '@/lib/firebase/scheduleShifts';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ShiftSession, ShiftHandoffNote, ScheduledShift } from '@/types';
 import { format } from 'date-fns';
 
@@ -36,8 +35,14 @@ export default function ShiftHandoffPage() {
     if (!user || !selectedElder) return;
 
     try {
-      const shift = await findScheduledShiftForClockIn(user.id, selectedElder.id);
-      setScheduledShift(shift);
+      const response = await authenticatedFetch(
+        `/api/shift-handoff?elderId=${selectedElder.id}&type=scheduled`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setScheduledShift(data.scheduledShift);
+      }
     } catch (err: any) {
       console.error('Error loading scheduled shift:', err);
     }
@@ -47,27 +52,23 @@ export default function ShiftHandoffPage() {
     if (!user || !selectedElder) return;
 
     try {
-      const shiftsQuery = query(
-        collection(db, 'shiftSessions'),
-        where('caregiverId', '==', user.id),
-        where('elderId', '==', selectedElder.id),
-        where('status', '==', 'active'),
-        orderBy('startTime', 'desc'),
-        limit(1)
+      const response = await authenticatedFetch(
+        `/api/shift-handoff?elderId=${selectedElder.id}&type=active`
       );
+      const data = await response.json();
 
-      const snapshot = await getDocs(shiftsQuery);
-      if (!snapshot.empty) {
-        setActiveShift({
-          id: snapshot.docs[0].id,
-          ...snapshot.docs[0].data(),
-          startTime: snapshot.docs[0].data().startTime?.toDate(),
-          endTime: snapshot.docs[0].data().endTime?.toDate(),
-          createdAt: snapshot.docs[0].data().createdAt?.toDate(),
-          updatedAt: snapshot.docs[0].data().updatedAt?.toDate()
-        } as ShiftSession);
-      } else {
-        setActiveShift(null);
+      if (data.success) {
+        if (data.activeShift) {
+          setActiveShift({
+            ...data.activeShift,
+            startTime: data.activeShift.startTime ? new Date(data.activeShift.startTime) : null,
+            endTime: data.activeShift.endTime ? new Date(data.activeShift.endTime) : null,
+            createdAt: data.activeShift.createdAt ? new Date(data.activeShift.createdAt) : null,
+            updatedAt: data.activeShift.updatedAt ? new Date(data.activeShift.updatedAt) : null
+          } as ShiftSession);
+        } else {
+          setActiveShift(null);
+        }
       }
     } catch (err: any) {
       console.error('Error loading active shift:', err);
@@ -78,25 +79,22 @@ export default function ShiftHandoffPage() {
     if (!selectedElder) return;
 
     try {
-      const handoffsQuery = query(
-        collection(db, 'shiftHandoffNotes'),
-        where('elderId', '==', selectedElder.id),
-        orderBy('generatedAt', 'desc'),
-        limit(5)
+      const response = await authenticatedFetch(
+        `/api/shift-handoff?elderId=${selectedElder.id}&type=handoffs`
       );
+      const data = await response.json();
 
-      const snapshot = await getDocs(handoffsQuery);
-      const handoffs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        generatedAt: doc.data().generatedAt?.toDate(),
-        shiftPeriod: {
-          start: doc.data().shiftPeriod?.start?.toDate(),
-          end: doc.data().shiftPeriod?.end?.toDate()
-        }
-      })) as ShiftHandoffNote[];
-
-      setRecentHandoffs(handoffs);
+      if (data.success) {
+        const handoffs = data.handoffs.map((h: any) => ({
+          ...h,
+          generatedAt: h.generatedAt ? new Date(h.generatedAt) : null,
+          shiftPeriod: {
+            start: h.shiftPeriod?.start ? new Date(h.shiftPeriod.start) : null,
+            end: h.shiftPeriod?.end ? new Date(h.shiftPeriod.end) : null
+          }
+        })) as ShiftHandoffNote[];
+        setRecentHandoffs(handoffs);
+      }
     } catch (err: any) {
       console.error('Error loading handoffs:', err);
     }
@@ -146,26 +144,6 @@ export default function ShiftHandoffPage() {
         selectedElder.id,
         selectedElder.name
       );
-
-      // Find and complete any scheduled shift linked to this session
-      try {
-        const shiftsQuery = query(
-          collection(db, 'scheduledShifts'),
-          where('shiftSessionId', '==', activeShift.id),
-          where('status', '==', 'in_progress')
-        );
-        const shiftsSnapshot = await getDocs(shiftsQuery);
-
-        if (!shiftsSnapshot.empty) {
-          const scheduledShiftRef = doc(db, 'scheduledShifts', shiftsSnapshot.docs[0].id);
-          await updateDoc(scheduledShiftRef, {
-            status: 'completed',
-            updatedAt: new Date()
-          });
-        }
-      } catch (err) {
-        console.error('Error completing scheduled shift:', err);
-      }
 
       await loadActiveShift();
       await loadRecentHandoffs();

@@ -7,8 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, Loader2, Heart, Edit, Send, Eye, RefreshCw, CheckCircle } from 'lucide-react';
 import { generateWeeklyFamilyUpdate, type FamilyUpdateReport } from '@/lib/medical/familyUpdateReports';
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, orderBy, updateDoc, doc } from 'firebase/firestore';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 
 export default function FamilyUpdatesPage() {
   const { user } = useAuth();
@@ -34,30 +33,30 @@ export default function FamilyUpdatesPage() {
 
     setLoading(true);
     try {
-      const reportsQuery = query(
-        collection(db, 'familyUpdateReports'),
-        where('groupId', '==', groupId),
-        where('elderId', '==', elderId),
-        orderBy('weekEnding', 'desc')
+      const response = await authenticatedFetch(
+        `/api/family-updates?groupId=${groupId}&elderId=${elderId}`
       );
+      const data = await response.json();
 
-      const reportsSnap = await getDocs(reportsQuery);
-      const loadedReports = reportsSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        weekEnding: doc.data().weekEnding?.toDate(),
-        dateRange: {
-          start: doc.data().dateRange?.start?.toDate(),
-          end: doc.data().dateRange?.end?.toDate()
-        },
-        generatedAt: doc.data().generatedAt?.toDate(),
-        sentAt: doc.data().sentAt?.toDate()
-      })) as FamilyUpdateReport[];
+      if (data.success) {
+        const loadedReports = data.reports.map((r: any) => ({
+          ...r,
+          weekEnding: r.weekEnding ? new Date(r.weekEnding) : null,
+          dateRange: {
+            start: r.dateRange?.start ? new Date(r.dateRange.start) : null,
+            end: r.dateRange?.end ? new Date(r.dateRange.end) : null
+          },
+          generatedAt: r.generatedAt ? new Date(r.generatedAt) : null,
+          sentAt: r.sentAt ? new Date(r.sentAt) : null
+        })) as FamilyUpdateReport[];
 
-      setReports(loadedReports);
-      if (loadedReports.length > 0 && !selectedReport) {
-        setSelectedReport(loadedReports[0]);
-        setEditedNarrative(loadedReports[0].narrativeText);
+        setReports(loadedReports);
+        if (loadedReports.length > 0 && !selectedReport) {
+          setSelectedReport(loadedReports[0]);
+          setEditedNarrative(loadedReports[0].narrativeText);
+        }
+      } else {
+        console.error('Error loading reports:', data.error);
       }
     } catch (error) {
       console.error('Error loading reports:', error);
@@ -87,19 +86,28 @@ export default function FamilyUpdatesPage() {
     if (!selectedReport) return;
 
     try {
-      const reportRef = doc(db, 'familyUpdateReports', selectedReport.id);
-      await updateDoc(reportRef, {
-        narrativeText: editedNarrative
+      const response = await authenticatedFetch('/api/family-updates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportId: selectedReport.id,
+          narrativeText: editedNarrative
+        })
       });
+      const data = await response.json();
 
-      // Update local state
-      setSelectedReport({
-        ...selectedReport,
-        narrativeText: editedNarrative
-      });
+      if (data.success) {
+        // Update local state
+        setSelectedReport({
+          ...selectedReport,
+          narrativeText: editedNarrative
+        });
 
-      setEditMode(false);
-      await loadReports();
+        setEditMode(false);
+        await loadReports();
+      } else {
+        console.error('Error saving edits:', data.error);
+      }
     } catch (error) {
       console.error('Error saving edits:', error);
     }
@@ -109,22 +117,30 @@ export default function FamilyUpdatesPage() {
     if (!selectedReport) return;
 
     try {
-      const reportRef = doc(db, 'familyUpdateReports', selectedReport.id);
-      await updateDoc(reportRef, {
-        status: 'sent',
-        sentAt: new Date(),
-        sentTo: [user?.id || ''] // In production, would select family members
+      const response = await authenticatedFetch('/api/family-updates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportId: selectedReport.id,
+          status: 'sent',
+          sentTo: [user?.id || '']
+        })
       });
+      const data = await response.json();
 
-      // Update local state
-      setSelectedReport({
-        ...selectedReport,
-        status: 'sent',
-        sentAt: new Date(),
-        sentTo: [user?.id || '']
-      });
+      if (data.success) {
+        // Update local state
+        setSelectedReport({
+          ...selectedReport,
+          status: 'sent',
+          sentAt: new Date(),
+          sentTo: [user?.id || '']
+        });
 
-      await loadReports();
+        await loadReports();
+      } else {
+        console.error('Error sending report:', data.error);
+      }
     } catch (error) {
       console.error('Error sending report:', error);
     }
