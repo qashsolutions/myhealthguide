@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'About Us | CareGuide',
-  description: 'Learn about CareGuide - built by caregivers, for caregivers. Modern AI-powered tools to simplify caregiving.',
+  description: 'Learn about CareGuide - built by caregivers, for caregivers. Smart, data-driven tools to simplify caregiving.',
 };
 
 // SVG Icon Components
@@ -13,18 +13,6 @@ const HeartHandsIcon = () => (
     <path d="M32 44c-8-6-14-11-14-17 0-4.5 3.5-8 8-8 2.5 0 4.8 1.2 6 3 1.2-1.8 3.5-3 6-3 4.5 0 8 3.5 8 8 0 6-6 11-14 17z" fill="#3B82F6" />
     <path d="M20 48c0-2 1-3 3-3h18c2 0 3 1 3 3v2c0 1-1 2-2 2H22c-1 0-2-1-2-2v-2z" fill="#93C5FD" />
     <path d="M24 45v3M28 45v3M32 45v3M36 45v3M40 45v3" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
-const BrainAIIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-16 h-16">
-    <circle cx="32" cy="32" r="30" fill="#F3E8FF" />
-    <path d="M32 14c-10 0-18 8-18 18s8 18 18 18 18-8 18-18-8-18-18-18z" fill="#A855F7" fillOpacity="0.2" />
-    <circle cx="26" cy="26" r="4" fill="#A855F7" />
-    <circle cx="38" cy="26" r="4" fill="#A855F7" />
-    <circle cx="32" cy="38" r="4" fill="#A855F7" />
-    <path d="M26 26l6 12M38 26l-6 12M26 26h12" stroke="#A855F7" strokeWidth="2" />
-    <circle cx="32" cy="32" r="14" stroke="#A855F7" strokeWidth="2" strokeDasharray="4 2" />
   </svg>
 );
 
@@ -118,6 +106,76 @@ const StarIcon = () => (
   </svg>
 );
 
+// Smart Feature Icons
+const DrugInteractionIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-14 h-14">
+    <circle cx="32" cy="32" r="28" fill="#FEE2E2" />
+    <rect x="18" y="26" width="12" height="20" rx="6" fill="#EF4444" />
+    <rect x="34" y="18" width="12" height="20" rx="6" fill="#F97316" transform="rotate(45 40 28)" />
+    <path d="M28 32l8 8M36 32l-8 8" stroke="#DC2626" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="48" cy="16" r="8" fill="#DC2626" />
+    <path d="M48 12v4M48 20v1" stroke="white" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const BurnoutDetectionIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-14 h-14">
+    <circle cx="32" cy="32" r="28" fill="#FEF3C7" />
+    <circle cx="32" cy="28" r="12" fill="#F59E0B" />
+    <path d="M32 40v10" stroke="#F59E0B" strokeWidth="4" strokeLinecap="round" />
+    <path d="M24 54h16" stroke="#F59E0B" strokeWidth="4" strokeLinecap="round" />
+    <path d="M26 28c0-1 1-2 2-2h8c1 0 2 1 2 2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="28" cy="26" r="2" fill="white" />
+    <circle cx="36" cy="26" r="2" fill="white" />
+    <path d="M28 32c0 2 2 3 4 3s4-1 4-3" stroke="white" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const AdherencePredictionIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-14 h-14">
+    <circle cx="32" cy="32" r="28" fill="#DBEAFE" />
+    <rect x="18" y="20" width="28" height="28" rx="4" fill="#3B82F6" />
+    <path d="M22 32h20M22 38h14M22 26h20" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="46" cy="18" r="10" fill="#10B981" />
+    <path d="M42 18l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const DementiaScreeningIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-14 h-14">
+    <circle cx="32" cy="32" r="28" fill="#E0E7FF" />
+    <circle cx="32" cy="28" r="14" fill="#6366F1" fillOpacity="0.3" />
+    <path d="M24 24c2-4 5-6 8-6s6 2 8 6" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="26" cy="28" r="3" fill="#6366F1" />
+    <circle cx="38" cy="28" r="3" fill="#6366F1" />
+    <path d="M26 28h12" stroke="#6366F1" strokeWidth="2" strokeDasharray="2 2" />
+    <path d="M32 36v8M28 44h8" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const ScheduleConflictIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-14 h-14">
+    <circle cx="32" cy="32" r="28" fill="#FCE7F3" />
+    <rect x="16" y="18" width="20" height="24" rx="2" fill="#EC4899" />
+    <rect x="28" y="22" width="20" height="24" rx="2" fill="#F472B6" />
+    <path d="M20 26h12M20 32h8M32 30h12M32 36h8" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="48" cy="16" r="8" fill="#EC4899" />
+    <path d="M48 12v5M48 20v1" stroke="white" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const TrendAnalysisIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-14 h-14">
+    <circle cx="32" cy="32" r="28" fill="#D1FAE5" />
+    <path d="M16 44l10-10 8 6 14-18" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="16" cy="44" r="3" fill="#10B981" />
+    <circle cx="26" cy="34" r="3" fill="#10B981" />
+    <circle cx="34" cy="40" r="3" fill="#10B981" />
+    <circle cx="48" cy="22" r="3" fill="#10B981" />
+    <path d="M44 18l4 4 4-4" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export default function AboutPage() {
   return (
     <div className="bg-white dark:bg-gray-950">
@@ -197,154 +255,229 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* AI Section */}
-      <section className="py-20">
+      {/* Smart Care Intelligence Section - Industry Leading Features */}
+      <section className="py-20 bg-gradient-to-b from-white to-blue-50 dark:from-gray-950 dark:to-blue-950/20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <BrainAIIcon />
-            <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
-              Smart Technology That Actually Helps
+            <div className="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900/50 px-4 py-2 rounded-full mb-6">
+              <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Where the Industry is Headed</span>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
+              Smart Care Intelligence
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              We use the latest AI technology to make caregiving easier &mdash; not to replace you,
-              but to support you.
+              Data-driven features that help you stay ahead of problems &mdash; not just react to them.
+              The future of caregiving is preventive, not reactive.
             </p>
           </div>
 
-          <div className="mt-16 grid md:grid-cols-3 gap-8">
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-6">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-800 rounded-xl flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-purple-600 dark:text-purple-300">
-                  <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                Medication Reminders
+          <div className="mt-16 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Drug Interaction Detection */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-l-4 border-red-500 hover:shadow-xl transition-shadow">
+              <DrugInteractionIcon />
+              <h3 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">
+                Drug Interaction Alerts
               </h3>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Get smart reminders at the right time. Never miss a dose again.
+                Checks medications against each other. Warns you before problems happen.
               </p>
+              <div className="mt-4 flex items-center gap-2">
+                <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-medium rounded">Safety First</span>
+              </div>
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-800 rounded-xl flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-blue-600 dark:text-blue-300">
-                  <path d="M12 8v4l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                Health Summaries
+            {/* Caregiver Burnout Detection */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-l-4 border-amber-500 hover:shadow-xl transition-shadow">
+              <BurnoutDetectionIcon />
+              <h3 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">
+                Caregiver Wellness Check
               </h3>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
-                See patterns at a glance. Spot trends without digging through data.
+                Tracks your workload patterns. Alerts when you need a break.
               </p>
+              <div className="mt-4 flex items-center gap-2">
+                <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded">Your Health Matters</span>
+              </div>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-800 rounded-xl flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-green-600 dark:text-green-300">
-                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                Medical AI Assistant
+            {/* Medication Adherence Prediction */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
+              <AdherencePredictionIcon />
+              <h3 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">
+                Adherence Insights
               </h3>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Ask health questions in plain English. Get answers, not medical advice.
+                Spots missed dose patterns. Helps improve medication routines.
               </p>
+              <div className="mt-4 flex items-center gap-2">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded">Data-Driven</span>
+              </div>
+            </div>
+
+            {/* Dementia Screening */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-l-4 border-indigo-500 hover:shadow-xl transition-shadow">
+              <DementiaScreeningIcon />
+              <h3 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">
+                Cognitive Health Screening
+              </h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                Track cognitive changes over time. Share reports with doctors.
+              </p>
+              <div className="mt-4 flex items-center gap-2">
+                <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded">Early Detection</span>
+              </div>
+            </div>
+
+            {/* Schedule Conflict Detection */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-l-4 border-pink-500 hover:shadow-xl transition-shadow">
+              <ScheduleConflictIcon />
+              <h3 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">
+                Schedule Conflict Detection
+              </h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                Flags overlapping medications or appointments automatically.
+              </p>
+              <div className="mt-4 flex items-center gap-2">
+                <span className="px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 text-xs font-medium rounded">Smart Planning</span>
+              </div>
+            </div>
+
+            {/* Health Trend Analysis */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-l-4 border-green-500 hover:shadow-xl transition-shadow">
+              <TrendAnalysisIcon />
+              <h3 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">
+                Health Trend Analysis
+              </h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                See what&apos;s improving or declining. Charts make it clear.
+              </p>
+              <div className="mt-4 flex items-center gap-2">
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium rounded">Visual Insights</span>
+              </div>
             </div>
           </div>
 
-          <div className="mt-12 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-2xl p-8">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-purple-600">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
+          {/* How it works - Simple explanation */}
+          <div className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white">What is MedGemma?</h4>
-                <p className="mt-2 text-gray-600 dark:text-gray-300">
-                  Google&apos;s medical AI trained on millions of health topics. Helps you understand &mdash; not replace your doctor.
+                <h3 className="text-2xl font-bold">How Smart Features Work</h3>
+                <p className="mt-4 text-blue-100">
+                  Our system learns from the data you log &mdash; medications, meals, activities.
+                  It spots patterns humans might miss and alerts you to things that matter.
                 </p>
+                <p className="mt-4 text-blue-100">
+                  Think of it like a smart assistant that watches for warning signs while you focus on caring.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg font-bold">1</span>
+                  </div>
+                  <span>You log medications, meals, notes</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg font-bold">2</span>
+                  </div>
+                  <span>System analyzes patterns over time</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg font-bold">3</span>
+                  </div>
+                  <span>You get alerts when something needs attention</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
+      {/* Core Features - Condensed */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Everything You Need in One Place
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Plus All the Essentials
             </h2>
-            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              No more juggling multiple apps or sticky notes. CareGuide brings it all together.
+            <p className="mt-2 text-gray-600 dark:text-gray-300">
+              The foundation for daily caregiving tasks.
             </p>
           </div>
 
-          <div className="mt-16 grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <MedicationIcon />
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                Medication Tracking
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
+              <div className="flex justify-center">
+                <MedicationIcon />
+              </div>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+                Medications
               </h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Log doses. Set reminders. Track compliance.
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Track & remind
               </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <DietIcon />
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                Diet & Nutrition
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
+              <div className="flex justify-center">
+                <DietIcon />
+              </div>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+                Diet
               </h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Log meals by voice or text. Monitor eating habits.
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Log meals
               </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <DocumentIcon />
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                Document Storage
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
+              <div className="flex justify-center">
+                <DocumentIcon />
+              </div>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+                Documents
               </h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Store prescriptions, insurance, contacts. All in one place.
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Store safely
               </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <VoiceIcon />
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                Voice Logging
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
+              <div className="flex justify-center">
+                <VoiceIcon />
+              </div>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+                Voice
               </h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Speak to log. Hands-free and fast.
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Hands-free
               </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <AnalyticsIcon />
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                Smart Analytics
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
+              <div className="flex justify-center">
+                <AnalyticsIcon />
+              </div>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+                Reports
               </h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Spot trends instantly. Know when to act.
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Export & share
               </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-              <MobileAppIcon />
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
+              <div className="flex justify-center">
+                <MobileAppIcon />
+              </div>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
                 iOS App
               </h3>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Manage care on the go. Download free.
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                On the go
               </p>
             </div>
           </div>
@@ -392,7 +525,7 @@ export default function AboutPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckIcon />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">AI health insights</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Smart health insights</span>
                 </li>
               </ul>
             </div>
@@ -477,7 +610,7 @@ export default function AboutPage() {
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckIcon />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Advanced analytics</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">All smart features</span>
                 </li>
               </ul>
             </div>
