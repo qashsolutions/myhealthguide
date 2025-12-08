@@ -557,16 +557,15 @@ export default function AboutPage() {
             </div>
             <div className="flex justify-center">
               <div className="relative">
-                <div className="w-64 h-[500px] bg-gray-900 rounded-[3rem] p-3 shadow-2xl">
-                  <div className="w-full h-full bg-gradient-to-br from-green-400 to-emerald-600 rounded-[2.5rem] flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <svg viewBox="0 0 64 64" fill="none" className="w-20 h-20 mx-auto">
-                        <circle cx="32" cy="32" r="28" fill="white" fillOpacity="0.2" />
-                        <path d="M32 44c-8-6-14-11-14-17 0-4.5 3.5-8 8-8 2.5 0 4.8 1.2 6 3 1.2-1.8 3.5-3 6-3 4.5 0 8 3.5 8 8 0 6-6 11-14 17z" fill="white" />
-                      </svg>
-                      <p className="mt-4 text-xl font-bold">CareGuide</p>
-                      <p className="text-sm opacity-80">Care Made Simple</p>
-                    </div>
+                {/* Phone frame */}
+                <div className="w-72 h-[580px] bg-gray-900 rounded-[3rem] p-2 shadow-2xl">
+                  {/* Screen with actual app screenshot */}
+                  <div className="w-full h-full rounded-[2.5rem] overflow-hidden">
+                    <img
+                      src="/images/ios-app-screenshot.png"
+                      alt="CareGuide iOS App - Settings screen showing account, subscription, and group information"
+                      className="w-full h-full object-cover object-top"
+                    />
                   </div>
                 </div>
               </div>
