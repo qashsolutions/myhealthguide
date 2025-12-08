@@ -223,8 +223,7 @@ export default function AboutPage() {
                 Medication Reminders
               </h3>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Our AI learns when medications are usually taken and sends smart reminders at the right time.
-                It can even predict when you might forget and send extra nudges.
+                Get smart reminders at the right time. Never miss a dose again.
               </p>
             </div>
 
@@ -239,8 +238,7 @@ export default function AboutPage() {
                 Health Summaries
               </h3>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Get easy-to-read summaries of how things are going. See patterns in medication taking,
-                eating habits, and more &mdash; without having to dig through data.
+                See patterns at a glance. Spot trends without digging through data.
               </p>
             </div>
 
@@ -254,8 +252,7 @@ export default function AboutPage() {
                 Medical AI Assistant
               </h3>
               <p className="mt-2 text-gray-600 dark:text-gray-300">
-                Ask questions about medications or health topics in plain English. Our AI (powered by
-                Google&apos;s medical AI) helps you understand &mdash; while always reminding you to talk to a doctor.
+                Ask health questions in plain English. Get answers, not medical advice.
               </p>
             </div>
           </div>
@@ -270,10 +267,7 @@ export default function AboutPage() {
               <div>
                 <h4 className="font-semibold text-gray-900 dark:text-white">What is MedGemma?</h4>
                 <p className="mt-2 text-gray-600 dark:text-gray-300">
-                  MedGemma is a special AI from Google that was trained to understand health and medical topics.
-                  Think of it like having a really smart helper who has read millions of medical books.
-                  It helps us give you better health insights &mdash; but it&apos;s not a doctor and doesn&apos;t give medical advice.
-                  Always check with your healthcare provider for medical decisions.
+                  Google&apos;s medical AI trained on millions of health topics. Helps you understand &mdash; not replace your doctor.
                 </p>
               </div>
             </div>
@@ -300,8 +294,7 @@ export default function AboutPage() {
                 Medication Tracking
               </h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Track all medications in one place. Set reminders, log when they&apos;re taken,
-                and see compliance over time.
+                Log doses. Set reminders. Track compliance.
               </p>
             </div>
 
@@ -311,8 +304,7 @@ export default function AboutPage() {
                 Diet & Nutrition
               </h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Log meals easily with voice or text. Track eating patterns and ensure
-                proper nutrition.
+                Log meals by voice or text. Monitor eating habits.
               </p>
             </div>
 
@@ -322,8 +314,7 @@ export default function AboutPage() {
                 Document Storage
               </h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Keep all important documents &mdash; prescriptions, insurance cards, contacts &mdash;
-                in one secure place.
+                Store prescriptions, insurance, contacts. All in one place.
               </p>
             </div>
 
@@ -333,7 +324,7 @@ export default function AboutPage() {
                 Voice Logging
               </h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Busy hands? Just speak. Log medications, meals, and notes using your voice.
+                Speak to log. Hands-free and fast.
               </p>
             </div>
 
@@ -343,8 +334,7 @@ export default function AboutPage() {
                 Smart Analytics
               </h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                See trends and patterns at a glance. Know when things are going well
-                and when to pay attention.
+                Spot trends instantly. Know when to act.
               </p>
             </div>
 
@@ -354,7 +344,7 @@ export default function AboutPage() {
                 iOS App
               </h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Take CareGuide with you. Our iOS app puts caregiving tools right in your pocket.
+                Manage care on the go. Download free.
               </p>
             </div>
           </div>
