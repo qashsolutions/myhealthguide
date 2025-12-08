@@ -11,7 +11,7 @@
  */
 
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, addDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, Timestamp, orderBy, doc, getDoc } from 'firebase/firestore';
 import type { CaregiverBurnoutAssessment, BurnoutFactor } from '@/types';
 
 interface CaregiverWorkload {
@@ -318,14 +318,13 @@ export async function assessAllCaregivers(
   periodDays: number = 14
 ): Promise<CaregiverBurnoutAssessment[]> {
   try {
-    // Get all caregivers in agency
-    const agencyDoc = await getDocs(
-      query(collection(db, 'agencies'), where('id', '==', agencyId))
-    );
+    // Get agency document by ID
+    const agencyRef = doc(db, 'agencies', agencyId);
+    const agencySnap = await getDoc(agencyRef);
 
-    if (agencyDoc.empty) return [];
+    if (!agencySnap.exists()) return [];
 
-    const agency = agencyDoc.docs[0].data();
+    const agency = agencySnap.data();
     const caregiverIds: string[] = agency.caregiverIds || [];
 
     const assessments: CaregiverBurnoutAssessment[] = [];
