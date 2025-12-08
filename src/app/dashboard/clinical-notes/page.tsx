@@ -296,7 +296,10 @@ export default function ClinicalNotesPage() {
                   </div>
                 </div>
                 <div className="text-right text-sm text-gray-500 dark:text-gray-400">
-                  <p>Report Period: {clinicalNote.timeframeDays} days</p>
+                  <p>Report Period: {clinicalNote.reportPeriod
+                    ? `${format(new Date(clinicalNote.reportPeriod.from), 'MMM dd, yyyy')} - ${format(new Date(clinicalNote.reportPeriod.to), 'MMM dd, yyyy')}`
+                    : `${clinicalNote.timeframeDays} days`
+                  }</p>
                   <p>Generated: {format(new Date(), 'MMM dd, yyyy')}</p>
                 </div>
               </div>

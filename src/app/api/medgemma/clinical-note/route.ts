@@ -212,6 +212,10 @@ export async function POST(request: NextRequest) {
         complianceAnalysis: { overallRate: complianceRate, totalDoses, takenDoses, missedDoses },
         patientInfo: { name: elderName, age: elderAge, dateOfBirth: elderDateOfBirth, medicalConditions, allergies },
         timeframeDays,
+        reportPeriod: {
+          from: startDate.toISOString(),
+          to: endDate.toISOString(),
+        },
         discussionPoints: clinicalNote.discussionPoints,
         questionsForProvider: clinicalNote.questionsForProvider,
         disclaimer: 'This is an observational summary of logged health data. It does not contain medical advice or recommendations. Discussion points and questions are conversation starters based on data patterns, not clinical guidance. Please discuss all health decisions with your healthcare provider.',
