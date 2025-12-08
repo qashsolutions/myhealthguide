@@ -38,22 +38,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
 
-    // Get adherence predictions
+    // Get adherence predictions - query without orderBy, sort in memory
     const predictionsSnap = await db.collection('medicationAdherencePredictions')
       .where('groupId', '==', groupId)
       .where('elderId', '==', elderId)
-      .orderBy('predictedAt', 'desc')
       .get();
 
-    const predictions = predictionsSnap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        predictedAt: data.predictedAt?.toDate(),
-        validUntil: data.validUntil?.toDate()
-      };
-    });
+    const predictions = predictionsSnap.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          predictedAt: data.predictedAt?.toDate(),
+          validUntil: data.validUntil?.toDate()
+        };
+      })
+      .sort((a, b) => {
+        const dateA = a.predictedAt?.getTime() || 0;
+        const dateB = b.predictedAt?.getTime() || 0;
+        return dateB - dateA; // desc
+      });
 
     return NextResponse.json({ success: true, predictions });
 

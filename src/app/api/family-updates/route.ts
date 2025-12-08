@@ -38,27 +38,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
 
-    // Get family update reports
+    // Get family update reports - query without orderBy, sort in memory
     const reportsSnap = await db.collection('familyUpdateReports')
       .where('groupId', '==', groupId)
       .where('elderId', '==', elderId)
-      .orderBy('weekEnding', 'desc')
       .get();
 
-    const reports = reportsSnap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        weekEnding: data.weekEnding?.toDate(),
-        dateRange: {
-          start: data.dateRange?.start?.toDate(),
-          end: data.dateRange?.end?.toDate()
-        },
-        generatedAt: data.generatedAt?.toDate(),
-        sentAt: data.sentAt?.toDate()
-      };
-    });
+    const reports = reportsSnap.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          weekEnding: data.weekEnding?.toDate(),
+          dateRange: {
+            start: data.dateRange?.start?.toDate(),
+            end: data.dateRange?.end?.toDate()
+          },
+          generatedAt: data.generatedAt?.toDate(),
+          sentAt: data.sentAt?.toDate()
+        };
+      })
+      .sort((a, b) => {
+        const dateA = a.weekEnding?.getTime() || 0;
+        const dateB = b.weekEnding?.getTime() || 0;
+        return dateB - dateA; // desc
+      });
 
     return NextResponse.json({ success: true, reports });
 

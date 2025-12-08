@@ -25,53 +25,66 @@ export async function GET(request: NextRequest) {
     const db = getAdminDb();
 
     if (type === 'active') {
-      // Get active shift for this caregiver and elder
+      // Get active shift for this caregiver and elder - query without orderBy, sort in memory
       const shiftsSnap = await db.collection('shiftSessions')
         .where('caregiverId', '==', authResult.userId)
         .where('elderId', '==', elderId)
         .where('status', '==', 'active')
-        .orderBy('startTime', 'desc')
-        .limit(1)
         .get();
 
       if (shiftsSnap.empty) {
         return NextResponse.json({ success: true, activeShift: null });
       }
 
-      const doc = shiftsSnap.docs[0];
-      const data = doc.data();
-      const activeShift = {
-        id: doc.id,
-        ...data,
-        startTime: data.startTime?.toDate(),
-        endTime: data.endTime?.toDate(),
-        createdAt: data.createdAt?.toDate(),
-        updatedAt: data.updatedAt?.toDate()
-      };
+      // Sort by startTime desc and get the first one
+      const shifts = shiftsSnap.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            startTime: data.startTime?.toDate(),
+            endTime: data.endTime?.toDate(),
+            createdAt: data.createdAt?.toDate(),
+            updatedAt: data.updatedAt?.toDate()
+          };
+        })
+        .sort((a, b) => {
+          const dateA = a.startTime?.getTime() || 0;
+          const dateB = b.startTime?.getTime() || 0;
+          return dateB - dateA; // desc
+        });
+
+      const activeShift = shifts[0] || null;
 
       return NextResponse.json({ success: true, activeShift });
     }
 
     if (type === 'handoffs') {
-      // Get recent handoff notes
+      // Get recent handoff notes - query without orderBy, sort in memory
       const handoffsSnap = await db.collection('shiftHandoffNotes')
         .where('elderId', '==', elderId)
-        .orderBy('generatedAt', 'desc')
-        .limit(5)
         .get();
 
-      const handoffs = handoffsSnap.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          generatedAt: data.generatedAt?.toDate(),
-          shiftPeriod: {
-            start: data.shiftPeriod?.start?.toDate(),
-            end: data.shiftPeriod?.end?.toDate()
-          }
-        };
-      });
+      const handoffs = handoffsSnap.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            generatedAt: data.generatedAt?.toDate(),
+            shiftPeriod: {
+              start: data.shiftPeriod?.start?.toDate(),
+              end: data.shiftPeriod?.end?.toDate()
+            }
+          };
+        })
+        .sort((a, b) => {
+          const dateA = a.generatedAt?.getTime() || 0;
+          const dateB = b.generatedAt?.getTime() || 0;
+          return dateB - dateA; // desc
+        })
+        .slice(0, 5);
 
       return NextResponse.json({ success: true, handoffs });
     }

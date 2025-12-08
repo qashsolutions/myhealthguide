@@ -25,34 +25,38 @@ export async function GET(request: NextRequest) {
     let shiftsQuery;
 
     if (viewMode === 'caregiver') {
-      // Show all shifts for this caregiver
+      // Show all shifts for this caregiver - query without orderBy
       shiftsQuery = db.collection('shiftSessions')
         .where('caregiverId', '==', authResult.userId)
-        .where('status', '==', 'completed')
-        .orderBy('startTime', 'desc');
+        .where('status', '==', 'completed');
     } else if (elderId) {
-      // Show all shifts for this elder (all caregivers)
+      // Show all shifts for this elder (all caregivers) - query without orderBy
       shiftsQuery = db.collection('shiftSessions')
         .where('elderId', '==', elderId)
-        .where('status', '==', 'completed')
-        .orderBy('startTime', 'desc');
+        .where('status', '==', 'completed');
     } else {
       return NextResponse.json({ success: true, shifts: [] });
     }
 
     const snapshot = await shiftsQuery.get();
 
-    let shifts = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        startTime: data.startTime?.toDate(),
-        endTime: data.endTime?.toDate(),
-        createdAt: data.createdAt?.toDate(),
-        updatedAt: data.updatedAt?.toDate()
-      };
-    });
+    let shifts = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          startTime: data.startTime?.toDate(),
+          endTime: data.endTime?.toDate(),
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate()
+        };
+      })
+      .sort((a, b) => {
+        const dateA = a.startTime?.getTime() || 0;
+        const dateB = b.startTime?.getTime() || 0;
+        return dateB - dateA; // desc
+      });
 
     // Filter by date range if provided
     if (startDate && endDate) {

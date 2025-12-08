@@ -19,20 +19,25 @@ export async function GET(request: NextRequest) {
 
     const db = getAdminDb();
 
-    // Get all files for this user
+    // Get all files for this user - query without orderBy, sort in memory
     const filesSnap = await db.collection('storageMetadata')
       .where('userId', '==', authResult.userId)
-      .orderBy('uploadedAt', 'desc')
       .get();
 
-    let documents = filesSnap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        uploadedAt: data.uploadedAt?.toDate()
-      };
-    }) as any[];
+    let documents = filesSnap.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          uploadedAt: data.uploadedAt?.toDate()
+        };
+      })
+      .sort((a, b) => {
+        const dateA = a.uploadedAt?.getTime() || 0;
+        const dateB = b.uploadedAt?.getTime() || 0;
+        return dateB - dateA; // desc
+      }) as any[];
 
     // Filter by elder if specified
     if (elderId) {
