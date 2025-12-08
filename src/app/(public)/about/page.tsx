@@ -585,18 +585,12 @@ export default function AboutPage() {
               Join thousands of caregivers who are already using CareGuide.
               Start your 45-day free trial today.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="mt-8">
               <Link
                 href="/signup"
                 className="inline-flex items-center justify-center rounded-full bg-white px-8 py-3 text-base font-semibold text-blue-600 shadow-lg hover:bg-gray-100 transition-all"
               >
                 Start Free Trial
-              </Link>
-              <Link
-                href="/contact"
-                className="inline-flex items-center justify-center rounded-full border-2 border-white px-8 py-3 text-base font-semibold text-white hover:bg-white/10 transition-all"
-              >
-                Contact Us
               </Link>
             </div>
           </div>
