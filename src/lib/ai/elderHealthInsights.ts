@@ -17,9 +17,28 @@
 
 import { VertexAI } from '@google-cloud/vertexai';
 import { logPHIThirdPartyDisclosure, UserRole } from '../medical/phiAuditLog';
-import { saveHealthInsight } from '../firebase/elderHealthProfile';
 import { getAdminDb } from '../firebase/admin';
 import type { ElderHealthInsight, Elder } from '@/types';
+
+/**
+ * Save health insight using Admin SDK (server-side)
+ */
+async function saveHealthInsightServer(
+  insight: Omit<ElderHealthInsight, 'id' | 'dismissedAt' | 'dismissedBy'>
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const adminDb = getAdminDb();
+    const docRef = await adminDb.collection('elderHealthInsights').add({
+      ...insight,
+      createdAt: insight.createdAt || new Date(),
+    });
+    console.log('[saveHealthInsightServer] Saved insight with id:', docRef.id);
+    return { success: true, id: docRef.id };
+  } catch (error: any) {
+    console.error('[saveHealthInsightServer] Error:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 // Initialize Vertex AI
 const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -541,12 +560,14 @@ export async function generateElderHealthInsights(
         userRole,
       };
 
-      const result = await saveHealthInsight(insight);
+      const result = await saveHealthInsightServer(insight);
       if (result.success && result.id) {
         insights.push({
           ...insight,
           id: result.id,
         });
+      } else {
+        console.error('[elderHealthInsights] Failed to save insight:', result.error);
       }
     }
 
