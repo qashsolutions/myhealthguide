@@ -3,8 +3,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { ElderBillingService } from '@/lib/stripe/elderBilling';
-import { db } from '@/lib/firebase/config';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { Timestamp } from 'firebase-admin/firestore';
 
 // Lazy initialization
 function getStripe(): Stripe {
@@ -91,8 +91,9 @@ export async function POST(req: NextRequest) {
         const planKey = extractPlanKey(subscription);
 
         if (userId) {
-          // Update user subscription status in Firestore
-          await updateDoc(doc(db, 'users', userId), {
+          // Update user subscription status in Firestore using Admin SDK
+          const adminDb = getAdminDb();
+          await adminDb.collection('users').doc(userId).update({
             subscriptionStatus: subscription.status === 'trialing' ? 'trial' : 'active',
             subscriptionTier: planKey || 'unknown',
             stripeCustomerId: subscription.customer as string,
@@ -175,7 +176,8 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          await updateDoc(doc(db, 'users', userId), updateData);
+          const adminDb = getAdminDb();
+          await adminDb.collection('users').doc(userId).update(updateData);
           console.log('Subscription updated:', subscription.id, 'Status:', subscriptionStatus);
         }
         break;
@@ -186,7 +188,8 @@ export async function POST(req: NextRequest) {
         const userId = subscription.metadata.userId;
 
         if (userId) {
-          await updateDoc(doc(db, 'users', userId), {
+          const adminDb = getAdminDb();
+          await adminDb.collection('users').doc(userId).update({
             subscriptionStatus: 'canceled',
             cancelAtPeriodEnd: false,
             pendingPlanChange: null,
@@ -204,7 +207,8 @@ export async function POST(req: NextRequest) {
 
         if (userId) {
           // Clear pending plan change since it's now applied
-          await updateDoc(doc(db, 'users', userId), {
+          const adminDb = getAdminDb();
+          await adminDb.collection('users').doc(userId).update({
             pendingPlanChange: null,
             updatedAt: Timestamp.now(),
           });
@@ -220,7 +224,8 @@ export async function POST(req: NextRequest) {
         const userId = schedule.metadata?.userId;
 
         if (userId) {
-          await updateDoc(doc(db, 'users', userId), {
+          const adminDb = getAdminDb();
+          await adminDb.collection('users').doc(userId).update({
             pendingPlanChange: null,
             updatedAt: Timestamp.now(),
           });
