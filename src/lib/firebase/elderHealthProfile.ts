@@ -124,12 +124,14 @@ export async function addHealthCondition(
   condition: Omit<ElderHealthCondition, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const docRef = await addDoc(collection(db, 'elderHealthConditions'), {
+    // Clean undefined values before saving to Firestore
+    const cleanedCondition = cleanForFirestore({
       ...condition,
       diagnosisDate: condition.diagnosisDate || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    const docRef = await addDoc(collection(db, 'elderHealthConditions'), cleanedCondition);
     return { success: true, id: docRef.id };
   } catch (error: any) {
     console.error('Error adding health condition:', error);
@@ -214,11 +216,13 @@ export async function addAllergy(
   allergy: Omit<ElderAllergy, 'id' | 'createdAt'>
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const docRef = await addDoc(collection(db, 'elderAllergies'), {
+    // Clean undefined values before saving to Firestore
+    const cleanedAllergy = cleanForFirestore({
       ...allergy,
       discoveredDate: allergy.discoveredDate || null,
       createdAt: new Date(),
     });
+    const docRef = await addDoc(collection(db, 'elderAllergies'), cleanedAllergy);
     return { success: true, id: docRef.id };
   } catch (error: any) {
     console.error('Error adding allergy:', error);
@@ -300,10 +304,12 @@ export async function logSymptom(
   symptom: Omit<ElderSymptom, 'id'>
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const docRef = await addDoc(collection(db, 'elderSymptoms'), {
+    // Clean undefined values before saving to Firestore
+    const cleanedSymptom = cleanForFirestore({
       ...symptom,
       loggedAt: symptom.loggedAt || new Date(),
     });
+    const docRef = await addDoc(collection(db, 'elderSymptoms'), cleanedSymptom);
     return { success: true, id: docRef.id };
   } catch (error: any) {
     console.error('Error logging symptom:', error);
@@ -318,7 +324,8 @@ export async function addSymptom(
   symptom: Omit<ElderSymptom, 'id' | 'loggedAt'> & { observedAt?: Date }
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const docRef = await addDoc(collection(db, 'elderSymptoms'), {
+    // Clean undefined values before saving to Firestore
+    const cleanedSymptom = cleanForFirestore({
       elderId: symptom.elderId,
       groupId: symptom.groupId,
       symptom: symptom.symptom,
@@ -331,6 +338,7 @@ export async function addSymptom(
       observedAt: symptom.observedAt || new Date(),
       loggedAt: new Date(),
     });
+    const docRef = await addDoc(collection(db, 'elderSymptoms'), cleanedSymptom);
     return { success: true, id: docRef.id };
   } catch (error: any) {
     console.error('Error adding symptom:', error);
