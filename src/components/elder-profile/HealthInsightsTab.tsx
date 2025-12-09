@@ -245,7 +245,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
               Health Insights
             </CardTitle>
             <CardDescription>
-              AI-generated observations from {elderName}&apos;s logged health data.
+              These smart observations are generated from {elderName}&apos;s logged health data.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -256,7 +256,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
                 <p className="text-sm mb-4">
                   Before generating health insights, you must read and accept the terms,
                   medical disclaimers, and data processing agreement. This ensures you understand how your data
-                  is used and the limitations of auto-generated observations.
+                  is used and the limitations of smart observations.
                 </p>
                 <Button onClick={() => setShowConsentDialog(true)} size="sm">
                   <Shield className="w-4 h-4 mr-2" />
@@ -328,7 +328,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
             </div>
           </CardTitle>
           <CardDescription>
-            AI-generated observations from {elderName}&apos;s logged health data.
+            These smart observations are generated from {elderName}&apos;s logged health data.
           </CardDescription>
         </CardHeader>
         <CardContent>
