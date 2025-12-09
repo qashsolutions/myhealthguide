@@ -396,6 +396,8 @@ export interface ElderEmergencyContact {
 
 export type HealthInsightType = 'observation' | 'symptom_pattern' | 'medication_adherence' | 'health_trend' | 'summary';
 
+export type ActionFlag = 'recurring' | 'review_with_care_team' | 'logging_gap' | 'new_entry' | 'high_frequency' | 'low_adherence';
+
 export interface ElderHealthInsight {
   id?: string;
   elderId: string;
@@ -411,6 +413,9 @@ export interface ElderHealthInsight {
   userRole: string;
   dismissedAt?: Date;
   dismissedBy?: string;
+  // Actionable flags (factual, non-medical)
+  actionFlag?: ActionFlag;
+  actionFlagReason?: string; // Why this flag was applied (factual)
 }
 
 // ============= Caregiver Notes & Tips =============

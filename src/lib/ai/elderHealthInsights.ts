@@ -15,10 +15,13 @@
  * When in doubt, output nothing rather than something potentially harmful.
  */
 
-import { VertexAI } from '@google-cloud/vertexai';
 import { logPHIThirdPartyDisclosure, UserRole } from '../medical/phiAuditLog';
 import { getAdminDb } from '../firebase/admin';
-import type { ElderHealthInsight, Elder } from '@/types';
+import type { ElderHealthInsight, Elder, ActionFlag } from '@/types';
+
+// API endpoints
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
 /**
  * Save health insight using Admin SDK (server-side)
@@ -40,43 +43,80 @@ async function saveHealthInsightServer(
   }
 }
 
-// Initialize Vertex AI
-const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-const location = process.env.VERTEX_AI_LOCATION || 'us-central1';
+/**
+ * Call Gemini API for AI summary
+ */
+async function callGeminiAPI(prompt: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
-let vertexAI: VertexAI | null = null;
-
-function getVertexAI(): VertexAI {
-  if (!vertexAI && projectId) {
-    const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-
-    if (credentialsJson) {
-      try {
-        const credentials = JSON.parse(credentialsJson);
-        vertexAI = new VertexAI({
-          project: projectId,
-          location: location,
-          googleAuthOptions: {
-            credentials: credentials,
-          },
-        });
-      } catch (error) {
-        console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
-        throw new Error('Invalid credentials format');
+  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.1, // Very low for factual output
+        maxOutputTokens: 256,
       }
-    } else {
-      vertexAI = new VertexAI({
-        project: projectId,
-        location: location,
-      });
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Gemini API error: ${error}`);
+  }
+
+  const result = await response.json();
+  return result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+/**
+ * Call Claude API as fallback
+ */
+async function callClaudeAPI(prompt: string): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+
+  const response = await fetch(CLAUDE_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 256,
+      temperature: 0.1,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Claude API error: ${error}`);
+  }
+
+  const result = await response.json();
+  return result.content?.[0]?.text || '';
+}
+
+/**
+ * Call AI with Gemini primary, Claude fallback
+ */
+async function callAI(prompt: string): Promise<string> {
+  try {
+    return await callGeminiAPI(prompt);
+  } catch (geminiError) {
+    console.warn('[callAI] Gemini failed, trying Claude:', geminiError);
+    try {
+      return await callClaudeAPI(prompt);
+    } catch (claudeError) {
+      console.error('[callAI] Both APIs failed:', claudeError);
+      throw new Error('AI summary unavailable');
     }
   }
-
-  if (!vertexAI) {
-    throw new Error('Vertex AI not configured');
-  }
-
-  return vertexAI;
 }
 
 // ============= GUARDRAIL CONSTANTS =============
@@ -188,9 +228,9 @@ function validateObservation(observation: string): boolean {
 /**
  * Filter and validate all observations
  */
-function filterValidObservations(observations: string[]): string[] {
+function filterValidObservations(observations: ObservationWithFlag[]): ObservationWithFlag[] {
   return observations.filter(obs => {
-    const trimmed = obs.trim();
+    const trimmed = obs.observation.trim();
     if (!trimmed) return false;
     return validateObservation(trimmed);
   });
@@ -395,8 +435,18 @@ async function getDietEntryCount(
 // ============= INSIGHT GENERATION =============
 
 /**
+ * Observation with optional actionable flag
+ */
+interface ObservationWithFlag {
+  observation: string;
+  actionFlag?: ActionFlag;
+  actionFlagReason?: string;
+}
+
+/**
  * Generate observations WITHOUT using AI
  * This is the SAFEST approach - pure data reporting
+ * Returns observations with actionable flags (factual, non-medical)
  */
 function generateTemplateBasedObservations(data: {
   symptomSummary: { symptomName: string; count: number; avgSeverity: number; dates: Date[] }[];
@@ -407,55 +457,102 @@ function generateTemplateBasedObservations(data: {
   days: number;
   periodStart: Date;
   periodEnd: Date;
-}): string[] {
-  const observations: string[] = [];
+}): ObservationWithFlag[] {
+  const observations: ObservationWithFlag[] = [];
   const formatDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   // Symptom observations
   for (const symptom of data.symptomSummary) {
     if (symptom.count > 0) {
       const dateStr = symptom.dates.map(formatDate).join(', ');
-      observations.push(
-        `${symptom.symptomName} was logged ${symptom.count} time${symptom.count > 1 ? 's' : ''} between ${formatDate(data.periodStart)} and ${formatDate(data.periodEnd)}.`
-      );
-      if (symptom.count <= 5) {
-        observations.push(`${symptom.symptomName} was logged on: ${dateStr}.`);
+
+      // Determine flag based on symptom frequency
+      let flag: ActionFlag | undefined;
+      let flagReason: string | undefined;
+
+      if (symptom.count >= 3) {
+        flag = 'recurring';
+        flagReason = `Logged ${symptom.count} times in ${data.days} days`;
+      } else if (symptom.count >= 5) {
+        flag = 'high_frequency';
+        flagReason = `Logged ${symptom.count} times in ${data.days} days`;
       }
-      observations.push(`Average severity for ${symptom.symptomName}: ${symptom.avgSeverity} out of 10.`);
+
+      observations.push({
+        observation: `${symptom.symptomName} was logged ${symptom.count} time${symptom.count > 1 ? 's' : ''} between ${formatDate(data.periodStart)} and ${formatDate(data.periodEnd)}.`,
+        actionFlag: flag,
+        actionFlagReason: flagReason,
+      });
+
+      if (symptom.count <= 5) {
+        observations.push({
+          observation: `${symptom.symptomName} was logged on: ${dateStr}.`,
+        });
+      }
+
+      observations.push({
+        observation: `Average severity for ${symptom.symptomName}: ${symptom.avgSeverity} out of 10.`,
+      });
     }
   }
 
   // Medication adherence
   if (data.adherence.total > 0) {
-    observations.push(
-      `Medication adherence rate: ${data.adherence.rate}% (${data.adherence.taken} of ${data.adherence.total} doses taken).`
-    );
+    let flag: ActionFlag | undefined;
+    let flagReason: string | undefined;
+
+    if (data.adherence.rate < 80) {
+      flag = 'low_adherence';
+      flagReason = `${data.adherence.rate}% adherence rate`;
+    }
+
+    observations.push({
+      observation: `Medication adherence rate: ${data.adherence.rate}% (${data.adherence.taken} of ${data.adherence.total} doses taken).`,
+      actionFlag: flag,
+      actionFlagReason: flagReason,
+    });
   } else {
-    observations.push(`No medication logs available for this period.`);
+    observations.push({
+      observation: `No medication logs available for this period.`,
+      actionFlag: 'logging_gap',
+      actionFlagReason: 'No medication logs recorded',
+    });
   }
 
   // Condition count
   if (data.conditionCount > 0) {
-    observations.push(
-      `${data.conditionCount} health condition${data.conditionCount > 1 ? 's are' : ' is'} currently listed as active.`
-    );
+    observations.push({
+      observation: `${data.conditionCount} health condition${data.conditionCount > 1 ? 's are' : ' is'} currently listed as active.`,
+    });
   }
 
   // Allergy count
   if (data.allergyCount > 0) {
-    observations.push(
-      `${data.allergyCount} ${data.allergyCount > 1 ? 'allergies are' : 'allergy is'} documented.`
-    );
+    observations.push({
+      observation: `${data.allergyCount} ${data.allergyCount > 1 ? 'allergies are' : 'allergy is'} documented.`,
+    });
   }
 
   // Diet entries
   if (data.dietEntryCount > 0) {
-    observations.push(`${data.dietEntryCount} diet entries in the past ${data.days} days.`);
+    observations.push({
+      observation: `${data.dietEntryCount} diet entries in the past ${data.days} days.`,
+    });
+  } else {
+    observations.push({
+      observation: `No diet entries logged in the past ${data.days} days.`,
+      actionFlag: 'logging_gap',
+      actionFlagReason: 'No diet entries recorded',
+    });
   }
 
   // If no data at all
   if (observations.length === 0) {
-    observations.push('No health data available for this period.');
+    observations.push({
+      observation: 'No health data available for this period.',
+      actionFlag: 'logging_gap',
+      actionFlagReason: 'No health data logged',
+    });
   }
 
   return observations;
@@ -545,12 +642,12 @@ export async function generateElderHealthInsights(
     // Create insights
     const insights: ElderHealthInsight[] = [];
 
-    for (const observation of validObservations) {
+    for (const obsWithFlag of validObservations) {
       const insight: Omit<ElderHealthInsight, 'id' | 'dismissedAt' | 'dismissedBy'> = {
         elderId,
         groupId,
         insightType: 'observation',
-        observation,
+        observation: obsWithFlag.observation,
         dataSource: 'template',
         dataPoints: [],
         createdAt: new Date(),
@@ -558,6 +655,8 @@ export async function generateElderHealthInsights(
         periodEnd,
         generatedBy: userId,
         userRole,
+        actionFlag: obsWithFlag.actionFlag,
+        actionFlagReason: obsWithFlag.actionFlagReason,
       };
 
       const result = await saveHealthInsightServer(insight);
@@ -580,7 +679,7 @@ export async function generateElderHealthInsights(
 
 /**
  * Generate a summary observation using AI with STRICT guardrails
- * Only used for combining multiple data points into a single summary
+ * Uses Gemini API with Claude fallback
  */
 export async function generateAISummaryObservation(
   elderId: string,
@@ -623,24 +722,18 @@ export async function generateAISummaryObservation(
       userRole,
       groupId,
       elderId,
-      serviceName: 'Google Gemini AI (Vertex AI)',
+      serviceName: 'AI Summary (Gemini/Claude)',
       serviceType: 'health_data_summary',
       dataShared: ['symptom_counts', 'medication_adherence_rate', 'diet_entry_count'],
       purpose: 'Generate factual summary of health data counts (no interpretation)',
     });
 
-    const vertex = getVertexAI();
-    const model = vertex.preview.getGenerativeModel({
-      model: 'gemini-1.5-pro',
-      generationConfig: {
-        temperature: 0, // Zero creativity - pure facts
-        topP: 0.1,
-        maxOutputTokens: 256,
-      },
-      systemInstruction: OBSERVATION_ONLY_SYSTEM_PROMPT,
-    });
+    const prompt = `You are a DATA REPORTER. Report ONLY the following data counts in 1-2 sentences.
 
-    const prompt = `Report ONLY the following data counts in 1-2 sentences. Do NOT interpret or advise.
+ABSOLUTE RULES:
+- Do NOT interpret or advise
+- Do NOT use words like: should, recommend, concerning, may indicate
+- ONLY state factual counts
 
 DATA:
 ${dataDescription}
@@ -650,25 +743,30 @@ OUTPUT FORMAT:
 
 If any data is zero, you can omit it. Output ONLY the factual summary sentence.`;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    });
+    try {
+      const responseText = await callAI(prompt);
 
-    const responseText = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      // Validate output
+      if (containsForbiddenWords(responseText)) {
+        console.warn('[generateAISummaryObservation] AI summary rejected - contains forbidden words');
+        // Fall back to template-based summary
+        return {
+          success: true,
+          summary: `In the past ${days} days: ${symptomSummary.length} symptom types logged, medication adherence at ${adherence.rate}%, ${dietEntryCount} diet entries recorded.`,
+        };
+      }
 
-    // Validate output
-    if (containsForbiddenWords(responseText)) {
-      console.warn('AI summary rejected - contains forbidden words');
+      return { success: true, summary: responseText.trim() };
+    } catch (aiError) {
+      console.warn('[generateAISummaryObservation] AI call failed, using template:', aiError);
       // Fall back to template-based summary
       return {
         success: true,
         summary: `In the past ${days} days: ${symptomSummary.length} symptom types logged, medication adherence at ${adherence.rate}%, ${dietEntryCount} diet entries recorded.`,
       };
     }
-
-    return { success: true, summary: responseText.trim() };
   } catch (error: any) {
-    console.error('Error generating AI summary:', error);
+    console.error('[generateAISummaryObservation] Error:', error);
     return { success: false, error: error.message };
   }
 }

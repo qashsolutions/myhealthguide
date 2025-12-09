@@ -26,12 +26,15 @@ import {
   Shield,
   CheckCircle,
   Lock,
+  Repeat,
+  AlertCircle,
+  FileWarning,
 } from 'lucide-react';
 import { dismissHealthInsight } from '@/lib/firebase/elderHealthProfile';
 import { checkUnifiedConsent } from '@/lib/consent/unifiedConsentManagement';
 import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
-import type { ElderHealthInsight } from '@/types';
+import type { ElderHealthInsight, ActionFlag } from '@/types';
 import { format } from 'date-fns';
 
 interface HealthInsightsTabProps {
@@ -179,6 +182,47 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
     }
   };
 
+  const getActionFlagConfig = (flag: ActionFlag): { icon: JSX.Element; label: string; color: string } => {
+    switch (flag) {
+      case 'recurring':
+        return {
+          icon: <Repeat className="w-3 h-3" />,
+          label: 'Recurring',
+          color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+        };
+      case 'high_frequency':
+        return {
+          icon: <AlertCircle className="w-3 h-3" />,
+          label: 'High Frequency',
+          color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+        };
+      case 'low_adherence':
+        return {
+          icon: <AlertTriangle className="w-3 h-3" />,
+          label: 'Low Adherence',
+          color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+        };
+      case 'logging_gap':
+        return {
+          icon: <FileWarning className="w-3 h-3" />,
+          label: 'Logging Gap',
+          color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700',
+        };
+      case 'new_entry':
+        return {
+          icon: <Info className="w-3 h-3" />,
+          label: 'New',
+          color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800',
+        };
+      case 'review_with_care_team':
+        return {
+          icon: <Shield className="w-3 h-3" />,
+          label: 'Review',
+          color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+        };
+    }
+  };
+
   // Loading state while checking consent
   if (checkingConsent) {
     return (
@@ -285,7 +329,6 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
           </CardTitle>
           <CardDescription>
             AI-generated observations from {elderName}&apos;s logged health data.
-            Insights are generated twice weekly (Monday and Thursday).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -389,6 +432,7 @@ export function HealthInsightsTab({ elderId, groupId, userId, elderName }: Healt
                   onDismiss={handleDismiss}
                   getTypeIcon={getInsightTypeIcon}
                   getTypeLabel={getInsightTypeLabel}
+                  getActionFlagConfig={getActionFlagConfig}
                 />
               ))}
             </div>
@@ -405,10 +449,12 @@ interface InsightCardProps {
   onDismiss: (id: string) => void;
   getTypeIcon: (type: string) => JSX.Element;
   getTypeLabel: (type: string) => string;
+  getActionFlagConfig: (flag: ActionFlag) => { icon: JSX.Element; label: string; color: string };
 }
 
-function InsightCard({ insight, onDismiss, getTypeIcon, getTypeLabel }: InsightCardProps) {
+function InsightCard({ insight, onDismiss, getTypeIcon, getTypeLabel, getActionFlagConfig }: InsightCardProps) {
   const isDismissed = !!insight.dismissedAt;
+  const flagConfig = insight.actionFlag ? getActionFlagConfig(insight.actionFlag) : null;
 
   return (
     <div
@@ -431,6 +477,13 @@ function InsightCard({ insight, onDismiss, getTypeIcon, getTypeLabel }: InsightC
                 Data-Based
               </Badge>
             )}
+            {/* Action Flag Badge */}
+            {flagConfig && (
+              <Badge variant="outline" className={`text-xs flex items-center gap-1 ${flagConfig.color}`}>
+                {flagConfig.icon}
+                {flagConfig.label}
+              </Badge>
+            )}
             {isDismissed && (
               <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600">
                 Dismissed
@@ -442,6 +495,13 @@ function InsightCard({ insight, onDismiss, getTypeIcon, getTypeLabel }: InsightC
           <p className="text-sm text-gray-700 dark:text-gray-300">
             {insight.observation}
           </p>
+
+          {/* Action Flag Reason */}
+          {insight.actionFlagReason && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+              {insight.actionFlagReason}
+            </p>
+          )}
 
           {/* Metadata */}
           <div className="flex items-center gap-4 text-xs text-gray-500">
