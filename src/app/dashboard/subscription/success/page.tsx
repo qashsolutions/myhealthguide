@@ -5,15 +5,20 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SubscriptionSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   // Session ID available for debugging if needed: searchParams.get('session_id')
 
+  // Check if user is on trial
+  const isOnTrial = user?.subscriptionStatus === 'trial';
+
   useEffect(() => {
-    // Simulate verification delay
+    // Brief delay to allow subscription data to sync
     const timer = setTimeout(() => {
       setLoading(false);
     }, 2000);
@@ -54,15 +59,26 @@ export default function SubscriptionSuccessPage() {
             <p className="text-lg text-gray-700 dark:text-gray-300">
               Your subscription has been successfully activated.
             </p>
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-900 dark:text-blue-100">
-                <strong>🎉 You&apos;re on a 45-day free trial!</strong>
-              </p>
-              <p className="text-sm text-blue-700 dark:text-blue-200 mt-2">
-                Your trial ends in 45 days. You won&apos;t be charged until then. Cancel anytime
-                during the trial period for a full refund.
-              </p>
-            </div>
+            {isOnTrial ? (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>🎉 You&apos;re on a 45-day free trial!</strong>
+                </p>
+                <p className="text-sm text-blue-700 dark:text-blue-200 mt-2">
+                  Your trial ends in 45 days. You won&apos;t be charged until then. Cancel anytime
+                  during the trial period for a full refund.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <p className="text-sm text-green-900 dark:text-green-100">
+                  <strong>✓ Your subscription is now active!</strong>
+                </p>
+                <p className="text-sm text-green-700 dark:text-green-200 mt-2">
+                  You have full access to all features. Your subscription will renew automatically each month.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
