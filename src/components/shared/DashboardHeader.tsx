@@ -55,7 +55,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
     : 'JD';
 
   return (
-    <header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-4 lg:px-6 gap-2 lg:gap-6">
+    <header data-header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-4 lg:px-6 gap-2 lg:gap-6">
       <div className="flex items-center gap-2 lg:gap-4">
         {/* Hamburger Menu - Mobile Only */}
         <Button

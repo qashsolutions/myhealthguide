@@ -182,6 +182,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
+        data-sidebar
         className={cn(
           "fixed lg:static inset-y-0 left-0 z-50",
           "w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700",

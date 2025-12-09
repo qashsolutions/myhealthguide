@@ -228,7 +228,7 @@ export default function ClinicalNotesPage() {
     <TrialExpirationGate featureName="clinical notes generation">
       <EmailVerificationGate featureName="clinical notes generation">
         <div className="p-6 max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between no-print">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
               <FileText className="h-8 w-8 text-blue-600" />
@@ -240,7 +240,7 @@ export default function ClinicalNotesPage() {
           </div>
         </div>
 
-      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4">
+      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4 no-print">
         <div className="flex items-start gap-3">
           <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
           <div className="flex-1">
@@ -253,7 +253,7 @@ export default function ClinicalNotesPage() {
         </div>
       </Card>
 
-      <Card className="p-6">
+      <Card className="p-6 no-print">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -310,7 +310,7 @@ export default function ClinicalNotesPage() {
       </Card>
 
       {error && (
-        <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 p-4">
+        <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 p-4 no-print">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
             <div>
@@ -322,8 +322,8 @@ export default function ClinicalNotesPage() {
       )}
 
       {clinicalNote && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-4 print-content">
+          <div className="flex items-center justify-between no-print">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               SOAP Clinical Note
             </h2>
@@ -341,7 +341,7 @@ export default function ClinicalNotesPage() {
 
           {/* Sparse Data Warning Banner */}
           {clinicalNote.complianceAnalysis.totalDoses < SPARSE_DATA_THRESHOLD && (
-            <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 p-4">
+            <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 p-4 no-print">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
                 <div>

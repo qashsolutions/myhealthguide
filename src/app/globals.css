@@ -61,3 +61,62 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Print styles - hide everything except main content */
+@media print {
+  /* Hide sidebar, header, banners, and navigation */
+  [data-sidebar],
+  [data-header],
+  nav,
+  header,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset body and main container for print */
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Make the main content full width */
+  .flex-1 {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Print-only content should show */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Printable content area */
+  .print-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Ensure cards print without shadows */
+  .print-content [class*="card"] {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Page breaks */
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  /* Avoid breaking inside elements */
+  .print-content > div {
+    page-break-inside: avoid;
+  }
+}
