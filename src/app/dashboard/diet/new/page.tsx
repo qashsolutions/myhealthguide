@@ -96,16 +96,35 @@ export default function NewDietEntryPage() {
       return;
     }
 
+    // Get elder data for enhanced analysis
+    const elder = activeElders.find(e => e.id === elderId);
+    const elderAge = elder?.approximateAge || 75;
+    const elderConditions = elder?.knownConditions || [];
+    const elderWeight = elder?.weight;
+    const elderSex = elder?.biologicalSex;
+    const elderDietaryRestrictions = elder?.dietaryRestrictions || [];
+
     setIsAnalyzing(true);
     setError('');
 
     try {
-      const result = await analyzeDietEntry({
-        meal,
-        items,
-        elderAge: 75, // Mock age - replace with actual elder age from Firebase
-        existingConditions: [] // Replace with actual conditions
-      }, userId, userRole, groupId, elderId);
+      const result = await analyzeDietEntry(
+        {
+          meal,
+          items,
+          elderAge,
+          existingConditions: elderConditions
+        },
+        userId,
+        userRole,
+        groupId,
+        elderId,
+        {
+          weight: elderWeight,
+          biologicalSex: elderSex,
+          dietaryRestrictions: elderDietaryRestrictions
+        }
+      );
 
       setAnalysis(result);
     } catch (err) {
@@ -148,13 +167,49 @@ export default function NewDietEntryPage() {
         throw new Error('Unable to determine user role');
       }
 
+      // Get elder data for enhanced analysis
+      const elder = activeElders.find(e => e.id === elderId);
+      const elderAge = elder?.approximateAge || 75;
+      const elderConditions = elder?.knownConditions || [];
+      const elderWeight = elder?.weight;
+      const elderSex = elder?.biologicalSex;
+      const elderDietaryRestrictions = elder?.dietaryRestrictions || [];
+
+      // Auto-analyze if not already done
+      let finalAnalysis = analysis;
+      if (!finalAnalysis) {
+        try {
+          finalAnalysis = await analyzeDietEntry(
+            {
+              meal,
+              items,
+              elderAge,
+              existingConditions: elderConditions
+            },
+            userId,
+            userRole,
+            groupId,
+            elderId,
+            {
+              weight: elderWeight,
+              biologicalSex: elderSex,
+              dietaryRestrictions: elderDietaryRestrictions
+            }
+          );
+          setAnalysis(finalAnalysis);
+        } catch (analysisErr) {
+          console.warn('Auto-analysis failed, saving without score:', analysisErr);
+          // Continue saving even if analysis fails
+        }
+      }
+
       await DietService.createEntry({
         elderId,
         groupId,
         meal: meal as 'breakfast' | 'lunch' | 'dinner' | 'snack',
         items,
         notes: '',
-        aiAnalysis: analysis || undefined,
+        aiAnalysis: finalAnalysis || undefined,
         timestamp: new Date(),
         loggedBy: user.id,
         method: 'manual',
