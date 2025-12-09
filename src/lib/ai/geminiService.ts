@@ -7,6 +7,40 @@ import { DailySummary, DietAnalysis, AIAnalysis } from '@/types';
 import { logPHIThirdPartyDisclosure, UserRole } from '../medical/phiAuditLog';
 
 /**
+ * Clean object for Firestore - removes undefined and null values
+ * Firestore throws errors if you try to save undefined values
+ */
+function cleanForFirestore<T extends Record<string, any>>(obj: T): T {
+  const cleaned: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    // Skip undefined and null values
+    if (value === undefined || value === null) {
+      continue;
+    }
+
+    // Recursively clean nested objects
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      cleaned[key] = cleanForFirestore(value);
+    }
+    // Clean arrays - filter out undefined/null and clean objects
+    else if (Array.isArray(value)) {
+      cleaned[key] = value
+        .filter(item => item !== undefined && item !== null)
+        .map(item =>
+          typeof item === 'object' ? cleanForFirestore(item) : item
+        );
+    }
+    // Keep primitive values as-is
+    else {
+      cleaned[key] = value;
+    }
+  }
+
+  return cleaned as T;
+}
+
+/**
  * Generate daily summary using Gemini AI
  * @param data - Medical data to analyze
  * @param userId - User ID for HIPAA audit logging
@@ -301,7 +335,8 @@ Return ONLY valid JSON matching this structure:
           const generatedText = result.candidates[0].content.parts[0].text;
           const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            const parsed = JSON.parse(jsonMatch[0]);
+            return cleanForFirestore(parsed);
           }
         }
       } catch (geminiError) {
@@ -332,7 +367,8 @@ Return ONLY valid JSON matching this structure:
           const claudeText = claudeResult.content[0].text;
           const jsonMatch = claudeText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            const parsed = JSON.parse(jsonMatch[0]);
+            return cleanForFirestore(parsed);
           }
         }
       } catch (claudeError) {
@@ -472,8 +508,11 @@ function generateFallbackDietAnalysis(
 
   const nutritionScore = Math.max(0, Math.min(100, mealBalance + macroFit + conditionAwareness));
 
-  return {
+  // Build result object - only include fields that have values (Firestore rejects undefined)
+  const result: DietAnalysis = {
     nutritionScore,
+    concerns: concerns.length > 0 ? concerns : [],
+    recommendations: ['Consider adding variety to meals', 'Discuss nutrition goals with a dietitian'],
     scoreBreakdown: {
       mealBalance: Math.max(0, mealBalance),
       macroFit: Math.max(0, macroFit),
@@ -486,11 +525,15 @@ function generateFallbackDietAnalysis(
       fiber: 5
     },
     estimatedCalories: 300,
-    conditionFlags: conditionFlags.length > 0 ? conditionFlags : undefined,
-    concerns: concerns.length > 0 ? concerns : [],
-    positives: positives.length > 0 ? positives : ['Meal logged - tracking is valuable!'],
-    recommendations: ['Consider adding variety to meals', 'Discuss nutrition goals with a dietitian']
+    positives: positives.length > 0 ? positives : ['Meal logged - tracking is valuable!']
   };
+
+  // Only add conditionFlags if there are any (avoid undefined in Firestore)
+  if (conditionFlags.length > 0) {
+    result.conditionFlags = conditionFlags;
+  }
+
+  return result;
 }
 
 /**
