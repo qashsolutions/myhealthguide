@@ -17,14 +17,7 @@
 
 import { VertexAI } from '@google-cloud/vertexai';
 import { logPHIThirdPartyDisclosure, UserRole } from '../medical/phiAuditLog';
-import {
-  getElderProfile,
-  getElderHealthConditions,
-  getElderAllergies,
-  getSymptomSummary,
-  getElderImportantNotes,
-  saveHealthInsight,
-} from '../firebase/elderHealthProfile';
+import { saveHealthInsight } from '../firebase/elderHealthProfile';
 import { getAdminDb } from '../firebase/admin';
 import type { ElderHealthInsight, Elder } from '@/types';
 
@@ -184,7 +177,114 @@ function filterValidObservations(observations: string[]): string[] {
   });
 }
 
-// ============= DATA GATHERING =============
+// ============= DATA GATHERING (Server-Side with Admin SDK) =============
+
+/**
+ * Get symptom summary using Admin SDK (server-side)
+ */
+async function getSymptomSummaryServer(
+  elderId: string,
+  groupId: string,
+  days: number
+): Promise<{ symptomName: string; count: number; avgSeverity: number; dates: Date[] }[]> {
+  try {
+    const adminDb = getAdminDb();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const symptomsSnapshot = await adminDb
+      .collection('elderSymptoms')
+      .where('elderId', '==', elderId)
+      .where('groupId', '==', groupId)
+      .get();
+
+    const symptoms = symptomsSnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          symptom: data.symptom as string,
+          severity: data.severity as string,
+          observedAt: data.observedAt?.toDate?.() || new Date(data.observedAt),
+        };
+      })
+      .filter(s => s.observedAt >= startDate);
+
+    // Severity mapping
+    const severityMap: Record<string, number> = {
+      mild: 2.5,
+      moderate: 5,
+      severe: 7.5,
+      critical: 10,
+    };
+
+    // Group by symptom name
+    const grouped = symptoms.reduce((acc, s) => {
+      if (!acc[s.symptom]) {
+        acc[s.symptom] = { count: 0, totalSeverity: 0, dates: [] };
+      }
+      acc[s.symptom].count++;
+      acc[s.symptom].totalSeverity += severityMap[s.severity] || 5;
+      acc[s.symptom].dates.push(s.observedAt);
+      return acc;
+    }, {} as Record<string, { count: number; totalSeverity: number; dates: Date[] }>);
+
+    return Object.entries(grouped).map(([symptomName, data]) => ({
+      symptomName,
+      count: data.count,
+      avgSeverity: Math.round((data.totalSeverity / data.count) * 10) / 10,
+      dates: data.dates,
+    }));
+  } catch (error) {
+    console.error('Error getting symptom summary (server):', error);
+    return [];
+  }
+}
+
+/**
+ * Get health conditions using Admin SDK (server-side)
+ */
+async function getHealthConditionsServer(
+  elderId: string,
+  groupId: string
+): Promise<{ status: string }[]> {
+  try {
+    const adminDb = getAdminDb();
+    const conditionsSnapshot = await adminDb
+      .collection('elderHealthConditions')
+      .where('elderId', '==', elderId)
+      .where('groupId', '==', groupId)
+      .get();
+
+    return conditionsSnapshot.docs.map(doc => ({
+      status: doc.data().status as string || 'active',
+    }));
+  } catch (error) {
+    console.error('Error getting health conditions (server):', error);
+    return [];
+  }
+}
+
+/**
+ * Get allergies using Admin SDK (server-side)
+ */
+async function getAllergiesServer(
+  elderId: string,
+  groupId: string
+): Promise<{ id: string }[]> {
+  try {
+    const adminDb = getAdminDb();
+    const allergiesSnapshot = await adminDb
+      .collection('elderAllergies')
+      .where('elderId', '==', elderId)
+      .where('groupId', '==', groupId)
+      .get();
+
+    return allergiesSnapshot.docs.map(doc => ({ id: doc.id }));
+  } catch (error) {
+    console.error('Error getting allergies (server):', error);
+    return [];
+  }
+}
 
 /**
  * Gather medication adherence data using Admin SDK
@@ -367,14 +467,22 @@ export async function generateElderHealthInsights(
       purpose: 'Generate factual observations from health data (no AI interpretation)',
     });
 
-    // Gather data
+    // Gather data using server-side Admin SDK functions
     const [symptomSummary, conditions, allergies, adherence, dietEntryCount] = await Promise.all([
-      getSymptomSummary(elderId, groupId, days),
-      getElderHealthConditions(elderId, groupId),
-      getElderAllergies(elderId, groupId),
+      getSymptomSummaryServer(elderId, groupId, days),
+      getHealthConditionsServer(elderId, groupId),
+      getAllergiesServer(elderId, groupId),
       getMedicationAdherenceData(elderId, groupId, days),
       getDietEntryCount(elderId, groupId, days),
     ]);
+
+    console.log('[elderHealthInsights] Data gathered:', {
+      symptomsCount: symptomSummary.length,
+      conditionsCount: conditions.length,
+      allergiesCount: allergies.length,
+      adherence,
+      dietEntryCount,
+    });
 
     const activeConditions = conditions.filter(c => c.status === 'active');
 
@@ -443,9 +551,9 @@ export async function generateAISummaryObservation(
   error?: string;
 }> {
   try {
-    // Gather data first
+    // Gather data first using server-side Admin SDK functions
     const [symptomSummary, adherence, dietEntryCount] = await Promise.all([
-      getSymptomSummary(elderId, groupId, days),
+      getSymptomSummaryServer(elderId, groupId, days),
       getMedicationAdherenceData(elderId, groupId, days),
       getDietEntryCount(elderId, groupId, days),
     ]);
