@@ -10,7 +10,7 @@ export default function SubscriptionSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const sessionId = searchParams.get('session_id');
+  // Session ID available for debugging if needed: searchParams.get('session_id')
 
   useEffect(() => {
     // Simulate verification delay
@@ -107,11 +107,9 @@ export default function SubscriptionSuccessPage() {
             </Button>
           </div>
 
-          {sessionId && (
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-              Session ID: {sessionId}
-            </p>
-          )}
+          <p className="text-xs text-center text-gray-400 dark:text-gray-500 pt-2">
+            A confirmation email has been sent to your registered email address.
+          </p>
         </CardContent>
       </Card>
     </div>
