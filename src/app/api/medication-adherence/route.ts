@@ -113,21 +113,24 @@ export async function POST(request: NextRequest) {
     }));
 
     // Get medication logs for the past 30 days
+    // Note: Query without date filter to avoid composite index requirement, then filter in memory
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const logsSnap = await db.collection('medication_logs')
       .where('groupId', '==', groupId)
       .where('elderId', '==', elderId)
-      .where('scheduledTime', '>=', thirtyDaysAgo)
+      .limit(500) // Limit to prevent excessive reads
       .get();
 
-    const logs = logsSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      scheduledTime: doc.data().scheduledTime?.toDate(),
-      actualTime: doc.data().actualTime?.toDate()
-    }));
+    const logs = logsSnap.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        scheduledTime: doc.data().scheduledTime?.toDate(),
+        actualTime: doc.data().actualTime?.toDate()
+      }))
+      .filter(log => log.scheduledTime && log.scheduledTime >= thirtyDaysAgo);
 
     // Calculate predictions for each medication
     const predictions = [];
