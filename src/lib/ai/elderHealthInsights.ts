@@ -188,15 +188,19 @@ async function getSymptomSummaryServer(
   days: number
 ): Promise<{ symptomName: string; count: number; avgSeverity: number; dates: Date[] }[]> {
   try {
+    console.log('[getSymptomSummaryServer] Starting query for elderId:', elderId, 'groupId:', groupId, 'days:', days);
     const adminDb = getAdminDb();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
+    console.log('[getSymptomSummaryServer] Start date:', startDate);
 
     const symptomsSnapshot = await adminDb
       .collection('elderSymptoms')
       .where('elderId', '==', elderId)
       .where('groupId', '==', groupId)
       .get();
+
+    console.log('[getSymptomSummaryServer] Query returned', symptomsSnapshot.size, 'documents');
 
     const symptoms = symptomsSnapshot.docs
       .map(doc => {
@@ -248,6 +252,7 @@ async function getHealthConditionsServer(
   groupId: string
 ): Promise<{ status: string }[]> {
   try {
+    console.log('[getHealthConditionsServer] Querying for elderId:', elderId, 'groupId:', groupId);
     const adminDb = getAdminDb();
     const conditionsSnapshot = await adminDb
       .collection('elderHealthConditions')
@@ -255,11 +260,12 @@ async function getHealthConditionsServer(
       .where('groupId', '==', groupId)
       .get();
 
+    console.log('[getHealthConditionsServer] Found', conditionsSnapshot.size, 'conditions');
     return conditionsSnapshot.docs.map(doc => ({
       status: doc.data().status as string || 'active',
     }));
   } catch (error) {
-    console.error('Error getting health conditions (server):', error);
+    console.error('[getHealthConditionsServer] Error:', error);
     return [];
   }
 }
@@ -272,6 +278,7 @@ async function getAllergiesServer(
   groupId: string
 ): Promise<{ id: string }[]> {
   try {
+    console.log('[getAllergiesServer] Querying for elderId:', elderId, 'groupId:', groupId);
     const adminDb = getAdminDb();
     const allergiesSnapshot = await adminDb
       .collection('elderAllergies')
@@ -279,9 +286,10 @@ async function getAllergiesServer(
       .where('groupId', '==', groupId)
       .get();
 
+    console.log('[getAllergiesServer] Found', allergiesSnapshot.size, 'allergies');
     return allergiesSnapshot.docs.map(doc => ({ id: doc.id }));
   } catch (error) {
-    console.error('Error getting allergies (server):', error);
+    console.error('[getAllergiesServer] Error:', error);
     return [];
   }
 }
@@ -487,6 +495,17 @@ export async function generateElderHealthInsights(
     const activeConditions = conditions.filter(c => c.status === 'active');
 
     // Generate template-based observations (NO AI)
+    console.log('[elderHealthInsights] Generating observations with:', {
+      symptomSummary,
+      adherence,
+      conditionCount: activeConditions.length,
+      allergyCount: allergies.length,
+      dietEntryCount,
+      days,
+      periodStart,
+      periodEnd,
+    });
+
     const observations = generateTemplateBasedObservations({
       symptomSummary,
       adherence,
@@ -498,8 +517,11 @@ export async function generateElderHealthInsights(
       periodEnd,
     });
 
+    console.log('[elderHealthInsights] Generated observations:', observations);
+
     // Validate all observations (extra safety check)
     const validObservations = filterValidObservations(observations);
+    console.log('[elderHealthInsights] Valid observations count:', validObservations.length);
 
     // Create insights
     const insights: ElderHealthInsight[] = [];
