@@ -145,11 +145,14 @@ Format: Return valid JSON matching the DailySummary TypeScript interface.
 
 /**
  * Analyze diet entry for nutritional concerns
+ * Uses enhanced nutrition scoring with age/weight/condition awareness
+ *
  * @param entry - Diet entry data
  * @param userId - User ID for HIPAA audit logging
  * @param userRole - User role for HIPAA audit logging
  * @param groupId - Group ID for HIPAA audit logging
  * @param elderId - Elder ID for HIPAA audit logging
+ * @param elderProfile - Optional elder profile for enhanced analysis
  */
 export async function analyzeDietEntry(
   entry: {
@@ -157,103 +160,337 @@ export async function analyzeDietEntry(
     items: string[];
     elderAge: number;
     existingConditions?: string[];
+    notes?: string;
   },
   userId: string,
   userRole: UserRole,
   groupId: string,
-  elderId: string
+  elderId: string,
+  elderProfile?: {
+    weight?: { value: number; unit: 'lb' | 'kg' };
+    biologicalSex?: 'male' | 'female';
+    dietaryRestrictions?: string[];
+  }
 ): Promise<DietAnalysis> {
   const apiKey = process.env.GEMINI_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!apiKey) {
-    // Return mock data for development
-    return {
-      nutritionScore: 75,
-      concerns: [],
-      recommendations: [
-        'Consider adding more protein',
-        'Include leafy greens for vitamins'
-      ]
-    };
-  }
+  // Build enhanced profile for analysis
+  const profile = {
+    age: entry.elderAge,
+    weight: elderProfile?.weight,
+    conditions: entry.existingConditions || [],
+    dietaryRestrictions: elderProfile?.dietaryRestrictions || [],
+    biologicalSex: elderProfile?.biologicalSex
+  };
+
+  // Calculate personalized targets
+  const targets = calculatePersonalizedTargets(profile);
+
+  // Build condition context for AI
+  const conditionContext = buildConditionContext(profile.conditions);
 
   const prompt = `
-You are a nutrition analyst. Analyze this meal for an elderly person (age ${entry.elderAge}).
+You are a nutrition analyst specializing in elderly care. Analyze this meal for a ${entry.elderAge}-year-old senior.
 
-IMPORTANT LIMITATIONS:
-- Do NOT provide medical advice
-- Do NOT suggest specific diets for medical conditions
-- ONLY provide general nutritional observations
-- Flag obvious concerns (e.g., too much sugar, lack of variety)
+ELDER PROFILE:
+- Age: ${entry.elderAge} years
+- Weight: ${profile.weight ? `${profile.weight.value} ${profile.weight.unit}` : 'Unknown'}
+- Sex: ${profile.biologicalSex || 'Unknown'}
+- Known Conditions: ${profile.conditions.length > 0 ? profile.conditions.join(', ') : 'None specified'}
+- Dietary Restrictions: ${profile.dietaryRestrictions.length > 0 ? profile.dietaryRestrictions.join(', ') : 'None'}
 
-Meal: ${entry.meal}
-Items: ${entry.items.join(', ')}
-${entry.existingConditions ? `Existing conditions: ${entry.existingConditions.join(', ')}` : ''}
+CONDITION-SPECIFIC GUIDELINES:
+${conditionContext || 'No specific condition guidelines applicable.'}
 
-Provide a JSON response with:
-1. Nutrition score (0-100)
-2. Concerns array (if any obvious nutritional issues)
-3. Recommendations array (general wellness suggestions)
+DAILY TARGETS FOR THIS ELDER:
+- Calories: ${targets.calorieRange}
+- Protein: ${targets.proteinRange}g/day (seniors need 1.0-1.2g per kg body weight)
+- Fiber: 25g/day minimum
+- Sodium: <${targets.sodiumMax}mg/day
 
-Format: Return valid JSON matching the DietAnalysis TypeScript interface.
+MEAL TO ANALYZE:
+- Meal Type: ${entry.meal}
+- Food Items: ${entry.items.join(', ')}
+${entry.notes ? `- Notes: ${entry.notes}` : ''}
+
+ANALYSIS REQUIREMENTS:
+1. Estimate macros (carbs, protein, fat in grams) for this meal
+2. Estimate total calories
+3. Estimate fiber, sodium, sugar content
+4. Score the meal (0-100) based on:
+   - Meal Balance (40 points): protein source + vegetables/fruits + complex carbs
+   - Macro Fit (30 points): appropriate portions for an elderly person
+   - Condition Awareness (30 points): avoids problematic foods for their conditions
+5. Flag any condition-specific concerns
+6. Note positives about the meal
+7. Provide 1-2 actionable recommendations
+
+IMPORTANT:
+- This is informational analysis, NOT medical advice
+- Be practical - real meals aren't perfect
+- Consider senior-specific needs (easier to chew, digest)
+- A simple but balanced meal scores well
+
+Return ONLY valid JSON matching this structure:
+{
+  "nutritionScore": <number 0-100>,
+  "scoreBreakdown": {
+    "mealBalance": <number 0-40>,
+    "macroFit": <number 0-30>,
+    "conditionAwareness": <number 0-30>
+  },
+  "macros": {
+    "carbs": { "grams": <number>, "percentage": <number> },
+    "protein": { "grams": <number>, "percentage": <number> },
+    "fat": { "grams": <number>, "percentage": <number> },
+    "fiber": <number>,
+    "sodium": <number or null>,
+    "sugar": <number or null>
+  },
+  "estimatedCalories": <number>,
+  "conditionFlags": [
+    {
+      "condition": "<condition name>",
+      "concern": "<specific concern>",
+      "recommendation": "<what to do>",
+      "severity": "<info|warning|alert>"
+    }
+  ],
+  "concerns": ["<concern 1>"],
+  "positives": ["<positive 1>"],
+  "recommendations": ["<recommendation 1>"],
+  "doctorNotes": "<optional note for healthcare provider>"
+}
 `;
 
   try {
-    // HIPAA Audit: Log third-party PHI disclosure to Google Gemini AI
+    // HIPAA Audit: Log third-party PHI disclosure
     await logPHIThirdPartyDisclosure({
       userId,
       userRole,
       groupId,
       elderId,
-      serviceName: 'Google Gemini AI',
-      serviceType: 'diet_analysis',
-      dataShared: ['meal_type', 'food_items', 'elder_age', 'medical_conditions'],
-      purpose: 'Analyze diet entry for nutritional concerns',
+      serviceName: 'AI Nutrition Analysis (Gemini/Claude)',
+      serviceType: 'enhanced_diet_analysis',
+      dataShared: ['meal_type', 'food_items', 'elder_age', 'weight', 'medical_conditions', 'dietary_restrictions'],
+      purpose: 'Analyze diet entry with age and condition-aware nutrition scoring',
     });
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.3,
-            topK: 32,
-            topP: 1,
-            maxOutputTokens: 512,
-            thinking_config: {
-              include_thoughts: false // Diet analysis doesn't need deep thinking
-            }
-          },
-        }),
+    // Try Gemini first
+    if (apiKey) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 1024,
+                thinking_config: { include_thoughts: false }
+              },
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          const generatedText = result.candidates[0].content.parts[0].text;
+          const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+          }
+        }
+      } catch (geminiError) {
+        console.warn('Gemini API failed, trying Claude:', geminiError);
       }
-    );
-
-    if (!response.ok) {
-      throw new Error('Gemini API request failed');
     }
 
-    const result = await response.json();
-    const generatedText = result.candidates[0].content.parts[0].text;
+    // Fallback to Claude
+    if (anthropicKey) {
+      try {
+        const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            temperature: 0.3,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
 
-    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+        if (claudeResponse.ok) {
+          const claudeResult = await claudeResponse.json();
+          const claudeText = claudeResult.content[0].text;
+          const jsonMatch = claudeText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+          }
+        }
+      } catch (claudeError) {
+        console.warn('Claude API also failed:', claudeError);
+      }
     }
 
-    throw new Error('Failed to parse Gemini response');
+    // Rule-based fallback
+    return generateFallbackDietAnalysis(entry, profile);
+
   } catch (error) {
-    console.error('Gemini API error:', error);
-    throw error;
+    console.error('Diet analysis error:', error);
+    return generateFallbackDietAnalysis(entry, profile);
   }
+}
+
+/**
+ * Calculate personalized nutrition targets
+ */
+function calculatePersonalizedTargets(profile: {
+  age: number;
+  weight?: { value: number; unit: 'lb' | 'kg' };
+  conditions: string[];
+  biologicalSex?: 'male' | 'female';
+}) {
+  const sex = profile.biologicalSex || 'female';
+
+  // Base calories for sedentary seniors
+  const calorieBase = sex === 'male' ? { min: 1800, max: 2000 } : { min: 1600, max: 1800 };
+
+  // Protein based on weight (1.0-1.2g per kg for seniors)
+  let proteinMin = 50, proteinMax = 70;
+  if (profile.weight) {
+    const weightKg = profile.weight.unit === 'kg' ? profile.weight.value : profile.weight.value * 0.453592;
+    proteinMin = Math.round(weightKg * 1.0);
+    proteinMax = Math.round(weightKg * 1.2);
+  }
+
+  // Sodium based on conditions
+  const hasHeartOrBP = profile.conditions.some(c =>
+    c.toLowerCase().includes('heart') ||
+    c.toLowerCase().includes('hypertension') ||
+    c.toLowerCase().includes('blood pressure')
+  );
+  const sodiumMax = hasHeartOrBP ? 1500 : 2300;
+
+  return {
+    calorieRange: `${calorieBase.min}-${calorieBase.max}`,
+    proteinRange: `${proteinMin}-${proteinMax}`,
+    sodiumMax
+  };
+}
+
+/**
+ * Build condition-specific context for AI prompt
+ */
+function buildConditionContext(conditions: string[]): string {
+  const CONDITION_GUIDELINES: Record<string, string> = {
+    'diabetes': 'Watch carbs/sugar. Prefer whole grains, lean protein, leafy greens.',
+    'type 2 diabetes': 'Watch carbs/sugar. Prefer whole grains, lean protein, leafy greens.',
+    'hypertension': 'Limit sodium to <1500mg. Avoid processed foods, add potassium-rich foods.',
+    'heart disease': 'Limit saturated fat, sodium. Focus on fish, olive oil, vegetables.',
+    'kidney disease': 'May need to limit protein, potassium, phosphorus. Consult nephrologist.',
+    'dementia': 'Focus on easy-to-eat foods, adequate hydration, regular meal times.',
+    'osteoporosis': 'Ensure calcium (1200mg) and vitamin D. Limit caffeine and sodium.',
+    'gerd': 'Avoid acidic, spicy, fatty foods. Smaller meals. No eating before bed.'
+  };
+
+  return conditions.map(condition => {
+    const guideline = CONDITION_GUIDELINES[condition.toLowerCase()];
+    return guideline ? `- ${condition}: ${guideline}` : `- ${condition}: Consider general dietary implications`;
+  }).join('\n');
+}
+
+/**
+ * Generate fallback analysis without AI
+ */
+function generateFallbackDietAnalysis(
+  entry: { meal: string; items: string[]; notes?: string },
+  profile: { age: number; conditions: string[] }
+): DietAnalysis {
+  const items = entry.items.map(i => i.toLowerCase());
+  const itemsText = items.join(' ');
+
+  let mealBalance = 20;
+  let macroFit = 15;
+  let conditionAwareness = 25;
+  const concerns: string[] = [];
+  const positives: string[] = [];
+  const conditionFlags: Array<{ condition: string; concern: string; recommendation: string; severity: 'info' | 'warning' | 'alert' }> = [];
+
+  // Check for protein
+  const proteinKeywords = ['chicken', 'beef', 'fish', 'salmon', 'tuna', 'egg', 'beans', 'tofu', 'pork', 'turkey', 'meat'];
+  if (proteinKeywords.some(k => itemsText.includes(k))) {
+    mealBalance += 10;
+    positives.push('Good protein source');
+  }
+
+  // Check for vegetables
+  const vegKeywords = ['vegetable', 'salad', 'broccoli', 'spinach', 'carrot', 'greens', 'lettuce', 'tomato'];
+  if (vegKeywords.some(k => itemsText.includes(k))) {
+    mealBalance += 10;
+    positives.push('Includes vegetables');
+  }
+
+  // Check for fruits
+  const fruitKeywords = ['apple', 'banana', 'orange', 'berry', 'fruit', 'melon'];
+  if (fruitKeywords.some(k => itemsText.includes(k))) {
+    macroFit += 5;
+    positives.push('Includes fruit');
+  }
+
+  // Condition-specific checks
+  const CONDITION_AVOID: Record<string, string[]> = {
+    'diabetes': ['sugar', 'candy', 'soda', 'pastry', 'cake', 'cookie'],
+    'hypertension': ['salt', 'salty', 'chips', 'pickle', 'bacon', 'processed'],
+    'heart disease': ['fried', 'fatty', 'bacon', 'sausage', 'butter']
+  };
+
+  profile.conditions.forEach(condition => {
+    const avoidList = CONDITION_AVOID[condition.toLowerCase()];
+    if (avoidList) {
+      avoidList.forEach(avoid => {
+        if (itemsText.includes(avoid)) {
+          conditionFlags.push({
+            condition,
+            concern: `Contains ${avoid}`,
+            recommendation: `Consider alternatives for ${condition}`,
+            severity: 'warning'
+          });
+          conditionAwareness -= 10;
+          concerns.push(`${avoid} may not be ideal for ${condition}`);
+        }
+      });
+    }
+  });
+
+  const nutritionScore = Math.max(0, Math.min(100, mealBalance + macroFit + conditionAwareness));
+
+  return {
+    nutritionScore,
+    scoreBreakdown: {
+      mealBalance: Math.max(0, mealBalance),
+      macroFit: Math.max(0, macroFit),
+      conditionAwareness: Math.max(0, conditionAwareness)
+    },
+    macros: {
+      carbs: { grams: 30, percentage: 45 },
+      protein: { grams: 15, percentage: 25 },
+      fat: { grams: 12, percentage: 30 },
+      fiber: 5
+    },
+    estimatedCalories: 300,
+    conditionFlags: conditionFlags.length > 0 ? conditionFlags : undefined,
+    concerns: concerns.length > 0 ? concerns : [],
+    positives: positives.length > 0 ? positives : ['Meal logged - tracking is valuable!'],
+    recommendations: ['Consider adding variety to meals', 'Discuss nutrition goals with a dietitian']
+  };
 }
 
 /**

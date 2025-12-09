@@ -572,6 +572,30 @@ export interface DietAnalysis {
   nutritionScore: number;
   concerns: string[];
   recommendations: string[];
+
+  // Enhanced analysis fields (optional for backwards compatibility)
+  scoreBreakdown?: {
+    mealBalance: number; // 0-40 points
+    macroFit: number; // 0-30 points
+    conditionAwareness: number; // 0-30 points
+  };
+  macros?: {
+    carbs: { grams: number; percentage: number };
+    protein: { grams: number; percentage: number };
+    fat: { grams: number; percentage: number };
+    fiber: number;
+    sodium?: number;
+    sugar?: number;
+  };
+  estimatedCalories?: number;
+  conditionFlags?: Array<{
+    condition: string;
+    concern: string;
+    recommendation: string;
+    severity: 'info' | 'warning' | 'alert';
+  }>;
+  positives?: string[];
+  doctorNotes?: string;
 }
 
 // ============= AI Types =============

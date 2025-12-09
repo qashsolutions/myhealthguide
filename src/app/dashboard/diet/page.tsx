@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Mic, Utensils, Loader2, Clock } from 'lucide-react';
+import { Plus, Mic, Utensils, Loader2, Clock, TrendingUp, AlertTriangle, CheckCircle2, Info, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { DietService } from '@/lib/firebase/diet';
-import type { DietEntry } from '@/types';
+import type { DietEntry, DietAnalysis } from '@/types';
 import { format } from 'date-fns';
 
 export default function DietPage() {
@@ -72,6 +72,26 @@ export default function DietPage() {
       case 'dinner': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'snack': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 75) return 'text-green-600 dark:text-green-400';
+    if (score >= 50) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
+  };
+
+  const getScoreBgColor = (score: number) => {
+    if (score >= 75) return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
+    if (score >= 50) return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
+    return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'alert': return <AlertTriangle className="w-3 h-3 text-red-500" />;
+      case 'warning': return <AlertTriangle className="w-3 h-3 text-amber-500" />;
+      default: return <Info className="w-3 h-3 text-blue-500" />;
     }
   };
 
@@ -168,8 +188,69 @@ export default function DietPage() {
                 </div>
 
                 {entry.aiAnalysis && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400 bg-orange-50 dark:bg-orange-900/20 p-2 rounded">
-                    <span className="font-medium">Nutrition Score:</span> {entry.aiAnalysis.nutritionScore}/100
+                  <div className={`p-3 rounded-lg border ${getScoreBgColor(entry.aiAnalysis.nutritionScore)}`}>
+                    {/* Score Header */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className={`w-4 h-4 ${getScoreColor(entry.aiAnalysis.nutritionScore)}`} />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Nutrition Score</span>
+                      </div>
+                      <span className={`text-lg font-bold ${getScoreColor(entry.aiAnalysis.nutritionScore)}`}>
+                        {entry.aiAnalysis.nutritionScore}/100
+                      </span>
+                    </div>
+
+                    {/* Macros Display */}
+                    {entry.aiAnalysis.macros && (
+                      <div className="grid grid-cols-3 gap-2 mb-2 text-xs">
+                        <div className="text-center p-1.5 bg-white/50 dark:bg-gray-800/50 rounded">
+                          <div className="font-medium text-blue-600 dark:text-blue-400">
+                            {entry.aiAnalysis.macros.carbs.grams}g
+                          </div>
+                          <div className="text-gray-500 dark:text-gray-400">Carbs</div>
+                        </div>
+                        <div className="text-center p-1.5 bg-white/50 dark:bg-gray-800/50 rounded">
+                          <div className="font-medium text-green-600 dark:text-green-400">
+                            {entry.aiAnalysis.macros.protein.grams}g
+                          </div>
+                          <div className="text-gray-500 dark:text-gray-400">Protein</div>
+                        </div>
+                        <div className="text-center p-1.5 bg-white/50 dark:bg-gray-800/50 rounded">
+                          <div className="font-medium text-amber-600 dark:text-amber-400">
+                            {entry.aiAnalysis.macros.fat.grams}g
+                          </div>
+                          <div className="text-gray-500 dark:text-gray-400">Fat</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Calories */}
+                    {entry.aiAnalysis.estimatedCalories && (
+                      <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        <Flame className="w-3 h-3 text-orange-500" />
+                        <span>~{entry.aiAnalysis.estimatedCalories} calories</span>
+                      </div>
+                    )}
+
+                    {/* Condition Flags */}
+                    {entry.aiAnalysis.conditionFlags && entry.aiAnalysis.conditionFlags.length > 0 && (
+                      <div className="space-y-1 mb-2">
+                        {entry.aiAnalysis.conditionFlags.slice(0, 2).map((flag, idx) => (
+                          <div key={idx} className="flex items-start gap-1.5 text-xs">
+                            {getSeverityIcon(flag.severity)}
+                            <span className="text-gray-600 dark:text-gray-400">{flag.concern}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Positives */}
+                    {entry.aiAnalysis.positives && entry.aiAnalysis.positives.length > 0 && (
+                      <div className="flex items-start gap-1.5 text-xs text-green-600 dark:text-green-400">
+                        <CheckCircle2 className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <span>{entry.aiAnalysis.positives[0]}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
