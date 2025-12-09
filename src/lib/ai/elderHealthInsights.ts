@@ -15,9 +15,10 @@
  * When in doubt, output nothing rather than something potentially harmful.
  */
 
-import { logPHIThirdPartyDisclosure, UserRole } from '../medical/phiAuditLog';
+import { UserRole } from '../medical/phiAuditLog';
 import { getAdminDb } from '../firebase/admin';
 import type { ElderHealthInsight, Elder, ActionFlag } from '@/types';
+import { Timestamp } from 'firebase-admin/firestore';
 
 // API endpoints
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
@@ -40,6 +41,72 @@ async function saveHealthInsightServer(
   } catch (error: any) {
     console.error('[saveHealthInsightServer] Error:', error);
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Log PHI third-party disclosure using Admin SDK (server-side)
+ * This bypasses Firestore security rules for server-side operations
+ */
+async function logPHIThirdPartyDisclosureServer(params: {
+  userId: string;
+  userRole: UserRole;
+  groupId: string;
+  elderId?: string;
+  serviceName: string;
+  serviceType: string;
+  dataShared: string[];
+  purpose: string;
+}): Promise<void> {
+  try {
+    const adminDb = getAdminDb();
+    const disclosureId = `disclosure_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+
+    await adminDb.collection('phi_audit_logs').add({
+      // WHO
+      userId: params.userId,
+      userRole: params.userRole,
+      groupId: params.groupId,
+
+      // WHAT
+      phiType: 'third_party_disclosure',
+      elderId: params.elderId || null,
+      action: 'third_party_api',
+      actionDetails: `Disclosed to ${params.serviceName}`,
+
+      // WHEN
+      timestamp: Timestamp.now(),
+
+      // WHY
+      purpose: 'operations',
+
+      // HOW
+      method: 'third_party_service',
+
+      // Third-party disclosure details
+      thirdPartyDisclosure: {
+        serviceName: params.serviceName,
+        serviceType: params.serviceType,
+        dataShared: params.dataShared,
+        dateShared: Timestamp.now(),
+        purpose: params.purpose,
+        disclosureId,
+      },
+
+      // Server-side indicator
+      deviceType: 'server',
+      browser: 'server',
+      ipAddressHash: 'server-side-operation',
+    });
+
+    console.log('[PHI AUDIT Server]', {
+      userId: params.userId,
+      serviceName: params.serviceName,
+      elderId: params.elderId,
+    });
+  } catch (error) {
+    console.error('Error logging PHI access (server):', error);
+    // Don't throw - PHI logging failures shouldn't break the app
   }
 }
 
@@ -579,8 +646,8 @@ export async function generateElderHealthInsights(
     const periodStart = new Date();
     periodStart.setDate(periodStart.getDate() - days);
 
-    // Log HIPAA disclosure
-    await logPHIThirdPartyDisclosure({
+    // Log HIPAA disclosure using server-side Admin SDK
+    await logPHIThirdPartyDisclosureServer({
       userId,
       userRole,
       groupId,
@@ -716,8 +783,8 @@ export async function generateAISummaryObservation(
       `Diet entries: ${dietEntryCount}`,
     ].join('. ');
 
-    // Log HIPAA disclosure
-    await logPHIThirdPartyDisclosure({
+    // Log HIPAA disclosure using server-side Admin SDK
+    await logPHIThirdPartyDisclosureServer({
       userId,
       userRole,
       groupId,
