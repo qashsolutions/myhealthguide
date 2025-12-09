@@ -10,6 +10,9 @@ import { getFCMToken, setupForegroundMessageListener } from '@/lib/firebase/fcm'
  * - Requests notification permission
  * - Gets and saves FCM token to user profile
  * - Sets up foreground message listener
+ *
+ * NOTE: Only requests permission for users with active subscriptions
+ * to avoid showing browser notification prompts to trial/free users
  */
 export function FCMProvider() {
   const { user } = useAuth();
@@ -20,8 +23,19 @@ export function FCMProvider() {
       return;
     }
 
+    // Only request notification permission for users with a subscription
+    // (includes 'active' and 'trial' with a Stripe subscription)
+    const hasSubscription = user.subscriptionStatus === 'active' ||
+      (user.subscriptionStatus === 'trial' && user.stripeSubscriptionId);
+
     // Setup FCM token
     const setupFCM = async () => {
+      // Skip FCM setup for non-subscribed users to avoid browser permission prompt
+      if (!hasSubscription) {
+        console.log('ℹ️ Skipping FCM setup - user not subscribed');
+        return;
+      }
+
       try {
         console.log('Setting up FCM for user:', user.id);
 
