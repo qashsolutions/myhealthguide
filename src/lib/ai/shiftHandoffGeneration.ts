@@ -116,8 +116,8 @@ export async function generateShiftHandoffNote(
       mood
     );
 
-    // Create handoff note
-    const handoffNote: Omit<ShiftHandoffNote, 'id'> = {
+    // Create handoff note - exclude undefined fields for Firestore
+    const handoffNote: Record<string, any> = {
       shiftSessionId,
       groupId,
       elderId,
@@ -135,9 +135,7 @@ export async function generateShiftHandoffNote(
         notesForNextShift
       },
       isRoutineShift,
-      viewedBy: [],
-      acknowledgedBy: undefined,
-      acknowledgedAt: undefined
+      viewedBy: []
     };
 
     // Save to Firestore
@@ -149,7 +147,7 @@ export async function generateShiftHandoffNote(
       handoffNoteId: handoffRef.id
     });
 
-    return { ...handoffNote, id: handoffRef.id };
+    return { ...handoffNote, id: handoffRef.id } as ShiftHandoffNote;
   } catch (error) {
     console.error('Error generating shift handoff note:', error);
     return null;
@@ -570,21 +568,21 @@ export async function startShiftSession(
   plannedDuration?: number
 ): Promise<string> {
   try {
-    const shiftSession: Omit<ShiftSession, 'id'> = {
+    // Build session data without undefined values (Firestore doesn't accept undefined)
+    const shiftSession: Record<string, any> = {
       groupId,
       elderId,
       caregiverId,
-      agencyId,
       startTime: new Date(),
-      endTime: undefined,
       status: 'active',
-      plannedDuration,
-      actualDuration: undefined,
       handoffNoteGenerated: false,
-      handoffNoteId: undefined,
       createdAt: new Date(),
       updatedAt: new Date()
     };
+
+    // Only add optional fields if they have values
+    if (agencyId) shiftSession.agencyId = agencyId;
+    if (plannedDuration) shiftSession.plannedDuration = plannedDuration;
 
     const sessionRef = await addDoc(collection(db, 'shiftSessions'), shiftSession);
     return sessionRef.id;
