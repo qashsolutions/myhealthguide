@@ -745,6 +745,40 @@ export async function generateElderHealthInsights(
 }
 
 /**
+ * Build a factual summary from data (no AI interpretation)
+ */
+function buildFactualSummary(
+  symptomSummary: { symptomName: string; count: number }[],
+  adherence: { rate: number; total: number },
+  dietEntryCount: number,
+  days: number
+): string {
+  const parts: string[] = [];
+
+  // Symptom summary
+  if (symptomSummary.length > 0) {
+    const totalSymptomLogs = symptomSummary.reduce((sum, s) => sum + s.count, 0);
+    parts.push(`${totalSymptomLogs} symptom log${totalSymptomLogs !== 1 ? 's' : ''} recorded`);
+  }
+
+  // Medication adherence
+  if (adherence.total > 0) {
+    parts.push(`medication adherence at ${adherence.rate}%`);
+  }
+
+  // Diet entries
+  if (dietEntryCount > 0) {
+    parts.push(`${dietEntryCount} diet entr${dietEntryCount !== 1 ? 'ies' : 'y'} logged`);
+  }
+
+  if (parts.length === 0) {
+    return `No health data logged in the past ${days} days.`;
+  }
+
+  return `In the past ${days} days: ${parts.join(', ')}.`;
+}
+
+/**
  * Generate a summary observation using AI with STRICT guardrails
  * Uses Gemini API with Claude fallback
  */
@@ -816,20 +850,22 @@ If any data is zero, you can omit it. Output ONLY the factual summary sentence.`
       // Validate output
       if (containsForbiddenWords(responseText)) {
         console.warn('[generateAISummaryObservation] AI summary rejected - contains forbidden words');
-        // Fall back to template-based summary
+        // Return factual data summary with provider consultation note
+        const dataSummary = buildFactualSummary(symptomSummary, adherence, dietEntryCount, days);
         return {
           success: true,
-          summary: `In the past ${days} days: ${symptomSummary.length} symptom types logged, medication adherence at ${adherence.rate}%, ${dietEntryCount} diet entries recorded.`,
+          summary: `${dataSummary}\n\nFor any health concerns or questions about this data, please consult your healthcare provider.`,
         };
       }
 
       return { success: true, summary: responseText.trim() };
     } catch (aiError) {
       console.warn('[generateAISummaryObservation] AI call failed, using template:', aiError);
-      // Fall back to template-based summary
+      // Return factual data summary with provider consultation note
+      const dataSummary = buildFactualSummary(symptomSummary, adherence, dietEntryCount, days);
       return {
         success: true,
-        summary: `In the past ${days} days: ${symptomSummary.length} symptom types logged, medication adherence at ${adherence.rate}%, ${dietEntryCount} diet entries recorded.`,
+        summary: `${dataSummary}\n\nFor any health concerns or questions about this data, please consult your healthcare provider.`,
       };
     }
   } catch (error: any) {
