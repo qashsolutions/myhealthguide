@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { processVoiceSearch } from '@/lib/ai/voiceSearch';
 import { verifyAuthToken } from '@/lib/api/verifyAuth';

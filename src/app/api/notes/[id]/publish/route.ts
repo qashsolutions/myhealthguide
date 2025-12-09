@@ -6,6 +6,8 @@
  * AUTHENTICATION: Requires Firebase ID token in Authorization header
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken, getUserDataServer } from '@/lib/api/verifyAuth';
 import * as NotesAdmin from '@/lib/firebase/caregiverNotesAdmin';

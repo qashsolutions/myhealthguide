@@ -8,6 +8,11 @@
  * - Observational summary (factual data only)
  * - Discussion points (conversation starters for provider visits)
  * - Questions for provider (open-ended questions based on data patterns)
+ */
+
+export const dynamic = 'force-dynamic';
+
+/*
  *
  * All outputs are validated to ensure NO medical advice is provided.
  *

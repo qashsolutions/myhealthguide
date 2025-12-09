@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { ElderBillingService } from '@/lib/stripe/elderBilling';
 import { verifyAuthToken, canAccessAgencyServer } from '@/lib/api/verifyAuth';

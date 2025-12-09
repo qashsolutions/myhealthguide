@@ -7,7 +7,11 @@
  * Endpoints:
  * POST /api/ai-analytics
  *   - type: adherence | burnout | refill | trends | alerts | compliance-status
- *
+ */
+
+export const dynamic = 'force-dynamic';
+
+/*
  * All responses include personalized thresholds and reasoning.
  */
 

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { detectMissedDoses, getMissedDosesSummary } from '@/lib/ai/missedDosesDetection';
 import { checkUpcomingAppointments } from '@/lib/ai/appointmentReminders';

@@ -9,6 +9,8 @@
  * AUTHENTICATION: Requires Firebase ID token in Authorization header
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { processNaturalLanguageQuery } from '@/lib/ai/medgemmaService';
 import { UserRole } from '@/lib/medical/phiAuditLog';

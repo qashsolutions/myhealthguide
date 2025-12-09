@@ -7,6 +7,8 @@
  * Now supports AI-driven burnout analysis via useAI=true parameter
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { verifyAuthToken, getUserDataServer } from '@/lib/api/verifyAuth';

@@ -5,6 +5,8 @@
  * Fetches FDA data and caches it server-side
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { verifyAuthToken } from '@/lib/api/verifyAuth';

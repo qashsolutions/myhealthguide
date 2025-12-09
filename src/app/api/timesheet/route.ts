@@ -3,6 +3,8 @@
  * Uses Admin SDK for shift session queries
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { verifyAuthToken } from '@/lib/api/verifyAuth';

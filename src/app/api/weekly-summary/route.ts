@@ -10,6 +10,11 @@
  * AUTHENTICATION: Requires Firebase ID token in Authorization header
  */
 
+export const dynamic = 'force-dynamic';
+
+/*
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { generateWeeklySummary } from '@/lib/ai/weeklySummary';
 import {
