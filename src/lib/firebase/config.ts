@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
@@ -48,7 +48,11 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY)
 
 // Initialize services
 export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
+// Use initializeFirestore with long polling to avoid QUIC protocol errors
+// on restrictive networks (hospitals, corporate firewalls, etc.)
+export const db: Firestore = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
 export const storage: FirebaseStorage = getStorage(app);
 
 // Export app for FCM and other services
