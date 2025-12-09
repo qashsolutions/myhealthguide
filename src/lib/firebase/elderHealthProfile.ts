@@ -25,6 +25,42 @@ import {
   limit,
   Timestamp,
 } from 'firebase/firestore';
+
+/**
+ * Clean object for Firestore - removes undefined values
+ * Firestore throws errors if you try to save undefined values
+ */
+function cleanForFirestore<T extends Record<string, any>>(obj: T): Partial<T> {
+  const cleaned: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    // Skip undefined values (null is allowed in Firestore)
+    if (value === undefined) {
+      continue;
+    }
+
+    // Recursively clean nested objects (but not arrays or dates)
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      cleaned[key] = cleanForFirestore(value);
+    }
+    // Clean arrays - filter out undefined and clean objects
+    else if (Array.isArray(value)) {
+      cleaned[key] = value
+        .filter(item => item !== undefined)
+        .map(item =>
+          item !== null && typeof item === 'object' && !(item instanceof Date)
+            ? cleanForFirestore(item)
+            : item
+        );
+    }
+    // Keep other values as-is
+    else {
+      cleaned[key] = value;
+    }
+  }
+
+  return cleaned as Partial<T>;
+}
 import type {
   Elder,
   ElderHealthCondition,

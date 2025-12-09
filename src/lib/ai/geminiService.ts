@@ -386,6 +386,223 @@ Return ONLY valid JSON matching this structure:
 }
 
 /**
+ * Analyze diet entry with smart parsing of free-form text
+ * Parses natural language like "boiled chicken with rice" into structured items
+ * Then performs enhanced nutrition analysis
+ */
+export async function analyzeDietEntryWithParsing(
+  entry: {
+    meal: string;
+    freeformText: string;
+    elderAge: number;
+    existingConditions?: string[];
+  },
+  userId: string,
+  userRole: UserRole,
+  groupId: string,
+  elderId: string,
+  elderProfile?: {
+    weight?: { value: number; unit: 'lb' | 'kg' };
+    biologicalSex?: 'male' | 'female';
+    dietaryRestrictions?: string[];
+  }
+): Promise<DietAnalysis> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+  // Build enhanced profile for analysis
+  const profile = {
+    age: entry.elderAge,
+    weight: elderProfile?.weight,
+    conditions: entry.existingConditions || [],
+    dietaryRestrictions: elderProfile?.dietaryRestrictions || [],
+    biologicalSex: elderProfile?.biologicalSex
+  };
+
+  // Calculate personalized targets
+  const targets = calculatePersonalizedTargets(profile);
+
+  // Build condition context for AI
+  const conditionContext = buildConditionContext(profile.conditions);
+
+  const prompt = `
+You are a nutrition analyst specializing in elderly care. First parse the food description, then analyze it for a ${entry.elderAge}-year-old senior.
+
+ELDER PROFILE:
+- Age: ${entry.elderAge} years
+- Weight: ${profile.weight ? `${profile.weight.value} ${profile.weight.unit}` : 'Unknown'}
+- Sex: ${profile.biologicalSex || 'Unknown'}
+- Known Conditions: ${profile.conditions.length > 0 ? profile.conditions.join(', ') : 'None specified'}
+- Dietary Restrictions: ${profile.dietaryRestrictions.length > 0 ? profile.dietaryRestrictions.join(', ') : 'None'}
+
+CONDITION-SPECIFIC GUIDELINES:
+${conditionContext || 'No specific condition guidelines applicable.'}
+
+DAILY TARGETS FOR THIS ELDER:
+- Calories: ${targets.calorieRange}
+- Protein: ${targets.proteinRange}g/day
+- Fiber: 25g/day minimum
+- Sodium: <${targets.sodiumMax}mg/day
+
+MEAL TO PARSE AND ANALYZE:
+- Meal Type: ${entry.meal}
+- Description: "${entry.freeformText}"
+
+TASK:
+1. PARSE: Extract individual food items from the description (e.g., "boiled chicken with rice and salad" → ["boiled chicken", "rice", "salad"])
+2. ESTIMATE: Macros, calories, fiber, sodium for each item and total
+3. SCORE: Rate the meal (0-100) based on:
+   - Meal Balance (40 points): protein + vegetables/fruits + complex carbs
+   - Macro Fit (30 points): appropriate for elderly person
+   - Condition Awareness (30 points): avoids problematic foods
+4. FLAG: Any condition-specific concerns
+5. POSITIVE: Note good aspects of the meal
+6. RECOMMEND: 1-2 actionable suggestions
+
+IMPORTANT:
+- Parse food items intelligently (understand variations like "boiled chicken", "grilled fish", etc.)
+- This is informational analysis, NOT medical advice
+- A simple but balanced meal scores well
+
+Return ONLY valid JSON:
+{
+  "parsedItems": ["item1", "item2"],
+  "nutritionScore": <number 0-100>,
+  "scoreBreakdown": {
+    "mealBalance": <0-40>,
+    "macroFit": <0-30>,
+    "conditionAwareness": <0-30>
+  },
+  "macros": {
+    "carbs": { "grams": <number>, "percentage": <number> },
+    "protein": { "grams": <number>, "percentage": <number> },
+    "fat": { "grams": <number>, "percentage": <number> },
+    "fiber": <number>,
+    "sodium": <number or null>,
+    "sugar": <number or null>
+  },
+  "estimatedCalories": <number>,
+  "conditionFlags": [],
+  "concerns": [],
+  "positives": [],
+  "recommendations": []
+}
+`;
+
+  try {
+    // HIPAA Audit: Log third-party PHI disclosure
+    await logPHIThirdPartyDisclosure({
+      userId,
+      userRole,
+      groupId,
+      elderId,
+      serviceName: 'AI Nutrition Analysis (Gemini/Claude)',
+      serviceType: 'diet_parsing_and_analysis',
+      dataShared: ['meal_description', 'elder_age', 'weight', 'medical_conditions', 'dietary_restrictions'],
+      purpose: 'Parse free-form meal description and analyze nutrition',
+    });
+
+    // Try Gemini first
+    if (apiKey) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 1024,
+                thinking_config: { include_thoughts: false }
+              },
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          const generatedText = result.candidates[0].content.parts[0].text;
+          const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return cleanForFirestore(parsed);
+          }
+        }
+      } catch (geminiError) {
+        console.warn('Gemini API failed, trying Claude:', geminiError);
+      }
+    }
+
+    // Fallback to Claude
+    if (anthropicKey) {
+      try {
+        const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            temperature: 0.3,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+
+        if (claudeResponse.ok) {
+          const claudeResult = await claudeResponse.json();
+          const claudeText = claudeResult.content[0].text;
+          const jsonMatch = claudeText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return cleanForFirestore(parsed);
+          }
+        }
+      } catch (claudeError) {
+        console.warn('Claude API also failed:', claudeError);
+      }
+    }
+
+    // Rule-based fallback with simple parsing
+    return generateFallbackWithParsing(entry, profile);
+
+  } catch (error) {
+    console.error('Diet analysis with parsing error:', error);
+    return generateFallbackWithParsing(entry, profile);
+  }
+}
+
+/**
+ * Fallback analysis with simple text parsing
+ */
+function generateFallbackWithParsing(
+  entry: { meal: string; freeformText: string },
+  profile: { age: number; conditions: string[] }
+): DietAnalysis {
+  // Simple parsing: split by common delimiters
+  const text = entry.freeformText.toLowerCase();
+  const parsedItems = text
+    .split(/,|and|with|\+|&/)
+    .map(item => item.trim())
+    .filter(item => item.length > 0);
+
+  // Use existing fallback logic
+  const baseAnalysis = generateFallbackDietAnalysis(
+    { meal: entry.meal, items: parsedItems },
+    profile
+  );
+
+  return {
+    ...baseAnalysis,
+    parsedItems: parsedItems.length > 0 ? parsedItems : [entry.freeformText]
+  };
+}
+
+/**
  * Calculate personalized nutrition targets
  */
 function calculatePersonalizedTargets(profile: {

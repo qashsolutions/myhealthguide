@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DietAnalysisPanel } from '@/components/ai/DietAnalysisPanel';
-import { analyzeDietEntry } from '@/lib/ai/geminiService';
+import { analyzeDietEntryWithParsing } from '@/lib/ai/geminiService';
 import { DietAnalysis } from '@/types';
 import { Utensils, Plus, X, Sparkles, ArrowLeft, Loader } from 'lucide-react';
 import Link from 'next/link';
@@ -32,8 +33,8 @@ export default function NewDietEntryPage() {
 
   const [elderId, setElderId] = useState('');
   const [meal, setMeal] = useState('breakfast');
-  const [itemInput, setItemInput] = useState('');
-  const [items, setItems] = useState<string[]>([]);
+  const [freeformInput, setFreeformInput] = useState(''); // Free-form text input
+  const [parsedItems, setParsedItems] = useState<string[]>([]); // AI-parsed items
   const [analysis, setAnalysis] = useState<DietAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -53,22 +54,14 @@ export default function NewDietEntryPage() {
     }
   }, [selectedElder, activeElders, elderId]);
 
-  const addItem = () => {
-    if (itemInput.trim()) {
-      setItems([...items, itemInput.trim()]);
-      setItemInput('');
-      setAnalysis(null); // Clear previous analysis
-    }
-  };
-
   const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+    setParsedItems(parsedItems.filter((_, i) => i !== index));
     setAnalysis(null); // Clear analysis when items change
   };
 
   const handleAnalyze = async () => {
-    if (items.length === 0) {
-      setError('Please add at least one food item');
+    if (!freeformInput.trim() && parsedItems.length === 0) {
+      setError('Please describe what was eaten');
       return;
     }
 
@@ -108,10 +101,11 @@ export default function NewDietEntryPage() {
     setError('');
 
     try {
-      const result = await analyzeDietEntry(
+      // Use the new parsing + analysis function
+      const result = await analyzeDietEntryWithParsing(
         {
           meal,
-          items,
+          freeformText: freeformInput.trim(),
           elderAge,
           existingConditions: elderConditions
         },
@@ -126,6 +120,10 @@ export default function NewDietEntryPage() {
         }
       );
 
+      // Update parsed items from AI response
+      if (result.parsedItems && result.parsedItems.length > 0) {
+        setParsedItems(result.parsedItems);
+      }
       setAnalysis(result);
     } catch (err) {
       console.error('Analysis error:', err);
@@ -141,8 +139,8 @@ export default function NewDietEntryPage() {
       return;
     }
 
-    if (items.length === 0) {
-      setError('Please add at least one food item');
+    if (!freeformInput.trim() && parsedItems.length === 0) {
+      setError('Please describe what was eaten');
       return;
     }
 
@@ -175,14 +173,16 @@ export default function NewDietEntryPage() {
       const elderSex = elder?.biologicalSex;
       const elderDietaryRestrictions = elder?.dietaryRestrictions || [];
 
-      // Auto-analyze if not already done
+      // Auto-analyze if not already done (this also parses free-form text)
       let finalAnalysis = analysis;
-      if (!finalAnalysis) {
+      let finalItems = parsedItems.length > 0 ? parsedItems : [];
+
+      if (!finalAnalysis || finalItems.length === 0) {
         try {
-          finalAnalysis = await analyzeDietEntry(
+          const result = await analyzeDietEntryWithParsing(
             {
               meal,
-              items,
+              freeformText: freeformInput.trim(),
               elderAge,
               existingConditions: elderConditions
             },
@@ -196,19 +196,32 @@ export default function NewDietEntryPage() {
               dietaryRestrictions: elderDietaryRestrictions
             }
           );
+          finalAnalysis = result;
+          if (result.parsedItems && result.parsedItems.length > 0) {
+            finalItems = result.parsedItems;
+            setParsedItems(finalItems);
+          }
           setAnalysis(finalAnalysis);
         } catch (analysisErr) {
-          console.warn('Auto-analysis failed, saving without score:', analysisErr);
-          // Continue saving even if analysis fails
+          console.warn('Auto-analysis failed, saving with raw input:', analysisErr);
+          // If parsing failed, use the raw input as a single item
+          if (finalItems.length === 0 && freeformInput.trim()) {
+            finalItems = [freeformInput.trim()];
+          }
         }
+      }
+
+      // Ensure we have at least one item
+      if (finalItems.length === 0 && freeformInput.trim()) {
+        finalItems = [freeformInput.trim()];
       }
 
       await DietService.createEntry({
         elderId,
         groupId,
         meal: meal as 'breakfast' | 'lunch' | 'dinner' | 'snack',
-        items,
-        notes: '',
+        items: finalItems,
+        notes: freeformInput.trim(), // Store original input as notes
         aiAnalysis: finalAnalysis || undefined,
         timestamp: new Date(),
         loggedBy: user.id,
@@ -350,35 +363,33 @@ export default function NewDietEntryPage() {
               </select>
             </div>
 
-            {/* Food Items */}
+            {/* Food Description - Free-form text */}
             <div className="space-y-2">
-              <Label htmlFor="items">Food Items</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="items"
-                  value={itemInput}
-                  onChange={(e) => setItemInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addItem();
-                    }
-                  }}
-                  placeholder="e.g., oatmeal, banana"
-                  className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                />
-                <Button onClick={addItem} size="icon">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
+              <Label htmlFor="foodDescription">What was eaten?</Label>
+              <Textarea
+                id="foodDescription"
+                value={freeformInput}
+                onChange={(e) => {
+                  setFreeformInput(e.target.value);
+                  setAnalysis(null); // Clear analysis when input changes
+                }}
+                placeholder="Describe the meal in your own words, e.g., 'boiled chicken with rice and steamed vegetables' or 'oatmeal with banana and honey'"
+                className="min-h-[100px] placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Just type naturally - our smart system will understand and analyze the meal
+              </p>
+            </div>
 
-              {/* Items List */}
-              {items.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {items.map((item, idx) => (
+            {/* Parsed Items (shown after analysis) */}
+            {parsedItems.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm text-gray-600 dark:text-gray-400">Identified food items:</Label>
+                <div className="flex flex-wrap gap-2">
+                  {parsedItems.map((item, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-2 px-3 py-1 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-full"
+                      className="flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-full"
                     >
                       <span className="text-sm text-gray-700 dark:text-gray-300">
                         {item}
@@ -392,14 +403,14 @@ export default function NewDietEntryPage() {
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-2 pt-4">
               <Button
                 onClick={handleAnalyze}
-                disabled={items.length === 0 || isAnalyzing}
+                disabled={!freeformInput.trim() || isAnalyzing}
                 variant="outline"
                 className="flex-1"
               >
@@ -417,7 +428,7 @@ export default function NewDietEntryPage() {
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={items.length === 0 || !elderId || isSaving}
+                disabled={(!freeformInput.trim() && parsedItems.length === 0) || !elderId || isSaving}
                 className="flex-1"
               >
                 {isSaving ? (
@@ -438,7 +449,7 @@ export default function NewDietEntryPage() {
           <DietAnalysisPanel
             analysis={analysis}
             meal={meal}
-            items={items}
+            items={parsedItems.length > 0 ? parsedItems : [freeformInput.trim()]}
           />
         ) : (
           <Card>

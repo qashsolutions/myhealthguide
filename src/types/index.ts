@@ -573,6 +573,9 @@ export interface DietAnalysis {
   concerns: string[];
   recommendations: string[];
 
+  // Parsed food items from free-form text
+  parsedItems?: string[];
+
   // Enhanced analysis fields (optional for backwards compatibility)
   scoreBreakdown?: {
     mealBalance: number; // 0-40 points
