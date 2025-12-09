@@ -90,24 +90,42 @@ export async function POST(req: NextRequest) {
         const userId = subscription.metadata.userId;
         const planKey = extractPlanKey(subscription);
 
+        console.log('Processing subscription.created:', {
+          userId,
+          subscriptionId: subscription.id,
+          status: subscription.status,
+          start_date: subscription.start_date,
+          current_period_end: subscription.current_period_end,
+          trial_end: subscription.trial_end,
+        });
+
         if (userId) {
           // Update user subscription status in Firestore using Admin SDK
           const adminDb = getAdminDb();
-          await adminDb.collection('users').doc(userId).update({
+
+          // Build update data with safe timestamp handling
+          const updateData: Record<string, any> = {
             subscriptionStatus: subscription.status === 'trialing' ? 'trial' : 'active',
             subscriptionTier: planKey || 'unknown',
             stripeCustomerId: subscription.customer as string,
             stripeSubscriptionId: subscription.id,
-            // Track subscription start date for refund window calculation
-            subscriptionStartDate: Timestamp.fromDate(new Date(subscription.start_date * 1000)),
-            currentPeriodEnd: Timestamp.fromDate(new Date(subscription.current_period_end * 1000)),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
             pendingPlanChange: null,
-            trialEndDate: subscription.trial_end
-              ? Timestamp.fromDate(new Date(subscription.trial_end * 1000))
-              : null,
             updatedAt: Timestamp.now(),
-          });
+          };
+
+          // Safely add timestamps only if values exist
+          if (subscription.start_date) {
+            updateData.subscriptionStartDate = Timestamp.fromMillis(subscription.start_date * 1000);
+          }
+          if (subscription.current_period_end) {
+            updateData.currentPeriodEnd = Timestamp.fromMillis(subscription.current_period_end * 1000);
+          }
+          if (subscription.trial_end) {
+            updateData.trialEndDate = Timestamp.fromMillis(subscription.trial_end * 1000);
+          }
+
+          await adminDb.collection('users').doc(userId).update(updateData);
           console.log('Subscription created and synced to Firestore:', subscription.id);
         }
         break;
@@ -136,10 +154,14 @@ export async function POST(req: NextRequest) {
           // Build update object
           const updateData: Record<string, any> = {
             subscriptionStatus,
-            currentPeriodEnd: Timestamp.fromDate(new Date(subscription.current_period_end * 1000)),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
             updatedAt: Timestamp.now(),
           };
+
+          // Safely add currentPeriodEnd if it exists
+          if (subscription.current_period_end) {
+            updateData.currentPeriodEnd = Timestamp.fromMillis(subscription.current_period_end * 1000);
+          }
 
           // Update plan tier if it changed
           if (planKey) {
