@@ -82,10 +82,12 @@ export async function updateElderProfile(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const elderRef = doc(db, 'elders', elderId);
-    await updateDoc(elderRef, {
+    // Clean undefined values before saving to Firestore
+    const cleanedUpdates = cleanForFirestore({
       ...updates,
       updatedAt: new Date(),
     });
+    await updateDoc(elderRef, cleanedUpdates);
     return { success: true };
   } catch (error: any) {
     console.error('Error updating elder profile:', error);
@@ -147,10 +149,12 @@ export async function updateHealthCondition(
   updates: Partial<ElderHealthCondition>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await updateDoc(doc(db, 'elderHealthConditions', conditionId), {
+    // Clean undefined values before saving to Firestore
+    const cleanedUpdates = cleanForFirestore({
       ...updates,
       updatedAt: new Date(),
     });
+    await updateDoc(doc(db, 'elderHealthConditions', conditionId), cleanedUpdates);
     return { success: true };
   } catch (error: any) {
     console.error('Error updating health condition:', error);
@@ -238,7 +242,9 @@ export async function updateAllergy(
   updates: Partial<ElderAllergy>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await updateDoc(doc(db, 'elderAllergies', allergyId), updates);
+    // Clean undefined values before saving to Firestore
+    const cleanedUpdates = cleanForFirestore(updates);
+    await updateDoc(doc(db, 'elderAllergies', allergyId), cleanedUpdates);
     return { success: true };
   } catch (error: any) {
     console.error('Error updating allergy:', error);
@@ -354,7 +360,9 @@ export async function updateSymptom(
   updates: Partial<ElderSymptom>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await updateDoc(doc(db, 'elderSymptoms', symptomId), updates);
+    // Clean undefined values before saving to Firestore
+    const cleanedUpdates = cleanForFirestore(updates);
+    await updateDoc(doc(db, 'elderSymptoms', symptomId), cleanedUpdates);
     return { success: true };
   } catch (error: any) {
     console.error('Error updating symptom:', error);
@@ -483,11 +491,13 @@ export async function addImportantNote(
   note: Omit<ElderImportantNote, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const docRef = await addDoc(collection(db, 'elderImportantNotes'), {
+    // Clean undefined values before saving to Firestore
+    const cleanedNote = cleanForFirestore({
       ...note,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    const docRef = await addDoc(collection(db, 'elderImportantNotes'), cleanedNote);
     return { success: true, id: docRef.id };
   } catch (error: any) {
     console.error('Error adding important note:', error);
@@ -503,10 +513,12 @@ export async function updateImportantNote(
   updates: Partial<ElderImportantNote>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await updateDoc(doc(db, 'elderImportantNotes', noteId), {
+    // Clean undefined values before saving to Firestore
+    const cleanedUpdates = cleanForFirestore({
       ...updates,
       updatedAt: new Date(),
     });
+    await updateDoc(doc(db, 'elderImportantNotes', noteId), cleanedUpdates);
     return { success: true };
   } catch (error: any) {
     console.error('Error updating important note:', error);
@@ -588,10 +600,12 @@ export async function addEmergencyContact(
       }
     }
 
-    const docRef = await addDoc(collection(db, 'elderEmergencyContacts'), {
+    // Clean undefined values before saving to Firestore
+    const cleanedContact = cleanForFirestore({
       ...contact,
       createdAt: new Date(),
     });
+    const docRef = await addDoc(collection(db, 'elderEmergencyContacts'), cleanedContact);
     return { success: true, id: docRef.id };
   } catch (error: any) {
     console.error('Error adding emergency contact:', error);
@@ -619,7 +633,9 @@ export async function updateEmergencyContact(
       }
     }
 
-    await updateDoc(doc(db, 'elderEmergencyContacts', contactId), updates);
+    // Clean undefined values before saving to Firestore
+    const cleanedUpdates = cleanForFirestore(updates);
+    await updateDoc(doc(db, 'elderEmergencyContacts', contactId), cleanedUpdates);
     return { success: true };
   } catch (error: any) {
     console.error('Error updating emergency contact:', error);
@@ -684,7 +700,9 @@ export async function saveHealthInsight(
   insight: Omit<ElderHealthInsight, 'id' | 'dismissedAt' | 'dismissedBy'>
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const docRef = await addDoc(collection(db, 'elderHealthInsights'), insight);
+    // Clean undefined values before saving to Firestore
+    const cleanedInsight = cleanForFirestore(insight);
+    const docRef = await addDoc(collection(db, 'elderHealthInsights'), cleanedInsight);
     return { success: true, id: docRef.id };
   } catch (error: any) {
     console.error('Error saving health insight:', error);
