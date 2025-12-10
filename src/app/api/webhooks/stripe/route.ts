@@ -127,6 +127,28 @@ export async function POST(req: NextRequest) {
 
           await adminDb.collection('users').doc(userId).update(updateData);
           console.log('Subscription created and synced to Firestore:', subscription.id);
+
+          // Also update the agency subscription tier if user has an agency
+          if (planKey) {
+            const userDoc = await adminDb.collection('users').doc(userId).get();
+            const userData = userDoc.data();
+            if (userData?.agencies && userData.agencies.length > 0) {
+              const agencyId = userData.agencies[0].agencyId;
+              const currentPeriodEnd = subscription.current_period_end
+                ? new Date(subscription.current_period_end * 1000)
+                : new Date();
+
+              await adminDb.collection('agencies').doc(agencyId).update({
+                'subscription.tier': planKey,
+                'subscription.status': subscription.status === 'trialing' ? 'trial' : 'active',
+                'subscription.stripeCustomerId': subscription.customer as string,
+                'subscription.stripeSubscriptionId': subscription.id,
+                'subscription.currentPeriodEnd': Timestamp.fromDate(currentPeriodEnd),
+                updatedAt: Timestamp.now(),
+              });
+              console.log('Agency subscription synced:', agencyId, 'Tier:', planKey);
+            }
+          }
         }
         break;
       }
@@ -201,6 +223,27 @@ export async function POST(req: NextRequest) {
           const adminDb = getAdminDb();
           await adminDb.collection('users').doc(userId).update(updateData);
           console.log('Subscription updated:', subscription.id, 'Status:', subscriptionStatus);
+
+          // Also update the agency subscription tier if user has an agency
+          const userDoc = await adminDb.collection('users').doc(userId).get();
+          const userData = userDoc.data();
+          if (userData?.agencies && userData.agencies.length > 0) {
+            const agencyId = userData.agencies[0].agencyId;
+            const agencyUpdateData: Record<string, any> = {
+              'subscription.status': subscriptionStatus,
+              updatedAt: Timestamp.now(),
+            };
+
+            if (planKey) {
+              agencyUpdateData['subscription.tier'] = planKey;
+            }
+            if (subscription.current_period_end) {
+              agencyUpdateData['subscription.currentPeriodEnd'] = Timestamp.fromMillis(subscription.current_period_end * 1000);
+            }
+
+            await adminDb.collection('agencies').doc(agencyId).update(agencyUpdateData);
+            console.log('Agency subscription updated:', agencyId);
+          }
         }
         break;
       }
