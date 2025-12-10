@@ -96,14 +96,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if there's already a pending invite for this phone number
-    const existingInvites = await adminDb
+    // Use single where clause to avoid composite index, filter in memory
+    const allInvitesForAgency = await adminDb
       .collection('caregiver_invites')
       .where('agencyId', '==', agencyId)
-      .where('phoneNumber', '==', normalizedPhone)
-      .where('status', '==', 'pending')
       .get();
 
-    if (!existingInvites.empty) {
+    const existingPendingInvite = allInvitesForAgency.docs.find(doc => {
+      const data = doc.data();
+      return data.phoneNumber === normalizedPhone && data.status === 'pending';
+    });
+
+    if (existingPendingInvite) {
       return NextResponse.json(
         { error: 'An invite has already been sent to this phone number' },
         { status: 400 }
