@@ -49,10 +49,14 @@ export async function POST(req: NextRequest) {
 
     const stripe = getStripe();
 
+    // Get the return URL - prefer APP_URL (server-side) over NEXT_PUBLIC_APP_URL
+    // In production, this should be the canonical domain
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
+
     // Create a billing portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription`,
+      return_url: `${appUrl}/dashboard/subscription`,
     });
 
     return NextResponse.json({ url: session.url });

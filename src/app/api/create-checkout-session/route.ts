@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
 
     const stripe = getStripe();
 
+    // Get the app URL - prefer APP_URL (server-side) over NEXT_PUBLIC_APP_URL
+    // In production, this should be the canonical domain
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
+
     // Create Checkout Session
     // When a user subscribes (pays), they start their paid subscription immediately
     // No trial period - the 45-day free trial is BEFORE they subscribe (handled separately)
@@ -52,8 +56,8 @@ export async function POST(req: NextRequest) {
         planName,
       },
       customer_email: userEmail,
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
+      success_url: `${appUrl}/dashboard/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/pricing`,
       // Allow promotion codes
       allow_promotion_codes: true,
     };
