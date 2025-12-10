@@ -54,9 +54,10 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
 
     // Create a billing portal session
+    // Return to /dashboard/settings where billing information is displayed
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${appUrl}/dashboard/subscription`,
+      return_url: `${appUrl}/dashboard/settings`,
     });
 
     return NextResponse.json({ url: session.url });
