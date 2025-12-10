@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { db } from '@/lib/firebase/config';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getPlanChangeType } from '@/lib/constants/pricing';
 
 // Initialize Stripe
@@ -51,12 +51,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user from Firestore
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) {
+    const adminDb = getAdminDb();
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userData = userDoc.data();
+    const userData = userDoc.data()!;
     const currentPlan = userData.subscriptionTier;
     const stripeSubscriptionId = userData.stripeSubscriptionId;
 
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
       });
 
       // Update Firestore immediately
-      await updateDoc(doc(db, 'users', userId), {
+      await adminDb.collection('users').doc(userId).update({
         subscriptionTier: newPlan,
         pendingPlanChange: null,
         updatedAt: Timestamp.now(),
@@ -180,7 +181,7 @@ export async function POST(req: NextRequest) {
       } as any);
 
       // Update Firestore with pending change
-      await updateDoc(doc(db, 'users', userId), {
+      await adminDb.collection('users').doc(userId).update({
         pendingPlanChange: newPlan,
         updatedAt: Timestamp.now(),
       });
@@ -219,12 +220,13 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Get user from Firestore
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) {
+    const adminDb = getAdminDb();
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userData = userDoc.data();
+    const userData = userDoc.data()!;
     const stripeSubscriptionId = userData.stripeSubscriptionId;
 
     if (!stripeSubscriptionId) {
@@ -246,7 +248,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Update Firestore
-    await updateDoc(doc(db, 'users', userId), {
+    await adminDb.collection('users').doc(userId).update({
       pendingPlanChange: null,
       updatedAt: Timestamp.now(),
     });

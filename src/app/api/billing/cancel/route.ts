@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { db } from '@/lib/firebase/config';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import { PRICING } from '@/lib/constants/pricing';
 
 // Initialize Stripe
@@ -42,12 +42,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user from Firestore
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) {
+    const adminDb = getAdminDb();
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userData = userDoc.data();
+    const userData = userDoc.data()!;
     const stripeSubscriptionId = userData.stripeSubscriptionId;
     const stripeCustomerId = userData.stripeCustomerId;
     const subscriptionStartDate = convertFirestoreTimestamp(userData.subscriptionStartDate);
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Update Firestore
-      await updateDoc(doc(db, 'users', userId), {
+      await adminDb.collection('users').doc(userId).update({
         subscriptionStatus: 'canceled',
         cancelAtPeriodEnd: false,
         pendingPlanChange: null,
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
       const currentPeriodEnd = new Date(updatedSubscription.current_period_end * 1000);
 
       // Update Firestore
-      await updateDoc(doc(db, 'users', userId), {
+      await adminDb.collection('users').doc(userId).update({
         cancelAtPeriodEnd: true,
         currentPeriodEnd: Timestamp.fromDate(currentPeriodEnd),
         updatedAt: Timestamp.now(),
@@ -189,12 +190,13 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Get user from Firestore
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) {
+    const adminDb = getAdminDb();
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userData = userDoc.data();
+    const userData = userDoc.data()!;
     const stripeSubscriptionId = userData.stripeSubscriptionId;
 
     if (!stripeSubscriptionId) {
@@ -212,7 +214,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     // Update Firestore
-    await updateDoc(doc(db, 'users', userId), {
+    await adminDb.collection('users').doc(userId).update({
       cancelAtPeriodEnd: false,
       updatedAt: Timestamp.now(),
     });

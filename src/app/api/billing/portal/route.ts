@@ -2,8 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { db } from '@/lib/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase/admin';
 
 // Initialize Stripe
 function getStripe(): Stripe {
@@ -28,16 +27,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user from Firestore to find their Stripe customer ID
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    const adminDb = getAdminDb();
+    const userDoc = await adminDb.collection('users').doc(userId).get();
 
-    if (!userDoc.exists()) {
+    if (!userDoc.exists) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    const userData = userDoc.data();
+    const userData = userDoc.data()!;
     const stripeCustomerId = userData.stripeCustomerId;
 
     if (!stripeCustomerId) {
