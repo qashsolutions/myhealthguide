@@ -1449,3 +1449,157 @@ export interface CaregiverNotification {
   readAt?: Date;
   expiresAt?: Date; // For time-sensitive notifications
 }
+
+// ============= Caregiver Invite Types =============
+
+export interface CaregiverInvite {
+  id: string;
+  agencyId: string;
+  superAdminId: string;
+  phoneNumber: string; // Normalized: +1XXXXXXXXXX
+  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  inviteToken: string; // Unique token for invite link
+  createdAt: Date;
+  expiresAt: Date; // 7 days from creation
+  acceptedAt?: Date;
+  acceptedByUserId?: string;
+  // SMS tracking
+  smsSentAt?: Date;
+  smsMessageId?: string; // Twilio message SID
+  smsStatus?: 'sent' | 'delivered' | 'failed';
+}
+
+// ============= Caregiver Profile Types =============
+
+export type CaregiverCertification =
+  | 'CNA'
+  | 'HHA'
+  | 'LPN'
+  | 'RN'
+  | 'CPR_FIRST_AID'
+  | 'MEDICATION_AIDE'
+  | 'DEMENTIA_CARE_CERTIFIED'
+  | 'HOSPICE_CERTIFIED'
+  | 'OTHER';
+
+export type CaregiverSpecialization =
+  | 'DEMENTIA_ALZHEIMERS'
+  | 'DIABETES_CARE'
+  | 'HEART_DISEASE'
+  | 'PARKINSONS'
+  | 'STROKE_RECOVERY'
+  | 'MOBILITY_ASSISTANCE'
+  | 'WOUND_CARE'
+  | 'HOSPICE_PALLIATIVE'
+  | 'MENTAL_HEALTH'
+  | 'PEDIATRIC'
+  | 'OTHER';
+
+export type CaregiverLanguage =
+  | 'ENGLISH'
+  | 'SPANISH'
+  | 'MANDARIN'
+  | 'CANTONESE'
+  | 'TAGALOG'
+  | 'VIETNAMESE'
+  | 'KOREAN'
+  | 'HINDI'
+  | 'ARABIC'
+  | 'FRENCH'
+  | 'PORTUGUESE'
+  | 'RUSSIAN'
+  | 'OTHER';
+
+export type CaregiverComfortWith =
+  | 'MALE_PATIENTS'
+  | 'FEMALE_PATIENTS'
+  | 'PETS_IN_HOME'
+  | 'SMOKING_ENVIRONMENT'
+  | 'OVERNIGHT_STAYS'
+  | 'WEEKEND_SHIFTS'
+  | 'DRIVING_REQUIRED';
+
+export interface CaregiverProfile {
+  id: string;
+  userId: string; // Matches auth uid
+  agencyId: string;
+
+  // Basic Info
+  fullName: string;
+  photoUrl?: string;
+
+  // Professional Info
+  languages: CaregiverLanguage[];
+  languagesOther?: string[]; // For "OTHER" selections
+  yearsExperience: number;
+  certifications: CaregiverCertification[];
+  certificationsOther?: string[]; // For "OTHER" selections
+  specializations: CaregiverSpecialization[];
+  specializationsOther?: string[]; // For "OTHER" selections
+
+  // Availability
+  availability: {
+    monday: { available: boolean; slots?: { start: string; end: string }[] };
+    tuesday: { available: boolean; slots?: { start: string; end: string }[] };
+    wednesday: { available: boolean; slots?: { start: string; end: string }[] };
+    thursday: { available: boolean; slots?: { start: string; end: string }[] };
+    friday: { available: boolean; slots?: { start: string; end: string }[] };
+    saturday: { available: boolean; slots?: { start: string; end: string }[] };
+    sunday: { available: boolean; slots?: { start: string; end: string }[] };
+  };
+
+  // Location
+  zipCode: string;
+  maxTravelDistance?: number; // Miles
+
+  // Preferences
+  comfortableWith: CaregiverComfortWith[];
+
+  // Emergency Contact
+  emergencyContact: {
+    name: string;
+    phone: string;
+    relationship?: string;
+  };
+
+  // Status
+  onboardingCompleted: boolean;
+  onboardingCompletedAt?: Date;
+
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============= Caregiver-Elder Match Types =============
+
+export interface CaregiverElderMatch {
+  caregiverId: string;
+  caregiverName: string;
+  caregiverProfile: CaregiverProfile;
+  matchScore: number; // 0-100
+  matchBreakdown: {
+    languageMatch: number; // 0-25 points
+    specializationMatch: number; // 0-30 points
+    locationMatch: number; // 0-20 points
+    availabilityMatch: number; // 0-15 points
+    preferenceMatch: number; // 0-10 points
+  };
+  matchReasons: string[]; // Human-readable reasons
+  warnings?: string[]; // Any concerns (e.g., "Caregiver at capacity")
+  elderCount: number; // Current elder count for this caregiver
+  canAssign: boolean; // False if at max elders (3)
+}
+
+// ============= Elder Payment Status (for caregiver visibility) =============
+
+export interface ElderPaymentStatus {
+  elderId: string;
+  agencyId: string;
+  paymentStatus: 'pending' | 'active' | 'cancelled' | 'refunded';
+  // When payment is active, caregiver can see this elder
+  activatedAt?: Date;
+  stripeSubscriptionId?: string;
+  monthlyRate: number; // $30
+  nextBillingDate?: Date;
+}

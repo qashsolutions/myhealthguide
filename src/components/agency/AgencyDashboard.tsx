@@ -16,6 +16,7 @@ import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
 import { Agency, CaregiverAssignment, Group } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CaregiverInviteManager } from './CaregiverInviteManager';
 
 interface AgencyDashboardProps {
   userId: string;
@@ -254,6 +255,16 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Caregiver Invite Manager - Only for Super Admin */}
+      {isSuperAdmin && (
+        <CaregiverInviteManager
+          agencyId={agencyId}
+          userId={userId}
+          currentCaregiverCount={activeCaregivers}
+          maxCaregivers={10}
+        />
       )}
 
       {!isSuperAdmin && (
