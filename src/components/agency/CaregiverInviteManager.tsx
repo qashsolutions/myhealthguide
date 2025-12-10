@@ -16,24 +16,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import {
   UserPlus,
   Phone,
   Send,
@@ -265,7 +247,7 @@ export function CaregiverInviteManager({
             <DialogHeader>
               <DialogTitle>Invite a Caregiver</DialogTitle>
               <DialogDescription>
-                Enter the caregiver's phone number. They will receive an SMS with a link to sign up and join your agency.
+                Enter the caregiver&apos;s phone number. They will receive an SMS with a link to sign up and join your agency.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -343,7 +325,7 @@ export function CaregiverInviteManager({
           </div>
         )}
 
-        {/* Invites Table */}
+        {/* Invites List */}
         {loading ? (
           <div className="text-center py-8">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto text-gray-400" />
@@ -356,88 +338,75 @@ export function CaregiverInviteManager({
             <p className="text-sm">Invite caregivers to join your agency</p>
           </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Phone Number</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Sent</TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invites.map((invite) => {
-                  const isExpired = new Date(invite.expiresAt) < new Date();
-                  const canCancel = invite.status === 'pending' && !isExpired;
+          <div className="space-y-3">
+            {invites.map((invite) => {
+              const isExpired = new Date(invite.expiresAt) < new Date();
+              const canCancel = invite.status === 'pending' && !isExpired;
 
-                  return (
-                    <TableRow key={invite.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          {formatPhoneDisplay(invite.phoneNumber)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
+              return (
+                <div
+                  key={invite.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+                      <Phone className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{formatPhoneDisplay(invite.phoneNumber)}</p>
+                      <div className="flex items-center gap-2 mt-1">
                         {getStatusBadge(invite.status, invite.expiresAt)}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500">
-                        {invite.createdAt
-                          ? formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500">
-                        {invite.expiresAt && invite.status === 'pending'
-                          ? formatDistanceToNow(new Date(invite.expiresAt), { addSuffix: true })
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {canCancel && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedInvite(invite);
-                              setCancelDialogOpen(true);
-                            }}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        <span className="text-xs text-gray-500">
+                          {invite.createdAt
+                            ? `Sent ${formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })}`
+                            : ''}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {canCancel && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedInvite(invite);
+                        setCancelDialogOpen(true);
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
         {/* Cancel Confirmation Dialog */}
-        <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Cancel Invite?</AlertDialogTitle>
-              <AlertDialogDescription>
+        <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel Invite?</DialogTitle>
+              <DialogDescription>
                 This will cancel the invite sent to{' '}
                 {selectedInvite && formatPhoneDisplay(selectedInvite.phoneNumber)}.
                 They will no longer be able to use this invite link to join your agency.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Keep Invite</AlertDialogCancel>
-              <AlertDialogAction
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                Keep Invite
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={handleCancelInvite}
-                className="bg-red-600 hover:bg-red-700"
               >
                 Cancel Invite
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
