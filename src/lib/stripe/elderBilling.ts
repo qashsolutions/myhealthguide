@@ -1,17 +1,6 @@
 import Stripe from 'stripe';
-import { db } from '@/lib/firebase/config';
-import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  query,
-  where,
-  Timestamp,
-  addDoc,
-} from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import { PRICING } from '@/lib/constants/pricing';
 import type { ElderSubscription } from '@/types';
 
@@ -48,12 +37,13 @@ export class ElderBillingService {
     const stripe = getStripe();
 
     // Get or create Stripe customer for agency
-    const agency = await getDoc(doc(db, 'agencies', agencyId));
-    if (!agency.exists()) {
+    const adminDb = getAdminDb();
+    const agency = await adminDb.collection('agencies').doc(agencyId).get();
+    if (!agency.exists) {
       throw new Error('Agency not found');
     }
 
-    const agencyData = agency.data();
+    const agencyData = agency.data()!;
     let stripeCustomerId = agencyData.stripeCustomerId;
 
     // Create Stripe customer if doesn't exist
@@ -67,7 +57,7 @@ export class ElderBillingService {
       stripeCustomerId = customer.id;
 
       // Update agency with customer ID
-      await updateDoc(doc(db, 'agencies', agencyId), {
+      await adminDb.collection('agencies').doc(agencyId).update({
         stripeCustomerId,
       });
     }
@@ -119,7 +109,7 @@ export class ElderBillingService {
       updatedAt: Timestamp.now() as any,
     };
 
-    const docRef = await addDoc(collection(db, 'elderSubscriptions'), elderSubscription);
+    const docRef = await adminDb.collection('elderSubscriptions').add(elderSubscription);
 
     // Update agency billing totals
     await this.updateAgencyBillingTotals(agencyId);
@@ -147,8 +137,9 @@ export class ElderBillingService {
     const stripe = getStripe();
 
     // Get subscription from Firestore
-    const subscriptionDoc = await getDoc(doc(db, 'elderSubscriptions', subscriptionId));
-    if (!subscriptionDoc.exists()) {
+    const adminDb = getAdminDb();
+    const subscriptionDoc = await adminDb.collection('elderSubscriptions').doc(subscriptionId).get();
+    if (!subscriptionDoc.exists) {
       throw new Error('Subscription not found');
     }
 
@@ -201,7 +192,7 @@ export class ElderBillingService {
     }
 
     // Update Firestore
-    await updateDoc(doc(db, 'elderSubscriptions', subscriptionId), {
+    await adminDb.collection('elderSubscriptions').doc(subscriptionId).update({
       subscriptionStatus: refundIssued ? 'refunded' : 'cancelled',
       cancelledAt: Timestamp.now(),
       cancellationReason: reason,
@@ -221,13 +212,12 @@ export class ElderBillingService {
    * Get all active elder subscriptions for an agency
    */
   static async getActiveElderSubscriptions(agencyId: string): Promise<ElderSubscription[]> {
-    const q = query(
-      collection(db, 'elderSubscriptions'),
-      where('agencyId', '==', agencyId),
-      where('subscriptionStatus', '==', 'active')
-    );
+    const adminDb = getAdminDb();
+    const snapshot = await adminDb.collection('elderSubscriptions')
+      .where('agencyId', '==', agencyId)
+      .where('subscriptionStatus', '==', 'active')
+      .get();
 
-    const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
@@ -249,9 +239,11 @@ export class ElderBillingService {
    * Get all elder subscriptions for an agency (including cancelled)
    */
   static async getAllElderSubscriptions(agencyId: string): Promise<ElderSubscription[]> {
-    const q = query(collection(db, 'elderSubscriptions'), where('agencyId', '==', agencyId));
+    const adminDb = getAdminDb();
+    const snapshot = await adminDb.collection('elderSubscriptions')
+      .where('agencyId', '==', agencyId)
+      .get();
 
-    const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
@@ -333,7 +325,8 @@ export class ElderBillingService {
       updateData.nextBillingDate = Timestamp.fromDate(nextBillingDate);
     }
 
-    await updateDoc(doc(db, 'agencies', agencyId), updateData);
+    const adminDb = getAdminDb();
+    await adminDb.collection('agencies').doc(agencyId).update(updateData);
   }
 
   /**
@@ -346,12 +339,11 @@ export class ElderBillingService {
     const { subscriptionId } = params;
 
     // Find elder subscription by Stripe subscription ID
-    const q = query(
-      collection(db, 'elderSubscriptions'),
-      where('stripeSubscriptionId', '==', subscriptionId)
-    );
+    const adminDb = getAdminDb();
+    const snapshot = await adminDb.collection('elderSubscriptions')
+      .where('stripeSubscriptionId', '==', subscriptionId)
+      .get();
 
-    const snapshot = await getDocs(q);
     if (snapshot.empty) {
       console.error('Elder subscription not found for Stripe subscription:', subscriptionId);
       return;
@@ -367,7 +359,7 @@ export class ElderBillingService {
     const newNextBilling = new Date(currentNextBilling);
     newNextBilling.setDate(newNextBilling.getDate() + PRICING.BILLING_CYCLE_DAYS);
 
-    await updateDoc(docRef, {
+    await docRef.update({
       nextBillingDate: Timestamp.fromDate(newNextBilling),
       updatedAt: Timestamp.now(),
     });
@@ -383,12 +375,11 @@ export class ElderBillingService {
     const { subscriptionId } = params;
 
     // Find elder subscription by Stripe subscription ID
-    const q = query(
-      collection(db, 'elderSubscriptions'),
-      where('stripeSubscriptionId', '==', subscriptionId)
-    );
+    const adminDb = getAdminDb();
+    const snapshot = await adminDb.collection('elderSubscriptions')
+      .where('stripeSubscriptionId', '==', subscriptionId)
+      .get();
 
-    const snapshot = await getDocs(q);
     if (snapshot.empty) {
       console.error('Elder subscription not found for Stripe subscription:', subscriptionId);
       return;
@@ -397,7 +388,7 @@ export class ElderBillingService {
     const docRef = snapshot.docs[0].ref;
 
     // Mark as at-risk
-    await updateDoc(docRef, {
+    await docRef.update({
       subscriptionStatus: 'at_risk',
       updatedAt: Timestamp.now(),
     });

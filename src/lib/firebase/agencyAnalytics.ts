@@ -78,29 +78,35 @@ export async function getBillableHoursData(
     const data: BillableHoursData[] = [];
     const today = new Date();
 
+    // Fetch all completed shifts once, then filter by month in memory
+    // This avoids needing a composite index on (agencyId, status, startTime)
+    const shiftsQuery = query(
+      collection(db, 'shiftSessions'),
+      where('agencyId', '==', agencyId),
+      where('status', '==', 'completed'),
+      limit(1000)
+    );
+
+    const allShifts = await getDocs(shiftsQuery);
+
     for (let i = monthsBack - 1; i >= 0; i--) {
       const monthDate = subMonths(today, i);
       const startDate = startOfMonth(monthDate);
       const endDate = endOfMonth(monthDate);
 
-      const shiftsQuery = query(
-        collection(db, 'shiftSessions'),
-        where('agencyId', '==', agencyId),
-        where('status', '==', 'completed'),
-        where('startTime', '>=', Timestamp.fromDate(startDate)),
-        where('startTime', '<=', Timestamp.fromDate(endDate))
-      );
-
-      const snapshot = await getDocs(shiftsQuery);
+      // Filter shifts for this month in memory
       let totalHours = 0;
 
-      snapshot.docs.forEach(doc => {
+      allShifts.docs.forEach(doc => {
         const shift = doc.data();
         if (shift.startTime && shift.endTime) {
-          const start = shift.startTime.toDate();
-          const end = shift.endTime.toDate();
-          const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-          totalHours += hours;
+          const shiftDate = shift.startTime.toDate();
+          if (shiftDate >= startDate && shiftDate <= endDate) {
+            const start = shift.startTime.toDate();
+            const end = shift.endTime.toDate();
+            const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+            totalHours += hours;
+          }
         }
       });
 
@@ -294,21 +300,30 @@ export async function getScheduleCoverageStats(
     const weekStart = startOfWeek(new Date());
     const weekEnd = endOfWeek(new Date());
 
+    // Simplified query - filter by agencyId only, then filter dates in memory
+    // This avoids needing a composite index on (agencyId, date)
     const scheduledQuery = query(
       collection(db, 'scheduledShifts'),
       where('agencyId', '==', agencyId),
-      where('date', '>=', Timestamp.fromDate(weekStart)),
-      where('date', '<=', Timestamp.fromDate(weekEnd))
+      limit(500)
     );
 
-    const snapshot = await getDocs(scheduledQuery);
+    const allShifts = await getDocs(scheduledQuery);
+
+    // Filter by date range in memory
+    const snapshot = allShifts.docs.filter(doc => {
+      const shift = doc.data();
+      if (!shift.date) return false;
+      const shiftDate = shift.date.toDate();
+      return shiftDate >= weekStart && shiftDate <= weekEnd;
+    });
 
     const dayStats = new Map<number, { total: number; filled: number }>();
     for (let i = 0; i < 7; i++) {
       dayStats.set(i, { total: 0, filled: 0 });
     }
 
-    snapshot.docs.forEach(doc => {
+    snapshot.forEach(doc => {
       const shift = doc.data();
       const date = shift.date.toDate();
       const dayOfWeek = date.getDay();
@@ -461,18 +476,26 @@ export async function getCurrentMonthSummary(agencyId: string) {
     const monthStart = startOfMonth(new Date());
     const monthEnd = endOfMonth(new Date());
 
+    // Simplified query - filter by agencyId and status only, then filter dates in memory
     const shiftsQuery = query(
       collection(db, 'shiftSessions'),
       where('agencyId', '==', agencyId),
       where('status', '==', 'completed'),
-      where('startTime', '>=', Timestamp.fromDate(monthStart)),
-      where('startTime', '<=', Timestamp.fromDate(monthEnd))
+      limit(500)
     );
 
-    const snapshot = await getDocs(shiftsQuery);
+    const allShifts = await getDocs(shiftsQuery);
+
+    // Filter by date range in memory
+    const snapshot = allShifts.docs.filter(doc => {
+      const shift = doc.data();
+      if (!shift.startTime) return false;
+      const shiftDate = shift.startTime.toDate();
+      return shiftDate >= monthStart && shiftDate <= monthEnd;
+    });
     let totalHours = 0;
 
-    snapshot.docs.forEach(doc => {
+    snapshot.forEach(doc => {
       const shift = doc.data();
       if (shift.startTime && shift.endTime) {
         const start = shift.startTime.toDate();
@@ -486,17 +509,25 @@ export async function getCurrentMonthSummary(agencyId: string) {
     const averagePerDay = totalHours / daysInMonth;
     const projectedRevenue = totalHours * 15; // $15/hour
 
-    // Get fill rate
+    // Get fill rate - simplified query to avoid composite index
     const scheduledQuery = query(
       collection(db, 'scheduledShifts'),
       where('agencyId', '==', agencyId),
-      where('date', '>=', Timestamp.fromDate(monthStart)),
-      where('date', '<=', Timestamp.fromDate(monthEnd))
+      limit(500)
     );
 
-    const scheduledSnapshot = await getDocs(scheduledQuery);
-    const totalScheduled = scheduledSnapshot.size;
-    const filled = scheduledSnapshot.docs.filter(doc => {
+    const allScheduledShifts = await getDocs(scheduledQuery);
+
+    // Filter by date range in memory
+    const scheduledInMonth = allScheduledShifts.docs.filter(doc => {
+      const shift = doc.data();
+      if (!shift.date) return false;
+      const shiftDate = shift.date.toDate();
+      return shiftDate >= monthStart && shiftDate <= monthEnd;
+    });
+
+    const totalScheduled = scheduledInMonth.length;
+    const filled = scheduledInMonth.filter(doc => {
       const shift = doc.data();
       return shift.status !== 'cancelled' && shift.caregiverId;
     }).length;
