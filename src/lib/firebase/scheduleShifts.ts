@@ -21,7 +21,8 @@ import {
   doc,
   Timestamp,
   orderBy,
-  and
+  and,
+  limit
 } from 'firebase/firestore';
 import type {
   ScheduledShift,
@@ -201,6 +202,8 @@ export async function getScheduledShifts(
   caregiverId?: string // Optional: filter by caregiver
 ): Promise<ScheduledShift[]> {
   try {
+    // Simplified query - filter by agencyId only (and optionally caregiverId)
+    // Filter by date range and sort in memory to avoid composite index requirements
     let shiftsQuery;
 
     if (caregiverId) {
@@ -208,32 +211,45 @@ export async function getScheduledShifts(
         collection(db, 'scheduledShifts'),
         where('agencyId', '==', agencyId),
         where('caregiverId', '==', caregiverId),
-        where('date', '>=', Timestamp.fromDate(startDate)),
-        where('date', '<=', Timestamp.fromDate(endDate)),
-        orderBy('date', 'asc'),
-        orderBy('startTime', 'asc')
+        limit(500)
       );
     } else {
       shiftsQuery = query(
         collection(db, 'scheduledShifts'),
         where('agencyId', '==', agencyId),
-        where('date', '>=', Timestamp.fromDate(startDate)),
-        where('date', '<=', Timestamp.fromDate(endDate)),
-        orderBy('date', 'asc'),
-        orderBy('startTime', 'asc')
+        limit(500)
       );
     }
 
     const snapshot = await getDocs(shiftsQuery);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      date: doc.data().date?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
-      confirmedAt: doc.data().confirmedAt?.toDate(),
-      cancelledAt: doc.data().cancelledAt?.toDate()
-    })) as ScheduledShift[];
+
+    // Map and filter by date range in memory
+    const shifts = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: doc.data().date?.toDate(),
+        createdAt: doc.data().createdAt?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate(),
+        confirmedAt: doc.data().confirmedAt?.toDate(),
+        cancelledAt: doc.data().cancelledAt?.toDate()
+      })) as ScheduledShift[];
+
+    // Filter by date range
+    const filteredShifts = shifts.filter(shift => {
+      if (!shift.date) return false;
+      return shift.date >= startDate && shift.date <= endDate;
+    });
+
+    // Sort by date, then by startTime
+    filteredShifts.sort((a, b) => {
+      const dateCompare = (a.date?.getTime() || 0) - (b.date?.getTime() || 0);
+      if (dateCompare !== 0) return dateCompare;
+      // Sort by startTime string (e.g., "09:00")
+      return (a.startTime || '').localeCompare(b.startTime || '');
+    });
+
+    return filteredShifts;
   } catch (error) {
     console.error('Error getting scheduled shifts:', error);
     return [];
@@ -562,23 +578,21 @@ export async function completeScheduledShift(
  */
 export async function getCaregiverUpcomingShifts(
   caregiverId: string,
-  limit: number = 10
+  maxResults: number = 10
 ): Promise<ScheduledShift[]> {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Simplified query - filter by caregiverId only, filter dates/status in memory
     const shiftsQuery = query(
       collection(db, 'scheduledShifts'),
       where('caregiverId', '==', caregiverId),
-      where('date', '>=', Timestamp.fromDate(today)),
-      where('status', 'in', ['scheduled', 'confirmed']),
-      orderBy('date', 'asc'),
-      orderBy('startTime', 'asc')
+      limit(200)
     );
 
     const snapshot = await getDocs(shiftsQuery);
-    const shifts = snapshot.docs.map(doc => ({
+    const allShifts = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       date: doc.data().date?.toDate(),
@@ -588,7 +602,20 @@ export async function getCaregiverUpcomingShifts(
       cancelledAt: doc.data().cancelledAt?.toDate()
     })) as ScheduledShift[];
 
-    return shifts.slice(0, limit);
+    // Filter by date >= today and status in ['scheduled', 'confirmed']
+    const filteredShifts = allShifts.filter(shift => {
+      if (!shift.date || shift.date < today) return false;
+      return shift.status === 'scheduled' || shift.status === 'confirmed';
+    });
+
+    // Sort by date, then by startTime
+    filteredShifts.sort((a, b) => {
+      const dateCompare = (a.date?.getTime() || 0) - (b.date?.getTime() || 0);
+      if (dateCompare !== 0) return dateCompare;
+      return (a.startTime || '').localeCompare(b.startTime || '');
+    });
+
+    return filteredShifts.slice(0, maxResults);
   } catch (error) {
     console.error('Error getting upcoming shifts:', error);
     return [];
