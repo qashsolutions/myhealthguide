@@ -83,6 +83,7 @@ export function CaregiverInviteManager({
 
   useEffect(() => {
     fetchInvites();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agencyId, userId]);
 
   const validatePhone = (phone: string): boolean => {

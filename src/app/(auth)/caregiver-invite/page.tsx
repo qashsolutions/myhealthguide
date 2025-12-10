@@ -177,9 +177,9 @@ function CaregiverInviteContent() {
               <CheckCircle2 className="w-3 h-3 mr-1" />
               Valid Invite
             </Badge>
-            <CardTitle className="text-2xl">You're Invited!</CardTitle>
+            <CardTitle className="text-2xl">You&apos;re Invited!</CardTitle>
             <CardDescription className="text-base mt-2">
-              You've been invited to join as a caregiver
+              You&apos;ve been invited to join as a caregiver
             </CardDescription>
           </div>
         </CardHeader>

@@ -517,7 +517,7 @@ export default function CaregiverOnboardingPage() {
             {step === 3 && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Select the days you're available to work and set your typical hours.
+                  Select the days you&apos;re available to work and set your typical hours.
                 </p>
                 {errors.availability && (
                   <p className="text-sm text-red-500 flex items-center gap-1">

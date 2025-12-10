@@ -77,6 +77,7 @@ export function CaregiverMatchRecommendations({
     if (elderId) {
       fetchMatches();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elderId, agencyId]);
 
   const fetchMatches = async () => {
