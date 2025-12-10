@@ -418,8 +418,7 @@ export function SubscriptionSettings() {
                 </span>
               </div>
               <p className={cancelAtPeriodEnd ? 'text-yellow-700' : 'text-green-700'}>
-                ${PLANS[user.subscriptionTier as keyof typeof PLANS]?.price}
-                {user.subscriptionTier === 'multi_agency' ? '/month' : '/elder/month'}
+                ${PLANS[user.subscriptionTier as keyof typeof PLANS]?.price}/elder/month
               </p>
               {currentPeriodEnd && (
                 <p className="text-sm text-gray-600 mt-1">
@@ -534,7 +533,7 @@ export function SubscriptionSettings() {
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
                     <div className="mt-2">
                       <span className="text-3xl font-bold">${plan.price}</span>
-                      <span className="text-gray-500">{key === 'multi_agency' ? '/month' : '/elder/month'}</span>
+                      <span className="text-gray-500">/elder/month</span>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -622,7 +621,7 @@ export function SubscriptionSettings() {
                     </div>
                     <div className="mt-2">
                       <span className="text-3xl font-bold">${plan.price}</span>
-                      <span className="text-gray-500">{key === 'multi_agency' ? '/month' : '/elder/month'}</span>
+                      <span className="text-gray-500">/elder/month</span>
                     </div>
                   </CardHeader>
                   <CardContent>
