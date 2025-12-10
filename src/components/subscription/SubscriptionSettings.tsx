@@ -103,9 +103,12 @@ export function SubscriptionSettings() {
     : 999;
   const isWithinRefundWindow = daysSinceSubscriptionStart <= PRICING.REFUND_WINDOW_DAYS;
 
-  const isTrialActive = user?.subscriptionStatus === 'trial' && trialDaysLeft > 0;
+  // Distinguish between free trial (no Stripe) and subscribed trial (with Stripe)
+  const hasPaidSubscription = !!user?.stripeSubscriptionId;
+  const isFreeTrialActive = user?.subscriptionStatus === 'trial' && !hasPaidSubscription && trialDaysLeft > 0;
+  const isSubscribedTrial = user?.subscriptionStatus === 'trial' && hasPaidSubscription;
   const isExpired = user?.subscriptionStatus === 'expired';
-  const isActive = user?.subscriptionStatus === 'active';
+  const isActive = user?.subscriptionStatus === 'active' || isSubscribedTrial;
   const isCanceled = user?.subscriptionStatus === 'canceled';
   const inGracePeriod = isExpired && gracePeriodEndDate && new Date() < gracePeriodEndDate;
   const cancelAtPeriodEnd = user?.cancelAtPeriodEnd || false;
@@ -155,7 +158,7 @@ export function SubscriptionSettings() {
           userId: user.id,
           userEmail: userEmail,
           planName: plan.name,
-          skipTrial: isTrialActive
+          skipTrial: isFreeTrialActive
         }),
       });
 
@@ -375,19 +378,19 @@ export function SubscriptionSettings() {
       )}
 
       {/* Current Status Card */}
-      <Card className={isExpired || isCanceled ? 'border-red-500' : isTrialActive ? 'border-blue-500' : cancelAtPeriodEnd ? 'border-yellow-500' : 'border-green-500'}>
+      <Card className={isExpired || isCanceled ? 'border-red-500' : isFreeTrialActive ? 'border-blue-500' : cancelAtPeriodEnd ? 'border-yellow-500' : 'border-green-500'}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Current Subscription Status
             {isActive && !cancelAtPeriodEnd && <CheckCircle className="w-5 h-5 text-green-600" />}
-            {isTrialActive && <Clock className="w-5 h-5 text-blue-600" />}
+            {isFreeTrialActive && <Clock className="w-5 h-5 text-blue-600" />}
             {(isExpired || isCanceled) && <XCircle className="w-5 h-5 text-red-600" />}
             {cancelAtPeriodEnd && <Clock className="w-5 h-5 text-yellow-600" />}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Trial Status Display */}
-          {isTrialActive && (
+          {/* Free Trial Status Display (no Stripe subscription yet) */}
+          {isFreeTrialActive && (
             <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="h-5 w-5 text-blue-600" />
@@ -415,7 +418,8 @@ export function SubscriptionSettings() {
                 </span>
               </div>
               <p className={cancelAtPeriodEnd ? 'text-yellow-700' : 'text-green-700'}>
-                ${PLANS[user.subscriptionTier as keyof typeof PLANS]?.price}/elder/month
+                ${PLANS[user.subscriptionTier as keyof typeof PLANS]?.price}
+                {user.subscriptionTier === 'multi_agency' ? '/month' : '/elder/month'}
               </p>
               {currentPeriodEnd && (
                 <p className="text-sm text-gray-600 mt-1">
@@ -508,8 +512,8 @@ export function SubscriptionSettings() {
         </CardContent>
       </Card>
 
-      {/* Available Plans - Show for trial/expired/canceled users */}
-      {(isTrialActive || isExpired || isCanceled) && (
+      {/* Available Plans - Show for free trial/expired/canceled users (NOT subscribed trial) */}
+      {(isFreeTrialActive || isExpired || isCanceled) && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Choose Your Plan</h3>
 
@@ -530,7 +534,7 @@ export function SubscriptionSettings() {
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
                     <div className="mt-2">
                       <span className="text-3xl font-bold">${plan.price}</span>
-                      <span className="text-gray-500">/elder/month</span>
+                      <span className="text-gray-500">{key === 'multi_agency' ? '/month' : '/elder/month'}</span>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -618,7 +622,7 @@ export function SubscriptionSettings() {
                     </div>
                     <div className="mt-2">
                       <span className="text-3xl font-bold">${plan.price}</span>
-                      <span className="text-gray-500">/elder/month</span>
+                      <span className="text-gray-500">{key === 'multi_agency' ? '/month' : '/elder/month'}</span>
                     </div>
                   </CardHeader>
                   <CardContent>
