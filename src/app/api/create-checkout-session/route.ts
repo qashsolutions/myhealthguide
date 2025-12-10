@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     const stripe = getStripe();
 
     // Create Checkout Session
-    // Only add trial if user is not already in trial (skipTrial = true means user is in trial)
+    // When a user subscribes (pays), they start their paid subscription immediately
+    // No trial period - the 45-day free trial is BEFORE they subscribe (handled separately)
     const sessionConfig: any = {
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -39,8 +40,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       subscription_data: {
-        // Don't add trial if user already had their trial
-        ...(skipTrial ? {} : { trial_period_days: 45 }),
+        // No trial_period_days - user is paying, not trialing
         metadata: {
           userId,
           planName,
