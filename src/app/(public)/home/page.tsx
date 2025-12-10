@@ -11,6 +11,7 @@ import {
   CheckCircle,
   ArrowRight
 } from 'lucide-react';
+import HomeCTAButtons from '@/components/home/HomeCTAButtons';
 
 export default function LandingPage() {
   return (
@@ -26,22 +27,7 @@ export default function LandingPage() {
               Voice-powered medication tracking, AI-driven insights, and real-time collaboration
               for families and caregiving agencies.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link href="/signup">
-                <Button size="lg" className="text-lg px-8">
-                  Start 45-Day Free Trial
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/features">
-                <Button variant="outline" size="lg" className="text-lg px-8">
-                  Learn More
-                </Button>
-              </Link>
-            </div>
-            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-              No credit card required • Cancel anytime • US-based support
-            </p>
+            <HomeCTAButtons />
           </div>
         </div>
       </section>

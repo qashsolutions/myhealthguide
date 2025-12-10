@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
 import SmartFeaturesGrid from '@/components/about/SmartFeaturesGrid';
+import HeroCTAButtons from '@/components/about/HeroCTAButtons';
 
 export const metadata: Metadata = {
   title: 'About Us | CareGuide',
@@ -124,20 +125,7 @@ export default function AboutPage() {
               to give you the tools you need to care for your loved ones without the stress of
               juggling medications, appointments, and paperwork.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link
-                href="/signup"
-                className="rounded-full bg-blue-600 px-8 py-3 text-base font-semibold text-white shadow-lg hover:bg-blue-500 transition-all"
-              >
-                Start Your 45-Day Free Trial
-              </Link>
-              <Link
-                href="/pricing"
-                className="text-base font-semibold leading-6 text-gray-900 dark:text-white hover:text-blue-600"
-              >
-                View Plans <span aria-hidden="true">→</span>
-              </Link>
-            </div>
+            <HeroCTAButtons />
           </div>
         </div>
       </section>
