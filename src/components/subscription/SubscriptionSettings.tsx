@@ -595,6 +595,15 @@ export function SubscriptionSettings() {
               const changeType = getPlanChangeType(planKey);
               const isSelected = selectedPlan === key;
 
+              // Determine if downgrade is allowed:
+              // - Family plan: lowest tier, no downgrade possible (but can show upgrade from here)
+              // - Single Agency: can downgrade to Family, can upgrade to Multi-Agency
+              // - Multi Agency: cannot downgrade (would lose caregivers/elders data)
+              const currentTier = user?.subscriptionTier;
+              const isDowngradeBlocked =
+                changeType === 'downgrade' &&
+                (currentTier === 'multi_agency' || currentTier === 'family');
+
               return (
                 <Card
                   key={key}
@@ -603,11 +612,13 @@ export function SubscriptionSettings() {
                       ? 'border-2 border-green-500 bg-green-50'
                       : isPendingPlan
                       ? 'border-2 border-blue-500 bg-blue-50'
+                      : isDowngradeBlocked
+                      ? 'border border-gray-200 opacity-60'
                       : isSelected
                       ? 'border-2 border-blue-500 shadow-lg'
                       : 'border border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => !isCurrentPlan && !isPendingPlan && setSelectedPlan(planKey)}
+                  onClick={() => !isCurrentPlan && !isPendingPlan && !isDowngradeBlocked && setSelectedPlan(planKey)}
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -655,6 +666,10 @@ export function SubscriptionSettings() {
                     ) : isPendingPlan ? (
                       <Button className="w-full" variant="outline" disabled>
                         Pending Change
+                      </Button>
+                    ) : isDowngradeBlocked ? (
+                      <Button className="w-full" variant="outline" disabled>
+                        Not Available
                       </Button>
                     ) : (
                       <Button
