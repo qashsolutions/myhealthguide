@@ -216,11 +216,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Get all invites for this agency
+    // Get all invites for this agency (no orderBy to avoid index requirement)
     const invitesSnapshot = await adminDb
       .collection('caregiver_invites')
       .where('agencyId', '==', agencyId)
-      .orderBy('createdAt', 'desc')
       .limit(50)
       .get();
 
@@ -235,6 +234,12 @@ export async function GET(req: NextRequest) {
         acceptedAt: data.acceptedAt?.toDate?.()?.toISOString() || null,
         smsStatus: data.smsStatus,
       };
+    });
+
+    // Sort by createdAt desc in memory
+    invites.sort((a, b) => {
+      if (!a.createdAt || !b.createdAt) return 0;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     return NextResponse.json({ invites });
