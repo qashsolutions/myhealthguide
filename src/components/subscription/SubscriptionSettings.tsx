@@ -15,19 +15,29 @@ import {
 } from '@/components/ui/dialog';
 import { CreditCard, Calendar, AlertCircle, CheckCircle, Clock, XCircle, ArrowUp, ArrowDown, Ban } from 'lucide-react';
 import { format } from 'date-fns';
-import { PLAN_HIERARCHY, PRICING, PLAN_FEATURES, CORE_FEATURES } from '@/lib/constants/pricing';
+import {
+  PLAN_CONFIG,
+  PLAN_HIERARCHY,
+  PRICING,
+  CORE_FEATURES,
+  getStripePriceId,
+  type PlanTier,
+} from '@/lib/subscription';
 
 // Helper function to convert Firestore Timestamp to Date
-function convertFirestoreTimestamp(timestamp: any): Date | null {
+function convertFirestoreTimestamp(timestamp: unknown): Date | null {
   if (!timestamp) return null;
-  if (typeof timestamp === 'object' && 'seconds' in timestamp) {
-    return new Date(timestamp.seconds * 1000);
+  if (typeof timestamp === 'object' && timestamp !== null && 'seconds' in timestamp) {
+    return new Date((timestamp as { seconds: number }).seconds * 1000);
   }
   if (timestamp instanceof Date) {
     return timestamp;
   }
-  const parsed = new Date(timestamp);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+    const parsed = new Date(timestamp);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
 }
 
 // Plan type definition
@@ -35,36 +45,48 @@ interface Plan {
   name: string;
   price: number;
   priceId: string | undefined;
-  limits: readonly string[];
-  extras: readonly string[];
+  limits: string[];
+  extras: string[];
 }
 
-// Plan configuration - using centralized PLAN_FEATURES
+// Plan configuration - using centralized PLAN_CONFIG from subscription service
 const PLANS: Record<string, Plan> = {
   family: {
-    name: PLAN_FEATURES.family.name,
-    price: PRICING.FAMILY.MONTHLY_RATE,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_FAMILY_PRICE_ID,
-    limits: PLAN_FEATURES.family.limits,
-    extras: PLAN_FEATURES.family.extras,
+    name: PLAN_CONFIG.family.name,
+    price: PLAN_CONFIG.family.price,
+    priceId: getStripePriceId('family'),
+    limits: [
+      `${PLAN_CONFIG.family.limits.maxElders} elder`,
+      `1 admin + 1 member`,
+      `${PLAN_CONFIG.family.limits.storageMB} MB storage`,
+    ],
+    extras: PLAN_CONFIG.family.extras,
   },
   single_agency: {
-    name: PLAN_FEATURES.single_agency.name,
-    price: PRICING.SINGLE_AGENCY.MONTHLY_RATE,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_SINGLE_AGENCY_PRICE_ID,
-    limits: PLAN_FEATURES.single_agency.limits,
-    extras: PLAN_FEATURES.single_agency.extras,
+    name: PLAN_CONFIG.single_agency.name,
+    price: PLAN_CONFIG.single_agency.price,
+    priceId: getStripePriceId('single_agency'),
+    limits: [
+      `${PLAN_CONFIG.single_agency.limits.maxElders} elder`,
+      `1 admin + ${PLAN_CONFIG.single_agency.limits.maxMembers - 1} members`,
+      `${PLAN_CONFIG.single_agency.limits.storageMB} MB storage`,
+    ],
+    extras: PLAN_CONFIG.single_agency.extras,
   },
   multi_agency: {
-    name: PLAN_FEATURES.multi_agency.name,
-    price: PRICING.MULTI_AGENCY.MONTHLY_RATE,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_MULTI_AGENCY_PRICE_ID,
-    limits: PLAN_FEATURES.multi_agency.limits,
-    extras: PLAN_FEATURES.multi_agency.extras,
+    name: PLAN_CONFIG.multi_agency.name,
+    price: PLAN_CONFIG.multi_agency.price,
+    priceId: getStripePriceId('multi_agency'),
+    limits: [
+      `Up to ${PLAN_CONFIG.multi_agency.limits.maxElders} elders`,
+      `Up to ${PLAN_CONFIG.multi_agency.limits.maxCaregivers} caregivers`,
+      `${PLAN_CONFIG.multi_agency.limits.storageMB} MB storage`,
+    ],
+    extras: PLAN_CONFIG.multi_agency.extras,
   }
 };
 
-type PlanKey = 'family' | 'single_agency' | 'multi_agency';
+type PlanKey = PlanTier;
 
 export function SubscriptionSettings() {
   const { user, refreshUser } = useAuth();

@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Users, Shield, CheckCircle, Loader2 } from 'lucide-react';
-import { PRICING, PLAN_FEATURES, CORE_FEATURES } from '@/lib/constants/pricing';
+import {
+  PLAN_CONFIG,
+  CORE_FEATURES,
+  getStripePriceId,
+  type PlanTier,
+} from '@/lib/subscription';
 
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 /**
  * Shared PricingCards Component
@@ -29,7 +30,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 export interface PricingCardsProps {
   showHeader?: boolean;
   showTrialInfo?: boolean;
-  defaultSelectedPlan?: 'family' | 'single_agency' | 'multi_agency';
+  defaultSelectedPlan?: PlanTier;
 }
 
 export function PricingCards({
@@ -37,23 +38,11 @@ export function PricingCards({
   showTrialInfo = true,
   defaultSelectedPlan = 'single_agency',
 }: PricingCardsProps) {
-  const [selectedPlan, setSelectedPlan] = useState<'family' | 'single_agency' | 'multi_agency'>(defaultSelectedPlan);
+  const [selectedPlan, setSelectedPlan] = useState<PlanTier>(defaultSelectedPlan);
   const [loading, setLoading] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Map plan IDs to Stripe Price IDs (matching Vercel env variable names)
-  const getPriceId = (planId: 'family' | 'single_agency' | 'multi_agency'): string => {
-    switch (planId) {
-      case 'family':
-        return process.env.NEXT_PUBLIC_STRIPE_FAMILY_PRICE_ID || process.env.STRIPE_FAMILY_PRICE_ID || '';
-      case 'single_agency':
-        return process.env.NEXT_PUBLIC_STRIPE_SINGLE_AGENCY_PRICE_ID || process.env.STRIPE_SINGLE_AGENCY_PRICE_ID || '';
-      case 'multi_agency':
-        return process.env.NEXT_PUBLIC_STRIPE_MULTI_AGENCY_PRICE_ID || process.env.STRIPE_MULTI_AGENCY_PRICE_ID || '';
-    }
-  };
-
-  const handleSubscribe = async (planId: 'family' | 'single_agency' | 'multi_agency', planName: string) => {
+  const handleSubscribe = async (planId: PlanTier, planName: string) => {
     // If not logged in, redirect to signup
     if (!user) {
       window.location.href = '/signup';
@@ -63,7 +52,7 @@ export function PricingCards({
     setLoading(planId);
 
     try {
-      const priceId = getPriceId(planId);
+      const priceId = getStripePriceId(planId);
 
       if (!priceId) {
         throw new Error('Price ID not configured');
@@ -101,46 +90,58 @@ export function PricingCards({
     }
   };
 
-  // Plan data - using centralized PLAN_FEATURES as single source of truth
+  // Plan data - using centralized PLAN_CONFIG as single source of truth
   const plans = [
     {
       id: 'family' as const,
-      name: PLAN_FEATURES.family.name,
-      subtitle: PLAN_FEATURES.family.subtitle,
-      price: PRICING.FAMILY.MONTHLY_RATE,
+      name: PLAN_CONFIG.family.name,
+      subtitle: PLAN_CONFIG.family.subtitle,
+      price: PLAN_CONFIG.family.price,
       priceNote: 'elder/month',
       icon: Heart,
       iconColor: 'text-blue-600',
       iconBgColor: 'bg-blue-100 dark:bg-blue-900',
       popular: false,
-      limits: PLAN_FEATURES.family.limits,
-      extras: PLAN_FEATURES.family.extras,
+      limits: [
+        `${PLAN_CONFIG.family.limits.maxElders} elder`,
+        `1 admin + 1 member`,
+        `${PLAN_CONFIG.family.limits.storageMB} MB storage`,
+      ],
+      extras: PLAN_CONFIG.family.extras,
     },
     {
       id: 'single_agency' as const,
-      name: PLAN_FEATURES.single_agency.name,
-      subtitle: PLAN_FEATURES.single_agency.subtitle,
-      price: PRICING.SINGLE_AGENCY.MONTHLY_RATE,
+      name: PLAN_CONFIG.single_agency.name,
+      subtitle: PLAN_CONFIG.single_agency.subtitle,
+      price: PLAN_CONFIG.single_agency.price,
       priceNote: 'elder/month',
       icon: Users,
       iconColor: 'text-white',
       iconBgColor: 'bg-blue-600',
       popular: true,
-      limits: PLAN_FEATURES.single_agency.limits,
-      extras: PLAN_FEATURES.single_agency.extras,
+      limits: [
+        `${PLAN_CONFIG.single_agency.limits.maxElders} elder`,
+        `1 admin + ${PLAN_CONFIG.single_agency.limits.maxMembers - 1} members`,
+        `${PLAN_CONFIG.single_agency.limits.storageMB} MB storage`,
+      ],
+      extras: PLAN_CONFIG.single_agency.extras,
     },
     {
       id: 'multi_agency' as const,
-      name: PLAN_FEATURES.multi_agency.name,
-      subtitle: PLAN_FEATURES.multi_agency.subtitle,
-      price: PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE,
+      name: PLAN_CONFIG.multi_agency.name,
+      subtitle: PLAN_CONFIG.multi_agency.subtitle,
+      price: PLAN_CONFIG.multi_agency.price,
       priceNote: 'elder/month',
       icon: Shield,
       iconColor: 'text-purple-600 dark:text-purple-400',
       iconBgColor: 'bg-purple-100 dark:bg-purple-900',
       popular: false,
-      limits: PLAN_FEATURES.multi_agency.limits,
-      extras: PLAN_FEATURES.multi_agency.extras,
+      limits: [
+        `Up to ${PLAN_CONFIG.multi_agency.limits.maxElders} elders`,
+        `Up to ${PLAN_CONFIG.multi_agency.limits.maxCaregivers} caregivers`,
+        `${PLAN_CONFIG.multi_agency.limits.storageMB} MB storage`,
+      ],
+      extras: PLAN_CONFIG.multi_agency.extras,
     },
   ];
 

@@ -3,22 +3,21 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useSubscription } from '@/lib/subscription';
+import { FeatureGate } from '@/components/shared/FeatureGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar, Lock, Building2 } from 'lucide-react';
+import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar, Lock } from 'lucide-react';
 import { startShiftSession, endShiftSession } from '@/lib/ai/shiftHandoffGeneration';
 import { linkShiftToSession } from '@/lib/firebase/scheduleShifts';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ShiftSession, ShiftHandoffNote, ScheduledShift } from '@/types';
 import { format } from 'date-fns';
-import Link from 'next/link';
 
 export default function ShiftHandoffPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
-
-  // Check if user is on multi-agency plan
-  const isMultiAgencyPlan = user?.subscriptionTier === 'multi_agency';
+  const { isMultiAgency } = useSubscription();
 
   // Check if user is a caregiver in an agency
   const isAgencyCaregiver = user?.agencies && user.agencies.length > 0 &&
@@ -29,7 +28,7 @@ export default function ShiftHandoffPage() {
     user.agencies.some(a => a.role === 'super_admin');
 
   // User can access if: multi-agency plan AND (is caregiver OR is super_admin)
-  const canAccessShiftHandoff = isMultiAgencyPlan && (isAgencyCaregiver || isSuperAdmin);
+  const canAccessShiftHandoff = isMultiAgency && (isAgencyCaregiver || isSuperAdmin);
   const [activeShift, setActiveShift] = useState<ShiftSession | null>(null);
   const [scheduledShift, setScheduledShift] = useState<ScheduledShift | null>(null);
   const [recentHandoffs, setRecentHandoffs] = useState<ShiftHandoffNote[]>([]);
@@ -172,41 +171,12 @@ export default function ShiftHandoffPage() {
   };
 
   // Gate: Multi-agency plan required
-  if (!isMultiAgencyPlan) {
+  if (!isMultiAgency) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="w-6 h-6 text-blue-600" />
-              Multi-Agency Feature
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">
-              Shift Handoff is available exclusively for Multi-Agency plan subscribers.
-              This feature allows caregivers to clock in/out and automatically generates
-              handoff notes for seamless care transitions.
-            </p>
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Multi-Agency Plan includes:</strong>
-              </p>
-              <ul className="text-sm text-blue-700 dark:text-blue-300 mt-2 space-y-1">
-                <li>• Shift clock in/out tracking</li>
-                <li>• Automatic handoff note generation</li>
-                <li>• Caregiver scheduling</li>
-                <li>• Timesheet management</li>
-                <li>• Burnout detection analytics</li>
-              </ul>
-            </div>
-            <Link href="/pricing">
-              <Button className="w-full">
-                Upgrade to Multi-Agency Plan
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-[400px] p-6">
+        <FeatureGate feature="shift_handoff" promptVariant="card">
+          <div />
+        </FeatureGate>
       </div>
     );
   }

@@ -684,40 +684,9 @@ export interface StorageMetadata {
   uploadedAt: Date;
 }
 
-// Storage limits in bytes
-// Note: No separate TRIAL limit - trial users get FAMILY limit (25 MB)
-export const STORAGE_LIMITS = {
-  FAMILY: 25 * 1024 * 1024, // 25 MB (1 admin + 1 member, max 2 elders)
-  SINGLE_AGENCY: 50 * 1024 * 1024, // 50 MB (1 caregiver + 3 members, max 4 elders)
-  MULTI_AGENCY: 500 * 1024 * 1024, // 500 MB (10 groups, 40 users, max 30 elders)
-} as const;
-
-// Plan limits
-export const PLAN_LIMITS = {
-  FAMILY: {
-    maxElders: 1, // 1 elder (care recipient)
-    maxMembers: 2, // 1 admin + 1 member
-    maxGroups: 1,
-    storage: STORAGE_LIMITS.FAMILY,
-    price: 8.99,
-  },
-  SINGLE_AGENCY: {
-    maxElders: 1, // 1 elder (care recipient)
-    maxMembers: 4, // 1 admin + 3 members
-    maxGroups: 1,
-    storage: STORAGE_LIMITS.SINGLE_AGENCY,
-    price: 14.99,
-  },
-  MULTI_AGENCY: {
-    maxElders: 30, // 10 caregivers × max 3 elders each
-    maxCaregivers: 10,
-    maxEldersPerCaregiver: 3,
-    maxGroups: 10,
-    maxMembersPerGroup: 4, // 1 caregiver + 3 elders
-    storage: STORAGE_LIMITS.MULTI_AGENCY,
-    price: 30, // $30 per elder per 31 days (dynamically calculated based on active elders)
-  },
-} as const;
+// Storage and Plan limits are now centralized in @/lib/subscription
+// Re-export for backward compatibility
+export { STORAGE_LIMITS, PLAN_LIMITS } from '@/lib/subscription';
 
 // Individual file size limits
 export const FILE_SIZE_LIMITS = {

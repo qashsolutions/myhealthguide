@@ -849,46 +849,21 @@ function AISettings() {
   );
 }
 
-// Plan member limits
-const MEMBER_PLAN_LIMITS = {
-  trial: { max: 2, label: 'Trial', description: 'Admin + 1 member' },
-  family: { max: 2, label: 'Family', description: 'Admin + 1 member' },
-  single_agency: { max: 4, label: 'Single Agency', description: 'Admin + 3 members' },
-  multi_agency: { max: 10, label: 'Multi-Agency', description: 'SuperAdmin + caregivers' }
-};
+// Plan member limits - now using centralized subscription service
+import { useSubscription, getMaxMembers as getMaxMembersFromService, getPlanDisplayInfo } from '@/lib/subscription';
 
-function getMaxMembers(subscriptionStatus: string | null | undefined, subscriptionTier: string | null | undefined): number {
-  if (subscriptionStatus === 'trial' || !subscriptionStatus) {
-    return MEMBER_PLAN_LIMITS.trial.max;
-  }
-  switch (subscriptionTier) {
-    case 'multi_agency':
-      return MEMBER_PLAN_LIMITS.multi_agency.max;
-    case 'single_agency':
-      return MEMBER_PLAN_LIMITS.single_agency.max;
-    case 'family':
-    default:
-      return MEMBER_PLAN_LIMITS.family.max;
-  }
-}
-
-function getMemberPlanInfo(subscriptionStatus: string | null | undefined, subscriptionTier: string | null | undefined) {
-  if (subscriptionStatus === 'trial' || !subscriptionStatus) {
-    return MEMBER_PLAN_LIMITS.trial;
-  }
-  switch (subscriptionTier) {
-    case 'multi_agency':
-      return MEMBER_PLAN_LIMITS.multi_agency;
-    case 'single_agency':
-      return MEMBER_PLAN_LIMITS.single_agency;
-    case 'family':
-    default:
-      return MEMBER_PLAN_LIMITS.family;
-  }
+// Helper to get member plan info using centralized service
+function getMemberPlanInfo(tier: string | null | undefined) {
+  const displayInfo = getPlanDisplayInfo(tier as 'family' | 'single_agency' | 'multi_agency' | null);
+  return {
+    label: displayInfo.name,
+    description: displayInfo.description,
+  };
 }
 
 function GroupSettings() {
   const { user } = useAuth();
+  const { tier, isTrial, isMultiAgency, isSingleAgency } = useSubscription();
   const [groupName, setGroupName] = useState('My Family');
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -907,12 +882,9 @@ function GroupSettings() {
   const groupId = user?.groups?.[0]?.groupId || '';
   const isGroupAdmin = user?.groups?.[0]?.role === 'admin';
 
-  // Get plan-based limits
-  const subscriptionStatus = user?.subscriptionStatus;
-  const subscriptionTier = user?.subscriptionTier;
-  const maxMembers = getMaxMembers(subscriptionStatus, subscriptionTier);
-  const planInfo = getMemberPlanInfo(subscriptionStatus, subscriptionTier);
-  const isTrial = subscriptionStatus === 'trial' || !subscriptionStatus;
+  // Get plan-based limits using centralized service
+  const maxMembers = getMaxMembersFromService(tier);
+  const planInfo = getMemberPlanInfo(tier);
   const isAtLimit = members.length >= maxMembers;
 
   useEffect(() => {
@@ -1068,15 +1040,15 @@ function GroupSettings() {
                       <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                         <div className="flex justify-between">
                           <span>Family Plan</span>
-                          <span>{MEMBER_PLAN_LIMITS.family.max} members</span>
+                          <span>{getMaxMembersFromService('family')} members</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Single Agency</span>
-                          <span>{MEMBER_PLAN_LIMITS.single_agency.max} members</span>
+                          <span>{getMaxMembersFromService('single_agency')} members</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Multi-Agency</span>
-                          <span>{MEMBER_PLAN_LIMITS.multi_agency.max} members</span>
+                          <span>{getMaxMembersFromService('multi_agency')} members</span>
                         </div>
                       </div>
                       <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -1088,7 +1060,7 @@ function GroupSettings() {
               )}
 
               {/* Show upgrade prompt when at limit (non-trial) */}
-              {!isTrial && isAtLimit && subscriptionTier !== 'multi_agency' && (
+              {!isTrial && isAtLimit && !isMultiAgency && (
                 <div className="mt-2">
                   <Link href="/dashboard/settings?tab=subscription" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
                     Upgrade for more members <ArrowUpRight className="w-3 h-3" />
@@ -1166,7 +1138,7 @@ function GroupSettings() {
               </div>
 
               {/* Caregiver Permissions (shown for agency plans) */}
-              {(subscriptionTier === 'single_agency' || subscriptionTier === 'multi_agency') && (
+              {(isSingleAgency || isMultiAgency) && (
                 <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Caregiver</Badge>
@@ -1280,9 +1252,9 @@ function GroupSettings() {
                   <p className="text-sm text-amber-800 dark:text-amber-200">
                     {isTrial
                       ? `Trial limit: ${maxMembers} members. Subscribe for more.`
-                      : `${planInfo.label} plan limit: ${maxMembers} members.`
+                      : `${planInfo.label} limit: ${maxMembers} members.`
                     }
-                    {subscriptionTier !== 'multi_agency' && (
+                    {!isMultiAgency && (
                       <Link href={isTrial ? '/pricing' : '/dashboard/settings?tab=subscription'} className="ml-1 font-medium text-blue-600 hover:text-blue-700">
                         Upgrade
                       </Link>

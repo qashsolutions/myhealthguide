@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useSubscription } from '@/lib/subscription';
+import { FeatureGate } from '@/components/shared/FeatureGate';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,9 +33,8 @@ const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 export default function AvailabilityPage() {
   const { user } = useAuth();
   const { availableElders } = useElder();
+  const { isMultiAgency } = useSubscription();
 
-  // Check if user is multi-agency subscriber
-  const isMultiAgency = user?.subscriptionTier === 'multi_agency';
   const userAgency = user?.agencies?.[0];
   const isCaregiver = userAgency?.role === 'caregiver' || userAgency?.role === 'caregiver_admin';
 
@@ -286,17 +287,10 @@ export default function AvailabilityPage() {
 
   if (!isMultiAgency) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="p-8">
-          <CardContent>
-            <div className="text-center">
-              <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">
-                Availability management is only available for Multi-Agency subscriptions
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-[400px] p-6">
+        <FeatureGate feature="availability_scheduling" promptVariant="card">
+          <div />
+        </FeatureGate>
       </div>
     );
   }

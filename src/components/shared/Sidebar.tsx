@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useElder } from '@/contexts/ElderContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/lib/subscription';
 import {
   Home,
   Users,
@@ -142,11 +142,8 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { isMultiAgency, hasFeature } = useSubscription();
   const { selectedElder, availableElders, setSelectedElder } = useElder();
-
-  // Check if user is multi-agency tier (calendar is only for multi-agency)
-  const isMultiAgency = user?.subscriptionTier === 'multi_agency';
 
   // Initialize collapsed state - Daily Care open by default, others collapsed
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({

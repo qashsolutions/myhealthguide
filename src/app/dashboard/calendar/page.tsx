@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useSubscription } from '@/lib/subscription';
+import { FeatureGate } from '@/components/shared/FeatureGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,9 +47,8 @@ import { validateNoProfanity } from '@/lib/utils/profanityFilter';
 export default function CalendarPage() {
   const { user } = useAuth();
   const { selectedElder, availableElders } = useElder();
+  const { isMultiAgency } = useSubscription();
 
-  // Check if user is multi-agency
-  const isMultiAgency = user?.subscriptionTier === 'multi_agency';
   const userAgency = user?.agencies?.[0];
   const isSuperAdmin = userAgency?.role === 'super_admin';
   const isCaregiver = userAgency?.role === 'caregiver' || userAgency?.role === 'caregiver_admin';
@@ -465,17 +466,10 @@ export default function CalendarPage() {
 
   if (!isMultiAgency) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="p-8">
-          <CardContent>
-            <div className="text-center">
-              <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-center text-gray-600 dark:text-gray-400">
-                Calendar is only available for Multi-Agency subscriptions
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-[400px] p-6">
+        <FeatureGate feature="calendar" promptVariant="card">
+          <div />
+        </FeatureGate>
       </div>
     );
   }
@@ -614,7 +608,7 @@ export default function CalendarPage() {
                               )}
                               <div className="mt-1 truncate">{shift.elderName}</div>
                               <div className="mt-1 text-xs opacity-75 capitalize">{shift.status}</div>
-                              {isCaregiver && shift.caregiverId === user.id && shift.status === 'scheduled' && (
+                              {isCaregiver && user && shift.caregiverId === user.id && shift.status === 'scheduled' && (
                                 <button
                                   onClick={() => {
                                     setSelectedShift(shift);

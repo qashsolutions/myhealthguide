@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { NotificationPreferences, NotificationType } from '@/types';
 import { NotificationService } from '@/lib/firebase/notifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription, getMaxRecipients as getMaxRecipientsFromService, getPlanDisplayInfo } from '@/lib/subscription';
 import { Bell, Plus, X, Check, MessageSquare, User, Info, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
@@ -80,56 +81,19 @@ function formatPhoneDisplay(phone: string, obfuscate: boolean = true): string {
 }
 
 /**
- * Plan recipient limits
+ * Get plan info using centralized subscription service
  */
-const PLAN_LIMITS = {
-  trial: { max: 2, label: 'Trial', description: 'You + 1 family member' },
-  family: { max: 2, label: 'Family', description: 'You + 1 family member' },
-  single_agency: { max: 4, label: 'Single Agency', description: 'You + 3 team members' },
-  multi_agency: { max: 10, label: 'Multi-Agency', description: 'You + caregivers + additional contacts' }
-};
-
-/**
- * Get max recipients based on subscription status and tier
- */
-function getMaxRecipients(subscriptionStatus: string | null | undefined, subscriptionTier: string | null | undefined): number {
-  // Trial users get limited access
-  if (subscriptionStatus === 'trial' || !subscriptionStatus) {
-    return PLAN_LIMITS.trial.max;
-  }
-
-  switch (subscriptionTier) {
-    case 'multi_agency':
-      return PLAN_LIMITS.multi_agency.max;
-    case 'single_agency':
-      return PLAN_LIMITS.single_agency.max;
-    case 'family':
-    default:
-      return PLAN_LIMITS.family.max;
-  }
-}
-
-/**
- * Get current plan info
- */
-function getPlanInfo(subscriptionStatus: string | null | undefined, subscriptionTier: string | null | undefined) {
-  if (subscriptionStatus === 'trial' || !subscriptionStatus) {
-    return PLAN_LIMITS.trial;
-  }
-
-  switch (subscriptionTier) {
-    case 'multi_agency':
-      return PLAN_LIMITS.multi_agency;
-    case 'single_agency':
-      return PLAN_LIMITS.single_agency;
-    case 'family':
-    default:
-      return PLAN_LIMITS.family;
-  }
+function getNotificationPlanInfo(tier: string | null | undefined) {
+  const displayInfo = getPlanDisplayInfo(tier as 'family' | 'single_agency' | 'multi_agency' | null);
+  return {
+    label: displayInfo.name,
+    description: displayInfo.description,
+  };
 }
 
 export function NotificationSettings({ groupId }: NotificationSettingsProps) {
   const { user } = useAuth();
+  const { tier, isTrial, isMultiAgency } = useSubscription();
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     enabled: false,
     frequency: 'realtime',
@@ -144,12 +108,9 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
   const [adminPhoneAdded, setAdminPhoneAdded] = useState(false);
   const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
 
-  // Get subscription status and tier for recipient limits
-  const subscriptionStatus = user?.subscriptionStatus;
-  const subscriptionTier = user?.subscriptionTier;
-  const maxRecipients = getMaxRecipients(subscriptionStatus, subscriptionTier);
-  const planInfo = getPlanInfo(subscriptionStatus, subscriptionTier);
-  const isTrial = subscriptionStatus === 'trial' || !subscriptionStatus;
+  // Get subscription-based limits using centralized service
+  const maxRecipients = getMaxRecipientsFromService(tier);
+  const planInfo = getNotificationPlanInfo(tier);
   const isAtLimit = recipients.length >= maxRecipients;
 
   // Get admin's phone number (E.164 format)
@@ -362,15 +323,15 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
                       <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                         <div className="flex justify-between">
                           <span>Family Plan</span>
-                          <span>{PLAN_LIMITS.family.max} recipients</span>
+                          <span>{getMaxRecipientsFromService('family')} recipients</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Single Agency</span>
-                          <span>{PLAN_LIMITS.single_agency.max} recipients</span>
+                          <span>{getMaxRecipientsFromService('single_agency')} recipients</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Multi-Agency</span>
-                          <span>{PLAN_LIMITS.multi_agency.max} recipients</span>
+                          <span>{getMaxRecipientsFromService('multi_agency')} recipients</span>
                         </div>
                       </div>
                       <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -382,7 +343,7 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
               )}
 
               {/* Show upgrade prompt when at limit (non-trial) */}
-              {!isTrial && isAtLimit && subscriptionTier !== 'multi_agency' && (
+              {!isTrial && isAtLimit && !isMultiAgency && (
                 <div className="mt-2">
                   <Link href="/dashboard/settings?tab=subscription" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
                     Upgrade for more recipients <ArrowUpRight className="w-3 h-3" />

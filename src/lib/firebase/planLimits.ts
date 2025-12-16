@@ -1,11 +1,22 @@
 /**
  * Plan Limits Service
  * Enforces subscription tier limits across the application
+ * Uses centralized subscription service for all plan configuration
  */
 
 import { db } from './config';
 import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
-import { PLAN_LIMITS } from '@/types';
+import {
+  PlanTier,
+  getPlanLimits,
+  getMaxElders,
+  getMaxGroups,
+  getMaxMembers,
+  getMaxCaregivers,
+  getMaxEldersPerCaregiver,
+  getUpgradeMessage,
+  PLAN_CONFIG,
+} from '@/lib/subscription';
 
 export interface PlanValidationResult {
   allowed: boolean;
@@ -17,7 +28,7 @@ export interface PlanValidationResult {
 /**
  * Get the subscription tier for a user
  */
-export async function getUserTier(userId: string): Promise<'family' | 'single_agency' | 'multi_agency' | null> {
+export async function getUserTier(userId: string): Promise<PlanTier | null> {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (!userDoc.exists()) {
@@ -31,11 +42,18 @@ export async function getUserTier(userId: string): Promise<'family' | 'single_ag
       return 'family';
     }
 
-    return userData.subscriptionTier || null;
+    return (userData.subscriptionTier as PlanTier) || null;
   } catch (error) {
     console.error('Error getting user tier:', error);
     return null;
   }
+}
+
+/**
+ * Get display name for a tier
+ */
+function getTierDisplayName(tier: PlanTier): string {
+  return PLAN_CONFIG[tier].name;
 }
 
 /**
@@ -51,7 +69,7 @@ export async function canCreateElder(
     if (!tier) {
       return {
         allowed: false,
-        message: 'Unable to determine subscription tier'
+        message: 'Unable to determine subscription tier',
       };
     }
 
@@ -63,68 +81,61 @@ export async function canCreateElder(
     const eldersSnap = await getDocs(eldersQuery);
     // Only count non-archived elders
     const currentElderCount = eldersSnap.docs.filter(
-      doc => !doc.data().archived
+      (doc) => !doc.data().archived
     ).length;
 
     // Get limit based on tier
     let maxElders: number;
-    switch (tier) {
-      case 'family':
-        maxElders = PLAN_LIMITS.FAMILY.maxElders;
-        break;
-      case 'single_agency':
-        maxElders = PLAN_LIMITS.SINGLE_AGENCY.maxElders;
-        break;
-      case 'multi_agency':
-        // For multi-agency, check total active (non-archived) elders across all groups
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        const userData = userDoc.data();
-        const groupIds = userData?.groups?.map((g: any) => g.groupId) || [];
 
-        let totalElders = 0;
-        for (const gId of groupIds) {
-          const q = query(collection(db, 'elders'), where('groupId', '==', gId));
-          const snap = await getDocs(q);
-          // Only count non-archived elders
-          totalElders += snap.docs.filter(d => !d.data().archived).length;
-        }
+    if (tier === 'multi_agency') {
+      // For multi-agency, check total active (non-archived) elders across all groups
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      const userData = userDoc.data();
+      const groupIds = userData?.groups?.map((g: { groupId: string }) => g.groupId) || [];
 
-        if (totalElders >= PLAN_LIMITS.MULTI_AGENCY.maxElders) {
-          return {
-            allowed: false,
-            message: `Multi Agency plan is limited to ${PLAN_LIMITS.MULTI_AGENCY.maxElders} elders total across all groups. Current: ${totalElders}`,
-            limit: PLAN_LIMITS.MULTI_AGENCY.maxElders,
-            current: totalElders
-          };
-        }
+      let totalElders = 0;
+      for (const gId of groupIds) {
+        const q = query(collection(db, 'elders'), where('groupId', '==', gId));
+        const snap = await getDocs(q);
+        // Only count non-archived elders
+        totalElders += snap.docs.filter((d) => !d.data().archived).length;
+      }
 
-        // Also check per-group limit
-        maxElders = PLAN_LIMITS.MULTI_AGENCY.maxEldersPerCaregiver;
-        break;
-      default:
-        maxElders = PLAN_LIMITS.FAMILY.maxElders;
+      const maxTotalElders = getMaxElders('multi_agency');
+      if (totalElders >= maxTotalElders) {
+        return {
+          allowed: false,
+          message: `${getTierDisplayName('multi_agency')} is limited to ${maxTotalElders} elders total across all groups. Current: ${totalElders}`,
+          limit: maxTotalElders,
+          current: totalElders,
+        };
+      }
+
+      // Also check per-caregiver limit
+      maxElders = getMaxEldersPerCaregiver('multi_agency');
+    } else {
+      maxElders = getMaxElders(tier);
     }
 
     if (currentElderCount >= maxElders) {
-      const tierName = tier === 'family' ? 'Family' : tier === 'single_agency' ? 'Single Agency' : 'Multi Agency';
       return {
         allowed: false,
-        message: `${tierName} plan is limited to ${maxElders} elders per group. Please upgrade to add more elders.`,
+        message: `${getTierDisplayName(tier)} is limited to ${maxElders} elder${maxElders > 1 ? 's' : ''} per group. Please upgrade to add more elders.`,
         limit: maxElders,
-        current: currentElderCount
+        current: currentElderCount,
       };
     }
 
     return {
       allowed: true,
       limit: maxElders,
-      current: currentElderCount
+      current: currentElderCount,
     };
   } catch (error) {
     console.error('Error checking elder limit:', error);
     return {
       allowed: false,
-      message: 'Error checking plan limits'
+      message: 'Error checking plan limits',
     };
   }
 }
@@ -139,7 +150,7 @@ export async function canCreateGroup(userId: string): Promise<PlanValidationResu
     if (!tier) {
       return {
         allowed: false,
-        message: 'Unable to determine subscription tier'
+        message: 'Unable to determine subscription tier',
       };
     }
 
@@ -148,49 +159,34 @@ export async function canCreateGroup(userId: string): Promise<PlanValidationResu
     if (!userDoc.exists()) {
       return {
         allowed: false,
-        message: 'User not found'
+        message: 'User not found',
       };
     }
 
     const userData = userDoc.data();
     const currentGroupCount = userData.groups?.length || 0;
 
-    // Get limit based on tier
-    let maxGroups: number;
-    switch (tier) {
-      case 'family':
-        maxGroups = PLAN_LIMITS.FAMILY.maxGroups;
-        break;
-      case 'single_agency':
-        maxGroups = PLAN_LIMITS.SINGLE_AGENCY.maxGroups;
-        break;
-      case 'multi_agency':
-        maxGroups = PLAN_LIMITS.MULTI_AGENCY.maxGroups;
-        break;
-      default:
-        maxGroups = PLAN_LIMITS.FAMILY.maxGroups;
-    }
+    const maxGroups = getMaxGroups(tier);
 
     if (currentGroupCount >= maxGroups) {
-      const tierName = tier === 'family' ? 'Family' : tier === 'single_agency' ? 'Single Agency' : 'Multi Agency';
       return {
         allowed: false,
-        message: `${tierName} plan is limited to ${maxGroups} group${maxGroups > 1 ? 's' : ''}. Please upgrade to create more groups.`,
+        message: `${getTierDisplayName(tier)} is limited to ${maxGroups} group${maxGroups > 1 ? 's' : ''}. Please upgrade to create more groups.`,
         limit: maxGroups,
-        current: currentGroupCount
+        current: currentGroupCount,
       };
     }
 
     return {
       allowed: true,
       limit: maxGroups,
-      current: currentGroupCount
+      current: currentGroupCount,
     };
   } catch (error) {
     console.error('Error checking group limit:', error);
     return {
       allowed: false,
-      message: 'Error checking plan limits'
+      message: 'Error checking plan limits',
     };
   }
 }
@@ -206,7 +202,7 @@ export async function canAddCaregiver(agencyId: string): Promise<PlanValidationR
     if (!agencyDoc.exists()) {
       return {
         allowed: false,
-        message: 'Agency not found'
+        message: 'Agency not found',
       };
     }
 
@@ -220,33 +216,33 @@ export async function canAddCaregiver(agencyId: string): Promise<PlanValidationR
     if (tier !== 'multi_agency') {
       return {
         allowed: currentCaregiverCount < 1,
-        message: 'Only Multi Agency plan supports multiple caregivers. Please upgrade to add more caregivers.',
+        message: 'Only Multi Agency Plan supports multiple caregivers. Please upgrade to add more caregivers.',
         limit: 1,
-        current: currentCaregiverCount
+        current: currentCaregiverCount,
       };
     }
 
-    const maxCaregivers = PLAN_LIMITS.MULTI_AGENCY.maxCaregivers;
+    const maxCaregivers = getMaxCaregivers('multi_agency');
 
     if (currentCaregiverCount >= maxCaregivers) {
       return {
         allowed: false,
-        message: `Multi Agency plan is limited to ${maxCaregivers} caregivers. Current: ${currentCaregiverCount}. Please upgrade your plan to add more caregivers.`,
+        message: `${getTierDisplayName('multi_agency')} is limited to ${maxCaregivers} caregivers. Current: ${currentCaregiverCount}.`,
         limit: maxCaregivers,
-        current: currentCaregiverCount
+        current: currentCaregiverCount,
       };
     }
 
     return {
       allowed: true,
       limit: maxCaregivers,
-      current: currentCaregiverCount
+      current: currentCaregiverCount,
     };
   } catch (error) {
     console.error('Error checking caregiver limit:', error);
     return {
       allowed: false,
-      message: 'Error checking plan limits'
+      message: 'Error checking plan limits',
     };
   }
 }
@@ -264,7 +260,7 @@ export async function canAddGroupMember(
     if (!tier) {
       return {
         allowed: false,
-        message: 'Unable to determine subscription tier'
+        message: 'Unable to determine subscription tier',
       };
     }
 
@@ -274,7 +270,7 @@ export async function canAddGroupMember(
     if (!groupDoc.exists()) {
       return {
         allowed: false,
-        message: 'Group not found'
+        message: 'Group not found',
       };
     }
 
@@ -283,56 +279,39 @@ export async function canAddGroupMember(
 
     // Get limit based on tier
     let maxMembers: number;
-    switch (tier) {
-      case 'family':
-        maxMembers = PLAN_LIMITS.FAMILY.maxMembers;
-        break;
-      case 'single_agency':
-        maxMembers = PLAN_LIMITS.SINGLE_AGENCY.maxMembers;
-        break;
-      case 'multi_agency':
-        maxMembers = PLAN_LIMITS.MULTI_AGENCY.maxMembersPerGroup;
-        break;
-      default:
-        maxMembers = PLAN_LIMITS.FAMILY.maxMembers;
+
+    if (tier === 'multi_agency') {
+      const limits = getPlanLimits('multi_agency');
+      maxMembers = limits.maxMembersPerGroup || 4;
+    } else {
+      maxMembers = getMaxMembers(tier);
     }
 
     if (currentMemberCount >= maxMembers) {
-      const tierName = tier === 'family' ? 'Family' : tier === 'single_agency' ? 'Single Agency' : 'Multi Agency';
       return {
         allowed: false,
-        message: `${tierName} plan is limited to ${maxMembers} members per group. Please upgrade to add more members.`,
+        message: `${getTierDisplayName(tier)} is limited to ${maxMembers} members per group. Please upgrade to add more members.`,
         limit: maxMembers,
-        current: currentMemberCount
+        current: currentMemberCount,
       };
     }
 
     return {
       allowed: true,
       limit: maxMembers,
-      current: currentMemberCount
+      current: currentMemberCount,
     };
   } catch (error) {
     console.error('Error checking member limit:', error);
     return {
       allowed: false,
-      message: 'Error checking plan limits'
+      message: 'Error checking plan limits',
     };
   }
 }
 
 /**
  * Get a user-friendly upgrade message
+ * @deprecated Use getUpgradeMessage from @/lib/subscription instead
  */
-export function getUpgradeMessage(tier: 'family' | 'single_agency' | 'multi_agency' | null): string {
-  switch (tier) {
-    case 'family':
-      return 'Upgrade to Single Agency ($14.99/month) to manage up to 4 elders and add more members.';
-    case 'single_agency':
-      return 'Upgrade to Multi Agency ($144/month) to manage up to 10 groups with 30 elders total.';
-    case 'multi_agency':
-      return 'You are on the Multi Agency plan. Contact us for enterprise options.';
-    default:
-      return 'Please subscribe to a plan to continue adding resources.';
-  }
-}
+export { getUpgradeMessage };
