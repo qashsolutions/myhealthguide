@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,21 +10,48 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function SubscriptionSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
-  // Session ID available for debugging if needed: searchParams.get('session_id')
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 5;
 
-  // Check if user is on trial
+  // Check if user has active subscription (not trial)
+  const isActive = user?.subscriptionStatus === 'active';
   const isOnTrial = user?.subscriptionStatus === 'trial';
 
-  useEffect(() => {
-    // Brief delay to allow subscription data to sync
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+  // Poll for subscription status update from Stripe webhook
+  const checkSubscriptionStatus = useCallback(async () => {
+    await refreshUser();
+  }, [refreshUser]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(() => {
+    // Poll for subscription status update
+    // Stripe webhook may take a moment to process
+    const pollForUpdate = async () => {
+      await checkSubscriptionStatus();
+
+      // If still on trial after refresh, retry a few times
+      // (webhook may not have processed yet)
+      if (retryCount < maxRetries) {
+        const timer = setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+        }, 2000); // Check every 2 seconds
+        return () => clearTimeout(timer);
+      } else {
+        // After max retries, stop loading regardless
+        setLoading(false);
+      }
+    };
+
+    pollForUpdate();
+  }, [retryCount, checkSubscriptionStatus]);
+
+  // Stop loading once we detect active subscription
+  useEffect(() => {
+    if (isActive) {
+      setLoading(false);
+    }
+  }, [isActive]);
 
   if (loading) {
     return (
@@ -34,7 +61,10 @@ export default function SubscriptionSuccessPage() {
             <div className="flex flex-col items-center space-y-4">
               <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
               <p className="text-lg text-gray-600 dark:text-gray-400">
-                Verifying your subscription...
+                Activating your subscription...
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                This may take a few seconds
               </p>
             </div>
           </CardContent>
