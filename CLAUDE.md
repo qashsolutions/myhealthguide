@@ -389,3 +389,128 @@ const response = await authenticatedFetch('/api/ai-analytics', {
   })
 });
 ```
+
+### 11. Hybrid Dementia Q&A Assessment (IMPLEMENTED: Dec 23, 2025)
+
+**IMPORTANT:** This is a caregiver-administered cognitive screening tool, NOT a diagnostic tool.
+
+**Architecture:** Hybrid approach combining:
+1. **Baseline**: 13 MoCA-adapted structured questions across 6 cognitive domains
+2. **AI Layer**: Adaptive branching - Gemini/Claude generates follow-up questions for concerning answers
+3. **Integration**: Tabbed UI with existing behavioral pattern detection
+
+**Cognitive Domains (6 total, 13 questions):**
+| Domain | Questions | Focus |
+|--------|-----------|-------|
+| Memory | 3 | Short-term recall, repetition, recognition |
+| Orientation | 2 | Time awareness, place awareness |
+| Attention | 2 | Following conversations, distractibility |
+| Language | 2 | Word-finding, following instructions |
+| Executive | 2 | Judgment, planning/sequencing |
+| Mood/Behavior | 2 | Depression/withdrawal, anxiety/agitation |
+
+**Files Structure:**
+```
+src/types/dementiaAssessment.ts           # TypeScript interfaces
+src/lib/medical/dementiaAssessment/
+├── index.ts                              # Module exports
+├── questionBank.ts                       # 13 MoCA-adapted baseline questions
+├── sessionManager.ts                     # Session CRUD operations
+├── scoringEngine.ts                      # Domain scores & risk calculation
+├── adaptiveBranching.ts                  # AI follow-up question generation
+└── resultGenerator.ts                    # AI summary & recommendations
+
+src/app/api/dementia-assessment/
+├── route.ts                              # POST: Start session, GET: List sessions
+├── [sessionId]/route.ts                  # GET: Session details, DELETE: Abandon
+├── [sessionId]/answer/route.ts           # POST: Submit answer
+├── [sessionId]/next-question/route.ts    # GET: Next question (with AI branching)
+├── [sessionId]/complete/route.ts         # POST: Complete & generate results
+└── results/route.ts                      # GET: List results for elder
+
+src/components/dementia-assessment/
+├── AssessmentWizard.tsx                  # Main wizard flow
+├── QuestionCard.tsx                      # Individual question display
+└── ResultsSummary.tsx                    # Final results display
+```
+
+**Firestore Collections:**
+- `dementiaAssessmentSessions` - In-progress Q&A sessions
+- `dementiaAssessmentResults` - Completed assessment results (immutable)
+
+**Firestore Rules:**
+```javascript
+// Assessment Sessions
+match /dementiaAssessmentSessions/{sessionId} {
+  allow read: if request.auth != null && resource.data.caregiverId == request.auth.uid;
+  allow create: if isSignedIn() && hasActiveAccess(request.auth.uid) &&
+    isMemberOfGroup(request.resource.data.groupId);
+  allow update: if request.auth != null && resource.data.caregiverId == request.auth.uid;
+  allow delete: if request.auth != null && resource.data.caregiverId == request.auth.uid;
+}
+
+// Assessment Results (immutable audit trail)
+match /dementiaAssessmentResults/{resultId} {
+  allow read: if isSignedIn() && (resource.data.caregiverId == request.auth.uid ||
+    isGroupAdmin(resource.data.groupId) || isMemberOfGroup(resource.data.groupId));
+  allow create: if isSignedIn() && hasActiveAccess(request.auth.uid);
+  allow update: if isSignedIn() && (resource.data.caregiverId == request.auth.uid ||
+    isGroupAdmin(resource.data.groupId));
+  allow delete: if false; // Never delete - audit trail
+}
+```
+
+**Adaptive Branching Configuration:**
+```typescript
+const BRANCHING_CONFIG = {
+  maxDepthPerDomain: 3,      // Max follow-up questions per concerning answer
+  maxAdaptiveTotal: 10,      // Max AI-generated questions per assessment
+  domainPriority: {
+    memory: 'high',          // More branching allowed
+    orientation: 'high',
+    executive: 'high',
+    attention: 'medium',
+    language: 'medium',
+    mood_behavior: 'medium',
+  }
+};
+```
+
+**Risk Level Calculation:**
+- **Urgent**: Memory AND orientation both concerning
+- **Concerning**: 2+ concerning domains OR any priority domain concerning
+- **Moderate**: 1 concerning domain OR 2+ moderate domains
+- **Low**: No significant concerns
+
+**How to Start an Assessment:**
+```typescript
+// API call to start assessment
+const response = await authenticatedFetch('/api/dementia-assessment', {
+  method: 'POST',
+  body: JSON.stringify({
+    groupId: '...',
+    elderId: '...',
+    elderName: 'John',
+    elderAge: 75,  // Optional
+    knownConditions: ['diabetes']  // Optional
+  })
+});
+```
+
+**Page Location:**
+- `/dashboard/dementia-screening` - Tabbed UI with:
+  - Q&A Assessment tab (new)
+  - Behavioral Detection tab (existing keyword-based)
+  - History tab (assessment results)
+
+**Professional Disclaimers (REQUIRED):**
+Every results page MUST include:
+1. "This is NOT a medical diagnosis"
+2. "Only a qualified healthcare professional can diagnose cognitive conditions"
+3. "Use this information to discuss concerns with a doctor"
+
+**DO NOT:**
+- Remove or modify professional disclaimers
+- Allow results to be deleted (audit trail)
+- Diagnose or use definitive language ("has dementia")
+- Skip consent verification before assessment
