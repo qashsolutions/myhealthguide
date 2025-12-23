@@ -1427,6 +1427,55 @@ service cloud.firestore {
       allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
+    // ============= Dementia Assessment Sessions Collection =============
+    // In-progress Q&A assessment sessions
+
+    match /dementiaAssessmentSessions/{sessionId} {
+      // Only the caregiver who created the session can read it
+      allow read: if isSignedIn() &&
+        resource.data.caregiverId == request.auth.uid;
+
+      // Members with active access can create sessions
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId) &&
+        request.resource.data.caregiverId == request.auth.uid;
+
+      // Only the caregiver who created can update (save answers)
+      allow update: if isSignedIn() &&
+        resource.data.caregiverId == request.auth.uid &&
+        hasActiveAccess(request.auth.uid);
+
+      // Caregiver who created can delete (abandon)
+      allow delete: if isSignedIn() &&
+        resource.data.caregiverId == request.auth.uid;
+    }
+
+    // ============= Dementia Assessment Results Collection =============
+    // Completed Q&A assessment results with AI-generated summaries
+
+    match /dementiaAssessmentResults/{resultId} {
+      // Caregiver who created or group admin can read results
+      allow read: if isSignedIn() &&
+        (resource.data.caregiverId == request.auth.uid ||
+         isGroupAdmin(resource.data.groupId) ||
+         (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid)));
+
+      // System creates results when assessment completes
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isMemberOfGroup(request.resource.data.groupId);
+
+      // Caregiver or admin can update status (mark as reviewed, shared)
+      allow update: if isSignedIn() &&
+        (resource.data.caregiverId == request.auth.uid ||
+         isGroupAdmin(resource.data.groupId)) &&
+        hasActiveAccess(request.auth.uid);
+
+      // Results are never deleted (audit trail)
+      allow delete: if false;
+    }
+
     // ============= Incidents Collection =============
     // Incident reports for falls, medication errors, behavioral issues, etc.
 
