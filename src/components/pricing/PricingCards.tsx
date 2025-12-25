@@ -8,6 +8,7 @@ import { Heart, Users, Shield, CheckCircle, Loader2 } from 'lucide-react';
 import {
   PLAN_CONFIG,
   CORE_FEATURES,
+  DETAILED_FEATURES,
   getStripePriceId,
   type PlanTier,
 } from '@/lib/subscription';
@@ -214,34 +215,68 @@ export function PricingCards({
                   </div>
 
                   {/* Features */}
-                  <ul className="space-y-3 mb-8">
+                  <ul className="space-y-2.5 mb-8">
                     {/* Plan limits */}
                     {plan.limits.map((limit, index) => (
-                      <li key={`limit-${index}`} className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <li key={`limit-${index}`} className="flex items-start gap-2.5">
+                        <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
                           {limit}
                         </span>
                       </li>
                     ))}
-                    {/* Core features (all plans) */}
-                    {CORE_FEATURES.slice(0, 3).map((feature, index) => (
-                      <li key={`core-${index}`} className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+
+                    {/* Divider */}
+                    <li className="py-1">
+                      <div className="border-t border-gray-200 dark:border-gray-700" />
+                    </li>
+
+                    {/* Core features label */}
+                    <li className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Core Features
+                    </li>
+
+                    {/* Core features (show 5 for cards) */}
+                    {CORE_FEATURES.slice(0, 5).map((feature, index) => (
+                      <li key={`core-${index}`} className="flex items-start gap-2.5">
+                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-gray-700 dark:text-gray-300">
                           {feature}
                         </span>
                       </li>
                     ))}
-                    {/* Plan extras */}
-                    {plan.extras.map((extra, index) => (
-                      <li key={`extra-${index}`} className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {extra}
-                        </span>
+
+                    {/* Show "+X more" for remaining core features */}
+                    {CORE_FEATURES.length > 5 && (
+                      <li className="text-xs text-gray-500 dark:text-gray-400 pl-6">
+                        + {CORE_FEATURES.length - 5} more core features
                       </li>
-                    ))}
+                    )}
+
+                    {/* Plan extras (tier-specific) */}
+                    {plan.extras.length > 0 && (
+                      <>
+                        <li className="pt-1">
+                          <div className="border-t border-gray-200 dark:border-gray-700" />
+                        </li>
+                        <li className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">
+                          {plan.id === 'single_agency' ? 'Agency Features' : 'Multi-Agency Features'}
+                        </li>
+                        {plan.extras.slice(0, 4).map((extra, index) => (
+                          <li key={`extra-${index}`} className="flex items-start gap-2.5">
+                            <CheckCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              {extra}
+                            </span>
+                          </li>
+                        ))}
+                        {plan.extras.length > 4 && (
+                          <li className="text-xs text-gray-500 dark:text-gray-400 pl-6">
+                            + {plan.extras.length - 4} more agency features
+                          </li>
+                        )}
+                      </>
+                    )}
                   </ul>
 
                   {/* CTA Button */}

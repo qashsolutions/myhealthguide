@@ -47,6 +47,7 @@ export {
   PLAN_HIERARCHY,
   STORAGE_LIMITS,
   PLAN_LIMITS,
+  DETAILED_FEATURES,
 } from './subscriptionService';
 
 // React hook export

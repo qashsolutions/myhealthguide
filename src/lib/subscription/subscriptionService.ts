@@ -57,11 +57,15 @@ export const TRIAL_DURATION_DAYS = 14;
 
 export const CORE_FEATURES = [
   'Voice-powered health logging',
-  'Medication tracking & reminders',
-  'Diet & nutrition tracking',
-  'Daily health summaries',
-  'AI health insights',
-  'Compliance tracking',
+  'Medication & supplement tracking',
+  'Diet & nutrition logging',
+  'AI health insights & chat',
+  'Drug interaction checking',
+  'Dementia screening (Q&A + behavioral)',
+  'Clinical notes for doctor visits',
+  'Family update reports',
+  'Incident reporting',
+  'Push notification reminders',
 ] as const;
 
 // ============= Plan Configuration (Single Source of Truth) =============
@@ -131,11 +135,13 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
       'availability_scheduling',
     ],
     extras: [
-      'Real-time collaboration',
-      'Agency dashboard',
+      'Shift calendar & scheduling',
+      'AI-powered shift handoff notes',
       'Multi-caregiver coordination',
-      'Shift scheduling',
-      'Advanced analytics',
+      'Caregiver availability tracking',
+      'Caregiver burnout detection',
+      'Advanced agency analytics',
+      'Timesheet tracking',
     ],
   },
 };
@@ -444,6 +450,35 @@ export const PLAN_FEATURES = {
     ],
     extras: PLAN_CONFIG.multi_agency.extras,
   },
+} as const;
+
+// Additional features for detailed pricing pages
+export const DETAILED_FEATURES = {
+  core: [
+    { name: 'Voice-powered health logging', description: 'Log medications, meals, and notes by voice' },
+    { name: 'Medication & supplement tracking', description: 'Track dosages, schedules, and compliance' },
+    { name: 'Diet & nutrition logging', description: 'Log meals with nutritional insights' },
+    { name: 'AI health insights & chat', description: 'Ask questions about logged health data' },
+    { name: 'Drug interaction checking', description: 'FDA drug label analysis for interactions' },
+    { name: 'Dementia screening', description: 'Q&A assessment + behavioral pattern detection' },
+    { name: 'Clinical notes', description: 'Generate doctor visit preparation reports' },
+    { name: 'Family update reports', description: 'AI-generated weekly updates for family' },
+    { name: 'Incident reporting', description: 'Document falls, injuries, medication errors' },
+    { name: 'Health analytics', description: 'Adherence prediction, nutrition analysis, trends' },
+  ],
+  single_agency: [
+    { name: 'Real-time collaboration', description: 'Live dashboard updates for team members' },
+    { name: 'Agency dashboard', description: 'Agency-level monitoring and overview' },
+  ],
+  multi_agency: [
+    { name: 'Shift calendar & scheduling', description: 'Visual week/month shift management' },
+    { name: 'AI shift handoff notes', description: 'AI-generated caregiver transition notes' },
+    { name: 'Multi-caregiver coordination', description: 'Assign caregivers to elders' },
+    { name: 'Caregiver availability', description: 'Track scheduling preferences' },
+    { name: 'Caregiver burnout detection', description: 'AI-driven stress level monitoring' },
+    { name: 'Advanced analytics', description: 'Agency-wide performance analytics' },
+    { name: 'Timesheet tracking', description: 'Track caregiver hours worked' },
+  ],
 } as const;
 
 // Plan hierarchy for backward compatibility
