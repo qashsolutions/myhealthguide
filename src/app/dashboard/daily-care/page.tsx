@@ -27,6 +27,7 @@ import Link from 'next/link';
 import { MedicationService } from '@/lib/firebase/medications';
 import { SupplementService } from '@/lib/firebase/supplements';
 import { DietService } from '@/lib/firebase/diet';
+import { ReminderDialog } from '@/components/notifications/ReminderDialog';
 import type { Medication, Supplement, DietEntry } from '@/types';
 import { format, isToday } from 'date-fns';
 
@@ -46,6 +47,7 @@ function DailyCareContent() {
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [dietEntries, setDietEntries] = useState<DietEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
 
   // Determine user's role
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
@@ -122,7 +124,7 @@ function DailyCareContent() {
 
   // Quick action handlers
   const handleSetReminder = () => {
-    alert('Coming Soon: Reminder feature is under development');
+    setReminderDialogOpen(true);
   };
 
   const handleViewSchedule = () => {
@@ -235,6 +237,19 @@ function DailyCareContent() {
           )}
         </>
       )}
+
+      {/* Reminder Dialog */}
+      <ReminderDialog
+        open={reminderDialogOpen}
+        onOpenChange={setReminderDialogOpen}
+        medications={medications}
+        supplements={supplements}
+        groupId={selectedElder.groupId}
+        elderId={selectedElder.id}
+        userId={user?.id || ''}
+        userRole={getUserRole()}
+        isFullyVerified={!!(user?.emailVerified && user?.phoneVerified)}
+      />
     </div>
   );
 }
