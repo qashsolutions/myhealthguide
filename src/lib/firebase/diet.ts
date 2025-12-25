@@ -116,11 +116,12 @@ export class DietService {
     userId: string,
     userRole: UserRole
   ): Promise<DietEntry[]> {
+    // Query without orderBy to avoid composite index requirement
+    // Sort client-side instead
     const q = query(
       collection(db, this.COLLECTION),
       where('groupId', '==', groupId),
-      where('elderId', '==', elderId),
-      orderBy('timestamp', 'desc')
+      where('elderId', '==', elderId)
     );
 
     const snapshot = await getDocs(q);
@@ -130,6 +131,9 @@ export class DietService {
       timestamp: doc.data().timestamp.toDate(),
       createdAt: doc.data().createdAt.toDate()
     })) as DietEntry[];
+
+    // Sort client-side by timestamp descending (newest first)
+    entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     // HIPAA Audit Log: Record diet entries access for specific elder
     if (entries.length > 0) {

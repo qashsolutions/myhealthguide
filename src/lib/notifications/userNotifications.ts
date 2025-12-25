@@ -16,7 +16,6 @@ import {
   doc,
   query,
   where,
-  orderBy,
   limit,
   getDocs,
   onSnapshot,
@@ -78,10 +77,11 @@ export async function getUserNotifications(
       types
     } = options;
 
+    // Query without orderBy to avoid composite index requirement
+    // Sort client-side instead
     let q = query(
       collection(db, COLLECTION_NAME),
       where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
 
@@ -101,6 +101,13 @@ export async function getUserNotifications(
     if (types && types.length > 0) {
       notifications = notifications.filter(n => types.includes(n.type));
     }
+
+    // Sort client-side by createdAt descending (newest first)
+    notifications.sort((a, b) => {
+      const aTime = a.createdAt?.toDate?.() || new Date(0);
+      const bTime = b.createdAt?.toDate?.() || new Date(0);
+      return bTime.getTime() - aTime.getTime();
+    });
 
     return notifications;
   } catch (error) {
@@ -197,11 +204,12 @@ export function subscribeToNotifications(
   userId: string,
   callback: (notifications: UserNotification[]) => void
 ): () => void {
+  // Query without orderBy to avoid composite index requirement
+  // Sort client-side instead
   const q = query(
     collection(db, COLLECTION_NAME),
     where('userId', '==', userId),
     where('dismissed', '==', false),
-    orderBy('createdAt', 'desc'),
     limit(50)
   );
 
@@ -210,6 +218,13 @@ export function subscribeToNotifications(
       id: doc.id,
       ...doc.data()
     })) as UserNotification[];
+
+    // Sort client-side by createdAt descending (newest first)
+    notifications.sort((a, b) => {
+      const aTime = a.createdAt?.toDate?.() || new Date(0);
+      const bTime = b.createdAt?.toDate?.() || new Date(0);
+      return bTime.getTime() - aTime.getTime();
+    });
 
     callback(notifications);
   }, (error) => {
