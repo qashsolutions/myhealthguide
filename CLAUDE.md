@@ -514,3 +514,106 @@ Every results page MUST include:
 - Allow results to be deleted (audit trail)
 - Diagnose or use definitive language ("has dementia")
 - Skip consent verification before assessment
+
+### 12. Navigation Structure (RESTRUCTURED: Dec 25, 2025)
+
+**IMPORTANT:** The navigation has been completely restructured for simplified UX.
+
+#### Header Changes
+- **Elder Dropdown** moved to header (was in sidebar)
+- Component: `src/components/dashboard/ElderDropdown.tsx`
+- Shows avatar with gradient + elder name + chevron
+- Dropdown includes: elder list, "Add New Elder", "Manage All Elders"
+- Logo displayed in header on desktop
+
+#### Sidebar Structure (Simplified)
+```
+- Overview
+
+[ELDER'S CARE] (green dot indicator)
+- Health Profile
+- Daily Care
+
+[AI & INSIGHTS]
+- Ask AI (New badge)
+- Safety Alerts
+- Analytics
+
+[PERSONAL]
+- My Notes
+
+[AGENCY] (multi_agency tier only)
+- Care Management
+- Agency Management
+
+[FOOTER]
+- Settings
+```
+
+**Key Files:**
+- `src/components/shared/Sidebar.tsx` - Restructured sidebar
+- `src/components/shared/DashboardHeader.tsx` - Updated header with elder dropdown
+- `src/components/dashboard/ElderDropdown.tsx` - New elder selector component
+
+#### New Merged Pages
+
+| Page | Path | Combines |
+|------|------|----------|
+| Daily Care | `/dashboard/daily-care` | Medications, Supplements, Diet, Activity (tabs) |
+| Safety Alerts | `/dashboard/safety-alerts` | Drug Interactions, Incidents, Conflicts, Screening (tabs) |
+| Analytics | `/dashboard/analytics` | Adherence, Nutrition, Health Trends (tabs) |
+| Ask AI | `/dashboard/ask-ai` | Health Chat, Clinical Notes, Reports (tabs) |
+| Care Management | `/dashboard/care-management` | Agency features hub |
+
+**Tab State:** Uses URL query params (e.g., `?tab=medications`)
+
+#### Route Redirects (in next.config.js)
+
+Old routes automatically redirect to new merged pages:
+
+```javascript
+// Daily Care
+/dashboard/medications → /dashboard/daily-care?tab=medications
+/dashboard/supplements → /dashboard/daily-care?tab=supplements
+/dashboard/diet → /dashboard/daily-care?tab=diet
+/dashboard/activity → /dashboard/daily-care?tab=activity
+
+// Safety Alerts
+/dashboard/drug-interactions → /dashboard/safety-alerts?tab=interactions
+/dashboard/incidents → /dashboard/safety-alerts?tab=incidents
+/dashboard/schedule-conflicts → /dashboard/safety-alerts?tab=conflicts
+/dashboard/dementia-screening → /dashboard/safety-alerts?tab=screening
+
+// Analytics
+/dashboard/medication-adherence → /dashboard/analytics?tab=adherence
+/dashboard/nutrition-analysis → /dashboard/analytics?tab=nutrition
+/dashboard/insights → /dashboard/analytics?tab=trends
+
+// Ask AI
+/dashboard/medgemma → /dashboard/ask-ai?tab=chat
+/dashboard/health-chat → /dashboard/ask-ai?tab=chat
+/dashboard/clinical-notes → /dashboard/ask-ai?tab=clinical-notes
+/dashboard/reports → /dashboard/ask-ai?tab=reports
+```
+
+#### Overview Page Time Toggle
+- Component: `src/components/dashboard/TimeToggle.tsx`
+- Options: Today | Week | Month
+- Week/Month shows `WeeklySummaryPanel` with aggregated stats
+
+#### Tier-Based Visibility
+- **Agency section** only visible for `isMultiAgency` users
+- Uses `useSubscription()` hook to check tier
+
+#### Components Created
+| Component | Path | Purpose |
+|-----------|------|---------|
+| ElderDropdown | `src/components/dashboard/ElderDropdown.tsx` | Header elder selector |
+| TimeToggle | `src/components/dashboard/TimeToggle.tsx` | Today/Week/Month toggle |
+| WeeklySummaryPanel | `src/components/dashboard/WeeklySummaryPanel.tsx` | Weekly/monthly stats display |
+
+**DO NOT:**
+- Add back collapsible navigation sections
+- Move elder selector back to sidebar
+- Create separate pages for merged features (use tabs instead)
+- Use `permanent: true` for redirects (allows easy rollback)
