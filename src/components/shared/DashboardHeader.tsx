@@ -16,7 +16,7 @@ import {
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { ElderSelector } from '@/components/dashboard/ElderSelector';
+import { ElderDropdown } from '@/components/dashboard/ElderDropdown';
 import { UnifiedSearch } from '@/components/shared/UnifiedSearch';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
@@ -56,7 +56,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
 
   return (
     <header data-header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-4 lg:px-6 gap-2 lg:gap-6">
-      <div className="flex items-center gap-2 lg:gap-4">
+      <div className="flex items-center gap-3 lg:gap-4">
         {/* Hamburger Menu - Mobile Only */}
         <Button
           variant="ghost"
@@ -68,14 +68,19 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
           <Menu className="w-6 h-6" />
         </Button>
 
-        <h2 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">
-          Dashboard
-        </h2>
-
-        {/* Elder Selector - Hidden on small mobile */}
-        <div className="hidden sm:block ml-2 lg:ml-4 border-l border-gray-300 dark:border-gray-700 pl-2 lg:pl-4">
-          <ElderSelector />
+        {/* Logo - Hidden on mobile (shown in sidebar) */}
+        <div className="hidden lg:flex items-center">
+          <span className="text-xl tracking-tight text-slate-900 dark:text-slate-100">
+            <span className="font-bold">Care</span>
+            <span className="font-light text-blue-600 dark:text-blue-400">guide</span>
+          </span>
         </div>
+
+        {/* Divider - Hidden on mobile */}
+        <div className="hidden lg:block h-8 w-px bg-gray-200 dark:bg-gray-700" />
+
+        {/* Elder Dropdown */}
+        <ElderDropdown className="hidden sm:flex" />
       </div>
 
       {/* Center spacer for desktop */}

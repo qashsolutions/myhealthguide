@@ -27,6 +27,8 @@ import {
   DashboardData,
   ElderDashboardStats
 } from '@/lib/firebase/dashboardStats';
+import { TimeToggle, TimePeriod } from '@/components/dashboard/TimeToggle';
+import { WeeklySummaryPanel } from '@/components/dashboard/WeeklySummaryPanel';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -35,6 +37,7 @@ export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
 
   // Fetch dashboard stats when elders are available
   const fetchDashboardStats = useCallback(async () => {
@@ -149,21 +152,27 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Overview
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome to your caregiving dashboard'}
+            {timePeriod === 'today'
+              ? (user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome to your caregiving dashboard')
+              : `${timePeriod === 'week' ? 'Weekly' : 'Monthly'} summary${selectedElder ? ` for ${selectedElder.name}` : ''}`
+            }
           </p>
         </div>
-        <Link href="/dashboard/elders/new">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Elder
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <TimeToggle value={timePeriod} onChange={setTimePeriod} />
+          <Link href="/dashboard/elders/new" className="hidden sm:block">
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Elder
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Error Banner */}
@@ -183,7 +192,28 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Overall Stats - 5 cards now */}
+      {/* Weekly/Monthly Summary Panel */}
+      {timePeriod !== 'today' && (
+        <WeeklySummaryPanel
+          period={timePeriod}
+          stats={{
+            medicationsTaken: dashboardData?.elderStats.reduce((sum, e) => sum + e.medicationCompliance.taken, 0) || 0,
+            medicationsTotal: dashboardData?.elderStats.reduce((sum, e) => sum + e.medicationCompliance.total, 0) || 0,
+            supplementsTaken: dashboardData?.elderStats.reduce((sum, e) => sum + e.supplementCompliance.taken, 0) || 0,
+            supplementsTotal: dashboardData?.elderStats.reduce((sum, e) => sum + e.supplementCompliance.total, 0) || 0,
+            mealsLogged: aggregate.totalMealsLoggedToday * (timePeriod === 'week' ? 7 : 30),
+            mealsExpected: availableElders.length * 3 * (timePeriod === 'week' ? 7 : 30),
+            compliancePercentage: combinedAvgCompliance,
+            missedDoses: dashboardData?.elderStats.reduce((sum, e) => sum + e.medicationCompliance.missed, 0) || 0,
+            activityLogs: dashboardData?.elderStats.reduce((sum, e) => sum + e.recentLogsCount, 0) || 0,
+            safetyAlerts: 0,
+            careScore: combinedAvgCompliance >= 90 ? 'A+' : combinedAvgCompliance >= 80 ? 'A' : combinedAvgCompliance >= 70 ? 'B' : combinedAvgCompliance >= 60 ? 'C' : 'D',
+          }}
+        />
+      )}
+
+      {/* Overall Stats - 5 cards now (show only for Today view) */}
+      {timePeriod === 'today' && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Elders */}
         <Card className="p-5">
@@ -288,6 +318,7 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+      )}
 
       {/* Elders Grid */}
       {availableElders.length > 0 ? (

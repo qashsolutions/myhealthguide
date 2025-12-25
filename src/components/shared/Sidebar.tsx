@@ -1,39 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useElder } from '@/contexts/ElderContext';
 import { useSubscription } from '@/lib/subscription';
 import {
   Home,
-  Users,
-  Pill,
-  Apple,
-  Utensils,
+  Heart,
+  Clipboard,
+  MessageSquare,
+  AlertTriangle,
+  BarChart3,
   FileText,
   Settings,
-  Sparkles,
-  Bell,
-  AlertTriangle,
-  Clock,
-  Brain,
-  TrendingUp,
-  Mail,
-  ChevronDown,
-  ChevronRight,
-  FolderOpen,
-  Calendar,
-  MessageSquare,
   X,
   Building2,
-  BarChart3,
-  DollarSign,
-  CalendarDays,
-  UserCog,
-  CalendarCheck,
-  ClockIcon,
-  BookOpen
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -43,97 +26,19 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-// Tooltip descriptions for features - simple English explanations
+// Tooltip descriptions for features
 const featureTooltips: Record<string, string> = {
-  // Daily Care
-  '/dashboard/medications': 'Add, edit, and track all medications',
-  '/dashboard/supplements': 'Manage vitamins and supplements',
-  '/dashboard/diet': 'Log meals and track eating habits',
-  '/dashboard/activity': 'View today\'s schedule and mark items complete',
-
-  // Medical Safety
-  '/dashboard/incidents': 'Document falls, injuries, or medication errors',
-  '/dashboard/drug-interactions': 'Check if medications interact with each other',
-  '/dashboard/schedule-conflicts': 'Find overlapping medication times',
-  '/dashboard/dementia-screening': 'Track cognitive assessments over time',
-
-  // Health Analytics
-  '/dashboard/medication-adherence': 'See which medications might be missed and get reminders',
-  '/dashboard/nutrition-analysis': 'Analyze eating patterns and food variety',
-  '/dashboard/insights': 'View weekly summaries, charts, and health patterns',
-
-  // Care Management
-  '/dashboard/shift-handoff': 'Share notes between caregivers at shift change',
-  '/dashboard/timesheet': 'Track caregiver hours worked',
-  '/dashboard/documents': 'Store medical records and documents',
-  '/dashboard/family-updates': 'Send updates to family members',
-  '/dashboard/caregiver-burnout': 'Check caregiver stress levels',
-  '/dashboard/alerts': 'View all notifications and alerts',
-
-  // Ask Questions
-  '/dashboard/medgemma': 'Your health assistant - ask questions about care',
-  '/dashboard/clinical-notes': 'Generate a summary report for doctor visits',
-  '/dashboard/reports': 'View all reports in one place',
-
-  // My Notes
-  '/dashboard/notes': 'Capture caregiving insights and share tips with the community',
+  '/dashboard': 'View your overall caregiving dashboard',
+  '/dashboard/elder-profile': 'View and manage health profile information',
+  '/dashboard/daily-care': 'Track medications, supplements, diet & activity',
+  '/dashboard/ask-ai': 'Ask questions and get AI-powered insights',
+  '/dashboard/safety-alerts': 'View drug interactions, incidents, and screening results',
+  '/dashboard/analytics': 'View health trends and compliance analytics',
+  '/dashboard/notes': 'Capture and share caregiving insights',
+  '/dashboard/care-management': 'Manage shifts, documents, and family updates',
+  '/dashboard/agency': 'Agency overview and management',
+  '/dashboard/settings': 'Configure your preferences',
 };
-
-// Define collapsible sections structure
-const elderCentricSections = [
-  {
-    id: 'daily-care',
-    title: 'Daily Care',
-    icon: Heart,
-    defaultOpen: true,
-    items: [
-      { href: '/dashboard/medications', label: 'Medications', icon: Pill },
-      { href: '/dashboard/supplements', label: 'Supplements', icon: Apple },
-      { href: '/dashboard/diet', label: 'Diet', icon: Utensils },
-      { href: '/dashboard/activity', label: 'Activity', icon: FileText }
-    ]
-  },
-  {
-    id: 'medical-safety',
-    title: 'Medical Safety',
-    icon: AlertTriangle,
-    defaultOpen: false,
-    items: [
-      { href: '/dashboard/incidents', label: 'Incident Reports', icon: AlertTriangle },
-      { href: '/dashboard/drug-interactions', label: 'Drug Interactions', icon: AlertTriangle },
-      { href: '/dashboard/schedule-conflicts', label: 'Schedule Conflicts', icon: Clock },
-      { href: '/dashboard/dementia-screening', label: 'Dementia Screening', icon: Brain }
-    ]
-  },
-  {
-    id: 'health-analytics',
-    title: 'Health Analytics',
-    icon: TrendingUp,
-    defaultOpen: false,
-    items: [
-      { href: '/dashboard/medication-adherence', label: 'Medication Adherence', icon: TrendingUp },
-      { href: '/dashboard/nutrition-analysis', label: 'Nutrition Analysis', icon: Apple },
-      { href: '/dashboard/insights', label: 'Health Trends', icon: Sparkles }
-    ]
-  },
-  {
-    id: 'care-management',
-    title: 'Care Management',
-    icon: Mail,
-    defaultOpen: false,
-    items: [
-      { href: '/dashboard/shift-handoff', label: 'Shift Handoff', icon: Clock },
-      { href: '/dashboard/timesheet', label: 'Timesheet', icon: Clock },
-      { href: '/dashboard/documents', label: 'Documents', icon: FolderOpen },
-      { href: '/dashboard/family-updates', label: 'Family Updates', icon: Mail },
-      { href: '/dashboard/caregiver-burnout', label: 'Caregiver Burnout', icon: Users },
-      { href: '/dashboard/alerts', label: 'Alerts', icon: Bell }
-    ]
-  }
-];
-
-// Import Heart icon
-import { Heart } from 'lucide-react';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -142,18 +47,8 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { isMultiAgency, hasFeature } = useSubscription();
-  const { selectedElder, availableElders, setSelectedElder } = useElder();
-
-  // Initialize collapsed state - Daily Care open by default, others collapsed
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    'daily-care': false,
-    'medical-safety': true,
-    'health-analytics': true,
-    'care-management': true,
-    'ask-questions': true,
-    'agency-management': true
-  });
+  const { isMultiAgency } = useSubscription();
+  const { selectedElder } = useElder();
 
   // Close sidebar on route change (mobile only)
   useEffect(() => {
@@ -162,12 +57,98 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     }
   }, [pathname, onClose]);
 
-  const toggleSection = (sectionId: string) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [sectionId]: !prev[sectionId]
-    }));
+  // Helper to check if a path is active
+  const isActive = (path: string) => {
+    if (path === '/dashboard') {
+      return pathname === '/dashboard';
+    }
+    return pathname === path || pathname.startsWith(path + '/') || pathname.startsWith(path + '?');
   };
+
+  // Navigation item component
+  const NavItem = ({
+    href,
+    icon: Icon,
+    label,
+    badge,
+    badgeColor = 'blue',
+  }: {
+    href: string;
+    icon: React.ElementType;
+    label: string;
+    badge?: string | number;
+    badgeColor?: 'blue' | 'green' | 'red';
+  }) => {
+    const active = isActive(href);
+    const tooltip = featureTooltips[href];
+
+    const badgeColors = {
+      blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+      green: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+      red: 'bg-red-500 text-white',
+    };
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            href={href}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              active
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            )}
+          >
+            <Icon className={cn('w-5 h-5', active && 'text-blue-600 dark:text-blue-400')} />
+            <span className="flex-1">{label}</span>
+            {badge !== undefined && (
+              <span className={cn(
+                'text-xs px-2 py-0.5 rounded-full font-semibold',
+                badgeColors[badgeColor]
+              )}>
+                {badge}
+              </span>
+            )}
+          </Link>
+        </TooltipTrigger>
+        {tooltip && (
+          <TooltipContent side="right">
+            <p>{tooltip}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    );
+  };
+
+  // Section label component
+  const SectionLabel = ({
+    children,
+    showIndicator = false,
+  }: {
+    children: React.ReactNode;
+    showIndicator?: boolean;
+  }) => (
+    <div className="px-3 pt-5 pb-2">
+      <div className="flex items-center gap-2">
+        {showIndicator && (
+          <span className="w-2 h-2 rounded-full bg-green-500" />
+        )}
+        <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
+          {children}
+        </span>
+      </div>
+    </div>
+  );
+
+  // Gray section label (for non-elder sections)
+  const GraySectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <div className="px-3 pt-5 pb-2">
+      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        {children}
+      </span>
+    </div>
+  );
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -191,9 +172,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         )}
       >
         {/* Logo with Close Button (Mobile) */}
-        <div className="pt-6 pr-6 pb-4 pl-4 flex items-center justify-between">
+        <div className="pt-6 pr-6 pb-4 pl-4 flex items-center justify-between lg:hidden">
           <Link href="/dashboard" className="flex items-center">
-            <h1 className="text-3xl tracking-tight text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl tracking-tight text-slate-900 dark:text-slate-100">
               <span className="font-bold">Care</span>
               <span className="font-light text-blue-600 dark:text-blue-400">guide</span>
             </h1>
@@ -201,421 +182,104 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           {/* Close button - Mobile only */}
           <button
             onClick={onClose}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
             aria-label="Close menu"
           >
             <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
 
-      {/* Elder Selector - Always visible in sidebar */}
-      <div className="px-3 pb-4">
-        <div className="px-2">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            Selected Elder
-          </p>
-          <select
-            value={selectedElder?.id || ''}
-            onChange={(e) => {
-              const elder = availableElders.find(el => el.id === e.target.value);
-              if (elder) setSelectedElder(elder);
-            }}
-            className="w-full px-3 py-2 text-sm font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 border-2 border-blue-200 dark:border-blue-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select an elder...</option>
-            {availableElders.map((elder) => (
-              <option key={elder.id} value={elder.id}>
-                {elder.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <p className="px-2 mt-2 text-xs text-gray-500 dark:text-gray-400 sm:hidden">
-          Use the menu to select an elder and access care features
-        </p>
-      </div>
+        {/* Navigation */}
+        <nav className="flex-1 px-3 overflow-y-auto pt-4 lg:pt-6">
+          {/* Overview - Always visible */}
+          <NavItem href="/dashboard" icon={Home} label="Overview" />
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        {/* Overview - Always visible */}
-        <Link
-          href="/dashboard"
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-            pathname === '/dashboard'
-              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-          )}
-        >
-          <Home className="w-5 h-5" />
-          Overview
-        </Link>
+          {/* Elder's Care Section */}
+          {selectedElder ? (
+            <>
+              <SectionLabel showIndicator>
+                {selectedElder.name.split(' ')[0]}&apos;s Care
+              </SectionLabel>
 
-        {/* Elders Management - Always visible */}
-        <Link
-          href="/dashboard/elders"
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-            pathname === '/dashboard/elders' || pathname.startsWith('/dashboard/elders/')
-              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-          )}
-        >
-          <Users className="w-5 h-5" />
-          Manage Elders
-        </Link>
-
-        {/* Health Profile - Show when elder is selected */}
-        {selectedElder && (
-          <Link
-            href={`/dashboard/elder-profile?elderId=${selectedElder.id}`}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-              pathname === '/dashboard/elder-profile'
-                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-            )}
-          >
-            <Heart className="w-5 h-5 text-red-500" />
-            Health Profile
-          </Link>
-        )}
-
-        {/* Ask Questions Section - Collapsible */}
-        <div className="pt-4 space-y-1">
-          <button
-            onClick={() => toggleSection('ask-questions')}
-            className={cn(
-              'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors',
-              (pathname === '/dashboard/medgemma' || pathname === '/dashboard/clinical-notes' || pathname === '/dashboard/reports' || pathname.startsWith('/dashboard/notes'))
-                ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span>Ask Questions</span>
-            </div>
-            {collapsedSections['ask-questions'] ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </button>
-
-          {!collapsedSections['ask-questions'] && (
-            <div className="ml-2 space-y-1">
-              {/* Health Assistant Hub */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/dashboard/medgemma"
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      pathname === '/dashboard/medgemma'
-                        ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10'
-                    )}
-                  >
-                    <Brain className="w-4 h-4" />
-                    Health Assistant
-                    <span className="ml-auto text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-semibold">
-                      NEW
-                    </span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{featureTooltips['/dashboard/medgemma']}</p>
-                </TooltipContent>
-              </Tooltip>
-
-              {/* Clinical Notes */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/dashboard/clinical-notes"
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      pathname === '/dashboard/clinical-notes'
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    )}
-                  >
-                    <FileText className="w-4 h-4" />
-                    Clinical Notes
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{featureTooltips['/dashboard/clinical-notes']}</p>
-                </TooltipContent>
-              </Tooltip>
-
-              {/* Reports Center */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/dashboard/reports"
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      pathname === '/dashboard/reports'
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    )}
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    Reports
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{featureTooltips['/dashboard/reports']}</p>
-                </TooltipContent>
-              </Tooltip>
-
-              {/* My Notes */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/dashboard/notes"
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      pathname === '/dashboard/notes' || pathname.startsWith('/dashboard/notes/')
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    )}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    My Notes
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{featureTooltips['/dashboard/notes']}</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          )}
-        </div>
-
-        {/* Elder-specific sections - Only show when elder is selected */}
-        {selectedElder && (
-          <>
-            <div className="pt-4 pb-2">
-              <div className="px-3">
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500">
-                  {selectedElder.name}&apos;s Care
+              <div className="space-y-1">
+                <NavItem
+                  href={`/dashboard/elder-profile?elderId=${selectedElder.id}`}
+                  icon={Heart}
+                  label="Health Profile"
+                />
+                <NavItem
+                  href="/dashboard/daily-care"
+                  icon={Clipboard}
+                  label="Daily Care"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="px-3 py-4 mt-4">
+              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
+                  Select an elder from the header to access care features
                 </p>
               </div>
             </div>
-
-            {elderCentricSections.map((section) => {
-              const SectionIcon = section.icon;
-              const isCollapsed = collapsedSections[section.id];
-              // Check if any item in this section is active
-              const isSectionActive = section.items.some(
-                item => pathname === item.href || pathname.startsWith(item.href + '/')
-              );
-
-              return (
-                <div key={section.id} className="space-y-1">
-                  {/* Section Header - Collapsible */}
-                  <button
-                    onClick={() => toggleSection(section.id)}
-                    className={cn(
-                      'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors',
-                      isSectionActive
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-l-4 border-blue-500'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <SectionIcon className={cn('w-4 h-4', isSectionActive && 'text-blue-600 dark:text-blue-400')} />
-                      <span>{section.title}</span>
-                    </div>
-                    {isCollapsed ? (
-                      <ChevronRight className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
-
-                  {/* Section Items */}
-                  {!isCollapsed && (
-                    <div className="ml-2 space-y-1">
-                      {section.items.map((item) => {
-                        const ItemIcon = item.icon;
-                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                        const tooltip = featureTooltips[item.href];
-
-                        return (
-                          <Tooltip key={item.href}>
-                            <TooltipTrigger asChild>
-                              <Link
-                                href={item.href}
-                                className={cn(
-                                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                                  isActive
-                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                )}
-                              >
-                                <ItemIcon className="w-4 h-4" />
-                                {item.label}
-                              </Link>
-                            </TooltipTrigger>
-                            {tooltip && (
-                              <TooltipContent side="right">
-                                <p>{tooltip}</p>
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </>
-        )}
-
-        {/* No Elder Selected Message */}
-        {!selectedElder && (
-          <div className="pt-4 px-3">
-            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-                Select an elder above to access care features
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Agency Management Section - Collapsible, at bottom, only for multi-agency tier */}
-        {isMultiAgency && (
-          <div className="pt-4 space-y-1">
-            <button
-              onClick={() => toggleSection('agency-management')}
-              className={cn(
-                'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold transition-colors',
-                (pathname === '/dashboard/agency' || pathname === '/dashboard/calendar' || pathname === '/dashboard/availability')
-                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Agency Management</span>
-              </div>
-              {collapsedSections['agency-management'] ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-            </button>
-
-            {!collapsedSections['agency-management'] && (
-              <div className="ml-2 space-y-1">
-                <Link
-                  href="/dashboard/agency"
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    pathname === '/dashboard/agency' && !pathname.includes('?')
-                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  )}
-                >
-                  <Building2 className="w-4 h-4" />
-                  Agency Overview
-                </Link>
-
-                <Link
-                  href="/dashboard/agency?tab=scheduling"
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  )}
-                >
-                  <CalendarDays className="w-4 h-4" />
-                  Shift Scheduling
-                </Link>
-
-                <Link
-                  href="/dashboard/agency?tab=assignments"
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  )}
-                >
-                  <UserCog className="w-4 h-4" />
-                  Caregiver Assignments
-                </Link>
-
-                <Link
-                  href="/dashboard/agency?tab=analytics"
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  )}
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Analytics
-                </Link>
-
-                <Link
-                  href="/dashboard/agency?tab=billing"
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  )}
-                >
-                  <DollarSign className="w-4 h-4" />
-                  Billing
-                </Link>
-
-                <Link
-                  href="/dashboard/calendar"
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    pathname === '/dashboard/calendar'
-                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  )}
-                >
-                  <CalendarCheck className="w-4 h-4" />
-                  Shift Calendar
-                </Link>
-
-                <Link
-                  href="/dashboard/availability"
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    pathname === '/dashboard/availability'
-                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  )}
-                >
-                  <ClockIcon className="w-4 h-4" />
-                  Caregiver Availability
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-      </nav>
-
-      {/* Settings - Always at bottom */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-700">
-        <Link
-          href="/dashboard/settings"
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-            pathname === '/dashboard/settings'
-              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
           )}
-        >
-          <Settings className="w-5 h-5" />
-          Settings
-        </Link>
-      </div>
+
+          {/* AI & Insights Section */}
+          <GraySectionLabel>AI & Insights</GraySectionLabel>
+          <div className="space-y-1">
+            <NavItem
+              href="/dashboard/ask-ai"
+              icon={MessageSquare}
+              label="Ask AI"
+              badge="New"
+              badgeColor="green"
+            />
+            <NavItem
+              href="/dashboard/safety-alerts"
+              icon={AlertTriangle}
+              label="Safety Alerts"
+            />
+            <NavItem
+              href="/dashboard/analytics"
+              icon={BarChart3}
+              label="Analytics"
+            />
+          </div>
+
+          {/* Personal Section */}
+          <GraySectionLabel>Personal</GraySectionLabel>
+          <div className="space-y-1">
+            <NavItem
+              href="/dashboard/notes"
+              icon={FileText}
+              label="My Notes"
+            />
+          </div>
+
+          {/* Agency Section - Only for multi-agency tier */}
+          {isMultiAgency && (
+            <>
+              <GraySectionLabel>Agency</GraySectionLabel>
+              <div className="space-y-1">
+                <NavItem
+                  href="/dashboard/care-management"
+                  icon={Users}
+                  label="Care Management"
+                />
+                <NavItem
+                  href="/dashboard/agency"
+                  icon={Building2}
+                  label="Agency Management"
+                />
+              </div>
+            </>
+          )}
+        </nav>
+
+        {/* Settings - Always at bottom */}
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+          <NavItem href="/dashboard/settings" icon={Settings} label="Settings" />
+        </div>
       </aside>
     </TooltipProvider>
   );
