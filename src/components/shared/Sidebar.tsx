@@ -31,7 +31,7 @@ const featureTooltips: Record<string, string> = {
   '/dashboard': 'View your overall caregiving dashboard',
   '/dashboard/elder-profile': 'View and manage health profile information',
   '/dashboard/daily-care': 'Track medications, supplements, diet & activity',
-  '/dashboard/ask-ai': 'Ask questions and get AI-powered insights',
+  '/dashboard/ask-ai': 'AI-powered health insights and chat',
   '/dashboard/safety-alerts': 'View drug interactions, incidents, and screening results',
   '/dashboard/analytics': 'View health trends and compliance analytics',
   '/dashboard/notes': 'Capture and share caregiving insights',
@@ -233,7 +233,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <NavItem
               href="/dashboard/ask-ai"
               icon={MessageSquare}
-              label="Ask AI"
+              label="Smart Insights"
               badge="New"
               badgeColor="green"
             />
