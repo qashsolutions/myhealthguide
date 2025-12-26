@@ -4,13 +4,24 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Users,
   UserPlus,
   Settings,
   BarChart3,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Pencil,
+  Loader2
 } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
@@ -32,6 +43,11 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
   const [elders, setElders] = useState<Elder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Group editing state
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [savingGroupName, setSavingGroupName] = useState(false);
 
   useEffect(() => {
     loadAgencyData();
@@ -68,6 +84,30 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
       setError(err.message || 'Failed to load agency data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveGroupName = async () => {
+    if (!editingGroup || !newGroupName.trim()) return;
+
+    try {
+      setSavingGroupName(true);
+      await GroupService.updateGroupName(editingGroup.id, newGroupName.trim());
+
+      // Update local state
+      setGroups(prev =>
+        prev.map(g =>
+          g.id === editingGroup.id ? { ...g, name: newGroupName.trim() } : g
+        )
+      );
+
+      setEditingGroup(null);
+      setNewGroupName('');
+    } catch (err: any) {
+      console.error('Error updating group name:', err);
+      setError(err.message || 'Failed to update group name');
+    } finally {
+      setSavingGroupName(false);
     }
   };
 
@@ -250,7 +290,21 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <div>
-                      <h4 className="font-medium">{group.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{group.name}</h4>
+                        {isSuperAdmin && (
+                          <button
+                            onClick={() => {
+                              setEditingGroup(group);
+                              setNewGroupName(group.name);
+                            }}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            title="Rename group"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         {groupElderCount} {groupElderCount === 1 ? 'elder' : 'elders'} • {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
                       </p>
@@ -265,6 +319,48 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Group Name Dialog */}
+      <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Group</DialogTitle>
+            <DialogDescription>
+              Enter a new name for this group
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder="Enter group name"
+              disabled={savingGroupName}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditingGroup(null)}
+              disabled={savingGroupName}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveGroupName}
+              disabled={savingGroupName || !newGroupName.trim()}
+            >
+              {savingGroupName ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pending Caregiver Approvals - Only for Super Admin */}
       {isSuperAdmin && (

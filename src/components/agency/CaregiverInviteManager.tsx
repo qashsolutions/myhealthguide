@@ -26,7 +26,7 @@ import {
   RefreshCw,
   Users,
   AlertCircle,
-  ExternalLink,
+  Share2,
   Copy,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -363,49 +363,59 @@ export function CaregiverInviteManager({
                       <div className="flex items-center gap-2 mt-1">
                         {getStatusBadge(invite.status, invite.expiresAt)}
                         {invite.smsStatus === 'test_mode' && (
-                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                            Test
-                          </Badge>
+                          <span className="text-xs text-gray-500">(SMS not sent)</span>
                         )}
                         <span className="text-xs text-gray-500">
                           {invite.createdAt
-                            ? `Sent ${formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })}`
+                            ? `${formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })}`
                             : ''}
                         </span>
                       </div>
-                      {/* Show invite link for test numbers */}
+                      {/* Show Share Invite button when SMS was skipped */}
                       {invite.testInviteUrl && invite.status === 'pending' && (
                         <div className="flex items-center gap-2 mt-2">
-                          <a
-                            href={invite.testInviteUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Open Test Invite
-                          </a>
                           <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(invite.testInviteUrl!);
-                              setCopiedId(invite.id);
-                              setTimeout(() => setCopiedId(null), 2000);
+                            onClick={async () => {
+                              const shareData = {
+                                title: 'Caregiver Invite',
+                                text: 'You\'ve been invited to join as a caregiver. Click the link to sign up:',
+                                url: invite.testInviteUrl!
+                              };
+
+                              // Try native share API (works on mobile, WhatsApp, etc.)
+                              if (navigator.share && navigator.canShare?.(shareData)) {
+                                try {
+                                  await navigator.share(shareData);
+                                } catch (err) {
+                                  // User cancelled or share failed, fallback to copy
+                                  if ((err as Error).name !== 'AbortError') {
+                                    navigator.clipboard.writeText(invite.testInviteUrl!);
+                                    setCopiedId(invite.id);
+                                    setTimeout(() => setCopiedId(null), 2000);
+                                  }
+                                }
+                              } else {
+                                // Fallback: copy to clipboard
+                                navigator.clipboard.writeText(invite.testInviteUrl!);
+                                setCopiedId(invite.id);
+                                setTimeout(() => setCopiedId(null), 2000);
+                              }
                             }}
-                            className={`text-xs flex items-center gap-1 ${
+                            className={`text-xs flex items-center gap-1 px-2 py-1 rounded border ${
                               copiedId === invite.id
-                                ? 'text-green-600'
-                                : 'text-gray-500 hover:text-gray-700'
+                                ? 'text-green-600 border-green-200 bg-green-50'
+                                : 'text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100'
                             }`}
                           >
                             {copiedId === invite.id ? (
                               <>
                                 <CheckCircle2 className="w-3 h-3" />
-                                Copied!
+                                Link Copied!
                               </>
                             ) : (
                               <>
-                                <Copy className="w-3 h-3" />
-                                Copy
+                                <Share2 className="w-3 h-3" />
+                                Share Invite
                               </>
                             )}
                           </button>
