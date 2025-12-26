@@ -4,6 +4,27 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
+// Disable navigation preload to avoid "preloadResponse" errors
+// This service worker only handles push notifications, not navigation
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      if (self.registration.navigationPreload) {
+        await self.registration.navigationPreload.disable();
+      }
+    })()
+  );
+});
+
+// Handle fetch events - pass through to network for navigation requests
+self.addEventListener('fetch', (event) => {
+  // Only handle navigation requests to avoid preload errors
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request));
+  }
+  // Let other requests pass through normally
+});
+
 // Initialize Firebase in the service worker
 const firebaseConfig = {
   apiKey: 'AIzaSyDT-wnOiaMtzb72nXfT-QvuoKpEHis9C0k',
