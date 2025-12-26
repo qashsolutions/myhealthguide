@@ -1612,6 +1612,62 @@ service cloud.firestore {
         resource.data.sourceUserId == request.auth.uid;
     }
 
+    // ============= Caregiver Invites Collection =============
+    // SMS invites sent by super admin to recruit caregivers
+
+    match /caregiver_invites/{inviteId} {
+      // Super admin can read invites for their agency
+      // The invite creator (super admin) can read their invites
+      allow read: if isSignedIn() &&
+        (resource.data.superAdminId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId));
+
+      // Only super admin can create invites for their agency
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(request.resource.data.agencyId) &&
+        request.resource.data.superAdminId == request.auth.uid;
+
+      // Super admin can update (cancel) invites
+      // System updates status to 'accepted' via API route
+      allow update: if isSignedIn() &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         // Allow API route to update status when caregiver accepts
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'acceptedByUserId', 'updatedAt']));
+
+      // Super admin can delete invites
+      allow delete: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
+    }
+
+    // ============= Caregiver Profiles Collection =============
+    // Detailed caregiver profiles with certifications, availability, etc.
+
+    match /caregiver_profiles/{profileId} {
+      // Super admin can read all caregiver profiles in their agency
+      // Caregiver can read their own profile
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (resource.data.userId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId));
+
+      // Caregivers can create their own profile during onboarding
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Caregivers can update their own profile
+      // Super admin can update caregiver profiles (for admin overrides)
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (resource.data.userId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId));
+
+      // Only super admin can delete caregiver profiles
+      allow delete: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default

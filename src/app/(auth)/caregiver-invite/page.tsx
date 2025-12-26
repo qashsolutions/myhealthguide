@@ -61,18 +61,16 @@ function CaregiverInviteContent() {
   }, [token]);
 
   const handleSignUp = () => {
-    // Store the invite token in sessionStorage so we can use it after signup
-    if (token) {
-      sessionStorage.setItem('caregiverInviteToken', token);
-    }
-    router.push('/phone-signup?role=caregiver');
+    // Redirect to the new caregiver signup page with dual verification
+    router.push(`/caregiver-signup?token=${token}`);
   };
 
   const handleLogin = () => {
+    // For existing users, they can login and then accept the invite
     if (token) {
       sessionStorage.setItem('caregiverInviteToken', token);
     }
-    router.push('/phone-login?role=caregiver');
+    router.push('/login');
   };
 
   if (loading) {
@@ -203,34 +201,43 @@ function CaregiverInviteContent() {
                 <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-medium text-blue-600 dark:text-blue-400">1</span>
                 </div>
-                <p>Sign up using the phone number <strong>{invite?.phoneNumber}</strong></p>
+                <p>Enter your name and email address</p>
               </div>
               <div className="flex items-start gap-2">
                 <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-medium text-blue-600 dark:text-blue-400">2</span>
                 </div>
-                <p>Complete your caregiver profile (required)</p>
+                <p>Verify your phone number <strong>{invite?.phoneNumber}</strong></p>
               </div>
               <div className="flex items-start gap-2">
                 <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-medium text-blue-600 dark:text-blue-400">3</span>
                 </div>
-                <p>The agency admin will assign you to elders</p>
+                <p>Verify your email address</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">4</span>
+                </div>
+                <p>Complete your caregiver profile</p>
               </div>
             </div>
           </div>
 
-          {/* Important note about phone number */}
+          {/* Important note about verification */}
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
             <div className="flex items-start gap-2">
               <Shield className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                <strong>Important:</strong> You must sign up with the phone number{' '}
-                <span className="font-mono bg-yellow-100 dark:bg-yellow-800 px-1 rounded">
-                  {invite?.phoneNumber}
-                </span>{' '}
-                to be linked to this agency.
-              </p>
+              <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                <p><strong>Security Requirement:</strong></p>
+                <p className="mt-1">
+                  You must verify <strong>both</strong> your phone number{' '}
+                  <span className="font-mono bg-yellow-100 dark:bg-yellow-800 px-1 rounded">
+                    {invite?.phoneNumber}
+                  </span>{' '}
+                  and your email address to complete signup.
+                </p>
+              </div>
             </div>
           </div>
 
