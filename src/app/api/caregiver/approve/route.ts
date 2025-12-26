@@ -107,6 +107,81 @@ export async function POST(req: NextRequest) {
 
     await batch.commit();
 
+    // Send FCM notification to the caregiver
+    const caregiverName = userData.firstName || 'Caregiver';
+
+    if (action === 'approve') {
+      // Queue FCM push notification for approval
+      await adminDb.collection('fcm_notification_queue').add({
+        userId: caregiverId,
+        title: '✅ Access Approved!',
+        body: `Your request to join ${agencyData.name} has been approved. You can now access the caregiver dashboard.`,
+        data: {
+          type: 'caregiver_approved',
+          agencyId,
+          url: '/dashboard'
+        },
+        webpush: {
+          fcmOptions: {
+            link: '/dashboard'
+          },
+          notification: {
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            tag: `caregiver-approved-${agencyId}`
+          }
+        },
+        status: 'pending',
+        createdAt: Timestamp.now()
+      });
+
+      // Create dashboard alert for caregiver
+      await adminDb.collection('alerts').add({
+        userId: caregiverId,
+        groupId: agencyData.groupIds?.[0] || null,
+        type: 'caregiver_approved',
+        severity: 'info',
+        title: 'Access Approved!',
+        message: `You have been approved to join ${agencyData.name}. You can now access elder care features.`,
+        data: { agencyId, agencyName: agencyData.name },
+        actionUrl: '/dashboard',
+        actionButtons: [
+          { label: 'Go to Dashboard', action: 'view', url: '/dashboard' }
+        ],
+        status: 'active',
+        read: false,
+        dismissed: false,
+        createdAt: Timestamp.now(),
+        expiresAt: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
+      });
+    } else {
+      // Queue FCM push notification for rejection
+      await adminDb.collection('fcm_notification_queue').add({
+        userId: caregiverId,
+        title: '❌ Access Request Declined',
+        body: `Your request to join ${agencyData.name} was not approved. Contact the agency for more information.`,
+        data: {
+          type: 'caregiver_rejected',
+          agencyId,
+          url: '/'
+        },
+        webpush: {
+          fcmOptions: {
+            link: '/'
+          },
+          notification: {
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            tag: `caregiver-rejected-${agencyId}`
+          }
+        },
+        status: 'pending',
+        createdAt: Timestamp.now()
+      });
+    }
+
+    console.log(`Notification sent to caregiver ${caregiverId} for ${action}`);
+
     return NextResponse.json({
       success: true,
       action,

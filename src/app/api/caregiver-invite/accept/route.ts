@@ -167,6 +167,69 @@ export async function POST(req: NextRequest) {
     // Commit batch
     await batch.commit();
 
+    // 5. Send FCM notification and dashboard alert to super admin
+    const superAdminId = agencyData.superAdminId;
+    if (superAdminId) {
+      const userData = userDoc.exists ? userDoc.data() : null;
+      const caregiverName = userData?.firstName && userData?.lastName
+        ? `${userData.firstName} ${userData.lastName}`
+        : userData?.email || phoneNumber;
+
+      // Queue FCM push notification
+      await adminDb.collection('fcm_notification_queue').add({
+        userId: superAdminId,
+        title: '👤 New Caregiver Request',
+        body: `${caregiverName} has requested to join ${agencyData.name}. Review and approve their access.`,
+        data: {
+          type: 'caregiver_approval_request',
+          caregiverId: userId,
+          agencyId,
+          url: '/dashboard/agency'
+        },
+        webpush: {
+          fcmOptions: {
+            link: '/dashboard/agency'
+          },
+          notification: {
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            requireInteraction: true,
+            tag: `caregiver-approval-${userId}`
+          }
+        },
+        status: 'pending',
+        createdAt: Timestamp.now()
+      });
+
+      // Create dashboard alert
+      await adminDb.collection('alerts').add({
+        userId: superAdminId,
+        groupId: agencyData.groupIds?.[0] || null,
+        type: 'caregiver_approval_request',
+        severity: 'warning',
+        title: 'New Caregiver Awaiting Approval',
+        message: `${caregiverName} has completed verification and is waiting for your approval to access the agency.`,
+        data: {
+          caregiverId: userId,
+          caregiverName,
+          agencyId,
+          agencyName: agencyData.name
+        },
+        actionUrl: '/dashboard/agency',
+        actionButtons: [
+          { label: 'Review Now', action: 'view', url: '/dashboard/agency' },
+          { label: 'Dismiss', action: 'dismiss' }
+        ],
+        status: 'active',
+        read: false,
+        dismissed: false,
+        createdAt: Timestamp.now(),
+        expiresAt: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
+      });
+
+      console.log(`Notification sent to super admin ${superAdminId} for caregiver approval`);
+    }
+
     return NextResponse.json({
       success: true,
       agencyId,
