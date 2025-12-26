@@ -261,15 +261,13 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             </div>
           )}
 
-          {/* AI & Insights Section */}
-          <GraySectionLabel>AI & Insights</GraySectionLabel>
+          {/* Smart Insights Section */}
+          <GraySectionLabel>Smart Insights</GraySectionLabel>
           <div className="space-y-1">
             <NavItem
               href="/dashboard/ask-ai"
               icon={MessageSquare}
-              label="Smart Insights"
-              badge="New"
-              badgeColor="green"
+              label="Insights"
             />
             <NavItem
               href="/dashboard/safety-alerts"
