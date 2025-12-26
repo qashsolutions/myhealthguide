@@ -37,7 +37,12 @@ export async function getUserTier(userId: string): Promise<PlanTier | null> {
 
     const userData = userDoc.data();
 
-    // During trial, assume family tier for limits
+    // If user has a paid subscription (stripeSubscriptionId), use their actual tier
+    if (userData.stripeSubscriptionId && userData.subscriptionTier) {
+      return userData.subscriptionTier as PlanTier;
+    }
+
+    // During trial without paid subscription, assume family tier for limits
     if (userData.subscriptionStatus === 'trial') {
       return 'family';
     }
