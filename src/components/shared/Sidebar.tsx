@@ -52,22 +52,32 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { selectedElder, availableElders } = useElder();
 
   // Get a unique display name for the selected elder
-  // If multiple elders have the same first name, use preferredName or full name
+  // Priority: preferredName > unique first name > full name (for duplicates)
   const elderDisplayName = useMemo(() => {
     if (!selectedElder) return null;
 
+    // If preferredName exists, always use it (user explicitly set it)
+    if (selectedElder.preferredName) {
+      return selectedElder.preferredName;
+    }
+
     const selectedFirstName = selectedElder.name.split(' ')[0].toLowerCase();
 
-    // Check if any other elder has the same first name
-    const hasDuplicateFirstName = availableElders.some(
-      (elder) =>
-        elder.id !== selectedElder.id &&
-        elder.name.split(' ')[0].toLowerCase() === selectedFirstName
-    );
+    // Check if any other elder has a similar first name (starts with same letters)
+    const hasSimilarFirstName = availableElders.some((elder) => {
+      if (elder.id === selectedElder.id) return false;
+      const otherFirstName = elder.name.split(' ')[0].toLowerCase();
+      // Check for exact match or one starts with the other (e.g., "john" vs "john1")
+      return (
+        otherFirstName === selectedFirstName ||
+        otherFirstName.startsWith(selectedFirstName) ||
+        selectedFirstName.startsWith(otherFirstName)
+      );
+    });
 
-    if (hasDuplicateFirstName) {
-      // Use preferredName (nickname) if available, otherwise use full name
-      return selectedElder.preferredName || selectedElder.name;
+    if (hasSimilarFirstName) {
+      // Use full name to disambiguate
+      return selectedElder.name;
     }
 
     // Unique first name - just use it

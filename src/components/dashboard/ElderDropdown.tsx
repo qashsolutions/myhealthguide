@@ -168,7 +168,19 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
                       {elder.approximateAge
                         ? `${elder.approximateAge} yrs`
                         : elder.dateOfBirth
-                          ? `${new Date().getFullYear() - new Date(elder.dateOfBirth).getFullYear()} yrs`
+                          ? (() => {
+                              // Handle Firestore Timestamp conversion
+                              let dob: Date;
+                              if (typeof elder.dateOfBirth === 'object' && 'seconds' in (elder.dateOfBirth as any)) {
+                                dob = new Date((elder.dateOfBirth as any).seconds * 1000);
+                              } else if (elder.dateOfBirth instanceof Date) {
+                                dob = elder.dateOfBirth;
+                              } else {
+                                dob = new Date(elder.dateOfBirth as any);
+                              }
+                              const age = new Date().getFullYear() - dob.getFullYear();
+                              return isNaN(age) ? 'Age not set' : `${age} yrs`;
+                            })()
                           : 'Age not set'}
                     </span>
                   </div>
