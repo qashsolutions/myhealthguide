@@ -93,16 +93,24 @@ export function ReminderDialog({
         scheduledTime.setDate(scheduledTime.getDate() + 1);
       }
 
-      await NotificationService.createReminderSchedule({
+      // Build schedule data - only include medicationId OR supplementId (not undefined)
+      const scheduleData: Parameters<typeof NotificationService.createReminderSchedule>[0] = {
         groupId,
         elderId,
-        medicationId: selectedItem.type === 'medication' ? selectedItem.id : undefined,
-        supplementId: selectedItem.type === 'supplement' ? selectedItem.id : undefined,
         type: selectedItem.type,
         scheduledTime,
         recipients: [userId],
         enabled: true,
-      });
+      };
+
+      // Only add the relevant ID field (Firestore doesn't accept undefined)
+      if (selectedItem.type === 'medication') {
+        scheduleData.medicationId = selectedItem.id;
+      } else {
+        scheduleData.supplementId = selectedItem.id;
+      }
+
+      await NotificationService.createReminderSchedule(scheduleData);
 
       setSuccess(true);
       setTimeout(() => {
