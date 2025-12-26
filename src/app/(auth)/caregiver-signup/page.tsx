@@ -639,13 +639,16 @@ function CaregiverSignupForm() {
               </div>
             </div>
 
-            <p className="text-xs text-gray-500">
-              You will be notified once your access is approved. You can close this page.
-            </p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                You&apos;ll receive a push notification when your access is approved.
+                You can log in now to check your status.
+              </p>
+            </div>
 
-            <Link href="/phone-login">
-              <Button variant="outline" className="w-full">
-                Go to Login
+            <Link href="/phone-login" className="w-full">
+              <Button className="w-full">
+                Continue to Login
               </Button>
             </Link>
           </div>
