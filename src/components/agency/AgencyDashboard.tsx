@@ -14,9 +14,10 @@ import {
 } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
-import { Agency, CaregiverAssignment, Group } from '@/types';
+import { Agency, CaregiverAssignment, Group, Elder } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CaregiverInviteManager } from './CaregiverInviteManager';
+import { CaregiverEldersOverview } from './CaregiverEldersOverview';
 
 interface AgencyDashboardProps {
   userId: string;
@@ -27,6 +28,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
   const [agency, setAgency] = useState<Agency | null>(null);
   const [assignments, setAssignments] = useState<CaregiverAssignment[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [elders, setElders] = useState<Elder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,9 +42,10 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
       setLoading(true);
       setError(null);
 
-      const [agencyData, assignmentsData] = await Promise.all([
+      const [agencyData, assignmentsData, eldersData] = await Promise.all([
         AgencyService.getAgency(agencyId),
-        AgencyService.getAgencyAssignments(agencyId)
+        AgencyService.getAgencyAssignments(agencyId),
+        AgencyService.getAgencyElders(agencyId)
       ]);
 
       if (!agencyData) {
@@ -52,6 +55,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
 
       setAgency(agencyData);
       setAssignments(assignmentsData);
+      setElders(eldersData);
 
       // Load groups
       const groupsData = await Promise.all(
@@ -92,7 +96,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
   }
 
   const isSuperAdmin = agency.superAdminId === userId;
-  const totalElders = groups.reduce((sum, group) => sum + group.elders.length, 0);
+  const totalElders = elders.length;
   const activeCaregivers = new Set(assignments.filter(a => a.active).map(a => a.caregiverId)).size;
 
   return (
@@ -236,25 +240,40 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {groups.map(group => (
-                <div
-                  key={group.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <div>
-                    <h4 className="font-medium">{group.name}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {group.elders.length} {group.elders.length === 1 ? 'elder' : 'elders'} • {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
-                    </p>
+              {groups.map(group => {
+                // Count elders for this specific group
+                const groupElderCount = elders.filter(e => e.groupId === group.id).length;
+                return (
+                  <div
+                    key={group.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <div>
+                      <h4 className="font-medium">{group.name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {groupElderCount} {groupElderCount === 1 ? 'elder' : 'elders'} • {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {group.type}
+                    </Badge>
                   </div>
-                  <Badge variant="outline">
-                    {group.type}
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Caregiver-Elder Assignments Overview - Only for Super Admin */}
+      {isSuperAdmin && groups.length > 0 && (
+        <CaregiverEldersOverview
+          agencyId={agencyId}
+          groupId={groups[0].id}
+          userId={userId}
+          maxEldersPerCaregiver={agency.maxEldersPerCaregiver}
+          isSuperAdmin={isSuperAdmin}
+        />
       )}
 
       {/* Caregiver Invite Manager - Only for Super Admin */}

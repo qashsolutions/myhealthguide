@@ -577,4 +577,106 @@ export class AgencyService {
       throw error;
     }
   }
+
+  // ============= Elder Query Methods =============
+
+  /**
+   * Get all elders for an agency (from the elders collection)
+   */
+  static async getAgencyElders(agencyId: string): Promise<Elder[]> {
+    try {
+      const agency = await this.getAgency(agencyId);
+      if (!agency) return [];
+
+      const elders: Elder[] = [];
+
+      // Query elders for each group in the agency
+      for (const groupId of agency.groupIds) {
+        const q = query(
+          collection(db, 'elders'),
+          where('groupId', '==', groupId)
+        );
+        const snap = await getDocs(q);
+
+        snap.docs.forEach(docSnap => {
+          const data = docSnap.data();
+          // Only include non-archived elders
+          if (!data.archived) {
+            elders.push({
+              id: docSnap.id,
+              groupId: data.groupId,
+              name: data.name,
+              dateOfBirth: data.dateOfBirth?.toDate?.() || undefined,
+              approximateAge: data.approximateAge,
+              userId: data.userId,
+              profileImage: data.profileImage,
+              notes: data.notes || '',
+              createdAt: data.createdAt?.toDate?.() || new Date(),
+              preferredName: data.preferredName,
+              gender: data.gender,
+              biologicalSex: data.biologicalSex,
+              primaryCaregiverId: data.primaryCaregiverId,
+              primaryCaregiverName: data.primaryCaregiverName,
+              primaryCaregiverAssignedAt: data.primaryCaregiverAssignedAt?.toDate?.(),
+              primaryCaregiverAssignedBy: data.primaryCaregiverAssignedBy,
+            } as Elder);
+          }
+        });
+      }
+
+      return elders;
+    } catch (error) {
+      console.error('Error getting agency elders:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get elders grouped by caregiver
+   * Returns: Map<caregiverId, Elder[]>
+   * Also returns unassigned elders under the key 'unassigned'
+   */
+  static async getEldersByCaregiver(agencyId: string): Promise<{
+    caregiverElders: Map<string, Elder[]>;
+    unassignedElders: Elder[];
+  }> {
+    try {
+      const [assignments, elders] = await Promise.all([
+        this.getAgencyAssignments(agencyId),
+        this.getAgencyElders(agencyId)
+      ]);
+
+      // Create a map of elder ID to elder object
+      const elderMap = new Map(elders.map(e => [e.id, e]));
+
+      // Track which elders are assigned
+      const assignedElderIds = new Set<string>();
+
+      // Group elders by caregiver
+      const caregiverElders = new Map<string, Elder[]>();
+
+      for (const assignment of assignments) {
+        if (!assignment.active) continue;
+
+        const assignedElders = assignment.elderIds
+          .map(id => {
+            assignedElderIds.add(id);
+            return elderMap.get(id);
+          })
+          .filter((e): e is Elder => e !== undefined);
+
+        // Merge with existing elders for this caregiver (if multiple assignments)
+        const existing = caregiverElders.get(assignment.caregiverId) || [];
+        caregiverElders.set(assignment.caregiverId, [...existing, ...assignedElders]);
+      }
+
+      // Find unassigned elders
+      const unassignedElders = elders.filter(e => !assignedElderIds.has(e.id));
+
+      return { caregiverElders, unassignedElders };
+    } catch (error) {
+      console.error('Error getting elders by caregiver:', error);
+      throw error;
+    }
+  }
 }
