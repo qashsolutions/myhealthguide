@@ -971,6 +971,25 @@ service cloud.firestore {
          isGroupAdmin(resource.data.groupId));
     }
 
+    // ============= Security Audit Logs (Caregiver Invites, etc.) =============
+
+    match /security_audit_logs/{logId} {
+      // Super admin can read security audit logs for their agency
+      allow read: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
+
+      // Only server (Admin SDK) can create security audit logs
+      // No client-side write access for security integrity
+      allow create: if false;
+
+      // Security audit logs are IMMUTABLE (audit trail integrity)
+      allow update: if false;
+
+      // Only super admin can delete their agency's audit logs
+      allow delete: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
+    }
+
     // ============= Scheduled Shifts Collection (Calendar) =============
 
     match /scheduledShifts/{shiftId} {

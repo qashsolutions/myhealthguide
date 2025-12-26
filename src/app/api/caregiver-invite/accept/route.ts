@@ -4,10 +4,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
+// Extract client IP address for security logging
+function getClientIP(req: NextRequest): string {
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  const realIP = req.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
+  return 'unknown';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { token, userId, phoneNumber } = body;
+
+    // Get client IP for security audit
+    const clientIP = getClientIP(req);
+    const userAgent = req.headers.get('user-agent') || 'unknown';
 
     if (!token || !userId || !phoneNumber) {
       return NextResponse.json(
@@ -89,12 +106,27 @@ export async function POST(req: NextRequest) {
     // Start a batch write
     const batch = adminDb.batch();
 
-    // 1. Update invite status
+    // 1. Update invite status with security audit info
     batch.update(inviteDoc.ref, {
       status: 'accepted',
       acceptedAt: Timestamp.now(),
       acceptedByUserId: userId,
+      acceptedFromIP: clientIP,
+      acceptedUserAgent: userAgent,
       updatedAt: Timestamp.now(),
+    });
+
+    // Create security audit log entry
+    const auditRef = adminDb.collection('security_audit_logs').doc();
+    batch.set(auditRef, {
+      type: 'caregiver_invite_accepted',
+      inviteId: inviteDoc.id,
+      agencyId,
+      userId,
+      phoneNumber: inviteData.phoneNumber,
+      clientIP,
+      userAgent,
+      timestamp: Timestamp.now(),
     });
 
     // 2. Add user to agency's caregiverIds
