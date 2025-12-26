@@ -35,12 +35,24 @@ export class ElderService {
       throw new Error(canCreate.message || 'Cannot create elder due to plan limits');
     }
 
-    const docRef = await addDoc(collection(db, this.COLLECTION), {
-      ...elder,
+    // Remove undefined values before saving to Firestore
+    const { dateOfBirth, createdAt, ...elderData } = elder;
+
+    // Build document data, excluding undefined fields
+    const docData: Record<string, any> = {
+      ...Object.fromEntries(
+        Object.entries(elderData).filter(([_, v]) => v !== undefined)
+      ),
       groupId,
-      ...(elder.dateOfBirth && { dateOfBirth: Timestamp.fromDate(elder.dateOfBirth) }),
-      createdAt: Timestamp.fromDate(elder.createdAt)
-    });
+      createdAt: Timestamp.fromDate(createdAt),
+    };
+
+    // Only add dateOfBirth if it exists
+    if (dateOfBirth) {
+      docData.dateOfBirth = Timestamp.fromDate(dateOfBirth);
+    }
+
+    const docRef = await addDoc(collection(db, this.COLLECTION), docData);
 
     const result = {
       ...elder,
