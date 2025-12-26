@@ -690,6 +690,32 @@ export class AuthService {
   }
 
   /**
+   * Check if current user's email is verified (reloads Firebase user)
+   */
+  static async checkEmailVerified(): Promise<boolean> {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return false;
+    }
+
+    // Reload the user to get fresh data from Firebase
+    await reload(currentUser);
+    return currentUser.emailVerified;
+  }
+
+  /**
+   * Resend email verification to current user
+   */
+  static async resendVerificationEmail(): Promise<void> {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('No user logged in');
+    }
+
+    await sendEmailVerification(currentUser);
+  }
+
+  /**
    * Mark phone as verified
    */
   static async markPhoneVerified(userId: string): Promise<void> {

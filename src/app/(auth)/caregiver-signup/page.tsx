@@ -281,7 +281,7 @@ function CaregiverSignupForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: inviteData?.token,
-          userId: currentUser.id,
+          userId: currentUser.uid,
           phoneNumber: formattedPhone
         })
       });
