@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useElder } from '@/contexts/ElderContext';
+import { useMemo } from 'react';
 import { useSubscription } from '@/lib/subscription';
 import {
   Home,
@@ -48,7 +49,30 @@ interface SidebarProps {
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { isMultiAgency } = useSubscription();
-  const { selectedElder } = useElder();
+  const { selectedElder, availableElders } = useElder();
+
+  // Get a unique display name for the selected elder
+  // If multiple elders have the same first name, use preferredName or full name
+  const elderDisplayName = useMemo(() => {
+    if (!selectedElder) return null;
+
+    const selectedFirstName = selectedElder.name.split(' ')[0].toLowerCase();
+
+    // Check if any other elder has the same first name
+    const hasDuplicateFirstName = availableElders.some(
+      (elder) =>
+        elder.id !== selectedElder.id &&
+        elder.name.split(' ')[0].toLowerCase() === selectedFirstName
+    );
+
+    if (hasDuplicateFirstName) {
+      // Use preferredName (nickname) if available, otherwise use full name
+      return selectedElder.preferredName || selectedElder.name;
+    }
+
+    // Unique first name - just use it
+    return selectedElder.name.split(' ')[0];
+  }, [selectedElder, availableElders]);
 
   // Close sidebar on route change (mobile only)
   useEffect(() => {
@@ -201,7 +225,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           {selectedElder ? (
             <>
               <SectionLabel showIndicator>
-                {selectedElder.name.split(' ')[0]}&apos;s Care
+                {elderDisplayName}&apos;s Care
               </SectionLabel>
 
               <div className="space-y-1">
