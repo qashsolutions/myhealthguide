@@ -302,7 +302,12 @@ export default function EldersPage() {
             {canAddElder ? (
               <Link href="/dashboard/elders/new">
                 <Button>
-                  Add Your First Elder
+                  Add an Elder
+                  {elderLimitCheck?.limit && (
+                    <span className="ml-2 text-xs opacity-75">
+                      ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
+                    </span>
+                  )}
                 </Button>
               </Link>
             ) : (
@@ -310,7 +315,12 @@ export default function EldersPage() {
                 <TooltipTrigger asChild>
                   <Button disabled className="cursor-not-allowed opacity-60">
                     <Lock className="w-4 h-4 mr-2" />
-                    Add Your First Elder
+                    Add an Elder
+                    {elderLimitCheck?.limit && (
+                      <span className="ml-2 text-xs opacity-75">
+                        ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
+                      </span>
+                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>

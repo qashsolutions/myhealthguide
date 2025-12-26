@@ -90,12 +90,15 @@ export class ElderService {
     );
 
     const snapshot = await getDocs(q);
-    const elders = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      dateOfBirth: doc.data().dateOfBirth.toDate(),
-      createdAt: doc.data().createdAt.toDate()
-    })) as Elder[];
+    const elders = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        dateOfBirth: data.dateOfBirth?.toDate() || undefined,
+        createdAt: data.createdAt?.toDate() || new Date(),
+      };
+    }) as Elder[];
 
     // HIPAA Audit Log: Record PHI access (elders list contains PHI)
     if (elders.length > 0) {
@@ -127,11 +130,12 @@ export class ElderService {
 
     if (!snapshot.exists()) return null;
 
+    const data = snapshot.data();
     const elder = {
       id: snapshot.id,
-      ...snapshot.data(),
-      dateOfBirth: snapshot.data().dateOfBirth.toDate(),
-      createdAt: snapshot.data().createdAt.toDate()
+      ...data,
+      dateOfBirth: data.dateOfBirth?.toDate() || undefined,
+      createdAt: data.createdAt?.toDate() || new Date(),
     } as Elder;
 
     // HIPAA Audit Log: Record individual elder PHI access
