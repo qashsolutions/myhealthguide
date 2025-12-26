@@ -26,6 +26,8 @@ import {
   RefreshCw,
   Users,
   AlertCircle,
+  ExternalLink,
+  Copy,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -37,6 +39,7 @@ interface CaregiverInvite {
   expiresAt: string;
   acceptedAt?: string;
   smsStatus?: string;
+  testInviteUrl?: string;
 }
 
 interface CaregiverInviteManagerProps {
@@ -133,6 +136,11 @@ export function CaregiverInviteManager({
       await fetchInvites();
       setPhoneNumber('');
       setDialogOpen(false);
+
+      // If test mode, show the invite URL in an alert
+      if (data.testMode && data.inviteUrl) {
+        alert(`Test invite created!\n\nInvite URL (copy this):\n${data.inviteUrl}`);
+      }
     } catch (error) {
       setPhoneError('Failed to send invite. Please try again.');
     } finally {
@@ -357,12 +365,41 @@ export function CaregiverInviteManager({
                       <p className="font-medium">{formatPhoneDisplay(invite.phoneNumber)}</p>
                       <div className="flex items-center gap-2 mt-1">
                         {getStatusBadge(invite.status, invite.expiresAt)}
+                        {invite.smsStatus === 'test_mode' && (
+                          <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            Test
+                          </Badge>
+                        )}
                         <span className="text-xs text-gray-500">
                           {invite.createdAt
                             ? `Sent ${formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })}`
                             : ''}
                         </span>
                       </div>
+                      {/* Show invite link for test numbers */}
+                      {invite.testInviteUrl && invite.status === 'pending' && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <a
+                            href={invite.testInviteUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Open Test Invite
+                          </a>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(invite.testInviteUrl!);
+                              alert('Invite URL copied to clipboard!');
+                            }}
+                            className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                          >
+                            <Copy className="w-3 h-3" />
+                            Copy
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {canCancel && (

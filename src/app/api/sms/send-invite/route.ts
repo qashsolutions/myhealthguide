@@ -157,7 +157,32 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
     const inviteUrl = `${appUrl}/caregiver-invite?token=${inviteToken}`;
 
-    // Send SMS via Twilio
+    // Check if this is a test phone number (555 numbers are fictional/test)
+    const isTestNumber = normalizedPhone.startsWith('+1555');
+
+    if (isTestNumber) {
+      // For test numbers, skip actual SMS and just create the invite
+      console.log(`Test phone number detected (${normalizedPhone}). Skipping Twilio SMS.`);
+
+      await inviteRef.set({
+        ...inviteData,
+        smsSentAt: Timestamp.now(),
+        smsMessageId: 'test-mode-skipped',
+        smsStatus: 'test_mode',
+        testInviteUrl: inviteUrl, // Store URL for easy testing
+      });
+
+      return NextResponse.json({
+        success: true,
+        inviteId: inviteRef.id,
+        message: 'Test invite created (SMS skipped for 555 number)',
+        inviteUrl, // Return URL for test purposes
+        expiresAt: expiresAt.toISOString(),
+        testMode: true,
+      });
+    }
+
+    // Send SMS via Twilio for real phone numbers
     const twilioClient = getTwilioClient();
     const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
@@ -237,6 +262,7 @@ export async function GET(req: NextRequest) {
         expiresAt: data.expiresAt?.toDate?.()?.toISOString() || null,
         acceptedAt: data.acceptedAt?.toDate?.()?.toISOString() || null,
         smsStatus: data.smsStatus,
+        testInviteUrl: data.testInviteUrl || null, // Include for test numbers
       };
     });
 
