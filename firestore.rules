@@ -260,11 +260,12 @@ service cloud.firestore {
         isCaregiverAssignedToElder(elderId) ||
         (canAccessGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
 
-      // Only members with WRITE permission OR assigned caregivers can create elders
+      // Only group admins or users with explicit WRITE permission can create elders
+      // Caregivers CANNOT create elders - only super admin handles onboarding
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        (hasWritePermission(request.resource.data.groupId) ||
-         canAccessGroup(request.resource.data.groupId));
+        (isGroupAdmin(request.resource.data.groupId) ||
+         hasWritePermission(request.resource.data.groupId));
 
       // Only members with WRITE permission OR assigned caregivers can update elders
       allow update: if hasActiveAccess(request.auth.uid) &&
