@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { ElderService } from '@/lib/firebase/elders';
-import { User, Info } from 'lucide-react';
+import { User, Info, ShieldAlert } from 'lucide-react';
 import type { Elder } from '@/types';
+
+// Check if user is a caregiver (not super admin) in any agency
+function isCaregiverOnly(user: any): boolean {
+  if (!user?.agencies || user.agencies.length === 0) return false;
+
+  // If user has ANY agency where they are super_admin or admin, they can add elders
+  const hasAdminRole = user.agencies.some((agency: any) =>
+    agency.role === 'super_admin' || agency.role === 'admin' || agency.role === 'caregiver_admin'
+  );
+
+  // User is caregiver-only if they have agencies but no admin role
+  return user.agencies.length > 0 && !hasAdminRole;
+}
 
 // Common languages for eldercare
 const COMMON_LANGUAGES = [
@@ -62,6 +75,49 @@ export default function NewElderPage() {
   const [useExactDOB, setUseExactDOB] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Check if user is a caregiver - they cannot add elders
+  const isCaregiver = isCaregiverOnly(user);
+
+  // Show access denied for caregivers
+  if (isCaregiver) {
+    return (
+      <div className="max-w-lg mx-auto mt-12">
+        <Card className="border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <ShieldAlert className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <CardTitle className="text-red-800 dark:text-red-200">Access Restricted</CardTitle>
+                <CardDescription className="text-red-600 dark:text-red-300">
+                  Caregivers cannot add elders
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-red-700 dark:text-red-300">
+              Only agency administrators can add new elders to the system. This ensures proper
+              onboarding and billing setup.
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              If you need to care for a new elder, please contact your agency administrator
+              to have them added to the system and assigned to you.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/dashboard')}
+              className="w-full"
+            >
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Calculate DOB from approximate age (kept for future use if needed)
   const calculateDOBFromAge = (age: number): Date => {

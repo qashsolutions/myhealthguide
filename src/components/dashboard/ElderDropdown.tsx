@@ -3,8 +3,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useElder } from '@/contexts/ElderContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ChevronDown, Plus, Settings, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Check if user is a caregiver (not super admin) in any agency
+function isCaregiverOnly(user: any): boolean {
+  if (!user?.agencies || user.agencies.length === 0) return false;
+
+  // If user has ANY agency where they are super_admin or admin, they can add elders
+  const hasAdminRole = user.agencies.some((agency: any) =>
+    agency.role === 'super_admin' || agency.role === 'admin' || agency.role === 'caregiver_admin'
+  );
+
+  // User is caregiver-only if they have agencies but no admin role
+  return user.agencies.length > 0 && !hasAdminRole;
+}
 
 // Generate a consistent gradient based on the elder's name
 function getAvatarGradient(name: string): string {
@@ -37,9 +51,13 @@ interface ElderDropdownProps {
 
 export function ElderDropdown({ className }: ElderDropdownProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const { selectedElder, availableElders, setSelectedElder, isLoading } = useElder();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Caregivers cannot add elders - only admins/super admins can
+  const canAddElders = !isCaregiverOnly(user);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -65,6 +83,18 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
 
   // No elders state
   if (availableElders.length === 0) {
+    // Caregivers see a different message - they need to wait for assignment
+    if (!canAddElders) {
+      return (
+        <div className={cn(
+          "flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700",
+          className
+        )}>
+          <span className="text-sm text-gray-500 dark:text-gray-400">No elders assigned</span>
+        </div>
+      );
+    }
+
     return (
       <button
         onClick={() => router.push('/dashboard/elders/new')}
@@ -191,16 +221,19 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
 
           {/* Actions */}
           <div className="border-t border-gray-100 dark:border-gray-700">
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                router.push('/dashboard/elders/new');
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            >
-              <Plus className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Add New Elder</span>
-            </button>
+            {/* Only show Add New Elder for admins/super admins */}
+            {canAddElders && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push('/dashboard/elders/new');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <Plus className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Add New Elder</span>
+              </button>
+            )}
 
             <button
               onClick={() => {
@@ -210,7 +243,7 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
               className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
               <Settings className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Manage All Elders</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">{canAddElders ? 'Manage All Elders' : 'View All Elders'}</span>
             </button>
           </div>
         </div>
