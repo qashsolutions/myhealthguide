@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
           agencies: FieldValue.arrayUnion({
             agencyId,
             role: 'caregiver',
+            status: 'pending_approval', // Requires admin approval before accessing elder data
             joinedAt: new Date(),
             assignedElderIds: [],
             assignedGroupIds: [],
@@ -137,6 +138,7 @@ export async function POST(req: NextRequest) {
       id: userId,
       userId,
       agencyId,
+      status: 'pending_approval', // Requires admin approval
       fullName: '', // To be filled in onboarding
       languages: [],
       yearsExperience: 0,
@@ -169,8 +171,9 @@ export async function POST(req: NextRequest) {
       success: true,
       agencyId,
       agencyName: agencyData.name,
-      message: 'Successfully joined the agency. Please complete your caregiver profile.',
+      message: 'Your request has been submitted. An administrator will review and approve your access.',
       requiresOnboarding: true,
+      pendingApproval: true,
     });
   } catch (error) {
     console.error('Error accepting invite:', error);

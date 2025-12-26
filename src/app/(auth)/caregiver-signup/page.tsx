@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthService } from '@/lib/firebase/auth';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
-import { Loader2, Phone, Mail, User, CheckCircle2, ArrowLeft, Shield } from 'lucide-react';
+import { Loader2, Phone, Mail, User, CheckCircle2, ArrowLeft, Shield, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 type Step = 'info' | 'phone' | 'email' | 'complete';
@@ -293,11 +293,7 @@ function CaregiverSignupForm() {
       }
 
       setStep('complete');
-
-      // Redirect to onboarding after short delay
-      setTimeout(() => {
-        router.push('/dashboard/caregiver-onboarding');
-      }, 2000);
+      // No auto-redirect - caregiver must wait for admin approval
     } catch (err: any) {
       console.error('Error accepting invite:', err);
       setError(err.message || 'Failed to complete signup');
@@ -470,27 +466,20 @@ function CaregiverSignupForm() {
             {!confirmationResult ? (
               <form onSubmit={handleSendPhoneCode} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Label htmlFor="phoneNumber">Phone Number from Invite</Label>
                   <div className="flex">
-                    <div className="flex items-center px-3 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md">
-                      <span className="text-gray-600 dark:text-gray-400">+1</span>
+                    <div className="flex items-center px-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 border-r-0 rounded-l-md">
+                      <span className="text-blue-600 dark:text-blue-300 font-medium">+1</span>
                     </div>
-                    <Input
-                      id="phoneNumber"
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => {
-                        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setPhoneNumber(cleaned);
-                      }}
-                      required
-                      disabled={loading}
-                      className="rounded-l-none"
-                      maxLength={10}
-                    />
+                    <div className="flex-1 flex items-center px-3 py-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-r-md">
+                      <span className="text-blue-700 dark:text-blue-200 font-medium tracking-wide">
+                        {phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
+                      </span>
+                    </div>
+                    <input type="hidden" name="phoneNumber" value={phoneNumber} />
                   </div>
-                  <p className="text-xs text-gray-500">
-                    This must match the phone number from your invite
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    A verification code will be sent to this number
                   </p>
                 </div>
 
@@ -618,17 +607,47 @@ function CaregiverSignupForm() {
           </div>
         )}
 
-        {/* Step 4: Complete */}
+        {/* Step 4: Complete - Pending Approval */}
         {step === 'complete' && (
-          <div className="text-center py-6">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
+          <div className="text-center py-6 space-y-4">
+            <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto">
+              <Clock className="w-8 h-8 text-yellow-600" />
             </div>
-            <h3 className="font-medium text-lg mb-2">Account Created!</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-              Your account has been verified. Redirecting to complete your caregiver profile...
+            <div>
+              <h3 className="font-medium text-lg mb-2">Account Created - Awaiting Approval</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Your account has been verified. An administrator from{' '}
+                <strong>{inviteData?.agencyName || 'the agency'}</strong> will review
+                and approve your access.
+              </p>
+            </div>
+
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-left">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Phone verified</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Email verified</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-yellow-600" />
+                  <span className="text-sm text-yellow-700 dark:text-yellow-300">Administrator approval pending</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500">
+              You will be notified once your access is approved. You can close this page.
             </p>
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+
+            <Link href="/phone-login">
+              <Button variant="outline" className="w-full">
+                Go to Login
+              </Button>
+            </Link>
           </div>
         )}
       </CardContent>

@@ -18,6 +18,7 @@ import { Agency, CaregiverAssignment, Group, Elder } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CaregiverInviteManager } from './CaregiverInviteManager';
 import { CaregiverEldersOverview } from './CaregiverEldersOverview';
+import { PendingCaregiversSection } from './PendingCaregiversSection';
 
 interface AgencyDashboardProps {
   userId: string;
@@ -263,6 +264,14 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pending Caregiver Approvals - Only for Super Admin */}
+      {isSuperAdmin && (
+        <PendingCaregiversSection
+          agencyId={agencyId}
+          userId={userId}
+        />
       )}
 
       {/* Caregiver-Elder Assignments Overview - Only for Super Admin */}
