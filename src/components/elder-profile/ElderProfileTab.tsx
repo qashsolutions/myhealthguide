@@ -30,6 +30,9 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
+    approximateAge: elder.approximateAge?.toString() || '',
+    dateOfBirth: elder.dateOfBirth ? format(elder.dateOfBirth, 'yyyy-MM-dd') : '',
+    useExactDOB: !!elder.dateOfBirth && !elder.approximateAge,
     preferredName: elder.preferredName || '',
     gender: elder.gender || '',
     biologicalSex: elder.biologicalSex || '',
@@ -53,7 +56,22 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Handle age/DOB
+      let dateOfBirth: Date | undefined = undefined;
+      let approximateAge: number | undefined = undefined;
+
+      if (formData.useExactDOB && formData.dateOfBirth) {
+        dateOfBirth = new Date(formData.dateOfBirth);
+      } else if (formData.approximateAge) {
+        const age = parseInt(formData.approximateAge, 10);
+        if (!isNaN(age) && age >= 1 && age <= 120) {
+          approximateAge = age;
+        }
+      }
+
       const updates: Partial<Elder> = {
+        dateOfBirth,
+        approximateAge,
         preferredName: formData.preferredName || undefined,
         gender: formData.gender as Elder['gender'] || undefined,
         biologicalSex: formData.biologicalSex as Elder['biologicalSex'] || undefined,
@@ -150,6 +168,52 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
           <div className="space-y-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Demographics</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Age / Date of Birth */}
+              <div className="space-y-2 md:col-span-2">
+                <Label>Age</Label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ageType"
+                      checked={!formData.useExactDOB}
+                      onChange={() => setFormData({ ...formData, useExactDOB: false })}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Approximate Age</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ageType"
+                      checked={formData.useExactDOB}
+                      onChange={() => setFormData({ ...formData, useExactDOB: true })}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Exact Date of Birth</span>
+                  </label>
+                </div>
+                {formData.useExactDOB ? (
+                  <Input
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={e => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  />
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      max="120"
+                      value={formData.approximateAge}
+                      onChange={e => setFormData({ ...formData, approximateAge: e.target.value })}
+                      placeholder="e.g., 78"
+                      className="w-32"
+                    />
+                    <span className="text-sm text-gray-500">years old</span>
+                  </div>
+                )}
+              </div>
               <div className="space-y-2">
                 <Label>Preferred Name</Label>
                 <Input
