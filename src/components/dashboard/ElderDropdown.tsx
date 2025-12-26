@@ -165,7 +165,11 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
                       )}
                     </div>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {elder.approximateAge ? `${elder.approximateAge} yrs` : 'Age not set'}
+                      {elder.approximateAge
+                        ? `${elder.approximateAge} yrs`
+                        : elder.dateOfBirth
+                          ? `${new Date().getFullYear() - new Date(elder.dateOfBirth).getFullYear()} yrs`
+                          : 'Age not set'}
                     </span>
                   </div>
                 </button>

@@ -59,10 +59,13 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
   // Helper to check if a path is active
   const isActive = (path: string) => {
-    if (path === '/dashboard') {
+    // Remove query string from path for comparison
+    const basePath = path.split('?')[0];
+
+    if (basePath === '/dashboard') {
       return pathname === '/dashboard';
     }
-    return pathname === path || pathname.startsWith(path + '/') || pathname.startsWith(path + '?');
+    return pathname === basePath || pathname.startsWith(basePath + '/');
   };
 
   // Navigation item component
