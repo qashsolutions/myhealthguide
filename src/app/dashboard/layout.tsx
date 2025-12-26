@@ -10,12 +10,14 @@ import { FCMProvider } from '@/components/notifications/FCMProvider';
 import { ElderProvider } from '@/contexts/ElderContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CaregiverApprovalBlocker, useCaregiverApprovalStatus } from '@/components/auth/CaregiverApprovalBlocker';
+import { AgencyService } from '@/lib/firebase/agencies';
 
 // Inner component that can access auth context
 function DashboardContent({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { hasPendingApproval, pendingAgencies } = useCaregiverApprovalStatus(user);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [pendingAgencyName, setPendingAgencyName] = useState<string | undefined>(undefined);
 
   // Auto-open sidebar on desktop
   useEffect(() => {
@@ -32,10 +34,25 @@ function DashboardContent({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Get agency name for pending approval message
-  const pendingAgencyName = pendingAgencies[0]?.agencyId
-    ? user?.agencies?.find(a => a.agencyId === pendingAgencies[0].agencyId)?.agencyId
-    : undefined;
+  // Fetch agency name for pending approval message
+  useEffect(() => {
+    const fetchAgencyName = async () => {
+      if (pendingAgencies.length > 0 && pendingAgencies[0].agencyId) {
+        try {
+          const agency = await AgencyService.getAgency(pendingAgencies[0].agencyId);
+          if (agency) {
+            setPendingAgencyName(agency.name);
+          }
+        } catch (error) {
+          console.error('Error fetching agency name:', error);
+        }
+      }
+    };
+
+    if (hasPendingApproval) {
+      fetchAgencyName();
+    }
+  }, [hasPendingApproval, pendingAgencies]);
 
   return (
     <ElderProvider>
