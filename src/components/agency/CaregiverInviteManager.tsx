@@ -63,6 +63,7 @@ export function CaregiverInviteManager({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedInvite, setSelectedInvite] = useState<CaregiverInvite | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const pendingInviteCount = invites.filter(i => i.status === 'pending').length;
   const remainingSlots = maxCaregivers - currentCaregiverCount - pendingInviteCount;
@@ -136,11 +137,7 @@ export function CaregiverInviteManager({
       await fetchInvites();
       setPhoneNumber('');
       setDialogOpen(false);
-
-      // If test mode, show the invite URL in an alert
-      if (data.testMode && data.inviteUrl) {
-        alert(`Test invite created!\n\nInvite URL (copy this):\n${data.inviteUrl}`);
-      }
+      // Test invite URL is shown in the invite list with "Open Test Invite" link
     } catch (error) {
       setPhoneError('Failed to send invite. Please try again.');
     } finally {
@@ -391,12 +388,26 @@ export function CaregiverInviteManager({
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(invite.testInviteUrl!);
-                              alert('Invite URL copied to clipboard!');
+                              setCopiedId(invite.id);
+                              setTimeout(() => setCopiedId(null), 2000);
                             }}
-                            className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                            className={`text-xs flex items-center gap-1 ${
+                              copiedId === invite.id
+                                ? 'text-green-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
                           >
-                            <Copy className="w-3 h-3" />
-                            Copy
+                            {copiedId === invite.id ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                Copy
+                              </>
+                            )}
                           </button>
                         </div>
                       )}
