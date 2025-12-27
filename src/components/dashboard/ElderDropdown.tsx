@@ -7,14 +7,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ChevronDown, Plus, Settings, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Check if user can add elders (must be super_admin or admin)
+// Check if user can add elders (must be super_admin or admin with active status)
 function canUserAddElders(user: any): boolean {
-  // If user has no agencies, they cannot add elders (likely a pending caregiver or new user)
+  // If user has no agencies, they cannot add elders
   if (!user?.agencies || user.agencies.length === 0) return false;
 
-  // User can add elders only if they have super_admin or admin role in any agency
+  // User can add elders only if they have:
+  // 1. super_admin or admin role in any agency
+  // 2. AND that agency membership is active (not pending_approval or rejected)
   return user.agencies.some((agency: any) =>
-    agency.role === 'super_admin' || agency.role === 'admin'
+    (agency.role === 'super_admin' || agency.role === 'admin') &&
+    agency.status === 'active'
   );
 }
 
