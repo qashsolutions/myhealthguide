@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
       updatedAt: Timestamp.now(),
     });
 
-    // 3. Add agency membership to user's document
+    // 3. Add or update agency membership in user's document
     const userRef = adminDb.collection('users').doc(userId);
     const userDoc = await userRef.get();
 
@@ -143,10 +143,11 @@ export async function POST(req: NextRequest) {
       const userData = userDoc.data()!;
       const currentAgencies = userData.agencies || [];
 
-      // Check if already a member
-      const alreadyMember = currentAgencies.some((a: any) => a.agencyId === agencyId);
+      // Check if already a member (including rejected status)
+      const existingMembershipIndex = currentAgencies.findIndex((a: any) => a.agencyId === agencyId);
 
-      if (!alreadyMember) {
+      if (existingMembershipIndex === -1) {
+        // New member - add agency membership
         batch.update(userRef, {
           agencies: FieldValue.arrayUnion({
             agencyId,
@@ -161,40 +162,78 @@ export async function POST(req: NextRequest) {
           caregiverOnboardingAgencyId: agencyId,
           updatedAt: Timestamp.now(),
         });
+      } else {
+        // Existing member - check if they were rejected and need re-activation
+        const existingMembership = currentAgencies[existingMembershipIndex];
+        if (existingMembership.status === 'rejected') {
+          // Re-invite scenario: update existing membership back to pending_approval
+          const updatedAgencies = [...currentAgencies];
+          updatedAgencies[existingMembershipIndex] = {
+            ...existingMembership,
+            status: 'pending_approval',
+            role: 'caregiver',
+            reInvitedAt: new Date(),
+            assignedElderIds: [],
+            assignedGroupIds: [],
+          };
+          batch.update(userRef, {
+            agencies: updatedAgencies,
+            caregiverOnboardingRequired: true,
+            caregiverOnboardingAgencyId: agencyId,
+            updatedAt: Timestamp.now(),
+          });
+        }
+        // If status is 'active' or 'pending_approval', don't change anything
       }
     }
 
-    // 4. Create initial caregiver profile (to be completed in onboarding)
+    // 4. Create or update caregiver profile
     const profileRef = adminDb.collection('caregiver_profiles').doc(userId);
-    batch.set(profileRef, {
-      id: userId,
-      userId,
-      agencyId,
-      status: 'pending_approval', // Requires admin approval
-      fullName: '', // To be filled in onboarding
-      languages: [],
-      yearsExperience: 0,
-      certifications: [],
-      specializations: [],
-      availability: {
-        monday: { available: false },
-        tuesday: { available: false },
-        wednesday: { available: false },
-        thursday: { available: false },
-        friday: { available: false },
-        saturday: { available: false },
-        sunday: { available: false },
-      },
-      zipCode: '',
-      comfortableWith: [],
-      emergencyContact: {
-        name: '',
-        phone: '',
-      },
-      onboardingCompleted: false,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    });
+    const existingProfile = await profileRef.get();
+
+    if (existingProfile.exists) {
+      const profileData = existingProfile.data()!;
+      // If profile exists and was rejected, update status back to pending_approval
+      if (profileData.status === 'rejected') {
+        batch.update(profileRef, {
+          status: 'pending_approval',
+          reInvitedAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
+      }
+      // If already pending_approval or active, don't change
+    } else {
+      // Create new profile
+      batch.set(profileRef, {
+        id: userId,
+        userId,
+        agencyId,
+        status: 'pending_approval', // Requires admin approval
+        fullName: '', // To be filled in onboarding
+        languages: [],
+        yearsExperience: 0,
+        certifications: [],
+        specializations: [],
+        availability: {
+          monday: { available: false },
+          tuesday: { available: false },
+          wednesday: { available: false },
+          thursday: { available: false },
+          friday: { available: false },
+          saturday: { available: false },
+          sunday: { available: false },
+        },
+        zipCode: '',
+        comfortableWith: [],
+        emergencyContact: {
+          name: '',
+          phone: '',
+        },
+        onboardingCompleted: false,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    }
 
     // Commit batch
     await batch.commit();
