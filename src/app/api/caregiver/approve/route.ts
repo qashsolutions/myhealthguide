@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       updatedAt: Timestamp.now(),
     });
 
-    // If rejecting, remove from caregiverIds array and deactivate assignment
+    // If rejecting, remove from caregiverIds array
     if (action === 'reject') {
       batch.update(adminDb.collection('agencies').doc(agencyId), {
         caregiverIds: FieldValue.arrayRemove(caregiverId),
@@ -105,43 +105,32 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    await batch.commit();
+    // Check for existing assignment ONCE (used by both approve and reject)
+    const existingAssignmentSnapshot = await adminDb
+      .collection('caregiver_assignments')
+      .where('caregiverId', '==', caregiverId)
+      .where('agencyId', '==', agencyId)
+      .limit(1)
+      .get();
 
-    // If rejecting, also deactivate any existing assignment
-    if (action === 'reject') {
-      const existingAssignmentSnapshot = await adminDb
-        .collection('caregiver_assignments')
-        .where('caregiverId', '==', caregiverId)
-        .where('agencyId', '==', agencyId)
-        .limit(1)
-        .get();
+    const existingAssignment = existingAssignmentSnapshot.empty
+      ? null
+      : existingAssignmentSnapshot.docs[0];
 
-      if (!existingAssignmentSnapshot.empty) {
-        const existingAssignment = existingAssignmentSnapshot.docs[0];
-        await existingAssignment.ref.update({
-          active: false,
-          deactivatedAt: Timestamp.now(),
-          deactivatedBy: adminUserId,
-          deactivationReason: 'rejected',
-          updatedAt: Timestamp.now(),
-        });
-      }
-    }
-
-    // If approving, create or reactivate the caregiver assignment record (enables elder assignment)
-    if (action === 'approve') {
-      // Check if assignment already exists (re-approval scenario)
-      const existingAssignmentSnapshot = await adminDb
-        .collection('caregiver_assignments')
-        .where('caregiverId', '==', caregiverId)
-        .where('agencyId', '==', agencyId)
-        .limit(1)
-        .get();
-
-      if (!existingAssignmentSnapshot.empty) {
+    // Handle assignment based on action
+    if (action === 'reject' && existingAssignment) {
+      // Deactivate existing assignment
+      batch.update(existingAssignment.ref, {
+        active: false,
+        deactivatedAt: Timestamp.now(),
+        deactivatedBy: adminUserId,
+        deactivationReason: 'rejected',
+        updatedAt: Timestamp.now(),
+      });
+    } else if (action === 'approve') {
+      if (existingAssignment) {
         // Reactivate existing assignment
-        const existingAssignment = existingAssignmentSnapshot.docs[0];
-        await existingAssignment.ref.update({
+        batch.update(existingAssignment.ref, {
           active: true,
           reactivatedAt: Timestamp.now(),
           reactivatedBy: adminUserId,
@@ -149,11 +138,12 @@ export async function POST(req: NextRequest) {
         });
       } else {
         // Create new assignment
-        await adminDb.collection('caregiver_assignments').add({
+        const newAssignmentRef = adminDb.collection('caregiver_assignments').doc();
+        batch.set(newAssignmentRef, {
           caregiverId,
           agencyId,
           groupId: agencyData.groupIds?.[0] || null,
-          elderIds: [],           // Empty - ready to be assigned elders
+          elderIds: [],
           role: 'caregiver',
           active: true,
           assignedAt: Timestamp.now(),
@@ -168,6 +158,9 @@ export async function POST(req: NextRequest) {
         });
       }
     }
+
+    // Commit all changes atomically
+    await batch.commit();
 
     // Send FCM notification to the caregiver
     const caregiverName = userData.firstName || 'Caregiver';
