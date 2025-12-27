@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -108,6 +108,48 @@ function CaregiverSignupForm() {
     }
   }, [step, recaptchaVerifier]);
 
+  // Accept invite and complete signup - defined before useEffect that uses it
+  const acceptInviteAndComplete = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      // Get current user ID
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User session lost. Please try again.');
+      }
+
+      // Accept the caregiver invite
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+      const formattedPhone = `+1${digitsOnly}`;
+
+      const response = await fetch('/api/caregiver-invite/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: inviteData?.token,
+          userId: currentUser.uid,
+          phoneNumber: formattedPhone
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to accept invite');
+      }
+
+      setStep('complete');
+      // No auto-redirect - caregiver must wait for admin approval
+    } catch (err: any) {
+      console.error('Error accepting invite:', err);
+      setError(err.message || 'Failed to complete signup');
+    } finally {
+      setLoading(false);
+    }
+  }, [phoneNumber, inviteData?.token]);
+
   // Check email verification status periodically
   useEffect(() => {
     if (step === 'email' && emailSent && !emailVerified) {
@@ -127,7 +169,7 @@ function CaregiverSignupForm() {
 
       return () => clearInterval(checkInterval);
     }
-  }, [step, emailSent, emailVerified]);
+  }, [step, emailSent, emailVerified, acceptInviteAndComplete]);
 
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,47 +301,6 @@ function CaregiverSignupForm() {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return password;
-  };
-
-  const acceptInviteAndComplete = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      // Get current user ID
-      const currentUser = await AuthService.getCurrentUser();
-      if (!currentUser) {
-        throw new Error('User session lost. Please try again.');
-      }
-
-      // Accept the caregiver invite
-      const digitsOnly = phoneNumber.replace(/\D/g, '');
-      const formattedPhone = `+1${digitsOnly}`;
-
-      const response = await fetch('/api/caregiver-invite/accept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: inviteData?.token,
-          userId: currentUser.uid,
-          phoneNumber: formattedPhone
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to accept invite');
-      }
-
-      setStep('complete');
-      // No auto-redirect - caregiver must wait for admin approval
-    } catch (err: any) {
-      console.error('Error accepting invite:', err);
-      setError(err.message || 'Failed to complete signup');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleResendEmail = async () => {

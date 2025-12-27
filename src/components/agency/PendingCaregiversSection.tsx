@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,11 +53,7 @@ export function PendingCaregiversSection({ agencyId, userId }: PendingCaregivers
     action: 'approve' | 'reject';
   }>({ open: false, caregiver: null, action: 'approve' });
 
-  useEffect(() => {
-    loadPendingCaregivers();
-  }, [agencyId, userId]);
-
-  const loadPendingCaregivers = async () => {
+  const loadPendingCaregivers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -84,7 +80,11 @@ export function PendingCaregiversSection({ agencyId, userId }: PendingCaregivers
     } finally {
       setLoading(false);
     }
-  };
+  }, [agencyId, userId]);
+
+  useEffect(() => {
+    loadPendingCaregivers();
+  }, [loadPendingCaregivers]);
 
   const handleAction = async (caregiverId: string, action: 'approve' | 'reject') => {
     try {

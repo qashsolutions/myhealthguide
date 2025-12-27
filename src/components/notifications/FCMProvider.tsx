@@ -97,7 +97,7 @@ export function FCMProvider() {
         unsubscribe();
       }
     };
-  }, [user?.id]);
+  }, [user?.id, user?.subscriptionStatus, user?.stripeSubscriptionId]);
 
   // This component doesn't render anything
   return null;

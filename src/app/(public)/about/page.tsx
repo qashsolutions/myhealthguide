@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Metadata } from 'next';
 import SmartFeaturesGrid from '@/components/about/SmartFeaturesGrid';
 import HeroCTAButtons from '@/components/about/HeroCTAButtons';
@@ -519,9 +520,11 @@ export default function AboutPage() {
                 <div className="w-72 h-[580px] bg-gray-900 rounded-[3rem] p-2 shadow-2xl">
                   {/* Screen with actual app screenshot */}
                   <div className="w-full h-full rounded-[2.5rem] overflow-hidden">
-                    <img
+                    <Image
                       src="/images/ios-app-screenshot.png"
                       alt="CareGuide iOS App - Settings screen showing account, subscription, and group information"
+                      width={288}
+                      height={564}
                       className="w-full h-full object-cover object-top"
                     />
                   </div>

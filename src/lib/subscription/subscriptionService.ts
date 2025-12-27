@@ -53,7 +53,7 @@ export interface UpgradePromptInfo {
 
 export const REFUND_WINDOW_DAYS = 7;
 export const BILLING_CYCLE_DAYS = 30;
-export const TRIAL_DURATION_DAYS = 14;
+export const TRIAL_DURATION_DAYS = 45;
 
 export const CORE_FEATURES = [
   'Voice-powered health logging',
@@ -93,7 +93,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     id: 'single_agency',
     name: 'Single Agency Plan',
     subtitle: 'For families with caregivers',
-    price: 14.99,
+    price: 24.99,
     priceNote: '/elder/month',
     rank: 2,
     limits: {
@@ -111,7 +111,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     id: 'multi_agency',
     name: 'Multi Agency Plan',
     subtitle: 'For professional caregivers',
-    price: 30,
+    price: 55,
     priceNote: '/elder/month',
     rank: 3,
     limits: {
