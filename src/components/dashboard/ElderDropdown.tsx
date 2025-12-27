@@ -7,17 +7,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ChevronDown, Plus, Settings, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Check if user is a caregiver (not super admin) in any agency
-function isCaregiverOnly(user: any): boolean {
+// Check if user can add elders (must be super_admin or admin)
+function canUserAddElders(user: any): boolean {
+  // If user has no agencies, they cannot add elders (likely a pending caregiver or new user)
   if (!user?.agencies || user.agencies.length === 0) return false;
 
-  // If user has ANY agency where they are super_admin or admin, they can add elders
-  const hasAdminRole = user.agencies.some((agency: any) =>
-    agency.role === 'super_admin' || agency.role === 'admin' || agency.role === 'caregiver_admin'
+  // User can add elders only if they have super_admin or admin role in any agency
+  return user.agencies.some((agency: any) =>
+    agency.role === 'super_admin' || agency.role === 'admin'
   );
-
-  // User is caregiver-only if they have agencies but no admin role
-  return user.agencies.length > 0 && !hasAdminRole;
 }
 
 // Generate a consistent gradient based on the elder's name
@@ -56,8 +54,8 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Caregivers cannot add elders - only admins/super admins can
-  const canAddElders = !isCaregiverOnly(user);
+  // Only super_admin or admin can add elders
+  const canAddElders = canUserAddElders(user);
 
   // Close dropdown when clicking outside
   useEffect(() => {
