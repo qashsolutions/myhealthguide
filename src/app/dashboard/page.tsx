@@ -21,6 +21,20 @@ import {
 } from 'lucide-react';
 import { Elder } from '@/types';
 import Link from 'next/link';
+
+// Check if user can add elders (must be super_admin or admin with active status)
+function canUserAddElders(user: any): boolean {
+  // If user has no agencies, they can add elders (single family plan)
+  if (!user?.agencies || user.agencies.length === 0) return true;
+
+  // User can add elders only if they have:
+  // 1. super_admin or admin role in any agency
+  // 2. AND that agency membership is active (not pending_approval or rejected)
+  return user.agencies.some((agency: any) =>
+    (agency.role === 'super_admin' || agency.role === 'admin') &&
+    agency.status === 'active'
+  );
+}
 import { format } from 'date-fns';
 import {
   DashboardStatsService,
@@ -166,12 +180,14 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <TimeToggle value={timePeriod} onChange={setTimePeriod} />
-          <Link href="/dashboard/elders/new" className="hidden sm:block">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Elder
-            </Button>
-          </Link>
+          {canUserAddElders(user) && (
+            <Link href="/dashboard/elders/new" className="hidden sm:block">
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Elder
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -492,16 +508,25 @@ export default function DashboardPage() {
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Welcome to Careguide!
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Get started by adding your first elder profile. You&apos;ll be able to track medications,
-              diet, and activities - and we&apos;ll help you spot anything that needs attention.
-            </p>
-            <Link href="/dashboard/elders/new">
-              <Button size="lg">
-                <Plus className="w-5 h-5 mr-2" />
-                Add Your First Elder
-              </Button>
-            </Link>
+            {canUserAddElders(user) ? (
+              <>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Get started by adding your first elder profile. You&apos;ll be able to track medications,
+                  diet, and activities - and we&apos;ll help you spot anything that needs attention.
+                </p>
+                <Link href="/dashboard/elders/new">
+                  <Button size="lg">
+                    <Plus className="w-5 h-5 mr-2" />
+                    Add Your First Elder
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                No elders have been assigned to you yet. Once your agency admin assigns you to an elder,
+                you&apos;ll be able to track their medications, diet, and activities here.
+              </p>
+            )}
           </div>
 
           <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">

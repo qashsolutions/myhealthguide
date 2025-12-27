@@ -105,17 +105,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Check for existing assignment ONCE (used by both approve and reject)
-    const existingAssignmentSnapshot = await adminDb
+    // Check for existing assignment - use single-field query to avoid composite index
+    // First get all assignments for this caregiver, then filter by agencyId in code
+    const caregiverAssignmentsSnapshot = await adminDb
       .collection('caregiver_assignments')
       .where('caregiverId', '==', caregiverId)
-      .where('agencyId', '==', agencyId)
-      .limit(1)
       .get();
 
-    const existingAssignment = existingAssignmentSnapshot.empty
-      ? null
-      : existingAssignmentSnapshot.docs[0];
+    // Filter by agencyId in application code (avoids composite index requirement)
+    const existingAssignmentDoc = caregiverAssignmentsSnapshot.docs.find(
+      doc => doc.data().agencyId === agencyId
+    );
+    const existingAssignment = existingAssignmentDoc || null;
 
     // Handle assignment based on action
     if (action === 'reject' && existingAssignment) {
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
           reactivatedBy: adminUserId,
           updatedAt: Timestamp.now(),
         });
+        console.log(`Reactivated assignment ${existingAssignment.id} for caregiver ${caregiverId}`);
       } else {
         // Create new assignment
         const newAssignmentRef = adminDb.collection('caregiver_assignments').doc();
@@ -156,6 +158,7 @@ export async function POST(req: NextRequest) {
             canEditProfile: false
           }
         });
+        console.log(`Created new assignment for caregiver ${caregiverId} in agency ${agencyId}`);
       }
     }
 
@@ -208,6 +211,21 @@ export async function POST(req: NextRequest) {
         dismissed: false,
         createdAt: Timestamp.now(),
         expiresAt: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
+      });
+
+      // Create bell icon notification for caregiver (user_notifications collection)
+      await adminDb.collection('user_notifications').add({
+        userId: caregiverId,
+        type: 'caregiver_approved',
+        title: 'Access Approved!',
+        message: `You have been approved to join ${agencyData.name}. You can now access elder care features.`,
+        priority: 'high',
+        actionUrl: '/dashboard',
+        actionRequired: false,
+        read: false,
+        dismissed: false,
+        createdAt: Timestamp.now(),
+        expiresAt: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) // 30 days
       });
     } else {
       // Queue FCM push notification for rejection
