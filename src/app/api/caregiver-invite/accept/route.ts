@@ -259,6 +259,25 @@ export async function POST(req: NextRequest) {
         expiresAt: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
       });
 
+      // Also create in-app notification (bell icon)
+      await adminDb.collection('user_notifications').add({
+        userId: superAdminId,
+        groupId: agencyData.groupIds?.[0] || null,
+        elderId: null,
+        type: 'caregiver_approval',
+        title: 'New Caregiver Request',
+        message: `${caregiverName} wants to join ${agencyData.name}. Review and approve their access.`,
+        priority: 'high',
+        actionUrl: '/dashboard/agency',
+        sourceCollection: 'caregiver_profiles',
+        sourceId: userId,
+        read: false,
+        dismissed: false,
+        actionRequired: true,
+        expiresAt: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
+        createdAt: Timestamp.now()
+      });
+
       console.log(`Notification sent to super admin ${superAdminId} for caregiver approval`);
     }
 
