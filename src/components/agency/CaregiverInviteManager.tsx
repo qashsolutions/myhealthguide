@@ -371,9 +371,36 @@ export function CaregiverInviteManager({
                             : ''}
                         </span>
                       </div>
-                      {/* Show Share Invite button when SMS was skipped */}
+                      {/* Show Copy Link button when SMS was skipped */}
                       {invite.testInviteUrl && invite.status === 'pending' && (
                         <div className="flex items-center gap-2 mt-2">
+                          {/* Copy Link button - always visible */}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(invite.testInviteUrl!);
+                              setCopiedId(invite.id);
+                              setTimeout(() => setCopiedId(null), 2000);
+                            }}
+                            className={`text-xs flex items-center gap-1 px-2 py-1 rounded border ${
+                              copiedId === invite.id
+                                ? 'text-green-600 border-green-200 bg-green-50'
+                                : 'text-gray-600 border-gray-200 bg-gray-50 hover:bg-gray-100'
+                            }`}
+                          >
+                            {copiedId === invite.id ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                Copy Link
+                              </>
+                            )}
+                          </button>
+
+                          {/* Share button - uses native share API (mobile, WhatsApp, etc.) */}
                           <button
                             onClick={async () => {
                               const shareData = {
@@ -382,17 +409,11 @@ export function CaregiverInviteManager({
                                 url: invite.testInviteUrl!
                               };
 
-                              // Try native share API (works on mobile, WhatsApp, etc.)
                               if (navigator.share && navigator.canShare?.(shareData)) {
                                 try {
                                   await navigator.share(shareData);
                                 } catch (err) {
-                                  // User cancelled or share failed, fallback to copy
-                                  if ((err as Error).name !== 'AbortError') {
-                                    navigator.clipboard.writeText(invite.testInviteUrl!);
-                                    setCopiedId(invite.id);
-                                    setTimeout(() => setCopiedId(null), 2000);
-                                  }
+                                  // User cancelled - do nothing
                                 }
                               } else {
                                 // Fallback: copy to clipboard
@@ -401,23 +422,10 @@ export function CaregiverInviteManager({
                                 setTimeout(() => setCopiedId(null), 2000);
                               }
                             }}
-                            className={`text-xs flex items-center gap-1 px-2 py-1 rounded border ${
-                              copiedId === invite.id
-                                ? 'text-green-600 border-green-200 bg-green-50'
-                                : 'text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100'
-                            }`}
+                            className="text-xs flex items-center gap-1 px-2 py-1 rounded border text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100"
                           >
-                            {copiedId === invite.id ? (
-                              <>
-                                <CheckCircle2 className="w-3 h-3" />
-                                Link Copied!
-                              </>
-                            ) : (
-                              <>
-                                <Share2 className="w-3 h-3" />
-                                Share Invite
-                              </>
-                            )}
+                            <Share2 className="w-3 h-3" />
+                            Share
                           </button>
                         </div>
                       )}
