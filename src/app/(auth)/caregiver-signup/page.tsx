@@ -646,11 +646,31 @@ function CaregiverSignupForm() {
               </p>
             </div>
 
-            <Link href="/dashboard" className="w-full">
-              <Button className="w-full">
-                Go to Dashboard
-              </Button>
-            </Link>
+            <div className="space-y-3 w-full">
+              <Link href="/dashboard" className="w-full block">
+                <Button className="w-full">
+                  Go to Dashboard
+                </Button>
+              </Link>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">
+                    or if session expired
+                  </span>
+                </div>
+              </div>
+
+              <Link href="/phone-login" className="w-full block">
+                <Button variant="outline" className="w-full">
+                  <Phone className="w-4 h-4 mr-2" />
+                  Sign in with Phone
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </CardContent>

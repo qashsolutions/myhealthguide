@@ -157,9 +157,10 @@ export async function POST(req: NextRequest) {
             assignedElderIds: [],
             assignedGroupIds: [],
           }),
-          // Mark that caregiver needs to complete onboarding
+          // Mark that caregiver needs to complete onboarding and set password
           caregiverOnboardingRequired: true,
           caregiverOnboardingAgencyId: agencyId,
+          passwordSetupRequired: true, // Caregiver must set password on first login
           updatedAt: Timestamp.now(),
         });
       } else {
@@ -180,6 +181,7 @@ export async function POST(req: NextRequest) {
             agencies: updatedAgencies,
             caregiverOnboardingRequired: true,
             caregiverOnboardingAgencyId: agencyId,
+            passwordSetupRequired: true, // Caregiver must set password on first login
             updatedAt: Timestamp.now(),
           });
         }

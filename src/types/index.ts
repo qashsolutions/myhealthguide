@@ -36,6 +36,7 @@ export interface User {
   lastPasswordChange: Date | null; // Track password changes for 75-day expiration
   passwordExpiresAt: Date | null; // 75 days from last change
   passwordResetRequired: boolean; // Force password reset on next login
+  passwordSetupRequired?: boolean; // Caregiver needs to set password on first login
   createdAt: Date;
   lastLoginAt: Date;
 }

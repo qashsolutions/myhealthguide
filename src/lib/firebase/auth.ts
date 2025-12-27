@@ -837,7 +837,8 @@ export class AuthService {
     await updateDoc(doc(db, 'users', auth.currentUser.uid), {
       lastPasswordChange: now,
       passwordExpiresAt: passwordExpiry,
-      passwordResetRequired: false
+      passwordResetRequired: false,
+      passwordSetupRequired: false // Clear the caregiver password setup requirement
     });
   }
 

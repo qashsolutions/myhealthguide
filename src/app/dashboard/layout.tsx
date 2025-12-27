@@ -10,14 +10,23 @@ import { FCMProvider } from '@/components/notifications/FCMProvider';
 import { ElderProvider } from '@/contexts/ElderContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CaregiverApprovalBlocker, useCaregiverApprovalStatus } from '@/components/auth/CaregiverApprovalBlocker';
+import { SetPasswordModal } from '@/components/auth/SetPasswordModal';
 import { AgencyService } from '@/lib/firebase/agencies';
 
 // Inner component that can access auth context
 function DashboardContent({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { hasPendingApproval, pendingAgencies } = useCaregiverApprovalStatus(user);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pendingAgencyName, setPendingAgencyName] = useState<string | undefined>(undefined);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  // Check if user needs to set password (caregiver first login)
+  useEffect(() => {
+    if (user?.passwordSetupRequired) {
+      setShowPasswordModal(true);
+    }
+  }, [user?.passwordSetupRequired]);
 
   // Auto-open sidebar on desktop
   useEffect(() => {
@@ -56,6 +65,15 @@ function DashboardContent({ children }: { children: ReactNode }) {
 
   return (
     <ElderProvider>
+      {/* Password setup modal for caregivers on first login */}
+      {showPasswordModal && user?.email && (
+        <SetPasswordModal
+          open={showPasswordModal}
+          email={user.email}
+          onComplete={() => setShowPasswordModal(false)}
+        />
+      )}
+
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
         <FCMProvider />
         <Sidebar
