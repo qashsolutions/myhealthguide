@@ -107,6 +107,27 @@ export async function POST(req: NextRequest) {
 
     await batch.commit();
 
+    // If approving, create the caregiver assignment record (enables elder assignment)
+    if (action === 'approve') {
+      await adminDb.collection('caregiver_assignments').add({
+        caregiverId,
+        agencyId,
+        groupId: agencyData.groupIds?.[0] || null,
+        elderIds: [],           // Empty - ready to be assigned elders
+        role: 'caregiver',
+        active: true,
+        assignedAt: Timestamp.now(),
+        assignedBy: adminUserId,
+        permissions: {
+          canLogMedications: true,
+          canLogMeals: true,
+          canLogIncidents: true,
+          canViewReports: false,
+          canEditProfile: false
+        }
+      });
+    }
+
     // Send FCM notification to the caregiver
     const caregiverName = userData.firstName || 'Caregiver';
 
