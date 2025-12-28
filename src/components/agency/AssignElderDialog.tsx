@@ -20,8 +20,6 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, UserPlus, AlertCircle, User } from 'lucide-react';
-import { AgencyService } from '@/lib/firebase/agencies';
-import { Elder } from '@/types';
 
 interface CaregiverOption {
   id: string;
@@ -68,21 +66,30 @@ export function AssignElderDialog({
     setError(null);
 
     try {
-      const result = await AgencyService.assignCaregiverToElders(
-        agencyId,
-        selectedCaregiver,
-        [elderId],
-        groupId,
-        userId,
-        assignAsPrimary ? 'caregiver_admin' : 'caregiver',
-        undefined,
-        assignAsPrimary,
-        true // forceTransfer - allow override of existing primary
-      );
+      // Use API endpoint with Admin SDK to bypass Firestore client rules
+      const response = await fetch('/api/caregiver/assign-elder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agencyId,
+          caregiverId: selectedCaregiver,
+          elderIds: [elderId],
+          groupId,
+          assignedBy: userId,
+          role: assignAsPrimary ? 'caregiver_admin' : 'caregiver',
+          assignAsPrimary,
+          forceTransfer: true // Allow override of existing primary
+        })
+      });
 
-      if (result.conflicts && result.conflicts.length > 0) {
-        setError('This elder already has a primary caregiver assigned');
-        return;
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.conflicts && result.conflicts.length > 0) {
+          setError('This elder already has a primary caregiver assigned');
+          return;
+        }
+        throw new Error(result.error || 'Failed to assign elder');
       }
 
       onSuccess();
