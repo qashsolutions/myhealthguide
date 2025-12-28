@@ -65,25 +65,36 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
       const assignments = await AgencyService.getAgencyAssignments(agencyId);
       const caregiverIds = [...new Set(assignments.map(a => a.caregiverId))];
 
-      // Build caregiver names map by fetching user data
+      // Build caregiver names map by fetching caregiver profiles (super admin CAN read these)
       const caregiverNames = new Map<string, string>();
 
-      // Fetch caregiver user documents to get names
-      const { doc, getDoc } = await import('firebase/firestore');
+      // Fetch caregiver profiles for this agency
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
       const { db } = await import('@/lib/firebase/config');
 
-      for (const caregiverId of caregiverIds) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', caregiverId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const name = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || caregiverId;
-            caregiverNames.set(caregiverId, name);
-          } else {
+      try {
+        const profilesQuery = query(
+          collection(db, 'caregiver_profiles'),
+          where('agencyId', '==', agencyId)
+        );
+        const profilesSnapshot = await getDocs(profilesQuery);
+
+        profilesSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const name = data.fullName || data.userId;
+          caregiverNames.set(data.userId, name);
+        });
+
+        // Set fallback for any caregivers without profiles
+        for (const caregiverId of caregiverIds) {
+          if (!caregiverNames.has(caregiverId)) {
             caregiverNames.set(caregiverId, caregiverId);
           }
-        } catch (error) {
-          console.error(`Error fetching user ${caregiverId}:`, error);
+        }
+      } catch (error) {
+        console.error('Error fetching caregiver profiles:', error);
+        // Fallback to using caregiver IDs as names
+        for (const caregiverId of caregiverIds) {
           caregiverNames.set(caregiverId, caregiverId);
         }
       }

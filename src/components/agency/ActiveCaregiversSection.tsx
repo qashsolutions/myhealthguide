@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ManageCaregiverDialog } from './ManageCaregiverDialog';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { formatDistanceToNow } from 'date-fns';
@@ -62,59 +62,41 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
     try {
       setError(null);
 
-      // Get agency assignments
+      // Get agency assignments (super admin can read these)
       const assignments = await AgencyService.getAgencyAssignments(agencyId);
 
-      // Get all unique caregiver IDs (including inactive)
-      const allAssignmentsSnapshot = await AgencyService.getAgencyAssignments(agencyId);
+      // Get caregiver profiles for this agency (super admin can read these)
+      const profilesQuery = query(
+        collection(db, 'caregiver_profiles'),
+        where('agencyId', '==', agencyId)
+      );
+      const profilesSnapshot = await getDocs(profilesQuery);
 
-      // We need to also check users with agency membership
-      const agencyDoc = await getDoc(doc(db, 'agencies', agencyId));
-      if (!agencyDoc.exists()) {
-        throw new Error('Agency not found');
-      }
-
-      const agencyData = agencyDoc.data();
-      const caregiverIds = agencyData.caregiverIds || [];
-
-      // Also check users who have this agency in their agencies array
-      // This catches suspended/revoked caregivers who were removed from caregiverIds
       const caregiversData: CaregiverInfo[] = [];
 
-      // First, get caregivers from assignments
-      const assignmentCaregiverIds = [...new Set(assignments.map(a => a.caregiverId))];
+      // Build caregiver info from profiles (which super admin CAN read)
+      for (const profileDoc of profilesSnapshot.docs) {
+        const profileData = profileDoc.data();
+        const caregiverId = profileData.userId;
 
-      // Combine all caregiver IDs
-      const allCaregiverIds = [...new Set([...caregiverIds, ...assignmentCaregiverIds])];
+        // Find assignment for this caregiver
+        const assignment = assignments.find(a => a.caregiverId === caregiverId);
 
-      for (const caregiverId of allCaregiverIds) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', caregiverId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const agencyMembership = userData.agencies?.find((a: any) => a.agencyId === agencyId);
+        // Determine status from profile
+        const status = profileData.status || 'active';
 
-            if (agencyMembership) {
-              // Find assignment for this caregiver
-              const assignment = assignments.find(a => a.caregiverId === caregiverId);
-
-              caregiversData.push({
-                id: caregiverId,
-                name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown',
-                email: userData.email || '',
-                phone: userData.phoneNumber || '',
-                status: agencyMembership.status || 'active',
-                role: assignment?.role || agencyMembership.role || 'caregiver',
-                elderCount: assignment?.elderIds?.length || 0,
-                joinedAt: agencyMembership.joinedAt ? new Date(agencyMembership.joinedAt) : undefined,
-                suspendExpiresAt: agencyMembership.suspendExpiresAt ? new Date(agencyMembership.suspendExpiresAt) : undefined,
-                lastStatusChangeAt: agencyMembership.lastStatusChangeAt ? new Date(agencyMembership.lastStatusChangeAt) : undefined
-              });
-            }
-          }
-        } catch (err) {
-          console.error(`Error fetching caregiver ${caregiverId}:`, err);
-        }
+        caregiversData.push({
+          id: caregiverId,
+          name: profileData.fullName || 'Unknown',
+          email: profileData.email || '',
+          phone: profileData.phoneNumber || '',
+          status: status as 'active' | 'suspended' | 'revoked' | 'pending_approval',
+          role: assignment?.role || 'caregiver',
+          elderCount: assignment?.elderIds?.length || 0,
+          joinedAt: profileData.createdAt?.toDate ? profileData.createdAt.toDate() : undefined,
+          suspendExpiresAt: profileData.suspendExpiresAt?.toDate ? profileData.suspendExpiresAt.toDate() : undefined,
+          lastStatusChangeAt: profileData.updatedAt?.toDate ? profileData.updatedAt.toDate() : undefined
+        });
       }
 
       // Sort: active first, then suspended, then revoked

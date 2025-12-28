@@ -10,7 +10,7 @@ import { Elder, CaregiverAssignment } from '@/types';
 import { CaregiverEldersCard } from './CaregiverEldersCard';
 import { UnassignedEldersSection } from './UnassignedEldersSection';
 import { AssignElderDialog } from './AssignElderDialog';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 
 interface CaregiverWithElders {
@@ -59,34 +59,41 @@ export function CaregiverEldersOverview({
       // Get unique caregiver IDs from assignments
       const caregiverIds = [...new Set(assignments.filter(a => a.active).map(a => a.caregiverId))];
 
-      // Fetch caregiver details
+      // Fetch caregiver profiles for this agency (super admin CAN read these)
+      const profilesQuery = query(
+        collection(db, 'caregiver_profiles'),
+        where('agencyId', '==', agencyId)
+      );
+      const profilesSnapshot = await getDocs(profilesQuery);
+
+      // Build a map of caregiver profiles by userId
+      const profilesMap = new Map<string, any>();
+      profilesSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        profilesMap.set(data.userId, data);
+      });
+
+      // Build caregiver data from profiles
       const caregiversData: CaregiverWithElders[] = [];
 
       for (const caregiverId of caregiverIds) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', caregiverId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const name = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown';
+        const profileData = profilesMap.get(caregiverId);
+        const name = profileData?.fullName || 'Unknown';
 
-            // Get role from assignment
-            const assignment = assignments.find(a => a.caregiverId === caregiverId && a.active);
-            const role = assignment?.role || 'caregiver';
+        // Get role from assignment
+        const assignment = assignments.find(a => a.caregiverId === caregiverId && a.active);
+        const role = assignment?.role || 'caregiver';
 
-            // Get elders for this caregiver
-            const elders = caregiverElders.get(caregiverId) || [];
+        // Get elders for this caregiver
+        const elders = caregiverElders.get(caregiverId) || [];
 
-            caregiversData.push({
-              id: caregiverId,
-              name,
-              role: role as 'caregiver_admin' | 'caregiver',
-              elders,
-              elderCount: elders.length
-            });
-          }
-        } catch (err) {
-          console.error(`Error fetching caregiver ${caregiverId}:`, err);
-        }
+        caregiversData.push({
+          id: caregiverId,
+          name,
+          role: role as 'caregiver_admin' | 'caregiver',
+          elders,
+          elderCount: elders.length
+        });
       }
 
       setCaregiversWithElders(caregiversData);
