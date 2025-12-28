@@ -30,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CaregiverInviteManager } from './CaregiverInviteManager';
 import { CaregiverEldersOverview } from './CaregiverEldersOverview';
 import { PendingCaregiversSection } from './PendingCaregiversSection';
+import { ActiveCaregiversSection } from './ActiveCaregiversSection';
 
 interface AgencyDashboardProps {
   userId: string;
@@ -365,6 +366,14 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
       {/* Pending Caregiver Approvals - Only for Super Admin */}
       {isSuperAdmin && (
         <PendingCaregiversSection
+          agencyId={agencyId}
+          userId={userId}
+        />
+      )}
+
+      {/* Active Caregivers Management - Only for Super Admin */}
+      {isSuperAdmin && (
+        <ActiveCaregiversSection
           agencyId={agencyId}
           userId={userId}
         />
