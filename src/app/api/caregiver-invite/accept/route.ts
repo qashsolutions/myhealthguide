@@ -195,23 +195,47 @@ export async function POST(req: NextRequest) {
 
     if (existingProfile.exists) {
       const profileData = existingProfile.data()!;
+      const userData = userDoc.exists ? userDoc.data() : null;
+
+      // Build fullName if missing
+      const currentFullName = profileData.fullName;
+      const newFullName = !currentFullName || currentFullName === ''
+        ? (userData?.firstName && userData?.lastName
+            ? `${userData.firstName} ${userData.lastName}`.trim()
+            : userData?.firstName || userData?.email || '')
+        : currentFullName;
+
       // If profile exists and was rejected, update status back to pending_approval
       if (profileData.status === 'rejected') {
         batch.update(profileRef, {
           status: 'pending_approval',
+          fullName: newFullName,
           reInvitedAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
         });
+      } else if (!currentFullName || currentFullName === '') {
+        // Update fullName if it's empty (fix for existing profiles)
+        batch.update(profileRef, {
+          fullName: newFullName,
+          updatedAt: Timestamp.now(),
+        });
       }
-      // If already pending_approval or active, don't change
+      // If already pending_approval or active with valid name, don't change
     } else {
-      // Create new profile
+      // Create new profile - get name from user document
+      const userData = userDoc.exists ? userDoc.data() : null;
+      const fullName = userData?.firstName && userData?.lastName
+        ? `${userData.firstName} ${userData.lastName}`.trim()
+        : userData?.firstName || userData?.email || '';
+
       batch.set(profileRef, {
         id: userId,
         userId,
         agencyId,
         status: 'pending_approval', // Requires admin approval
-        fullName: '', // To be filled in onboarding
+        fullName, // Set from user data
+        email: userData?.email || '',
+        phoneNumber: userData?.phoneNumber || inviteData.phoneNumber || '',
         languages: [],
         yearsExperience: 0,
         certifications: [],
