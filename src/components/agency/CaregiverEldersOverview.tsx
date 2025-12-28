@@ -56,35 +56,39 @@ export function CaregiverEldersOverview({
         AgencyService.getEldersByCaregiver(agencyId)
       ]);
 
-      // Get unique caregiver IDs from assignments
-      const caregiverIds = [...new Set(assignments.filter(a => a.active).map(a => a.caregiverId))];
-
-      // Fetch caregiver profiles for this agency (super admin CAN read these)
+      // Fetch ALL caregiver profiles for this agency (not just those with assignments)
+      // This ensures newly approved caregivers appear in the dropdown
       const profilesQuery = query(
         collection(db, 'caregiver_profiles'),
         where('agencyId', '==', agencyId)
       );
       const profilesSnapshot = await getDocs(profilesQuery);
 
-      // Build a map of caregiver profiles by userId
-      const profilesMap = new Map<string, any>();
-      profilesSnapshot.docs.forEach(doc => {
-        const data = doc.data();
-        profilesMap.set(data.userId, data);
-      });
-
-      // Build caregiver data from profiles
+      // Build caregiver data from ALL profiles (not just those with assignments)
       const caregiversData: CaregiverWithElders[] = [];
 
-      for (const caregiverId of caregiverIds) {
-        const profileData = profilesMap.get(caregiverId);
-        const name = profileData?.fullName || 'Unknown';
+      for (const profileDoc of profilesSnapshot.docs) {
+        const profileData = profileDoc.data();
+        const caregiverId = profileData.userId;
 
-        // Get role from assignment
+        // Only include active/approved caregivers (not pending, suspended, or revoked)
+        const status = profileData.status || 'active';
+        if (status !== 'active' && status !== 'pending_approval') {
+          continue;
+        }
+
+        // Skip pending_approval - they need to be approved first
+        if (status === 'pending_approval') {
+          continue;
+        }
+
+        const name = profileData.fullName || 'Unknown';
+
+        // Get role from assignment if exists, otherwise default to caregiver
         const assignment = assignments.find(a => a.caregiverId === caregiverId && a.active);
         const role = assignment?.role || 'caregiver';
 
-        // Get elders for this caregiver
+        // Get elders for this caregiver (from assignments)
         const elders = caregiverElders.get(caregiverId) || [];
 
         caregiversData.push({
