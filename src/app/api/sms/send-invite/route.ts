@@ -281,8 +281,8 @@ export async function GET(req: NextRequest) {
             invite.acceptedByEmail = profileData.email || null;
           }
 
-          // If no name from profile, try users collection
-          if (!invite.acceptedByName) {
+          // Always try users collection to fill in missing name or email
+          if (!invite.acceptedByName || !invite.acceptedByEmail) {
             const userDoc = await adminDb
               .collection('users')
               .doc(data.acceptedByUserId)
@@ -290,10 +290,16 @@ export async function GET(req: NextRequest) {
 
             if (userDoc.exists) {
               const userData = userDoc.data()!;
-              invite.acceptedByName = userData.firstName && userData.lastName
-                ? `${userData.firstName} ${userData.lastName}`.trim()
-                : userData.firstName || null;
-              invite.acceptedByEmail = invite.acceptedByEmail || userData.email || null;
+              // Fill in name if missing
+              if (!invite.acceptedByName) {
+                invite.acceptedByName = userData.firstName && userData.lastName
+                  ? `${userData.firstName} ${userData.lastName}`.trim()
+                  : userData.firstName || null;
+              }
+              // Fill in email if missing
+              if (!invite.acceptedByEmail) {
+                invite.acceptedByEmail = userData.email || null;
+              }
             }
           }
         } catch (err) {
