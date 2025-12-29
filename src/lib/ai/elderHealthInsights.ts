@@ -104,7 +104,12 @@ async function logPHIThirdPartyDisclosureServer(params: {
       serviceName: params.serviceName,
       elderId: params.elderId,
     });
-  } catch (error) {
+  } catch (error: any) {
+    // Handle duplicate document errors gracefully - this can happen due to race conditions
+    if (error?.code === 'already-exists' || error?.message?.includes('already exists')) {
+      console.log('[PHI AUDIT Server] Duplicate log entry (already exists) - skipping');
+      return;
+    }
     console.error('Error logging PHI access (server):', error);
     // Don't throw - PHI logging failures shouldn't break the app
   }

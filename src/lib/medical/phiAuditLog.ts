@@ -384,7 +384,14 @@ export async function logPHIAccess(params: {
         purpose: params.purpose,
       });
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Handle duplicate document errors gracefully - this can happen due to race conditions
+    // If a document already exists, the log was successfully created by another call
+    if (error?.code === 'already-exists' || error?.message?.includes('already exists')) {
+      console.log('[PHI AUDIT] Duplicate log entry (already exists) - skipping');
+      return;
+    }
+
     console.error('Error logging PHI access:', error);
     // CRITICAL: PHI audit logging failures should be monitored
     // In production, send alert to monitoring system

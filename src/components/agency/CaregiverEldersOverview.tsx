@@ -236,19 +236,21 @@ export function CaregiverEldersOverview({
       )}
 
       {/* Assignment Dialog */}
-      {selectedElder && (
-        <AssignElderDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          elderId={selectedElder.id}
-          elderName={selectedElder.name}
-          agencyId={agencyId}
-          groupId={groupId}
-          userId={userId}
-          caregivers={caregiverOptions}
-          onSuccess={handleAssignSuccess}
-        />
-      )}
+      <AssignElderDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        elderId={selectedElder?.id || ''}
+        elderName={selectedElder?.name || ''}
+        agencyId={agencyId}
+        groupId={groupId}
+        userId={userId}
+        caregivers={caregiverOptions}
+        onSuccess={handleAssignSuccess}
+        availableElders={unassignedElders.map(e => ({
+          id: e.id,
+          name: e.preferredName || e.name
+        }))}
+      />
     </div>
   );
 }

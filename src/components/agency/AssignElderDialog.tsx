@@ -28,6 +28,11 @@ interface CaregiverOption {
   maxElders: number;
 }
 
+interface ElderOption {
+  id: string;
+  name: string;
+}
+
 interface AssignElderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,6 +43,8 @@ interface AssignElderDialogProps {
   userId: string;
   caregivers: CaregiverOption[];
   onSuccess: () => void;
+  // Optional: for selecting elder from unassigned list (when elderId is empty)
+  availableElders?: ElderOption[];
 }
 
 export function AssignElderDialog({
@@ -49,14 +56,28 @@ export function AssignElderDialog({
   groupId,
   userId,
   caregivers,
-  onSuccess
+  onSuccess,
+  availableElders = []
 }: AssignElderDialogProps) {
   const [selectedCaregiver, setSelectedCaregiver] = useState<string>('');
+  const [selectedElder, setSelectedElder] = useState<string>(elderId || '');
   const [assignAsPrimary, setAssignAsPrimary] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Determine the effective elder ID and name
+  const effectiveElderId = elderId || selectedElder;
+  const effectiveElderName = elderId
+    ? elderName
+    : availableElders.find(e => e.id === selectedElder)?.name || '';
+
   const handleAssign = async () => {
+    // Validate elder selection when not pre-selected
+    if (!elderId && !selectedElder) {
+      setError('Please select an elder to assign');
+      return;
+    }
+
     if (!selectedCaregiver) {
       setError('Please select a caregiver');
       return;
@@ -73,7 +94,7 @@ export function AssignElderDialog({
         body: JSON.stringify({
           agencyId,
           caregiverId: selectedCaregiver,
-          elderIds: [elderId],
+          elderIds: [effectiveElderId],
           groupId,
           assignedBy: userId,
           role: assignAsPrimary ? 'caregiver_admin' : 'caregiver',
@@ -104,10 +125,15 @@ export function AssignElderDialog({
 
   const handleClose = () => {
     setSelectedCaregiver('');
+    setSelectedElder('');
     setAssignAsPrimary(true);
     setError(null);
     onOpenChange(false);
   };
+
+  // Check if we need elder selection (no pre-selected elder and have available elders)
+  const needsElderSelection = !elderId && availableElders.length > 0;
+  const noEldersAvailable = !elderId && availableElders.length === 0;
 
   const availableCaregivers = caregivers.filter(c => c.elderCount < c.maxElders);
 
@@ -120,7 +146,11 @@ export function AssignElderDialog({
             Assign Caregiver
           </DialogTitle>
           <DialogDescription>
-            Assign <span className="font-medium">{elderName}</span> to a caregiver
+            {effectiveElderName ? (
+              <>Assign <span className="font-medium">{effectiveElderName}</span> to a caregiver</>
+            ) : (
+              <>Select an elder and assign them to a caregiver</>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -132,7 +162,13 @@ export function AssignElderDialog({
             </div>
           )}
 
-          {availableCaregivers.length === 0 ? (
+          {noEldersAvailable ? (
+            <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+              <User className="w-10 h-10 mx-auto mb-3 opacity-50" />
+              <p className="font-medium">No unassigned elders</p>
+              <p className="text-sm mt-1">All elders have been assigned to caregivers</p>
+            </div>
+          ) : availableCaregivers.length === 0 ? (
             <div className="text-center py-6 text-gray-500 dark:text-gray-400">
               <User className="w-10 h-10 mx-auto mb-3 opacity-50" />
               <p className="font-medium">No caregivers available</p>
@@ -140,6 +176,25 @@ export function AssignElderDialog({
             </div>
           ) : (
             <>
+              {/* Elder Selection - only shown when no elder pre-selected */}
+              {needsElderSelection && (
+                <div className="space-y-2">
+                  <Label htmlFor="elder">Select Elder</Label>
+                  <Select value={selectedElder} onValueChange={setSelectedElder}>
+                    <SelectTrigger id="elder">
+                      <SelectValue placeholder="Choose an elder to assign..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableElders.map((elder) => (
+                        <SelectItem key={elder.id} value={elder.id}>
+                          {elder.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="caregiver">Select Caregiver</Label>
                 <Select value={selectedCaregiver} onValueChange={setSelectedCaregiver}>
@@ -184,8 +239,11 @@ export function AssignElderDialog({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          {availableCaregivers.length > 0 && (
-            <Button onClick={handleAssign} disabled={saving || !selectedCaregiver}>
+          {availableCaregivers.length > 0 && !noEldersAvailable && (
+            <Button
+              onClick={handleAssign}
+              disabled={saving || !selectedCaregiver || (needsElderSelection && !selectedElder)}
+            >
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
