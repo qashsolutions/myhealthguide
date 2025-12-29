@@ -1389,18 +1389,24 @@ service cloud.firestore {
     // Family, doctors, hospitals, pharmacies
 
     match /elderEmergencyContacts/{contactId} {
-      // Group admin or members can read contacts
-      allow read: if isGroupAdmin(resource.data.groupId) ||
-        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+      // Group admin, members, or agency super admin can read contacts
+      // Agency access: If elder belongs to a group in the agency
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isGroupAdmin(resource.data.groupId) ||
+         isMemberOfGroup(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
 
       // Group members can create contacts
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(request.resource.data.groupId);
+        (isMemberOfGroup(request.resource.data.groupId) ||
+         canAccessGroup(request.resource.data.groupId));
 
       // Group members can update contacts
       allow update: if hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(resource.data.groupId);
+        (isMemberOfGroup(resource.data.groupId) ||
+         canAccessGroup(resource.data.groupId));
 
       // Group admin can delete contacts
       allow delete: if isGroupAdmin(resource.data.groupId);

@@ -697,7 +697,7 @@ export class AgencyService {
 
       for (const batch of batches) {
         const q = query(
-          collection(db, 'elder_emergency_contacts'),
+          collection(db, 'elderEmergencyContacts'),
           where('elderId', 'in', batch)
         );
         const snap = await getDocs(q);
