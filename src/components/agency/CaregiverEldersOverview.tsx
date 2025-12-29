@@ -6,18 +6,22 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, Users, AlertCircle } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
-import { Elder, CaregiverAssignment } from '@/types';
-import { CaregiverEldersCard } from './CaregiverEldersCard';
+import { Elder, CaregiverAssignment, ElderEmergencyContact } from '@/types';
+import { CaregiverAccordion } from './CaregiverAccordion';
 import { UnassignedEldersSection } from './UnassignedEldersSection';
 import { AssignElderDialog } from './AssignElderDialog';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+
+interface ElderWithContacts extends Elder {
+  emergencyContacts?: ElderEmergencyContact[];
+}
 
 interface CaregiverWithElders {
   id: string;
   name: string;
   role: 'caregiver_admin' | 'caregiver';
-  elders: Elder[];
+  elders: ElderWithContacts[];
   elderCount: number;
 }
 
@@ -37,7 +41,7 @@ export function CaregiverEldersOverview({
   isSuperAdmin
 }: CaregiverEldersOverviewProps) {
   const [caregiversWithElders, setCaregiversWithElders] = useState<CaregiverWithElders[]>([]);
-  const [unassignedElders, setUnassignedElders] = useState<Elder[]>([]);
+  const [unassignedElders, setUnassignedElders] = useState<ElderWithContacts[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,10 +54,10 @@ export function CaregiverEldersOverview({
     try {
       setError(null);
 
-      // Get assignments and elders grouped by caregiver
+      // Get assignments and elders grouped by caregiver (with emergency contacts)
       const [assignments, { caregiverElders, unassignedElders: unassigned }] = await Promise.all([
         AgencyService.getAgencyAssignments(agencyId),
-        AgencyService.getEldersByCaregiver(agencyId)
+        AgencyService.getEldersWithContactsByCaregiver(agencyId)
       ]);
 
       // Fetch ALL caregiver profiles for this agency (not just those with assignments)
@@ -88,20 +92,20 @@ export function CaregiverEldersOverview({
         const assignment = assignments.find(a => a.caregiverId === caregiverId && a.active);
         const role = assignment?.role || 'caregiver';
 
-        // Get elders for this caregiver (from assignments)
+        // Get elders for this caregiver (from assignments, with contacts)
         const elders = caregiverElders.get(caregiverId) || [];
 
         caregiversData.push({
           id: caregiverId,
           name,
           role: role as 'caregiver_admin' | 'caregiver',
-          elders,
+          elders: elders as ElderWithContacts[],
           elderCount: elders.length
         });
       }
 
       setCaregiversWithElders(caregiversData);
-      setUnassignedElders(unassigned);
+      setUnassignedElders(unassigned as ElderWithContacts[]);
     } catch (err: any) {
       console.error('Error loading caregiver-elder data:', err);
       setError(err.message || 'Failed to load data');
@@ -203,27 +207,12 @@ export function CaregiverEldersOverview({
           </div>
         </CardHeader>
         <CardContent>
-          {caregiversWithElders.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No caregivers assigned yet</p>
-              <p className="text-sm mt-1">Invite caregivers to your agency to get started</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {caregiversWithElders.map((caregiver) => (
-                <CaregiverEldersCard
-                  key={caregiver.id}
-                  caregiverId={caregiver.id}
-                  caregiverName={caregiver.name}
-                  role={caregiver.role}
-                  elders={caregiver.elders}
-                  maxElders={maxEldersPerCaregiver}
-                  onAssignMore={isSuperAdmin ? () => handleAssignElder('', '') : undefined}
-                />
-              ))}
-            </div>
-          )}
+          <CaregiverAccordion
+            caregivers={caregiversWithElders}
+            maxEldersPerCaregiver={maxEldersPerCaregiver}
+            onAssignElder={handleAssignElder}
+            isSuperAdmin={isSuperAdmin}
+          />
         </CardContent>
       </Card>
 

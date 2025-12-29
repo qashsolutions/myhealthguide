@@ -679,4 +679,88 @@ export class AgencyService {
       throw error;
     }
   }
+
+  /**
+   * Get emergency contacts for multiple elders
+   */
+  static async getElderEmergencyContacts(elderIds: string[]): Promise<Map<string, any[]>> {
+    try {
+      const contactsMap = new Map<string, any[]>();
+
+      if (elderIds.length === 0) return contactsMap;
+
+      // Firestore 'in' query supports max 30 items, so batch if needed
+      const batches = [];
+      for (let i = 0; i < elderIds.length; i += 30) {
+        batches.push(elderIds.slice(i, i + 30));
+      }
+
+      for (const batch of batches) {
+        const q = query(
+          collection(db, 'elder_emergency_contacts'),
+          where('elderId', 'in', batch)
+        );
+        const snap = await getDocs(q);
+
+        snap.docs.forEach(docSnap => {
+          const data = docSnap.data();
+          const elderId = data.elderId;
+          const existing = contactsMap.get(elderId) || [];
+          existing.push({
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+          });
+          contactsMap.set(elderId, existing);
+        });
+      }
+
+      return contactsMap;
+    } catch (error) {
+      console.error('Error getting elder emergency contacts:', error);
+      return new Map();
+    }
+  }
+
+  /**
+   * Get elders with their emergency contacts, grouped by caregiver
+   */
+  static async getEldersWithContactsByCaregiver(agencyId: string): Promise<{
+    caregiverElders: Map<string, any[]>;
+    unassignedElders: any[];
+  }> {
+    try {
+      const { caregiverElders, unassignedElders } = await this.getEldersByCaregiver(agencyId);
+
+      // Collect all elder IDs
+      const allElderIds: string[] = [];
+      caregiverElders.forEach(elders => {
+        elders.forEach(e => allElderIds.push(e.id));
+      });
+      unassignedElders.forEach(e => allElderIds.push(e.id));
+
+      // Fetch emergency contacts for all elders
+      const contactsMap = await this.getElderEmergencyContacts(allElderIds);
+
+      // Attach contacts to elders
+      const attachContacts = (elder: Elder) => ({
+        ...elder,
+        emergencyContacts: contactsMap.get(elder.id) || [],
+      });
+
+      // Update caregiverElders map
+      const updatedCaregiverElders = new Map<string, any[]>();
+      caregiverElders.forEach((elders, caregiverId) => {
+        updatedCaregiverElders.set(caregiverId, elders.map(attachContacts));
+      });
+
+      return {
+        caregiverElders: updatedCaregiverElders,
+        unassignedElders: unassignedElders.map(attachContacts),
+      };
+    } catch (error) {
+      console.error('Error getting elders with contacts:', error);
+      throw error;
+    }
+  }
 }
