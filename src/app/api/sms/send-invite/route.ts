@@ -252,9 +252,10 @@ export async function GET(req: NextRequest) {
       .limit(50)
       .get();
 
-    const invites = invitesSnapshot.docs.map(doc => {
+    // Build invites with user details for accepted ones
+    const invites = await Promise.all(invitesSnapshot.docs.map(async (doc) => {
       const data = doc.data();
-      return {
+      const invite: Record<string, any> = {
         id: doc.id,
         phoneNumber: data.phoneNumber,
         status: data.status,
@@ -262,9 +263,46 @@ export async function GET(req: NextRequest) {
         expiresAt: data.expiresAt?.toDate?.()?.toISOString() || null,
         acceptedAt: data.acceptedAt?.toDate?.()?.toISOString() || null,
         smsStatus: data.smsStatus,
-        testInviteUrl: data.testInviteUrl || null, // Include for test numbers
+        testInviteUrl: data.testInviteUrl || null,
       };
-    });
+
+      // For accepted invites, fetch user details
+      if (data.status === 'accepted' && data.acceptedByUserId) {
+        try {
+          // Try to get from caregiver_profiles first (has fullName)
+          const profileDoc = await adminDb
+            .collection('caregiver_profiles')
+            .doc(data.acceptedByUserId)
+            .get();
+
+          if (profileDoc.exists) {
+            const profileData = profileDoc.data()!;
+            invite.acceptedByName = profileData.fullName || null;
+            invite.acceptedByEmail = profileData.email || null;
+          }
+
+          // If no name from profile, try users collection
+          if (!invite.acceptedByName) {
+            const userDoc = await adminDb
+              .collection('users')
+              .doc(data.acceptedByUserId)
+              .get();
+
+            if (userDoc.exists) {
+              const userData = userDoc.data()!;
+              invite.acceptedByName = userData.firstName && userData.lastName
+                ? `${userData.firstName} ${userData.lastName}`.trim()
+                : userData.firstName || null;
+              invite.acceptedByEmail = invite.acceptedByEmail || userData.email || null;
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching user details for invite:', err);
+        }
+      }
+
+      return invite;
+    }));
 
     // Sort by createdAt desc in memory
     invites.sort((a, b) => {

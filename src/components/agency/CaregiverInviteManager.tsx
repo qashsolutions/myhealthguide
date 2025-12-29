@@ -28,6 +28,8 @@ import {
   AlertCircle,
   Share2,
   Copy,
+  Mail,
+  User,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -40,6 +42,9 @@ interface CaregiverInvite {
   acceptedAt?: string;
   smsStatus?: string;
   testInviteUrl?: string;
+  // User details for accepted invites
+  acceptedByName?: string;
+  acceptedByEmail?: string;
 }
 
 interface CaregiverInviteManagerProps {
@@ -348,33 +353,68 @@ export function CaregiverInviteManager({
             {invites.map((invite) => {
               const isExpired = new Date(invite.expiresAt) < new Date();
               const canCancel = invite.status === 'pending' && !isExpired;
+              const isAccepted = invite.status === 'accepted';
 
               return (
                 <div
                   key={invite.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full">
-                      <Phone className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  <div className="flex items-start gap-4">
+                    {/* Icon - User for accepted, Phone for others */}
+                    <div className={`p-2 rounded-full ${
+                      isAccepted
+                        ? 'bg-green-100 dark:bg-green-900/30'
+                        : 'bg-gray-100 dark:bg-gray-800'
+                    }`}>
+                      {isAccepted ? (
+                        <User className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <Phone className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      )}
                     </div>
-                    <div>
-                      <p className="font-medium">{formatPhoneDisplay(invite.phoneNumber)}</p>
-                      <div className="flex items-center gap-2 mt-1">
+
+                    <div className="space-y-1">
+                      {/* For accepted invites: Show name, phone, email */}
+                      {isAccepted && invite.acceptedByName ? (
+                        <>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {invite.acceptedByName}
+                          </p>
+                          <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                            <Phone className="w-3 h-3" />
+                            <span>{formatPhoneDisplay(invite.phoneNumber)}</span>
+                          </div>
+                          {invite.acceptedByEmail && (
+                            <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                              <Mail className="w-3 h-3" />
+                              <span>{invite.acceptedByEmail}</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        /* For pending/expired: Show phone only */
+                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                          {formatPhoneDisplay(invite.phoneNumber)}
+                        </p>
+                      )}
+
+                      {/* Status row */}
+                      <div className="flex items-center gap-2 pt-1">
                         {getStatusBadge(invite.status, invite.expiresAt)}
                         {invite.smsStatus === 'test_mode' && (
                           <span className="text-xs text-gray-500">(SMS not sent)</span>
                         )}
                         <span className="text-xs text-gray-500">
                           {invite.createdAt
-                            ? `${formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })}`
+                            ? formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })
                             : ''}
                         </span>
                       </div>
+
                       {/* Show Copy Link button when SMS was skipped */}
                       {invite.testInviteUrl && invite.status === 'pending' && (
                         <div className="flex items-center gap-2 mt-2">
-                          {/* Copy Link button - always visible */}
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(invite.testInviteUrl!);
@@ -400,7 +440,6 @@ export function CaregiverInviteManager({
                             )}
                           </button>
 
-                          {/* Share button - uses native share API (mobile, WhatsApp, etc.) */}
                           <button
                             onClick={async () => {
                               const shareData = {
@@ -413,10 +452,9 @@ export function CaregiverInviteManager({
                                 try {
                                   await navigator.share(shareData);
                                 } catch (err) {
-                                  // User cancelled - do nothing
+                                  // User cancelled
                                 }
                               } else {
-                                // Fallback: copy to clipboard
                                 navigator.clipboard.writeText(invite.testInviteUrl!);
                                 setCopiedId(invite.id);
                                 setTimeout(() => setCopiedId(null), 2000);
@@ -431,6 +469,7 @@ export function CaregiverInviteManager({
                       )}
                     </div>
                   </div>
+
                   {canCancel && (
                     <Button
                       variant="ghost"
