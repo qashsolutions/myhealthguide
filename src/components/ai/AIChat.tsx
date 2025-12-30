@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mic, MicOff, Send, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Send, Sparkles, MessageSquare, Loader2, Clock, CheckCircle, Users, XCircle, ClipboardList } from 'lucide-react';
 import { saveChatMessage, getChatHistory, ChatMessage, ChatContext, ChatAction } from '@/lib/ai/chatService';
 import { ActionHandler } from '@/lib/ai/actionHandler';
 import { format } from 'date-fns';
@@ -132,14 +132,14 @@ export function AIChat({ context }: AIChatProps) {
               actionResults.push(result.message);
               action.status = 'completed';
             } else {
-              actionResults.push(`❌ ${result.message}`);
+              actionResults.push(`[Error] ${result.message}`);
               action.status = 'failed';
               action.error = result.error;
             }
           } catch (error: any) {
             action.status = 'failed';
             action.error = error.message;
-            actionResults.push(`❌ Failed to execute action: ${error.message}`);
+            actionResults.push(`[Error] Failed to execute action: ${error.message}`);
           }
         }
 
@@ -267,33 +267,38 @@ export function AIChat({ context }: AIChatProps) {
               <div className="space-y-1">
                 <button
                   onClick={() => setInput("What medication is coming up for Dad?")}
-                  className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  💬 &quot;What medication is coming up for Dad?&quot;
+                  <MessageSquare className="w-4 h-4 text-gray-500" />
+                  <span>&quot;What medication is coming up for Dad?&quot;</span>
                 </button>
                 <button
                   onClick={() => setInput("Show me today's schedule")}
-                  className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  💬 &quot;Show me today&apos;s schedule&quot;
+                  <MessageSquare className="w-4 h-4 text-gray-500" />
+                  <span>&quot;Show me today&apos;s schedule&quot;</span>
                 </button>
                 <button
                   onClick={() => setInput("Remind me to give Mom her medicine at 8pm")}
-                  className="block w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  ⏰ &quot;Remind me to give Mom her medicine at 8pm&quot;
+                  <Clock className="w-4 h-4 text-gray-500" />
+                  <span>&quot;Remind me to give Mom her medicine at 8pm&quot;</span>
                 </button>
                 <button
                   onClick={() => setInput("Mark Dad's blood pressure medicine as taken")}
-                  className="block w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 rounded hover:bg-green-100 dark:hover:bg-green-900/30"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 rounded hover:bg-green-100 dark:hover:bg-green-900/30"
                 >
-                  ✅ &quot;Mark Dad&apos;s blood pressure medicine as taken&quot;
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span>&quot;Mark Dad&apos;s blood pressure medicine as taken&quot;</span>
                 </button>
                 <button
                   onClick={() => setInput("Invite Sarah to the group")}
-                  className="block w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900/20 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30"
                 >
-                  👥 &quot;Invite Sarah to the group&quot;
+                  <Users className="w-4 h-4 text-purple-600" />
+                  <span>&quot;Invite Sarah to the group&quot;</span>
                 </button>
               </div>
             </div>
@@ -335,7 +340,7 @@ export function AIChat({ context }: AIChatProps) {
                       {message.actions.map((action, i) => (
                         <div
                           key={i}
-                          className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${
+                          className={`text-xs px-2 py-1 rounded flex items-center gap-1.5 ${
                             action.status === 'completed'
                               ? 'bg-green-500/20 dark:bg-green-500/30 text-green-900 dark:text-green-200'
                               : action.status === 'failed'
@@ -343,9 +348,13 @@ export function AIChat({ context }: AIChatProps) {
                               : 'bg-blue-500/20 dark:bg-blue-500/30 text-blue-900 dark:text-blue-200'
                           }`}
                         >
-                          <span>
-                            {action.status === 'completed' ? '✅' : action.status === 'failed' ? '❌' : '📋'}
-                          </span>
+                          {action.status === 'completed' ? (
+                            <CheckCircle className="w-3 h-3" />
+                          ) : action.status === 'failed' ? (
+                            <XCircle className="w-3 h-3" />
+                          ) : (
+                            <ClipboardList className="w-3 h-3" />
+                          )}
                           <span>
                             {action.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </span>
