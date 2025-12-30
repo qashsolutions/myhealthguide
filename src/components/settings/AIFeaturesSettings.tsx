@@ -8,7 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
-import { Sparkles, TrendingUp, Clock, FileText, Shield, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, TrendingUp, Clock, FileText, Shield, AlertCircle, CheckCircle, RefreshCw, ThumbsUp, MessageSquareText } from 'lucide-react';
+import Link from 'next/link';
 import { AIFeatureSettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -451,6 +452,51 @@ export function AIFeaturesSettings({
                     disabled={!settings.enabled || saving}
                     className="flex-shrink-0 ml-4"
                   />
+                </div>
+              </div>
+
+              {/* AI Feedback System */}
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex-shrink-0">
+                    <MessageSquareText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base font-medium text-gray-900 dark:text-white">
+                        Continuous Improvement Feedback
+                      </span>
+                      <span className="px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 rounded-full">
+                        Active
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Your feedback helps improve AI accuracy. Rate responses, mark suggestions as helpful or not, and report corrections across all AI features.
+                    </p>
+                    <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        <span>Rate AI responses</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>Validate suggestions</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        <span>Report inaccuracies</span>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <Link
+                        href="/dashboard/analytics?tab=feedback"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                      >
+                        View your feedback history
+                        <span aria-hidden="true">&rarr;</span>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </div>
 
