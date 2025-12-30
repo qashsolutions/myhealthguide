@@ -13,6 +13,7 @@ import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
 import { Loader2, Send, MessageSquare, Sparkles, User, Bot, BarChart3, Info, AlertTriangle, Brain } from 'lucide-react';
 import { format } from 'date-fns';
+import { FeedbackButtons } from '@/components/feedback/FeedbackButtons';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { validateNoProfanity } from '@/lib/utils/profanityFilter';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
@@ -338,9 +339,20 @@ export default function HealthChatPage() {
                     </div>
                   )}
 
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                    {format(message.timestamp, 'h:mm a')}
-                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {format(message.timestamp, 'h:mm a')}
+                    </p>
+                    {message.role === 'assistant' && (
+                      <FeedbackButtons
+                        targetType="health_chat"
+                        targetId={message.id}
+                        elderId={selectedElder?.id}
+                        size="sm"
+                        showComment={true}
+                      />
+                    )}
+                  </div>
                 </div>
                 {message.role === 'user' && (
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
