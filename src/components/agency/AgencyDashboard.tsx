@@ -31,6 +31,7 @@ import { CaregiverInviteManager } from './CaregiverInviteManager';
 import { CaregiverEldersOverview } from './CaregiverEldersOverview';
 import { PendingCaregiversSection } from './PendingCaregiversSection';
 import { ActiveCaregiversSection } from './ActiveCaregiversSection';
+import { FeedbackDashboard } from '@/components/feedback/FeedbackDashboard';
 
 interface AgencyDashboardProps {
   userId: string;
@@ -397,6 +398,15 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
           userId={userId}
           currentCaregiverCount={activeCaregivers}
           maxCaregivers={10}
+        />
+      )}
+
+      {/* AI Feedback Dashboard - Only for Super Admin */}
+      {isSuperAdmin && (
+        <FeedbackDashboard
+          mode="agency"
+          agencyId={agencyId}
+          defaultOpen={false}
         />
       )}
 

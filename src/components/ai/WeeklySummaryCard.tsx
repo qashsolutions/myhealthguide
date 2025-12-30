@@ -27,6 +27,7 @@ import {
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { generateWeeklySummary, getWeeklySummaries, WeeklySummaryData } from '@/lib/ai/weeklySummary';
 import { NotificationService } from '@/lib/firebase/notifications';
+import { FeedbackButtons } from '@/components/feedback/FeedbackButtons';
 
 interface WeeklySummaryCardProps {
   elderId: string;
@@ -364,8 +365,18 @@ export function WeeklySummaryCard({
                         </div>
                       )}
 
-                      {/* Export Button */}
-                      <div className="flex justify-end">
+                      {/* Feedback and Export */}
+                      <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>Was this summary helpful?</span>
+                          <FeedbackButtons
+                            targetType="weekly_summary"
+                            targetId={summary.id || `weekly-${format(summary.weekStart, 'yyyy-MM-dd')}`}
+                            elderId={elderId}
+                            size="sm"
+                            showComment={true}
+                          />
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"

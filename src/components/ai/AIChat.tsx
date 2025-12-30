@@ -8,6 +8,7 @@ import { Mic, MicOff, Send, Sparkles, MessageSquare, Loader2 } from 'lucide-reac
 import { saveChatMessage, getChatHistory, ChatMessage, ChatContext, ChatAction } from '@/lib/ai/chatService';
 import { ActionHandler } from '@/lib/ai/actionHandler';
 import { format } from 'date-fns';
+import { FeedbackButtons } from '@/components/feedback/FeedbackButtons';
 
 interface AIChatProps {
   context: ChatContext;
@@ -298,51 +299,67 @@ export function AIChat({ context }: AIChatProps) {
             </div>
           </div>
         ) : (
-          messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
+          messages.map((message, index) => {
+            // Generate a unique ID for feedback tracking
+            const messageId = message.id || `chat-${message.timestamp.getTime()}-${index}`;
+
+            return (
               <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  message.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                }`}
+                key={index}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <p className="text-xs opacity-70 mt-1">
-                  {format(message.timestamp, 'h:mm a')}
-                </p>
-                {message.actions && message.actions.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {message.actions.map((action, i) => (
-                      <div
-                        key={i}
-                        className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${
-                          action.status === 'completed'
-                            ? 'bg-green-500/20 dark:bg-green-500/30 text-green-900 dark:text-green-200'
-                            : action.status === 'failed'
-                            ? 'bg-red-500/20 dark:bg-red-500/30 text-red-900 dark:text-red-200'
-                            : 'bg-blue-500/20 dark:bg-blue-500/30 text-blue-900 dark:text-blue-200'
-                        }`}
-                      >
-                        <span>
-                          {action.status === 'completed' ? '✅' : action.status === 'failed' ? '❌' : '📋'}
-                        </span>
-                        <span>
-                          {action.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                        {action.status === 'failed' && action.error && (
-                          <span className="text-xs opacity-75">- {action.error}</span>
-                        )}
-                      </div>
-                    ))}
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <p className="text-xs opacity-70">
+                      {format(message.timestamp, 'h:mm a')}
+                    </p>
+                    {/* Feedback buttons for assistant messages */}
+                    {message.role === 'assistant' && (
+                      <FeedbackButtons
+                        targetType="smart_assistant"
+                        targetId={messageId}
+                        size="sm"
+                        showComment={true}
+                      />
+                    )}
                   </div>
-                )}
+                  {message.actions && message.actions.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {message.actions.map((action, i) => (
+                        <div
+                          key={i}
+                          className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${
+                            action.status === 'completed'
+                              ? 'bg-green-500/20 dark:bg-green-500/30 text-green-900 dark:text-green-200'
+                              : action.status === 'failed'
+                              ? 'bg-red-500/20 dark:bg-red-500/30 text-red-900 dark:text-red-200'
+                              : 'bg-blue-500/20 dark:bg-blue-500/30 text-blue-900 dark:text-blue-200'
+                          }`}
+                        >
+                          <span>
+                            {action.status === 'completed' ? '✅' : action.status === 'failed' ? '❌' : '📋'}
+                          </span>
+                          <span>
+                            {action.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </span>
+                          {action.status === 'failed' && action.error && (
+                            <span className="text-xs opacity-75">- {action.error}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         {loading && (
           <div className="flex justify-start">

@@ -4,24 +4,36 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, TrendingUp, AlertCircle, Info } from 'lucide-react';
 import { ReactNode } from 'react';
+import { FeedbackButtons } from '@/components/feedback/FeedbackButtons';
+import { HealthChangeFeedback } from '@/components/feedback/ActionFeedback';
 
 interface AIInsightCardProps {
+  id?: string;
   title: string;
   description: string;
   type: 'positive' | 'warning' | 'info' | 'insight';
   icon?: ReactNode;
   actionLabel?: string;
   onAction?: () => void;
+  elderId?: string;
+  showFeedback?: boolean;
+  showActionFeedback?: boolean; // For warnings/alerts that can be marked as valid/false alarm
 }
 
 export function AIInsightCard({
+  id,
   title,
   description,
   type,
   icon,
   actionLabel,
-  onAction
+  onAction,
+  elderId,
+  showFeedback = true,
+  showActionFeedback = false
 }: AIInsightCardProps) {
+  // Generate a unique ID if not provided
+  const insightId = id || `insight-${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
   const getTypeStyles = () => {
     switch (type) {
       case 'positive':
@@ -84,6 +96,26 @@ export function AIInsightCard({
               >
                 {actionLabel} →
               </button>
+            )}
+
+            {/* Feedback section */}
+            {(showFeedback || showActionFeedback) && (
+              <div className="flex items-center gap-3 pt-2 border-t border-gray-200/50 dark:border-gray-700/50 mt-2">
+                {showActionFeedback && type === 'warning' ? (
+                  <HealthChangeFeedback
+                    targetId={insightId}
+                    elderId={elderId}
+                  />
+                ) : showFeedback ? (
+                  <FeedbackButtons
+                    targetType="ai_insight"
+                    targetId={insightId}
+                    elderId={elderId}
+                    size="sm"
+                    showComment={true}
+                  />
+                ) : null}
+              </div>
             )}
           </div>
         </div>
