@@ -308,16 +308,16 @@ import {
 - Create new QuickInsights-style components - use `QuickInsightsCard`
 - Use 'late' as a database status - map to 'taken' instead
 
-### 9. Gemini API Configuration (CONFIRMED: Dec 2, 2025)
+### 9. Gemini API Configuration (UPDATED: Dec 29, 2025)
 
 **Model:** `gemini-3-pro-preview` with thinking mode
 
-**API Endpoint:**
+**API Endpoint (Direct Gemini API):**
 ```
 https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent
 ```
 
-**Configuration:**
+**Configuration for Direct Gemini API:**
 ```typescript
 generationConfig: {
   temperature: 0.7,
@@ -328,20 +328,40 @@ generationConfig: {
 }
 ```
 
+**Configuration for Vertex AI SDK (@google-cloud/vertexai):**
+```typescript
+// Gemini 3 uses thinkingConfig with thinkingLevel (not thinking_config)
+generationConfig: {
+  temperature: 0.3,
+  maxOutputTokens: 8192,
+},
+// thinkingLevel: 'high' | 'low' for Gemini 3 Pro
+// thinkingLevel: 'minimal' | 'low' | 'medium' | 'high' for Gemini 3 Flash
+thinkingConfig: {
+  thinkingLevel: 'high'
+}
+```
+
 **Environment Variables:**
-- `GEMINI_API_KEY` - Primary AI provider (Vercel environment variable)
+- `GEMINI_API_KEY` - Primary AI provider for direct Gemini API (Vercel environment variable)
 - `ANTHROPIC_API_KEY` - Claude fallback when Gemini unavailable (Vercel environment variable)
+- `GOOGLE_APPLICATION_CREDENTIALS_JSON` - Service account JSON for Vertex AI SDK (Vercel environment variable)
+- `GOOGLE_CLOUD_PROJECT_ID` - GCP project ID for Vertex AI
 
 **Files using Gemini 3 Pro Preview:**
-- `src/lib/ai/chatService.ts` - Smart Assistant chat
-- `src/lib/ai/geminiService.ts` - General AI service
-- `src/lib/ai/voiceSearch.ts` - Voice search
-- `src/lib/ai/medgemmaService.ts` - Medical AI fallback
-- `src/lib/ai/agenticAnalytics.ts` - AI-driven analytics (with Claude fallback)
+- `src/lib/ai/chatService.ts` - Smart Assistant chat (Direct API)
+- `src/lib/ai/geminiService.ts` - General AI service (Direct API)
+- `src/lib/ai/voiceSearch.ts` - Voice search (Direct API)
+- `src/lib/ai/medgemmaService.ts` - Medical AI queries (Vertex AI SDK)
+- `src/lib/ai/agenticAnalytics.ts` - AI-driven analytics (Direct API with Claude fallback)
+
+**DEPRECATED Models (DO NOT USE):**
+- `medlm-large` - Deprecated September 29, 2025. Use `gemini-3-pro-preview` instead.
+- `gemini-2.0-flash` - Being discontinued. Use `gemini-3-pro-preview` or `gemini-3-flash-preview`.
 
 **DO NOT:**
-- Change the model to gemini-1.5-flash or other models without confirming
-- Remove thinking_config - it's required for gemini-3-pro-preview
+- Use deprecated models (medlm-large, gemini-2.0-flash)
+- Mix thinking_config (Direct API) with thinkingConfig (Vertex AI) syntaxes
 - Expose GEMINI_API_KEY or ANTHROPIC_API_KEY to client-side (must go through API routes)
 
 ### 10. Agentic AI Analytics (IMPLEMENTED: Dec 8, 2025)

@@ -143,20 +143,25 @@ function getVertexAI(): VertexAI {
 
 /**
  * MedGemma model configuration
+ *
+ * NOTE: MedLM-large was deprecated on September 29, 2025.
+ * Using gemini-3-pro-preview with medical system prompt as the primary model.
+ * MedGemma models are available through Model Garden for specialized medical use.
  */
 const MEDGEMMA_CONFIG = {
-  model: 'medlm-large', // Will be medgemma-27b when available in Vertex AI
-  // Alternative: Use gemini-3-pro-preview with medical system prompt for now
-  fallbackModel: 'gemini-3-pro-preview',
+  // Primary model - Gemini 3 Pro Preview (MedLM-large is deprecated)
+  model: 'gemini-3-pro-preview',
 
   generationConfig: {
     temperature: 0.3, // Lower temperature for medical accuracy
     topP: 0.95,
     topK: 40,
     maxOutputTokens: 8192,
-    thinking_config: {
-      include_thoughts: true // Enable thinking mode for complex medical reasoning
-    }
+  },
+
+  // Gemini 3 uses thinkingConfig with thinkingLevel instead of thinking_config
+  thinkingConfig: {
+    thinkingLevel: 'high', // Use high reasoning for medical queries
   },
 
   safetySettings: [
@@ -578,7 +583,7 @@ End with: "This is an observational summary of logged data. Please discuss with 
 
   try {
     const model = vertex.preview.getGenerativeModel({
-      model: MEDGEMMA_CONFIG.fallbackModel,
+      model: MEDGEMMA_CONFIG.model,
       generationConfig: MEDGEMMA_CONFIG.generationConfig,
       systemInstruction: MEDICAL_SYSTEM_PROMPT,
     });
@@ -652,7 +657,7 @@ Return ONLY valid JSON array, no other text.`;
 
   try {
     const model = vertex.preview.getGenerativeModel({
-      model: MEDGEMMA_CONFIG.fallbackModel,
+      model: MEDGEMMA_CONFIG.model,
       generationConfig: { ...MEDGEMMA_CONFIG.generationConfig, temperature: 0.2 },
       systemInstruction: DISCUSSION_POINTS_SYSTEM_PROMPT,
     });
@@ -731,7 +736,7 @@ Return ONLY valid JSON array, no other text.`;
 
   try {
     const model = vertex.preview.getGenerativeModel({
-      model: MEDGEMMA_CONFIG.fallbackModel,
+      model: MEDGEMMA_CONFIG.model,
       generationConfig: { ...MEDGEMMA_CONFIG.generationConfig, temperature: 0.2 },
       systemInstruction: QUESTIONS_FOR_PROVIDER_PROMPT,
     });
@@ -1022,9 +1027,9 @@ Return JSON only:
     console.log('[MedGemma Service] processNaturalLanguageQuery - getting VertexAI client');
     const vertex = getVertexAI();
 
-    console.log('[MedGemma Service] processNaturalLanguageQuery - creating model with:', MEDGEMMA_CONFIG.fallbackModel);
+    console.log('[MedGemma Service] processNaturalLanguageQuery - creating model with:', MEDGEMMA_CONFIG.model);
     const model = vertex.preview.getGenerativeModel({
-      model: MEDGEMMA_CONFIG.fallbackModel,
+      model: MEDGEMMA_CONFIG.model,
       generationConfig: { ...MEDGEMMA_CONFIG.generationConfig, temperature: 0.1 },
     });
 
