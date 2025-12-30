@@ -401,7 +401,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
         />
       )}
 
-      {/* AI Feedback Dashboard - Only for Super Admin */}
+      {/* Smart Feedback Dashboard - Only for Super Admin */}
       {isSuperAdmin && (
         <FeedbackDashboard
           mode="agency"

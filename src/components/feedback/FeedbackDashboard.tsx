@@ -175,10 +175,10 @@ export function FeedbackDashboard({
   };
 
   const title = mode === 'agency'
-    ? 'Agency AI Feedback'
+    ? 'Agency Smart Feedback'
     : mode === 'group'
-    ? 'Group AI Feedback'
-    : 'My AI Feedback';
+    ? 'Group Smart Feedback'
+    : 'My Smart Feedback';
 
   return (
     <Card className={cn('', className)}>

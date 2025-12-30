@@ -455,7 +455,7 @@ export function AIFeaturesSettings({
                 </div>
               </div>
 
-              {/* AI Feedback System */}
+              {/* Smart Feedback System */}
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10">
                 <div className="flex items-start gap-3">
                   <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex-shrink-0">
@@ -471,7 +471,7 @@ export function AIFeaturesSettings({
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      Your feedback helps improve AI accuracy. Rate responses, mark suggestions as helpful or not, and report corrections across all AI features.
+                      Your feedback helps improve smart feature accuracy. Rate responses, mark suggestions as helpful or not, and report corrections across all smart features.
                     </p>
                     <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <div className="flex items-center gap-1.5">

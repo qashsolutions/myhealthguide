@@ -83,7 +83,7 @@ export function AIInsightCard({
               </h3>
               <Badge variant="outline" className="flex-shrink-0">
                 <Sparkles className="w-3 h-3 mr-1" />
-                AI
+                Smart
               </Badge>
             </div>
             <p className="text-sm text-gray-700 dark:text-gray-300">

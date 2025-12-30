@@ -46,7 +46,7 @@ function AnalyticsContent() {
     { id: 'adherence', label: 'Medication Adherence', icon: Pill },
     { id: 'nutrition', label: 'Nutrition', icon: Apple },
     { id: 'trends', label: 'Health Trends', icon: TrendingUp },
-    { id: 'feedback', label: 'AI Feedback', icon: MessageSquareText },
+    { id: 'feedback', label: 'Smart Feedback', icon: MessageSquareText },
   ];
 
   if (!selectedElder) {
@@ -131,7 +131,7 @@ function AnalyticsContent() {
                 />
               </div>
 
-              {/* AI Feedback Summary - Collapsible */}
+              {/* Smart Feedback Summary - Collapsible */}
               <FeedbackDashboard mode="user" defaultOpen={false} />
             </div>
           )}
@@ -228,14 +228,14 @@ function AnalyticsContent() {
                     <MessageSquareText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">AI Feedback Dashboard</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Smart Feedback Dashboard</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Your feedback helps improve AI accuracy and relevance
+                      Your feedback helps improve smart feature accuracy and relevance
                     </p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Track your feedback on AI features including Health Chat, Weekly Summaries, and AI Insights.
+                  Track your feedback on smart features including Health Chat, Weekly Summaries, and Insights.
                   See how your input helps improve the system.
                 </p>
               </Card>
