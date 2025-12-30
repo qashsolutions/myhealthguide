@@ -16,11 +16,13 @@ import {
   AlertCircle,
   ChevronRight,
   Calendar,
+  MessageSquareText,
 } from 'lucide-react';
+import { FeedbackDashboard } from '@/components/feedback/FeedbackDashboard';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-type TabType = 'overview' | 'adherence' | 'nutrition' | 'trends';
+type TabType = 'overview' | 'adherence' | 'nutrition' | 'trends' | 'feedback';
 
 function AnalyticsContent() {
   const router = useRouter();
@@ -44,6 +46,7 @@ function AnalyticsContent() {
     { id: 'adherence', label: 'Medication Adherence', icon: Pill },
     { id: 'nutrition', label: 'Nutrition', icon: Apple },
     { id: 'trends', label: 'Health Trends', icon: TrendingUp },
+    { id: 'feedback', label: 'AI Feedback', icon: MessageSquareText },
   ];
 
   if (!selectedElder) {
@@ -103,28 +106,33 @@ function AnalyticsContent() {
       ) : (
         <>
           {activeTab === 'overview' && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <AnalyticsCard
-                title="Medication Adherence"
-                description="Track medication compliance and identify at-risk patterns"
-                icon={Pill}
-                linkHref="/dashboard/medication-adherence"
-                color="blue"
-              />
-              <AnalyticsCard
-                title="Nutrition Analysis"
-                description="Analyze eating patterns, meal frequency, and nutritional balance"
-                icon={Apple}
-                linkHref="/dashboard/nutrition-analysis"
-                color="green"
-              />
-              <AnalyticsCard
-                title="Health Trends"
-                description="View weekly summaries, compliance charts, and AI insights"
-                icon={TrendingUp}
-                linkHref="/dashboard/insights"
-                color="purple"
-              />
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <AnalyticsCard
+                  title="Medication Adherence"
+                  description="Track medication compliance and identify at-risk patterns"
+                  icon={Pill}
+                  linkHref="/dashboard/medication-adherence"
+                  color="blue"
+                />
+                <AnalyticsCard
+                  title="Nutrition Analysis"
+                  description="Analyze eating patterns, meal frequency, and nutritional balance"
+                  icon={Apple}
+                  linkHref="/dashboard/nutrition-analysis"
+                  color="green"
+                />
+                <AnalyticsCard
+                  title="Health Trends"
+                  description="View weekly summaries, compliance charts, and AI insights"
+                  icon={TrendingUp}
+                  linkHref="/dashboard/insights"
+                  color="purple"
+                />
+              </div>
+
+              {/* AI Feedback Summary - Collapsible */}
+              <FeedbackDashboard mode="user" defaultOpen={false} />
             </div>
           )}
 
@@ -209,6 +217,31 @@ function AnalyticsContent() {
                   health insights based on logged data.
                 </p>
               </Card>
+            </div>
+          )}
+
+          {activeTab === 'feedback' && (
+            <div className="space-y-4">
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                    <MessageSquareText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">AI Feedback Dashboard</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Your feedback helps improve AI accuracy and relevance
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Track your feedback on AI features including Health Chat, Weekly Summaries, and AI Insights.
+                  See how your input helps improve the system.
+                </p>
+              </Card>
+
+              {/* Feedback Dashboard - Collapsible */}
+              <FeedbackDashboard mode="user" defaultOpen={true} />
             </div>
           )}
         </>

@@ -1694,6 +1694,36 @@ service cloud.firestore {
         isSuperAdmin(resource.data.agencyId);
     }
 
+    // ============= AI Feedback Collection =============
+    // User feedback on AI features (ratings, actions, corrections)
+    // Used for continuous improvement of AI responses
+
+    match /aiFeedback/{feedbackId} {
+      // Users can read their own feedback
+      // Group admin can read all feedback for their group
+      // Super admin can read all feedback for their agency (aggregated view)
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         isGroupAdmin(resource.data.groupId) ||
+         (resource.data.groupId != null && isMemberOfGroup(resource.data.groupId)) ||
+         (resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId)));
+
+      // Users can create feedback for their own interactions
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Feedback is immutable - no edits after submission
+      // This ensures data integrity for AI learning
+      allow update: if false;
+
+      // Users can delete their own feedback (GDPR compliance)
+      // Group admin can delete feedback for their group
+      allow delete: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         isGroupAdmin(resource.data.groupId));
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
