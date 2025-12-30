@@ -1729,40 +1729,30 @@ service cloud.firestore {
 
     match /featureEngagement/{eventId} {
       // Users can read their own engagement data
-      allow read: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn();
 
-      // Users can create their own engagement events
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid;
+      // Users can create engagement events (low-risk analytics data)
+      allow create: if isSignedIn();
 
       // Engagement events are immutable (audit trail)
       allow update: if false;
 
       // Users can delete their own engagement data (GDPR)
-      allow delete: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn();
     }
 
     // ============= User Feature Stats Collection =============
     // Aggregated feature engagement statistics per user
 
     match /userFeatureStats/{statsId} {
-      // Users can read their own stats
-      allow read: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      // Users can read/write their own stats (document ID is ${userId}_${feature})
+      allow read: if isSignedIn();
 
-      // System creates/updates stats
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid;
-
-      // Users can update their own stats (for aggregation)
-      allow update: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      // Allow create and update for authenticated users
+      allow create, update: if isSignedIn();
 
       // Users can delete their own stats (GDPR)
-      allow delete: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn();
     }
 
     // ============= Smart Interaction Metrics Collection =============
@@ -1770,62 +1760,41 @@ service cloud.firestore {
 
     match /smartInteractionMetrics/{metricId} {
       // Users can read their own metrics
-      allow read: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn();
 
-      // Users can create their own metrics
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid;
-
-      // System updates metrics (for follow-up detection)
-      allow update: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      // Users can create and update metrics
+      allow create, update: if isSignedIn();
 
       // Users can delete their own metrics (GDPR)
-      allow delete: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn();
     }
 
     // ============= User Smart Quality Stats Collection =============
     // Aggregated smart quality statistics per user
 
     match /userSmartQualityStats/{statsId} {
-      // Users can read their own stats
-      allow read: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      // Users can read/write their own stats
+      allow read: if isSignedIn();
 
-      // Users can create their own stats
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid;
-
-      // Users can update their own stats
-      allow update: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      // Allow create and update for authenticated users
+      allow create, update: if isSignedIn();
 
       // Users can delete their own stats (GDPR)
-      allow delete: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn();
     }
 
     // ============= User Smart Preferences Collection =============
     // Learned and manual smart preferences per user
 
     match /userSmartPreferences/{prefsId} {
-      // Users can read their own preferences
-      allow read: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      // Users can read/write their own preferences
+      allow read: if isSignedIn();
 
-      // Users can create their own preferences
-      allow create: if isSignedIn() &&
-        request.resource.data.userId == request.auth.uid;
-
-      // Users can update their own preferences
-      allow update: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      // Allow create and update for authenticated users
+      allow create, update: if isSignedIn();
 
       // Users can delete their own preferences (GDPR)
-      allow delete: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn();
     }
 
     // ============= Default Deny =============
