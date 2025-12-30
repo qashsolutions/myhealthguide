@@ -98,22 +98,27 @@ export async function analyzeNutrition(
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - analysisDays);
 
-    // Get diet entries
+    // Get diet entries - query order must match index: elderId, groupId, timestamp
     const entriesQuery = query(
       collection(db, 'diet_entries'),
-      where('groupId', '==', groupId),
       where('elderId', '==', elderId),
-      where('timestamp', '>=', Timestamp.fromDate(startDate)),
-      where('timestamp', '<=', Timestamp.fromDate(endDate)),
+      where('groupId', '==', groupId),
       orderBy('timestamp', 'desc')
     );
 
     const entriesSnap = await getDocs(entriesQuery);
-    const entries = entriesSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate()
-    })) as DietEntry[];
+
+    // Filter by date range client-side (to avoid composite index with range query)
+    const entries = entriesSnap.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate()
+      }))
+      .filter(entry => {
+        const ts = entry.timestamp;
+        return ts && ts >= startDate && ts <= endDate;
+      }) as DietEntry[];
 
     if (entries.length === 0) {
       return null; // No data to analyze
