@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2, Shield, RefreshCw } from 'lucide-react';
 import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
+import { FeedbackButtons } from '@/components/feedback/FeedbackButtons';
 import { FDADataDisclaimer } from '@/components/medical/FDADataDisclaimer';
 import { FDADataDisplay } from '@/components/medical/FDADataDisplay';
 import { verifyAndLogAccess } from '@/lib/consent/unifiedConsentManagement';
@@ -299,6 +300,18 @@ export default function DrugInteractionsPage() {
                         View {interaction.medication2.name} FDA Data
                       </Button>
                     )}
+                  </div>
+
+                  {/* Feedback */}
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Was this helpful?</span>
+                    <FeedbackButtons
+                      targetType="drug_interaction"
+                      targetId={`interaction-${interaction.medication1.id}-${interaction.medication2.id}`}
+                      elderId={elderId}
+                      size="sm"
+                      showComment={true}
+                    />
                   </div>
                 </div>
               </div>

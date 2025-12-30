@@ -45,13 +45,14 @@ interface FeedbackDashboardProps {
 const TARGET_TYPE_LABELS: Record<FeedbackTargetType, string> = {
   health_chat: 'Health Chat',
   weekly_summary: 'Weekly Summaries',
-  ai_insight: 'AI Insights',
+  ai_insight: 'Smart Insights',
   smart_assistant: 'Smart Assistant',
   medication_optimization: 'Medication Optimization',
   refill_alert: 'Refill Alerts',
   health_change: 'Health Changes',
   compliance_prediction: 'Compliance Predictions',
   burnout_detection: 'Burnout Detection',
+  drug_interaction: 'Drug Interactions',
 };
 
 export function FeedbackDashboard({

@@ -12,6 +12,7 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
+import { RefillAlertFeedback } from '@/components/feedback/ActionFeedback';
 
 interface RefillPrediction {
   medicationId: string;
@@ -29,6 +30,7 @@ interface MedicationRefillAlertProps {
   predictions: RefillPrediction[];
   onOrderRefill?: (medicationId: string) => void;
   compact?: boolean;
+  elderId?: string;
 }
 
 /**
@@ -40,7 +42,8 @@ interface MedicationRefillAlertProps {
 export function MedicationRefillAlert({
   predictions,
   onOrderRefill,
-  compact = false
+  compact = false,
+  elderId
 }: MedicationRefillAlertProps) {
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -217,16 +220,22 @@ export function MedicationRefillAlert({
                   <span>•</span>
                   <span>Confidence: {pred.confidence}%</span>
                 </div>
-                {onOrderRefill && (
-                  <Button
-                    size="sm"
-                    variant={pred.urgency === 'critical' ? 'default' : 'outline'}
-                    onClick={() => onOrderRefill(pred.medicationId)}
-                    className={pred.urgency === 'critical' ? 'bg-red-600 hover:bg-red-700' : ''}
-                  >
-                    Order Refill
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  <RefillAlertFeedback
+                    targetId={`refill-${pred.medicationId}`}
+                    elderId={elderId}
+                  />
+                  {onOrderRefill && (
+                    <Button
+                      size="sm"
+                      variant={pred.urgency === 'critical' ? 'default' : 'outline'}
+                      onClick={() => onOrderRefill(pred.medicationId)}
+                      className={pred.urgency === 'critical' ? 'bg-red-600 hover:bg-red-700' : ''}
+                    >
+                      Order Refill
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           );

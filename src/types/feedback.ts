@@ -17,7 +17,8 @@ export type FeedbackTargetType =
   | 'refill_alert'
   | 'health_change'
   | 'compliance_prediction'
-  | 'burnout_detection';
+  | 'burnout_detection'
+  | 'drug_interaction';
 
 // Feedback categories
 export type FeedbackType = 'rating' | 'action' | 'correction';
