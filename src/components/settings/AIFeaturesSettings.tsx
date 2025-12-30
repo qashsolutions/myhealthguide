@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { UnifiedAIConsentDialog } from '@/components/consent/UnifiedAIConsentDialog';
-import { Sparkles, TrendingUp, Clock, FileText, Shield, AlertCircle, CheckCircle, RefreshCw, ThumbsUp, MessageSquareText } from 'lucide-react';
+import { Sparkles, TrendingUp, Clock, FileText, Shield, AlertCircle, CheckCircle, RefreshCw, ThumbsUp, MessageSquareText, Brain, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { AIFeatureSettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +18,9 @@ import {
   getConsentExpiryWarning,
   UnifiedAIConsent
 } from '@/lib/consent/unifiedConsentManagement';
+import { getUserPreferences, updateManualPreferences, learnUserPreferences } from '@/lib/engagement/preferenceLearner';
+import { getPersonalizationSummary, formatPersonalizationForDisplay } from '@/lib/ai/personalizedPrompting';
+import type { UserSmartPreferences, VerbosityLevel, TerminologyLevel } from '@/types/engagement';
 
 interface AIFeaturesSettingsProps {
   groupId: string;
@@ -79,6 +82,13 @@ export function AIFeaturesSettings({
   );
   const [saving, setSaving] = useState(false);
 
+  // Personalization state
+  const [preferences, setPreferences] = useState<UserSmartPreferences | null>(null);
+  const [personalizationSummary, setPersonalizationSummary] = useState<Awaited<ReturnType<typeof getPersonalizationSummary>> | null>(null);
+  const [loadingPreferences, setLoadingPreferences] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
+  const [relearning, setRelearning] = useState(false);
+
   // Check for existing unified consent on mount
   useEffect(() => {
     if (!user?.id || !groupId) return;
@@ -86,6 +96,95 @@ export function AIFeaturesSettings({
     checkExistingConsent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, groupId]);
+
+  // Load personalization preferences when consent is valid
+  useEffect(() => {
+    if (!user?.id || !consentValid) return;
+
+    loadPreferences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, consentValid]);
+
+  const loadPreferences = async () => {
+    if (!user?.id) return;
+
+    setLoadingPreferences(true);
+    try {
+      const prefs = await getUserPreferences(user.id);
+      setPreferences(prefs);
+
+      const summary = await getPersonalizationSummary(user.id);
+      setPersonalizationSummary(summary);
+    } catch (error) {
+      console.error('Error loading preferences:', error);
+    } finally {
+      setLoadingPreferences(false);
+    }
+  };
+
+  const handleToggleAutoLearn = async (enabled: boolean) => {
+    if (!user?.id) return;
+
+    setSavingPreferences(true);
+    try {
+      await updateManualPreferences(user.id, {
+        manualOverride: !enabled, // When auto-learn is ON, manual override is OFF
+      });
+      await loadPreferences();
+    } catch (error) {
+      console.error('Error updating auto-learn:', error);
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  const handleVerbosityChange = async (value: VerbosityLevel) => {
+    if (!user?.id) return;
+
+    setSavingPreferences(true);
+    try {
+      await updateManualPreferences(user.id, {
+        manualOverride: true,
+        manualVerbosity: value,
+      });
+      await loadPreferences();
+    } catch (error) {
+      console.error('Error updating verbosity:', error);
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  const handleTerminologyChange = async (value: TerminologyLevel) => {
+    if (!user?.id) return;
+
+    setSavingPreferences(true);
+    try {
+      await updateManualPreferences(user.id, {
+        manualOverride: true,
+        manualTerminology: value,
+      });
+      await loadPreferences();
+    } catch (error) {
+      console.error('Error updating terminology:', error);
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  const handleRelearn = async () => {
+    if (!user?.id) return;
+
+    setRelearning(true);
+    try {
+      await learnUserPreferences(user.id);
+      await loadPreferences();
+    } catch (error) {
+      console.error('Error relearning preferences:', error);
+    } finally {
+      setRelearning(false);
+    }
+  };
 
   const checkExistingConsent = async () => {
     if (!user?.id) return;
@@ -496,6 +595,165 @@ export function AIFeaturesSettings({
                         <span aria-hidden="true">&rarr;</span>
                       </Link>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Personalized Responses */}
+              <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-900/10 dark:to-teal-900/10">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex-shrink-0">
+                    <Brain className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base font-medium text-gray-900 dark:text-white">
+                        Personalized Responses
+                      </span>
+                      {personalizationSummary?.isLearning ? (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 rounded-full">
+                          Learning
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 rounded-full">
+                          Personalized
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      The system learns from your feedback and usage patterns to personalize responses.
+                      {personalizationSummary && (
+                        <span className="block mt-1 text-xs">
+                          {personalizationSummary.dataPoints} data points analyzed
+                        </span>
+                      )}
+                    </p>
+
+                    {loadingPreferences ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading preferences...
+                      </div>
+                    ) : preferences && personalizationSummary ? (
+                      <div className="space-y-4">
+                        {/* Auto-learn toggle */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="auto-learn" className="text-sm font-medium cursor-pointer">
+                              Learn automatically
+                            </Label>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              System adapts based on your feedback and usage
+                            </p>
+                          </div>
+                          <Switch
+                            id="auto-learn"
+                            checked={!preferences.manualOverride}
+                            onCheckedChange={handleToggleAutoLearn}
+                            disabled={savingPreferences}
+                          />
+                        </div>
+
+                        {/* Manual settings (shown when auto-learn is off) */}
+                        {preferences.manualOverride && (
+                          <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            {/* Verbosity */}
+                            <div className="space-y-1.5">
+                              <Label htmlFor="verbosity" className="text-sm">
+                                Response Style
+                              </Label>
+                              <Select
+                                value={preferences.manualVerbosity || personalizationSummary.verbosity.value}
+                                onValueChange={(value) => handleVerbosityChange(value as VerbosityLevel)}
+                                disabled={savingPreferences}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="concise">Concise (1-3 sentences)</SelectItem>
+                                  <SelectItem value="balanced">Balanced (default)</SelectItem>
+                                  <SelectItem value="detailed">Detailed (comprehensive)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Terminology */}
+                            <div className="space-y-1.5">
+                              <Label htmlFor="terminology" className="text-sm">
+                                Language Level
+                              </Label>
+                              <Select
+                                value={preferences.manualTerminology || personalizationSummary.terminology.value}
+                                onValueChange={(value) => handleTerminologyChange(value as TerminologyLevel)}
+                                disabled={savingPreferences}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="simple">Simple (everyday language)</SelectItem>
+                                  <SelectItem value="moderate">Moderate (default)</SelectItem>
+                                  <SelectItem value="clinical">Clinical (medical terms)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Current preferences display (when auto-learn is on) */}
+                        {!preferences.manualOverride && (
+                          <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                              Current Learned Preferences
+                            </p>
+                            <div className="grid grid-cols-1 gap-2 text-sm">
+                              <div className="flex items-center justify-between py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-800/50">
+                                <span className="text-gray-600 dark:text-gray-400">Response Style</span>
+                                <span className="font-medium">
+                                  {formatPersonalizationForDisplay(personalizationSummary).verbosityLabel}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-800/50">
+                                <span className="text-gray-600 dark:text-gray-400">Language Level</span>
+                                <span className="font-medium">
+                                  {formatPersonalizationForDisplay(personalizationSummary).terminologyLabel}
+                                </span>
+                              </div>
+                              {personalizationSummary.focusAreas.value.length > 0 && (
+                                <div className="flex items-center justify-between py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-800/50">
+                                  <span className="text-gray-600 dark:text-gray-400">Focus Areas</span>
+                                  <span className="font-medium capitalize">
+                                    {personalizationSummary.focusAreas.value.slice(0, 2).join(', ')}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Re-learn button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleRelearn}
+                              disabled={relearning}
+                              className="mt-2"
+                            >
+                              {relearning ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                  Analyzing...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                                  Re-analyze preferences
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>

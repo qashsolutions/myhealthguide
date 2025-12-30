@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useFeatureTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,6 +49,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { availableElders, setSelectedElder, selectedElder, isLoading: eldersLoading } = useElder();
+
+  // Feature tracking
+  useFeatureTracking('overview');
+
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);

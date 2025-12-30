@@ -44,6 +44,10 @@ export type FeedbackReason =
   | 'confusing'
   | 'too_generic'
   | 'actionable'
+  | 'too_technical'  // Response used too much clinical jargon
+  | 'too_simple'     // Response was too basic, needed more detail
+  | 'too_long'       // Response was too verbose
+  | 'too_short'      // Response was too brief
   | 'other';
 
 // Correction types

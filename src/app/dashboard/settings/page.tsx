@@ -31,6 +31,7 @@ import { AIFeaturesSettings } from '@/components/settings/AIFeaturesSettings';
 import { ActivityHistory } from '@/components/settings/ActivityHistory';
 import { AlertPreferencesSettings } from '@/components/settings/AlertPreferencesSettings';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFeatureTracking } from '@/hooks/useFeatureTracking';
 import { uploadFileWithQuota } from '@/lib/firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -98,6 +99,9 @@ function obfuscatePhone(phone: string): string {
 }
 
 export default function SettingsPage() {
+  // Feature tracking
+  useFeatureTracking('settings');
+
   const [activeTab, setActiveTab] = useState('profile');
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
 

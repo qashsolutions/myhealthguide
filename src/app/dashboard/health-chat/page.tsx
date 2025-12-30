@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useFeatureTracking } from '@/hooks/useFeatureTracking';
+import { useSmartMetrics } from '@/hooks/useSmartMetrics';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +36,10 @@ interface Message {
 export default function HealthChatPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
+
+  // Feature and smart metrics tracking
+  useFeatureTracking('ask_ai_chat');
+  const { trackResponse, trackUserMessage } = useSmartMetrics({ feature: 'health_chat' });
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -127,6 +133,9 @@ export default function HealthChatPage() {
     setInputValue('');
     setLoading(true);
 
+    // Track user message for smart metrics
+    trackUserMessage(message);
+
     try {
       const response = await authenticatedFetch('/api/medgemma/query', {
         method: 'POST',
@@ -152,6 +161,9 @@ export default function HealthChatPage() {
         };
 
         setMessages(prev => [...prev, assistantMessage]);
+
+        // Track smart response for quality metrics
+        trackResponse(assistantMessage.id, assistantMessage.content);
       } else {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),

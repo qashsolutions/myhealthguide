@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useFeatureTracking } from '@/hooks/useFeatureTracking';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,9 @@ export default function ElderProfilePage() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { selectedElder, availableElders } = useElder();
+
+  // Feature tracking
+  useFeatureTracking('health_profile');
 
   const elderIdParam = searchParams.get('elderId');
   const tabParam = searchParams.get('tab');

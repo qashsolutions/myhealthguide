@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useFeatureTracking, useTabTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,14 @@ function DailyCareContent() {
 
   // Get active tab from URL or default to medications
   const activeTab = (searchParams.get('tab') as TabType) || 'medications';
+
+  // Feature tracking with tab support
+  useTabTracking('daily_care', activeTab, {
+    medications: 'daily_care_medications',
+    supplements: 'daily_care_supplements',
+    diet: 'daily_care_diet',
+    activity: 'daily_care_activity',
+  });
 
   // Data states
   const [medications, setMedications] = useState<Medication[]>([]);

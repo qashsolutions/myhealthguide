@@ -20,6 +20,7 @@ import {
   Filter
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFeatureTracking } from '@/hooks/useFeatureTracking';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import type { CaregiverNote } from '@/types';
@@ -28,6 +29,10 @@ import { format } from 'date-fns';
 export default function NotesPage() {
   const router = useRouter();
   const { user } = useAuth();
+
+  // Feature tracking
+  useFeatureTracking('my_notes');
+
   const [notes, setNotes] = useState<CaregiverNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

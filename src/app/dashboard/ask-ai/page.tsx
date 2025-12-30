@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useTabTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,13 @@ function AskAIContent() {
 
   // Get active tab from URL or default to chat
   const activeTab = (searchParams.get('tab') as TabType) || 'chat';
+
+  // Feature tracking with tab support
+  useTabTracking('ask_ai', activeTab, {
+    chat: 'ask_ai_chat',
+    'clinical-notes': 'ask_ai_clinical_notes',
+    reports: 'ask_ai_reports',
+  });
 
   const [loading, setLoading] = useState(false);
 

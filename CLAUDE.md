@@ -617,3 +617,147 @@ Old routes automatically redirect to new merged pages:
 - Move elder selector back to sidebar
 - Create separate pages for merged features (use tabs instead)
 - Use `permanent: true` for redirects (allows easy rollback)
+
+### 13. Smart Learning System (IMPLEMENTED: Dec 29, 2025)
+
+**IMPORTANT:** The app learns and improves based on user feedback and engagement patterns.
+
+**NAMING CONVENTION:** Use "Smart" instead of "AI" in all user-facing text. Users don't need to know about AI - they just want smart features.
+
+#### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    DATA COLLECTION LAYER                     │
+├─────────────────────────────────────────────────────────────┤
+│  Feature Engagement        │  Smart Quality Metrics         │
+│  - Page visits             │  - Response timestamps         │
+│  - Time on page            │  - Follow-up detection         │
+│  - Action completion       │  - Action completions          │
+│  - Abandonment detection   │  - Session continuation        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    PREFERENCE LEARNING                       │
+├─────────────────────────────────────────────────────────────┤
+│  - Analyzes feedback patterns (thumbs up/down)              │
+│  - Detects terminology preferences                          │
+│  - Identifies focus areas from engagement                   │
+│  - Calculates confidence scores (only applies if > 0.6)     │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    PERSONALIZED SMART PROMPTS                │
+├─────────────────────────────────────────────────────────────┤
+│  - Verbosity: concise | balanced | detailed                 │
+│  - Terminology: simple | moderate | clinical                │
+│  - Focus areas: medications, nutrition, activity, etc.      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Firestore Collections
+
+| Collection | Purpose |
+|------------|---------|
+| `featureEngagement` | Raw page view and action events |
+| `userFeatureStats` | Aggregated engagement stats per user/feature |
+| `smartInteractionMetrics` | Smart response quality tracking |
+| `userSmartQualityStats` | Aggregated smart quality stats per user |
+| `userSmartPreferences` | Learned and manual preferences |
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/types/engagement.ts` | TypeScript interfaces |
+| `src/lib/engagement/featureTracker.ts` | Track page visits, time, actions |
+| `src/lib/engagement/smartMetricsTracker.ts` | Track smart response quality |
+| `src/lib/engagement/preferenceLearner.ts` | Analyze patterns, derive preferences |
+| `src/lib/ai/personalizedPrompting.ts` | Generate personalized system prompts |
+| `src/hooks/useFeatureTracking.ts` | React hook for feature tracking |
+| `src/hooks/useSmartMetrics.ts` | React hook for smart metrics |
+
+#### Usage Examples
+
+**Feature Tracking Hook:**
+```typescript
+import { useFeatureTracking } from '@/hooks/useFeatureTracking';
+
+function MedicationsPage() {
+  const { trackAction, completeAction } = useFeatureTracking('daily_care_medications');
+
+  const handleAddMedication = async () => {
+    await trackAction('add_medication');
+    // Show form...
+  };
+
+  const handleSaveMedication = async () => {
+    // Save logic...
+    await completeAction('add_medication');
+  };
+}
+```
+
+**Smart Metrics Hook:**
+```typescript
+import { useSmartMetrics } from '@/hooks/useSmartMetrics';
+
+function HealthChatPage() {
+  const { trackResponse, trackUserMessage, trackAction } = useSmartMetrics({
+    feature: 'health_chat',
+  });
+
+  const handleSmartResponse = async (response) => {
+    await trackResponse(response.id, response.text);
+  };
+}
+```
+
+#### Learning Configuration
+
+```typescript
+const LEARNING_CONFIG = {
+  minFeedbackForLearning: 5,      // Minimum events before learning applies
+  minEngagementForLearning: 10,
+  confidenceThreshold: 0.6,       // Only apply if confidence > 0.6
+  relearningInterval: 10,         // Re-analyze after every 10 new events
+  followUpTimeWindowMs: 2 * 60 * 1000,  // 2 minutes for follow-up detection
+};
+```
+
+#### Settings UI
+
+Location: Settings > Smart Caregiver Features > Personalized Responses
+
+Features:
+- Toggle auto-learn on/off
+- Manual override for response style (concise/balanced/detailed)
+- Manual override for language level (simple/moderate/clinical)
+- View current learned preferences
+- Re-analyze preferences button
+
+#### Integration with Chat Service
+
+The personalization is automatically injected into `chatService.ts`:
+
+```typescript
+// In generateChatResponse()
+const systemPrompt = await generatePersonalizedSystemPrompt(context.userId, baseSystemPrompt);
+```
+
+#### Firestore Rules
+
+Uses simple `userId` field queries (no composite indexes required):
+- `featureEngagement`: userId == request.auth.uid
+- `userFeatureStats`: userId == request.auth.uid
+- `smartInteractionMetrics`: userId == request.auth.uid
+- `userSmartQualityStats`: userId == request.auth.uid
+- `userSmartPreferences`: userId == request.auth.uid
+
+**DO NOT:**
+- Create composite indexes for engagement collections (use SDK queries)
+- Apply learned preferences with confidence < 0.6
+- Track sensitive data in engagement events (only feature names and timestamps)
+- Use "AI" in user-facing text - always use "Smart" instead

@@ -2,6 +2,7 @@
  * AI Chat Service - Gemini Integration
  * Natural language assistant for caregivers
  * Phase 4: Action Execution
+ * Phase 5: Personalized Prompting
  */
 
 import { collection, addDoc, query, orderBy, getDocs, Timestamp, limit } from 'firebase/firestore';
@@ -9,6 +10,7 @@ import { db } from '@/lib/firebase/config';
 import { ActionHandler } from './actionHandler';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { AgencyRole } from '@/types';
+import { generatePersonalizedSystemPrompt } from './personalizedPrompting';
 
 export interface ChatMessage {
   id?: string;
@@ -65,8 +67,8 @@ export async function generateChatResponse(
       .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
       .join('\n');
 
-    // System prompt
-    const systemPrompt = `You are a helpful AI assistant for caregivers managing elderly care.
+    // Base system prompt
+    const baseSystemPrompt = `You are a helpful AI assistant for caregivers managing elderly care.
 You help track medications, schedules, diet, and coordinate with family members.
 
 Current Context:
@@ -84,6 +86,9 @@ Guidelines:
 - Use friendly, supportive tone
 
 User Question: ${userMessage}`;
+
+    // Apply personalized prompting based on learned preferences
+    const systemPrompt = await generatePersonalizedSystemPrompt(context.userId, baseSystemPrompt);
 
     // Call Gemini 3 Pro API with thinking mode
     const response = await fetch(

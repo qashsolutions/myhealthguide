@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useFeatureTracking } from '@/hooks/useFeatureTracking';
 import { auth } from '@/lib/firebase/config';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -21,6 +22,9 @@ import Link from 'next/link';
 export default function AgencyPage() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
+
+  // Feature tracking
+  useFeatureTracking('agency_management');
 
   const [userId, setUserId] = useState<string | null>(null);
   const [agencyId, setAgencyId] = useState<string | null>(null);

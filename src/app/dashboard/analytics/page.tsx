@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useTabTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +33,15 @@ function AnalyticsContent() {
 
   // Get active tab from URL or default to overview
   const activeTab = (searchParams.get('tab') as TabType) || 'overview';
+
+  // Feature tracking with tab support
+  useTabTracking('analytics', activeTab, {
+    overview: 'analytics',
+    adherence: 'analytics_adherence',
+    nutrition: 'analytics_nutrition',
+    trends: 'analytics_trends',
+    feedback: 'analytics',
+  });
 
   const [loading, setLoading] = useState(false);
 

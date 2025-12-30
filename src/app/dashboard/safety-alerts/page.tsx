@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useTabTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,15 @@ function SafetyAlertsContent() {
 
   // Get active tab from URL or default to all
   const activeTab = (searchParams.get('tab') as TabType) || 'all';
+
+  // Feature tracking with tab support
+  useTabTracking('safety_alerts', activeTab, {
+    all: 'safety_alerts',
+    interactions: 'safety_alerts_interactions',
+    conflicts: 'safety_alerts_conflicts',
+    incidents: 'safety_alerts_incidents',
+    screening: 'safety_alerts_screening',
+  });
 
   // Placeholder data - in a real app, this would come from your backend
   const [loading, setLoading] = useState(false);
