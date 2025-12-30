@@ -12,8 +12,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { ElderService } from '@/lib/firebase/elders';
-import { User, Info, ShieldAlert } from 'lucide-react';
-import type { Elder } from '@/types';
+import { addEmergencyContact } from '@/lib/firebase/elderHealthProfile';
+import { User, Info, ShieldAlert, Phone, Mail, MapPin, Stethoscope, Heart } from 'lucide-react';
+import type { Elder, ElderEmergencyContact } from '@/types';
 
 // Check if user is a caregiver (not super admin) in any agency
 function isCaregiverOnly(user: any): boolean {
@@ -71,6 +72,19 @@ export default function NewElderPage() {
     additionalLanguages: [] as string[],
     conditions: [] as string[],
     notes: '',
+    // Contact Information (mandatory)
+    address: '',
+    phone: '',
+    email: '',
+    // Primary Doctor (mandatory)
+    doctorName: '',
+    doctorPhone: '',
+    doctorAddress: '',
+    // Emergency Contact (at least 1 mandatory)
+    emergencyName: '',
+    emergencyPhone: '',
+    emergencyRelationship: '',
+    emergencyEmail: '',
   });
   const [useExactDOB, setUseExactDOB] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -163,6 +177,47 @@ export default function NewElderPage() {
         throw new Error('Please enter date of birth');
       }
 
+      // Validate mandatory contact fields
+      if (!formData.address.trim()) {
+        throw new Error('Address is required');
+      }
+
+      if (!formData.phone.trim()) {
+        throw new Error('Phone number is required');
+      }
+
+      if (!formData.email.trim()) {
+        throw new Error('Email is required');
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Validate Primary Doctor
+      if (!formData.doctorName.trim()) {
+        throw new Error('Primary Doctor name is required');
+      }
+
+      if (!formData.doctorPhone.trim()) {
+        throw new Error('Primary Doctor phone number is required');
+      }
+
+      // Validate Emergency Contact
+      if (!formData.emergencyName.trim()) {
+        throw new Error('Emergency contact name is required');
+      }
+
+      if (!formData.emergencyPhone.trim()) {
+        throw new Error('Emergency contact phone number is required');
+      }
+
+      if (!formData.emergencyRelationship.trim()) {
+        throw new Error('Emergency contact relationship is required');
+      }
+
       // Handle date of birth OR approximate age
       let dateOfBirth: Date | undefined;
       let approximateAge: number | undefined;
@@ -186,7 +241,7 @@ export default function NewElderPage() {
         languages.push(...formData.additionalLanguages.filter(l => l !== formData.primaryLanguage));
       }
 
-      await ElderService.createElder(groupId, userId, userRole, {
+      const elderResult = await ElderService.createElder(groupId, userId, userRole, {
         name: formData.name.trim(),
         preferredName: formData.preferredName.trim() || undefined,
         groupId,
@@ -198,6 +253,51 @@ export default function NewElderPage() {
         notes: formData.notes.trim(),
         createdAt: new Date(),
       });
+
+      // Get the elder ID from the result
+      const elderId = elderResult.id;
+
+      if (elderId) {
+        // Create primary contact (elder's own info) - marks as primary for display in tables
+        await addEmergencyContact({
+          elderId,
+          groupId,
+          name: formData.name.trim(),
+          relationship: 'Self',
+          type: 'family',
+          phone: formData.phone.trim(),
+          email: formData.email.trim() || undefined,
+          address: formData.address.trim(),
+          isPrimary: true,
+          createdBy: userId,
+        });
+
+        // Create Primary Doctor contact
+        await addEmergencyContact({
+          elderId,
+          groupId,
+          name: formData.doctorName.trim(),
+          relationship: 'Primary Doctor',
+          type: 'doctor',
+          phone: formData.doctorPhone.trim(),
+          address: formData.doctorAddress.trim() || undefined,
+          isPrimary: false,
+          createdBy: userId,
+        });
+
+        // Create Emergency Contact (Next of Kin)
+        await addEmergencyContact({
+          elderId,
+          groupId,
+          name: formData.emergencyName.trim(),
+          relationship: formData.emergencyRelationship.trim(),
+          type: 'family',
+          phone: formData.emergencyPhone.trim(),
+          email: formData.emergencyEmail.trim() || undefined,
+          isPrimary: false,
+          createdBy: userId,
+        });
+      }
 
       router.push('/dashboard/elders');
     } catch (err: any) {
@@ -341,6 +441,187 @@ export default function NewElderPage() {
                         <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                {/* Contact Information Section */}
+                <div className="space-y-4 pt-4 border-t dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Contact Information
+                  </h3>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="address"
+                      placeholder="e.g., 123 Main St, Apt 4B, City, State 12345"
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      required
+                      className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="e.g., (555) 123-4567"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                          required
+                          className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-gray-400" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="e.g., john@email.com"
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                          required
+                          className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Doctor Section */}
+                <div className="space-y-4 pt-4 border-t dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                    <Stethoscope className="h-4 w-4" />
+                    Primary Doctor
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="doctorName">Doctor Name <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="doctorName"
+                        placeholder="e.g., Dr. Jane Smith"
+                        value={formData.doctorName}
+                        onChange={(e) => setFormData({...formData, doctorName: e.target.value})}
+                        required
+                        className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="doctorPhone">Doctor Phone <span className="text-red-500">*</span></Label>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        <Input
+                          id="doctorPhone"
+                          type="tel"
+                          placeholder="e.g., (555) 987-6543"
+                          value={formData.doctorPhone}
+                          onChange={(e) => setFormData({...formData, doctorPhone: e.target.value})}
+                          required
+                          className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="doctorAddress">Doctor/Clinic Address</Label>
+                    <Input
+                      id="doctorAddress"
+                      placeholder="e.g., 456 Medical Center Dr, Suite 100"
+                      value={formData.doctorAddress}
+                      onChange={(e) => setFormData({...formData, doctorAddress: e.target.value})}
+                      className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Emergency Contact Section */}
+                <div className="space-y-4 pt-4 border-t dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                    <Heart className="h-4 w-4" />
+                    Emergency Contact (Next of Kin)
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyName">Contact Name <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="emergencyName"
+                        placeholder="e.g., Mary Smith"
+                        value={formData.emergencyName}
+                        onChange={(e) => setFormData({...formData, emergencyName: e.target.value})}
+                        required
+                        className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyRelationship">Relationship <span className="text-red-500">*</span></Label>
+                      <Select
+                        value={formData.emergencyRelationship || ''}
+                        onValueChange={(v) => setFormData({...formData, emergencyRelationship: v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select relationship" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Spouse">Spouse</SelectItem>
+                          <SelectItem value="Son">Son</SelectItem>
+                          <SelectItem value="Daughter">Daughter</SelectItem>
+                          <SelectItem value="Sibling">Sibling</SelectItem>
+                          <SelectItem value="Grandchild">Grandchild</SelectItem>
+                          <SelectItem value="Nephew/Niece">Nephew/Niece</SelectItem>
+                          <SelectItem value="Friend">Friend</SelectItem>
+                          <SelectItem value="Neighbor">Neighbor</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyPhone">Contact Phone <span className="text-red-500">*</span></Label>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        <Input
+                          id="emergencyPhone"
+                          type="tel"
+                          placeholder="e.g., (555) 111-2222"
+                          value={formData.emergencyPhone}
+                          onChange={(e) => setFormData({...formData, emergencyPhone: e.target.value})}
+                          required
+                          className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="emergencyEmail">Contact Email</Label>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-gray-400" />
+                        <Input
+                          id="emergencyEmail"
+                          type="email"
+                          placeholder="e.g., mary@email.com (optional)"
+                          value={formData.emergencyEmail}
+                          onChange={(e) => setFormData({...formData, emergencyEmail: e.target.value})}
+                          className="placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
