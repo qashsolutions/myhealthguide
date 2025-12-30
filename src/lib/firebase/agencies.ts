@@ -682,37 +682,50 @@ export class AgencyService {
 
   /**
    * Get emergency contacts for multiple elders
+   * @param elderGroupMap - Map of elderId to groupId (required for Firestore security rules)
    */
-  static async getElderEmergencyContacts(elderIds: string[]): Promise<Map<string, any[]>> {
+  static async getElderEmergencyContacts(elderGroupMap: Map<string, string>): Promise<Map<string, any[]>> {
     try {
       const contactsMap = new Map<string, any[]>();
 
-      if (elderIds.length === 0) return contactsMap;
+      if (elderGroupMap.size === 0) return contactsMap;
 
-      // Firestore 'in' query supports max 30 items, so batch if needed
-      const batches = [];
-      for (let i = 0; i < elderIds.length; i += 30) {
-        batches.push(elderIds.slice(i, i + 30));
-      }
+      // Group elderIds by their groupId for efficient querying
+      const groupToElderIds = new Map<string, string[]>();
+      elderGroupMap.forEach((groupId, elderId) => {
+        const existing = groupToElderIds.get(groupId) || [];
+        existing.push(elderId);
+        groupToElderIds.set(groupId, existing);
+      });
 
-      for (const batch of batches) {
-        const q = query(
-          collection(db, 'elderEmergencyContacts'),
-          where('elderId', 'in', batch)
-        );
-        const snap = await getDocs(q);
+      // Query per groupId (security rules require groupId in query)
+      for (const [groupId, elderIds] of groupToElderIds.entries()) {
+        // Firestore 'in' query supports max 30 items, so batch if needed
+        const batches = [];
+        for (let i = 0; i < elderIds.length; i += 30) {
+          batches.push(elderIds.slice(i, i + 30));
+        }
 
-        snap.docs.forEach(docSnap => {
-          const data = docSnap.data();
-          const elderId = data.elderId;
-          const existing = contactsMap.get(elderId) || [];
-          existing.push({
-            id: docSnap.id,
-            ...data,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
+        for (const batch of batches) {
+          const q = query(
+            collection(db, 'elderEmergencyContacts'),
+            where('groupId', '==', groupId),
+            where('elderId', 'in', batch)
+          );
+          const snap = await getDocs(q);
+
+          snap.docs.forEach(docSnap => {
+            const data = docSnap.data();
+            const elderId = data.elderId;
+            const existing = contactsMap.get(elderId) || [];
+            existing.push({
+              id: docSnap.id,
+              ...data,
+              createdAt: data.createdAt?.toDate?.() || new Date(),
+            });
+            contactsMap.set(elderId, existing);
           });
-          contactsMap.set(elderId, existing);
-        });
+        }
       }
 
       return contactsMap;
@@ -732,15 +745,19 @@ export class AgencyService {
     try {
       const { caregiverElders, unassignedElders } = await this.getEldersByCaregiver(agencyId);
 
-      // Collect all elder IDs
-      const allElderIds: string[] = [];
+      // Collect elder ID to group ID mapping (required for Firestore security rules)
+      const elderGroupMap = new Map<string, string>();
       caregiverElders.forEach(elders => {
-        elders.forEach(e => allElderIds.push(e.id));
+        elders.forEach(e => {
+          if (e.groupId) elderGroupMap.set(e.id, e.groupId);
+        });
       });
-      unassignedElders.forEach(e => allElderIds.push(e.id));
+      unassignedElders.forEach(e => {
+        if (e.groupId) elderGroupMap.set(e.id, e.groupId);
+      });
 
       // Fetch emergency contacts for all elders
-      const contactsMap = await this.getElderEmergencyContacts(allElderIds);
+      const contactsMap = await this.getElderEmergencyContacts(elderGroupMap);
 
       // Attach contacts to elders
       const attachContacts = (elder: Elder) => ({
