@@ -90,6 +90,14 @@
         { "fieldPath": "elderId", "order": "ASCENDING" },
         { "fieldPath": "screeningDate", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "caregiver_assignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "caregiverId", "order": "ASCENDING" },
+        { "fieldPath": "active", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

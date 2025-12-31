@@ -37,10 +37,27 @@ export function ElderProvider({ children }: { children: ReactNode }) {
       let elders: Elder[] = [];
 
       // Check if user is part of an agency
-      const agencyMembership = user.agencies?.[0];
+      // User might have multiple agency memberships - find the right one
+      const allAgencies = user.agencies || [];
+      console.log('[ElderContext] User has', allAgencies.length, 'agency memberships');
+
+      // Find caregiver membership first (more specific), then fall back to super_admin
+      const caregiverMembership = allAgencies.find(
+        a => a.role === 'caregiver' || a.role === 'caregiver_admin'
+      );
+      const superAdminMembership = allAgencies.find(a => a.role === 'super_admin');
+      const familyMembership = allAgencies.find(a => a.role === 'family_member');
+
+      // Prioritize: caregiver > family_member > super_admin
+      const agencyMembership = caregiverMembership || familyMembership || superAdminMembership || allAgencies[0];
 
       if (agencyMembership) {
         const role = agencyMembership.role;
+        console.log('[ElderContext] Selected agency membership:', {
+          agencyId: agencyMembership.agencyId,
+          role: role,
+          assignedElderIds: agencyMembership.assignedElderIds,
+        });
 
         if (role === 'super_admin') {
           // Agency super admin: Load all elders in the agency
@@ -51,7 +68,7 @@ export function ElderProvider({ children }: { children: ReactNode }) {
           elders = await loadCaregiverAssignedElders(user.id, agencyMembership.agencyId);
         } else if (role === 'family_member') {
           // Family member through agency: Load from assigned groups
-          const assignedGroupIds = agencyMembership.assignedGroupIds || [];
+          const assignedGroupIds = agencyMembership.assignedElderIds || agencyMembership.assignedGroupIds || [];
           elders = await loadEldersFromGroups(assignedGroupIds);
         }
       } else {
