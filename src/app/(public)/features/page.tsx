@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import {
   Mic,
   Brain,
@@ -23,12 +26,31 @@ import {
   Download,
   UserCheck,
   Building2,
-  Stethoscope
+  Stethoscope,
+  Zap,
+  LogIn
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserFeatureStats } from '@/lib/engagement/featureTracker';
+import {
+  rankFeatureCategories,
+  rankCategoriesForAnonymous,
+  getAggregateFeatureStats,
+  CRITICAL_FEATURES,
+  type RankedFeatureCategory,
+} from '@/lib/engagement/featureRanking';
+import type { UserFeatureEngagement } from '@/types/engagement';
 
 export default function FeaturesPage() {
-  const [activeSection, setActiveSection] = useState('voice');
-  const featureCategories = [
+  const { user } = useAuth();
+  const [activeSection, setActiveSection] = useState('');
+  const [userStats, setUserStats] = useState<UserFeatureEngagement[]>([]);
+  const [rankedCategories, setRankedCategories] = useState<RankedFeatureCategory[]>([]);
+  const [isPersonalized, setIsPersonalized] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Static feature categories data
+  const featureCategoriesData = [
     {
       id: 'voice',
       title: 'Just Speak to Log',
@@ -336,6 +358,65 @@ export default function FeaturesPage() {
     }
   ];
 
+  // Load ranking data
+  useEffect(() => {
+    async function loadRankingData() {
+      setLoading(true);
+      try {
+        const categoryIds = featureCategoriesData.map(c => c.id);
+
+        if (user?.id) {
+          // Logged in: get personalized ranking
+          const stats = await getUserFeatureStats(user.id);
+          setUserStats(stats);
+
+          const isAgencyUser = user.subscriptionTier === 'multi_agency';
+          const ranked = rankFeatureCategories(categoryIds, stats, isAgencyUser);
+          setRankedCategories(ranked);
+          setIsPersonalized(ranked.some(r => r.isPersonalized));
+        } else {
+          // Anonymous: get aggregate-based ranking
+          const aggregateStats = await getAggregateFeatureStats();
+          const ranked = rankCategoriesForAnonymous(categoryIds, aggregateStats);
+          setRankedCategories(ranked);
+          setIsPersonalized(false);
+        }
+      } catch (error) {
+        console.error('Error loading ranking data:', error);
+        // Fallback to default order with critical features first
+        const categoryIds = featureCategoriesData.map(c => c.id);
+        const defaultRanked = categoryIds.map((id, index) => ({
+          id,
+          score: CRITICAL_FEATURES.includes(id as any)
+            ? 1000 - (CRITICAL_FEATURES.indexOf(id as any) * 100)
+            : 100 - index,
+          isCritical: CRITICAL_FEATURES.includes(id as any),
+          isPersonalized: false,
+        }));
+        setRankedCategories(defaultRanked.sort((a, b) => b.score - a.score));
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadRankingData();
+  }, [user?.id, user?.subscriptionTier]);
+
+  // Reorder categories based on ranking
+  const featureCategories = useMemo(() => {
+    if (rankedCategories.length === 0) return featureCategoriesData;
+
+    const categoryMap = new Map(featureCategoriesData.map(c => [c.id, c]));
+    return rankedCategories
+      .map(ranked => categoryMap.get(ranked.id))
+      .filter(Boolean) as typeof featureCategoriesData;
+  }, [rankedCategories]);
+
+  // Get ranking info for a category
+  const getRankingInfo = (categoryId: string): RankedFeatureCategory | undefined => {
+    return rankedCategories.find(r => r.id === categoryId);
+  };
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -351,7 +432,15 @@ export default function FeaturesPage() {
     }
   };
 
+  // Set active section on scroll
   useEffect(() => {
+    if (featureCategories.length === 0) return;
+
+    // Set initial active section
+    if (!activeSection && featureCategories.length > 0) {
+      setActiveSection(featureCategories[0].id);
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -369,8 +458,7 @@ export default function FeaturesPage() {
     });
 
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [featureCategories, activeSection]);
 
   return (
     <div className="bg-white dark:bg-gray-900">
@@ -408,6 +496,34 @@ export default function FeaturesPage() {
                 <span>Share with Family</span>
               </div>
             </div>
+
+            {/* Personalization indicator or CTA */}
+            {!loading && (
+              <div className="mt-8">
+                {isPersonalized ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
+                    <Zap className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                      Ordered based on your activity
+                    </span>
+                  </div>
+                ) : !user ? (
+                  <Link href="/login?redirect=/features">
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <LogIn className="w-4 h-4" />
+                      Sign in to personalize
+                    </Button>
+                  </Link>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <TrendingUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Popular features shown first
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -444,6 +560,7 @@ export default function FeaturesPage() {
           <div className="space-y-12">
             {featureCategories.map((category, categoryIndex) => {
               const CategoryIcon = category.icon;
+              const rankingInfo = getRankingInfo(category.id);
               const colorClasses = {
                 blue: 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
                 purple: 'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
@@ -469,9 +586,28 @@ export default function FeaturesPage() {
                         <CategoryIcon className="w-8 h-8" />
                       </div>
                       <div className="flex-1">
-                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                          {category.title}
-                        </h2>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                            {category.title}
+                          </h2>
+                          {rankingInfo?.isCritical && categoryIndex < 3 && (
+                            <Badge className="bg-blue-600 text-white text-xs">
+                              Essential
+                            </Badge>
+                          )}
+                          {rankingInfo?.isPersonalized && !rankingInfo?.isCritical && (
+                            <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400">
+                              <Zap className="w-3 h-3 mr-1" />
+                              For You
+                            </Badge>
+                          )}
+                          {!rankingInfo?.isPersonalized && !rankingInfo?.isCritical && categoryIndex < 5 && (
+                            <Badge variant="outline" className="text-xs">
+                              <TrendingUp className="w-3 h-3 mr-1" />
+                              Popular
+                            </Badge>
+                          )}
+                        </div>
                         <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
                           {category.description}
                         </p>

@@ -1797,6 +1797,34 @@ service cloud.firestore {
       allow delete: if isSignedIn();
     }
 
+    // ============= Tip Engagement Collection =============
+    // Tracks tip views and popularity for trending/recommendations
+
+    match /tipEngagement/{tipId} {
+      // Anyone can read tip engagement (for trending indicators)
+      allow read: if true;
+
+      // Authenticated users can track views
+      allow create, update: if true; // Allow anonymous tracking for accurate counts
+
+      // No deletion - aggregate data
+      allow delete: if false;
+    }
+
+    // ============= Aggregate Feature Stats Collection =============
+    // Cross-user feature popularity for anonymous users
+
+    match /aggregateFeatureStats/{categoryId} {
+      // Anyone can read aggregate stats (for anonymous feature ranking)
+      allow read: if true;
+
+      // Only authenticated users contribute to aggregates
+      allow create, update: if isSignedIn();
+
+      // No deletion - aggregate data
+      allow delete: if false;
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default

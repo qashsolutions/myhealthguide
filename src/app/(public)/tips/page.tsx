@@ -32,13 +32,26 @@ import {
   Filter,
   ArrowLeft,
   LogIn,
-  ShieldCheck
+  ShieldCheck,
+  TrendingUp,
+  Zap,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { getUserFeatureStats } from '@/lib/engagement/featureTracker';
+import {
+  trackTipView,
+  getTipEngagement,
+  getTrendingTipIds,
+  rankTips,
+  type TipEngagement,
+  type RankedTip,
+} from '@/lib/engagement/featureRanking';
 import type { PublishedTip, CaregiverNoteCategory } from '@/types';
+import type { UserFeatureEngagement } from '@/types/engagement';
 import { format, isToday, isThisWeek, isThisMonth, parseISO } from 'date-fns';
 
-type SortOption = 'date' | 'author';
+type SortOption = 'date' | 'author' | 'relevant';
 type CategoryFilter = CaregiverNoteCategory | 'all';
 
 interface GroupedTips {
@@ -56,8 +69,15 @@ export default function TipsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('date');
+  const [sortBy, setSortBy] = useState<SortOption>('relevant');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+
+  // Ranking state
+  const [userStats, setUserStats] = useState<UserFeatureEngagement[]>([]);
+  const [tipEngagement, setTipEngagement] = useState<Map<string, TipEngagement>>(new Map());
+  const [trendingIds, setTrendingIds] = useState<string[]>([]);
+  const [rankedTips, setRankedTips] = useState<Map<string, RankedTip>>(new Map());
+  const [isPersonalized, setIsPersonalized] = useState(false);
 
   // Collapsible state for date groups
   const [todayOpen, setTodayOpen] = useState(true);
@@ -101,15 +121,41 @@ export default function TipsPage() {
     }
   };
 
-  // Load tips
+  // Load tips and ranking data
   useEffect(() => {
-    async function loadTips() {
+    async function loadTipsAndRanking() {
       try {
+        // Load tips
         const response = await fetch('/api/tips?limit=200&sortBy=date');
         const data = await response.json();
 
         if (data.success) {
           setTips(data.tips);
+
+          // Load ranking data in parallel
+          const tipIds = data.tips.map((t: PublishedTip) => t.id!);
+
+          const [engagement, trending, stats] = await Promise.all([
+            getTipEngagement(tipIds),
+            getTrendingTipIds(10),
+            user?.id ? getUserFeatureStats(user.id) : Promise.resolve([]),
+          ]);
+
+          setTipEngagement(engagement);
+          setTrendingIds(trending);
+          setUserStats(stats);
+          setIsPersonalized(stats.length > 0);
+
+          // Calculate rankings
+          const tipsForRanking = data.tips.map((t: PublishedTip) => ({
+            id: t.id!,
+            category: t.category,
+            publishedAt: t.publishedAt,
+          }));
+
+          const ranked = rankTips(tipsForRanking, stats, engagement, trending);
+          const rankedMap = new Map(ranked.map(r => [r.tipId, r]));
+          setRankedTips(rankedMap);
         } else {
           setError(data.error || 'Failed to load tips');
         }
@@ -120,8 +166,8 @@ export default function TipsPage() {
       }
     }
 
-    loadTips();
-  }, []);
+    loadTipsAndRanking();
+  }, [user?.id]);
 
   // Search tips
   const handleSearch = async () => {
@@ -164,6 +210,9 @@ export default function TipsPage() {
     }
   };
 
+  // Get ranking info for a tip
+  const getRankingInfo = (tipId: string) => rankedTips.get(tipId);
+
   // Filter and sort tips
   const filteredTips = useMemo(() => {
     let result = [...tips];
@@ -174,7 +223,14 @@ export default function TipsPage() {
     }
 
     // Apply sort
-    if (sortBy === 'author') {
+    if (sortBy === 'relevant') {
+      // Sort by ranking score
+      result.sort((a, b) => {
+        const rankA = rankedTips.get(a.id!) || { score: 0 };
+        const rankB = rankedTips.get(b.id!) || { score: 0 };
+        return rankB.score - rankA.score;
+      });
+    } else if (sortBy === 'author') {
       result.sort((a, b) => {
         const nameA = a.authorFirstName || 'zzz'; // Anonymous at end
         const nameB = b.authorFirstName || 'zzz';
@@ -189,7 +245,7 @@ export default function TipsPage() {
     }
 
     return result;
-  }, [tips, categoryFilter, sortBy]);
+  }, [tips, categoryFilter, sortBy, rankedTips]);
 
   // Group tips by date
   const groupedTips = useMemo((): GroupedTips => {
@@ -258,21 +314,56 @@ export default function TipsPage() {
     return colors[category];
   };
 
-  const TipCard = ({ tip }: { tip: PublishedTip }) => (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg line-clamp-2">{tip.title}</CardTitle>
-          <Badge className={getCategoryColor(tip.category)}>
-            {getCategoryLabel(tip.category)}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Summary */}
-        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-          {tip.summary}
-        </p>
+  const TipCard = ({ tip }: { tip: PublishedTip }) => {
+    const ranking = getRankingInfo(tip.id!);
+    const engagement = tipEngagement.get(tip.id!);
+
+    // Track view on click
+    const handleClick = () => {
+      trackTipView(tip.id!, user?.id);
+    };
+
+    return (
+      <Card
+        className="hover:shadow-lg transition-shadow cursor-pointer"
+        onClick={handleClick}
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <CardTitle className="text-lg line-clamp-2">{tip.title}</CardTitle>
+              {/* Ranking indicators */}
+              <div className="flex items-center gap-2 mt-1">
+                {ranking?.isTrending && (
+                  <Badge variant="outline" className="text-xs border-orange-500 text-orange-600 dark:text-orange-400">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    Trending
+                  </Badge>
+                )}
+                {ranking?.isRelevant && isPersonalized && (
+                  <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400">
+                    <Zap className="w-3 h-3 mr-1" />
+                    For You
+                  </Badge>
+                )}
+                {engagement && engagement.viewCount > 10 && !ranking?.isTrending && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <Eye className="w-3 h-3" />
+                    {engagement.viewCount}
+                  </span>
+                )}
+              </div>
+            </div>
+            <Badge className={getCategoryColor(tip.category)}>
+              {getCategoryLabel(tip.category)}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Summary */}
+          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+            {tip.summary}
+          </p>
 
         {/* Keywords */}
         {tip.keywords && tip.keywords.length > 0 && (
@@ -306,23 +397,24 @@ export default function TipsPage() {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t dark:border-gray-700">
-          <div className="flex items-center gap-1">
-            <User className="w-3 h-3" />
-            <span>
-              {tip.isAnonymous || !tip.authorFirstName
-                ? 'Anonymous'
-                : tip.authorFirstName}
-            </span>
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t dark:border-gray-700">
+            <div className="flex items-center gap-1">
+              <User className="w-3 h-3" />
+              <span>
+                {tip.isAnonymous || !tip.authorFirstName
+                  ? 'Anonymous'
+                  : tip.authorFirstName}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              <span>{format(new Date(tip.publishedAt), 'MMM d, yyyy')}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            <span>{format(new Date(tip.publishedAt), 'MMM d, yyyy')}</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   const DateGroupSection = ({
     title,
@@ -464,10 +556,25 @@ export default function TipsPage() {
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
                 className="px-3 py-1.5 text-sm border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               >
+                <option value="relevant">Relevant</option>
                 <option value="date">Date</option>
                 <option value="author">Author (A-Z)</option>
               </select>
             </div>
+
+            {/* Personalization indicator */}
+            {isPersonalized && sortBy === 'relevant' && (
+              <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                <Zap className="w-3 h-3" />
+                <span>Personalized for you</span>
+              </div>
+            )}
+            {!user && sortBy === 'relevant' && (
+              <Link href="/login?redirect=/tips" className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                <LogIn className="w-3 h-3" />
+                <span>Sign in for personalized tips</span>
+              </Link>
+            )}
           </div>
         </CardContent>
       </Card>

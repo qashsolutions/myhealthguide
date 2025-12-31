@@ -17,14 +17,22 @@ import {
   Globe,
   Mic,
   Calendar,
-  Filter
+  Filter,
+  Zap,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFeatureTracking } from '@/hooks/useFeatureTracking';
+import { getUserFeatureStats } from '@/lib/engagement/featureTracker';
+import { rankNotes, type RankedNote } from '@/lib/engagement/featureRanking';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import type { CaregiverNote } from '@/types';
+import type { UserFeatureEngagement } from '@/types/engagement';
 import { format } from 'date-fns';
+
+type SortOption = 'recent' | 'relevant';
 
 export default function NotesPage() {
   const router = useRouter();
@@ -38,6 +46,12 @@ export default function NotesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'private' | 'published'>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('relevant');
+
+  // Ranking state
+  const [userStats, setUserStats] = useState<UserFeatureEngagement[]>([]);
+  const [rankedNotes, setRankedNotes] = useState<Map<string, RankedNote>>(new Map());
+  const [isPersonalized, setIsPersonalized] = useState(false);
 
   // Initialize MiniSearch for local search
   const miniSearch = useMemo(() => {
@@ -53,20 +67,28 @@ export default function NotesPage() {
     return ms;
   }, []);
 
-  // Load notes
+  // Load notes and ranking data
   useEffect(() => {
-    async function loadNotes() {
+    async function loadNotesAndRanking() {
       if (!user) {
         setLoading(false);
         return;
       }
 
       try {
-        const response = await authenticatedFetch('/api/notes');
-        const data = await response.json();
+        // Load notes and user stats in parallel
+        const [notesResponse, stats] = await Promise.all([
+          authenticatedFetch('/api/notes'),
+          getUserFeatureStats(user.id),
+        ]);
+
+        const data = await notesResponse.json();
 
         if (data.success) {
           setNotes(data.notes);
+          setUserStats(stats);
+          setIsPersonalized(stats.length > 0);
+
           // Add to MiniSearch index
           miniSearch.removeAll();
           miniSearch.addAll(data.notes.map((n: CaregiverNote) => ({
@@ -74,6 +96,18 @@ export default function NotesPage() {
             id: n.id,
             userTags: n.userTags?.join(' ') || ''
           })));
+
+          // Calculate rankings
+          const notesForRanking = data.notes.map((n: CaregiverNote) => ({
+            id: n.id!,
+            category: n.aiMetadata?.category,
+            createdAt: n.createdAt,
+            updatedAt: n.updatedAt,
+          }));
+
+          const ranked = rankNotes(notesForRanking, stats);
+          const rankedMap = new Map(ranked.map(r => [r.noteId, r]));
+          setRankedNotes(rankedMap);
         } else {
           setError(data.error);
         }
@@ -84,9 +118,12 @@ export default function NotesPage() {
       }
     }
 
-    loadNotes();
+    loadNotesAndRanking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Get ranking info for a note
+  const getRankingInfo = (noteId: string) => rankedNotes.get(noteId);
 
   // Filter and search notes
   const filteredNotes = useMemo(() => {
@@ -104,8 +141,24 @@ export default function NotesPage() {
       result = result.filter(n => matchIds.has(n.id!));
     }
 
+    // Apply sort
+    if (sortBy === 'relevant') {
+      result = [...result].sort((a, b) => {
+        const rankA = rankedNotes.get(a.id!) || { score: 0 };
+        const rankB = rankedNotes.get(b.id!) || { score: 0 };
+        return rankB.score - rankA.score;
+      });
+    } else {
+      // Sort by recent (created date)
+      result = [...result].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+    }
+
     return result;
-  }, [notes, filterStatus, searchQuery, miniSearch]);
+  }, [notes, filterStatus, searchQuery, miniSearch, sortBy, rankedNotes]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -179,7 +232,33 @@ export default function NotesPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              {/* Sort Toggle */}
+              <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setSortBy('relevant')}
+                  className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-md transition-colors ${
+                    sortBy === 'relevant'
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Relevant
+                </button>
+                <button
+                  onClick={() => setSortBy('recent')}
+                  className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-md transition-colors ${
+                    sortBy === 'recent'
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  Recent
+                </button>
+              </div>
+
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
@@ -191,6 +270,14 @@ export default function NotesPage() {
               </select>
             </div>
           </div>
+
+          {/* Personalization indicator */}
+          {isPersonalized && sortBy === 'relevant' && (
+            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <Zap className="w-4 h-4" />
+              <span>Notes ordered by relevance to your recent activity</span>
+            </div>
+          )}
 
           {/* Error Alert */}
           {error && (
@@ -227,67 +314,90 @@ export default function NotesPage() {
           ) : (
             /* Notes Grid */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredNotes.map((note) => (
-                <Card
-                  key={note.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => router.push(`/dashboard/notes/${note.id}`)}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-lg line-clamp-2">{note.title}</CardTitle>
-                      {getStatusBadge(note.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {/* Summary */}
-                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-                      {note.aiMetadata?.summary || note.content.substring(0, 150)}
-                    </p>
-
-                    {/* Category Badge */}
-                    {note.aiMetadata?.category && (
-                      <Badge variant="outline" className="text-xs">
-                        {getCategoryLabel(note.aiMetadata.category)}
-                      </Badge>
-                    )}
-
-                    {/* Tags */}
-                    {note.userTags && note.userTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {note.userTags.slice(0, 3).map((tag, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="secondary"
-                            className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                        {note.userTags.length > 3 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{note.userTags.length - 3}
-                          </Badge>
-                        )}
+              {filteredNotes.map((note) => {
+                const ranking = getRankingInfo(note.id!);
+                return (
+                  <Card
+                    key={note.id}
+                    className={`hover:shadow-lg transition-shadow cursor-pointer ${
+                      ranking?.isSuggested && sortBy === 'relevant'
+                        ? 'ring-2 ring-green-200 dark:ring-green-800'
+                        : ''
+                    }`}
+                    onClick={() => router.push(`/dashboard/notes/${note.id}`)}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg line-clamp-2">{note.title}</CardTitle>
+                          {/* Suggested indicator */}
+                          {ranking?.isSuggested && sortBy === 'relevant' && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400">
+                                <Zap className="w-3 h-3 mr-1" />
+                                Suggested
+                              </Badge>
+                              {ranking.relevanceReason && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {ranking.relevanceReason}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {getStatusBadge(note.status)}
                       </div>
-                    )}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {/* Summary */}
+                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+                        {note.aiMetadata?.summary || note.content.substring(0, 150)}
+                      </p>
 
-                    {/* Footer: Date and Input Method */}
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t dark:border-gray-700">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{format(new Date(note.createdAt), 'MMM d, yyyy')}</span>
-                      </div>
-                      {note.inputMethod === 'voice' && (
-                        <div className="flex items-center gap-1">
-                          <Mic className="w-3 h-3" />
-                          <span>Voice</span>
+                      {/* Category Badge */}
+                      {note.aiMetadata?.category && (
+                        <Badge variant="outline" className="text-xs">
+                          {getCategoryLabel(note.aiMetadata.category)}
+                        </Badge>
+                      )}
+
+                      {/* Tags */}
+                      {note.userTags && note.userTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {note.userTags.slice(0, 3).map((tag, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="secondary"
+                              className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                          {note.userTags.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{note.userTags.length - 3}
+                            </Badge>
+                          )}
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+
+                      {/* Footer: Date and Input Method */}
+                      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t dark:border-gray-700">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>{format(new Date(note.createdAt), 'MMM d, yyyy')}</span>
+                        </div>
+                        {note.inputMethod === 'voice' && (
+                          <div className="flex items-center gap-1">
+                            <Mic className="w-3 h-3" />
+                            <span>Voice</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 
