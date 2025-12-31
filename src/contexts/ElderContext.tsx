@@ -46,9 +46,9 @@ export function ElderProvider({ children }: { children: ReactNode }) {
           // Agency super admin: Load all elders in the agency
           elders = await loadAgencyElders(agencyMembership.agencyId);
         } else if (role === 'caregiver_admin' || role === 'caregiver') {
-          // Caregiver: Load only assigned elders (max 3)
-          const assignedElderIds = agencyMembership.assignedElderIds || [];
-          elders = await loadEldersByIds(assignedElderIds);
+          // Caregiver: Query caregiver_assignments collection as source of truth
+          // This ensures caregivers see assignments immediately after admin assigns
+          elders = await loadCaregiverAssignedElders(user.id, agencyMembership.agencyId);
         } else if (role === 'family_member') {
           // Family member through agency: Load from assigned groups
           const assignedGroupIds = agencyMembership.assignedGroupIds || [];
@@ -95,6 +95,47 @@ export function ElderProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   };
+
+  // Load elders assigned to a caregiver by querying caregiver_assignments collection
+  // This is the source of truth - ensures caregivers see assignments immediately
+  async function loadCaregiverAssignedElders(caregiverId: string, agencyId: string): Promise<Elder[]> {
+    const elders: Elder[] = [];
+
+    try {
+      // Query caregiver_assignments collection for active assignments
+      const assignmentsQuery = query(
+        collection(db, 'caregiver_assignments'),
+        where('caregiverId', '==', caregiverId),
+        where('active', '==', true)
+      );
+
+      const assignmentsSnap = await getDocs(assignmentsQuery);
+      console.log('[ElderContext] Found caregiver assignments:', assignmentsSnap.size);
+
+      // Collect all elder IDs from assignments
+      const elderIds: string[] = [];
+      assignmentsSnap.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.elderIds && Array.isArray(data.elderIds)) {
+          elderIds.push(...data.elderIds);
+        }
+      });
+
+      // Remove duplicates
+      const uniqueElderIds = [...new Set(elderIds)];
+      console.log('[ElderContext] Unique elder IDs from assignments:', uniqueElderIds);
+
+      if (uniqueElderIds.length > 0) {
+        // Load elder documents
+        const loadedElders = await loadEldersByIds(uniqueElderIds);
+        elders.push(...loadedElders);
+      }
+    } catch (error) {
+      console.error('[ElderContext] Error loading caregiver assignments:', error);
+    }
+
+    return elders;
+  }
 
   // Load elders from agency (query top-level elders collection)
   // First fetch agency doc to get groupIds, then query elders per group

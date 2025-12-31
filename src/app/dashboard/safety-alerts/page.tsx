@@ -29,7 +29,7 @@ function SafetyAlertsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { selectedElder } = useElder();
+  const { selectedElder, availableElders, isLoading: eldersLoading } = useElder();
 
   // Get active tab from URL or default to all
   const activeTab = (searchParams.get('tab') as TabType) || 'all';
@@ -60,13 +60,46 @@ function SafetyAlertsContent() {
     { id: 'screening', label: 'Screening', icon: Brain },
   ];
 
+  // Show loading state while elders are being fetched
+  if (eldersLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  // Show appropriate message based on elder availability
   if (!selectedElder) {
+    const hasNoElders = availableElders.length === 0;
+    const isCaregiverRole = user?.agencies?.[0]?.role === 'caregiver' || user?.agencies?.[0]?.role === 'caregiver_admin';
+
     return (
       <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600 dark:text-gray-400">
-          Please select an elder from the header to view safety alerts.
-        </p>
+        {hasNoElders && isCaregiverRole ? (
+          <>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              No Elders Assigned Yet
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+              Your agency administrator will assign elders to you. Once assigned, you&apos;ll be able to view their safety alerts here.
+            </p>
+          </>
+        ) : hasNoElders ? (
+          <>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              No Elders Found
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+              Add an elder to your care group to start monitoring their safety alerts.
+            </p>
+          </>
+        ) : (
+          <p className="text-gray-600 dark:text-gray-400">
+            Please select an elder from the header to view safety alerts.
+          </p>
+        )}
       </div>
     );
   }
@@ -215,7 +248,7 @@ function AlertSection({
     },
   };
 
-  const colors = colorClasses[color];
+  const colors = colorClasses[color as keyof typeof colorClasses] || colorClasses.orange; // Fallback to orange
 
   return (
     <Card className="p-5">

@@ -109,7 +109,7 @@ export default function CareManagementPage() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {features.map((feature) => {
           const Icon = feature.icon;
-          const colors = colorClasses[feature.color];
+          const colors = colorClasses[feature.color] || colorClasses.blue; // Fallback to blue
 
           return (
             <Card key={feature.href} className="p-5 hover:shadow-md transition-shadow">
