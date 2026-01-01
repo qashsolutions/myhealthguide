@@ -22,8 +22,7 @@ import {
 } from 'lucide-react';
 import { Elder } from '@/types';
 import Link from 'next/link';
-import { AgencyService } from '@/lib/firebase/agencies';
-import { UserCircle2, AlertTriangle } from 'lucide-react';
+import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCardGrid';
 
 // Check if user can add elders (must be super_admin or admin with active status)
 function canUserAddElders(user: any): boolean {
@@ -60,19 +59,6 @@ export default function DashboardPage() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
 
-  // Multi-agency caregiver grouping
-  const [caregiverSections, setCaregiverSections] = useState<Array<{
-    caregiverId: string;
-    caregiverName: string;
-    elders: Elder[];
-  }>>([]);
-  const [unassignedElders, setUnassignedElders] = useState<Elder[]>([]);
-  const [elderCaregiverMap, setElderCaregiverMap] = useState<Map<string, {
-    caregiverId: string;
-    caregiverName: string;
-    isPrimary: boolean;
-  }>>(new Map());
-
   // Check if user is multi-agency super admin
   // Super admins are always active (they own the agency), so no status check needed
   const isMultiAgencySuperAdmin = user?.agencies?.some(
@@ -100,35 +86,13 @@ export default function DashboardPage() {
         agencyRole
       );
       setDashboardData(data);
-
-      // For multi-agency super admins, load caregiver grouping data
-      if (isMultiAgencySuperAdmin && agencyId) {
-        console.log('[Overview] Loading caregiver grouping for agency:', agencyId);
-        try {
-          const [groupedData, mappingData] = await Promise.all([
-            AgencyService.getEldersGroupedByCaregiver(agencyId),
-            AgencyService.getElderCaregiverMapping(agencyId)
-          ]);
-          console.log('[Overview] Caregiver sections:', groupedData.sections.length, 'sections');
-          console.log('[Overview] Unassigned elders:', groupedData.unassignedElders.length);
-          console.log('[Overview] Elder-caregiver mapping size:', mappingData.size);
-          setCaregiverSections(groupedData.sections);
-          setUnassignedElders(groupedData.unassignedElders);
-          setElderCaregiverMap(mappingData);
-        } catch (caregiverError) {
-          console.error('[Overview] Error loading caregiver grouping:', caregiverError);
-          // Don't fail the whole dashboard, just skip grouping
-        }
-      } else {
-        console.log('[Overview] Not loading caregiver grouping - isMultiAgencySuperAdmin:', isMultiAgencySuperAdmin, 'agencyId:', agencyId);
-      }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
       setStatsError('Unable to load dashboard statistics. Please try again.');
     } finally {
       setStatsLoading(false);
     }
-  }, [user, availableElders, isMultiAgencySuperAdmin, agencyId]);
+  }, [user, availableElders]);
 
   useEffect(() => {
     if (!eldersLoading) {
@@ -399,214 +363,94 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Multi-agency grouped view */}
-          {isMultiAgencySuperAdmin && caregiverSections.length > 0 ? (
-            <div className="space-y-8">
-              {/* Elders grouped by caregiver */}
-              {caregiverSections.map((section) => (
-                <div key={section.caregiverId}>
-                  {/* Caregiver Section Header */}
-                  <div className="flex items-center gap-3 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <UserCircle2 className="w-6 h-6 text-white" />
+          {/* Multi-agency grouped view using shared component */}
+          {isMultiAgencySuperAdmin && agencyId ? (
+            <CaregiverEldersCardGrid
+              agencyId={agencyId}
+              maxEldersPerCaregiver={3}
+              onAssignElder={() => router.push('/dashboard/agency?tab=assignments')}
+              renderElderCard={(elder, caregiverName) => {
+                const elderStats = getElderStats(elder.id);
+                const skippedText = formatSkipped(elderStats);
+
+                return (
+                  <Card
+                    className={`p-4 cursor-pointer transition-all hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 ${
+                      selectedElder?.id === elder.id
+                        ? 'border-2 border-blue-600 dark:border-blue-400 shadow-lg'
+                        : ''
+                    }`}
+                    onClick={() => handleElderClick(elder)}
+                  >
+                    {/* Elder Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                          {elder.name}
+                        </h3>
+                        {elder.approximateAge && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            ~{elder.approximateAge} years old
+                          </p>
+                        )}
+                      </div>
+                      {selectedElder?.id === elder.id && (
+                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      )}
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {section.caregiverName}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {section.elders.length} elder{section.elders.length !== 1 ? 's' : ''} assigned
-                      </p>
+
+                    {/* Elder Stats */}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400 flex items-center">
+                          <Pill className="w-3 h-3 mr-1.5 text-green-600" />
+                          Meds
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {statsLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : elderStats?.activeMedicationsCount ?? 0}
+                          </span>
+                          {elderStats && elderStats.medicationCompliance.total > 0 && (
+                            <span className="text-xs text-gray-500">({elderStats.medicationCompliance.compliancePercentage}%)</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400 flex items-center">
+                          <Leaf className="w-3 h-3 mr-1.5 text-amber-600" />
+                          Supps
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {statsLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : elderStats?.activeSupplementsCount ?? 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 dark:border-gray-800">
+                        <span className="text-gray-600 dark:text-gray-400 flex items-center">
+                          <Heart className="w-3 h-3 mr-1.5 text-red-500" />
+                          Compliance
+                        </span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          {statsLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : formatCompliance(elderStats)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Elders Grid for this caregiver */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {section.elders.map((elder) => {
-                      const elderStats = getElderStats(elder.id);
-                      const skippedText = formatSkipped(elderStats);
-                      const caregiverInfo = elderCaregiverMap.get(elder.id);
-
-                      return (
-                        <Card
-                          key={elder.id}
-                          className={`p-6 cursor-pointer transition-all hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 ${
-                            selectedElder?.id === elder.id
-                              ? 'border-2 border-blue-600 dark:border-blue-400 shadow-lg'
-                              : ''
-                          }`}
-                          onClick={() => handleElderClick(elder)}
-                        >
-                          {/* Elder Header */}
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {elder.name}
-                              </h3>
-                              {elder.approximateAge && (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                                  ~{elder.approximateAge} years old
-                                </p>
-                              )}
-                              {/* Assigned caregiver indicator */}
-                              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
-                                <UserCircle2 className="w-3 h-3" />
-                                Assigned to {caregiverInfo?.caregiverName || section.caregiverName}
-                                {caregiverInfo?.isPrimary && (
-                                  <span className="ml-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-[10px] font-medium">
-                                    Primary
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                            {selectedElder?.id === elder.id && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                            )}
-                          </div>
-
-                          {/* Elder Stats */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400 flex items-center">
-                                <Pill className="w-4 h-4 mr-2 text-green-600" />
-                                Medications
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-gray-900 dark:text-white">
-                                  {statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : elderStats?.activeMedicationsCount ?? 0}
-                                </span>
-                                {elderStats && elderStats.medicationCompliance.total > 0 && (
-                                  <span className="text-xs text-gray-500">({elderStats.medicationCompliance.compliancePercentage}%)</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400 flex items-center">
-                                <Leaf className="w-4 h-4 mr-2 text-amber-600" />
-                                Supplements
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-gray-900 dark:text-white">
-                                  {statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : elderStats?.activeSupplementsCount ?? 0}
-                                </span>
-                                {elderStats && elderStats.supplementCompliance.total > 0 && (
-                                  <span className="text-xs text-gray-500">({elderStats.supplementCompliance.compliancePercentage}%)</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400 flex items-center">
-                                <Utensils className="w-4 h-4 mr-2 text-orange-600" />
-                                Meals Today
-                              </span>
-                              <span className="font-semibold text-gray-900 dark:text-white">
-                                {statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : `${elderStats?.dietStats.mealsLoggedToday ?? 0}/${elderStats?.dietStats.expectedMealsToday ?? 3}`}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100 dark:border-gray-800">
-                              <span className="text-gray-600 dark:text-gray-400 flex items-center">
-                                <Heart className="w-4 h-4 mr-2 text-red-500" />
-                                Compliance
-                              </span>
-                              <div className="flex flex-col items-end">
-                                <span className="font-semibold text-gray-900 dark:text-white">
-                                  {statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : formatCompliance(elderStats)}
-                                </span>
-                                {skippedText && !statsLoading && <span className="text-xs text-gray-400">{skippedText}</span>}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <Button variant="ghost" size="sm" className="w-full justify-between group" onClick={(e) => { e.stopPropagation(); setSelectedElder(elder); router.push('/dashboard/medications'); }}>
-                              <span>View Care Details</span>
-                              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </Button>
-                          </div>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-
-              {/* Unassigned Elders Section */}
-              {unassignedElders.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-3 mb-4 pb-2 border-b border-amber-200 dark:border-amber-700">
-                    <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
-                      <AlertTriangle className="w-5 h-5 text-white" />
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <Button variant="ghost" size="sm" className="w-full justify-between group text-xs" onClick={(e) => { e.stopPropagation(); setSelectedElder(elder); router.push('/dashboard/medications'); }}>
+                        <span>View Details</span>
+                        <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                      </Button>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-amber-700 dark:text-amber-400">
-                        Unassigned Elders
-                      </h3>
-                      <p className="text-sm text-amber-600 dark:text-amber-500">
-                        {unassignedElders.length} elder{unassignedElders.length !== 1 ? 's' : ''} need caregiver assignment
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {unassignedElders.map((elder) => {
-                      const elderStats = getElderStats(elder.id);
-                      const skippedText = formatSkipped(elderStats);
-
-                      return (
-                        <Card
-                          key={elder.id}
-                          className={`p-6 cursor-pointer transition-all hover:shadow-lg border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-600 ${
-                            selectedElder?.id === elder.id ? 'border-2 border-amber-500 shadow-lg' : ''
-                          }`}
-                          onClick={() => handleElderClick(elder)}
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{elder.name}</h3>
-                              {elder.approximateAge && (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">~{elder.approximateAge} years old</p>
-                              )}
-                              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                No caregiver assigned
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400 flex items-center"><Pill className="w-4 h-4 mr-2 text-green-600" />Medications</span>
-                              <span className="font-semibold text-gray-900 dark:text-white">{statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : elderStats?.activeMedicationsCount ?? 0}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400 flex items-center"><Leaf className="w-4 h-4 mr-2 text-amber-600" />Supplements</span>
-                              <span className="font-semibold text-gray-900 dark:text-white">{statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : elderStats?.activeSupplementsCount ?? 0}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100 dark:border-gray-800">
-                              <span className="text-gray-600 dark:text-gray-400 flex items-center"><Heart className="w-4 h-4 mr-2 text-red-500" />Compliance</span>
-                              <span className="font-semibold text-gray-900 dark:text-white">{statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : formatCompliance(elderStats)}</span>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1 text-amber-600 border-amber-300 hover:bg-amber-50" onClick={(e) => { e.stopPropagation(); router.push('/dashboard/agency?tab=assignments'); }}>
-                              Assign Caregiver
-                            </Button>
-                          </div>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+                  </Card>
+                );
+              }}
+            />
           ) : (
-            /* Standard grid view (non multi-agency or no caregiver data) */
+            /* Standard grid view (non multi-agency users) */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {availableElders.map((elder) => {
                 const elderStats = getElderStats(elder.id);
                 const skippedText = formatSkipped(elderStats);
-                const caregiverInfo = elderCaregiverMap.get(elder.id);
 
                 return (
                   <Card
@@ -627,18 +471,6 @@ export default function DashboardPage() {
                         {elder.approximateAge && (
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                             ~{elder.approximateAge} years old
-                          </p>
-                        )}
-                        {/* Show caregiver assignment for multi-agency users */}
-                        {isMultiAgencySuperAdmin && caregiverInfo && (
-                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
-                            <UserCircle2 className="w-3 h-3" />
-                            Assigned to {caregiverInfo.caregiverName}
-                            {caregiverInfo.isPrimary && (
-                              <span className="ml-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-[10px] font-medium">
-                                Primary
-                              </span>
-                            )}
                           </p>
                         )}
                       </div>
