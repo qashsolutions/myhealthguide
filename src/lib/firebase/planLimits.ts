@@ -109,11 +109,9 @@ export async function canCreateElder(
       (doc) => !doc.data().archived
     ).length;
 
-    // Get limit based on tier
-    let maxElders: number;
-
     if (tier === 'multi_agency') {
-      // For multi-agency, check total active (non-archived) elders across all groups
+      // For multi-agency super admin, only check total elders across the agency
+      // Per-caregiver limit (3) is enforced when ASSIGNING elders, not when creating
       const userDoc = await getDoc(doc(db, 'users', userId));
       const userData = userDoc.data();
       const groupIds = userData?.groups?.map((g: { groupId: string }) => g.groupId) || [];
@@ -130,18 +128,22 @@ export async function canCreateElder(
       if (totalElders >= maxTotalElders) {
         return {
           allowed: false,
-          message: `${getTierDisplayName('multi_agency')} is limited to ${maxTotalElders} elders total across all groups. Current: ${totalElders}`,
+          message: `${getTierDisplayName('multi_agency')} is limited to ${maxTotalElders} elders total. Current: ${totalElders}`,
           limit: maxTotalElders,
           current: totalElders,
         };
       }
 
-      // Also check per-caregiver limit
-      maxElders = getMaxEldersPerCaregiver('multi_agency');
-    } else {
-      maxElders = getMaxElders(tier);
+      // Multi-agency super admin passed the total check - allow creation
+      return {
+        allowed: true,
+        limit: maxTotalElders,
+        current: totalElders,
+      };
     }
 
+    // For non-multi-agency tiers, check per-group limit
+    const maxElders = getMaxElders(tier);
     if (currentElderCount >= maxElders) {
       return {
         allowed: false,
