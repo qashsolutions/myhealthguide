@@ -208,6 +208,11 @@ export default function EldersPage() {
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               Manage elder profiles in your care
+              {elderLimitCheck?.limit && elderLimitCheck.limit > 1 && (
+                <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
+                  ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
