@@ -812,7 +812,8 @@ export async function canLogSymptoms(
 }
 
 /**
- * Check if user can access elder health profile (admin or primary caregiver)
+ * Check if user can access elder health profile
+ * Allows: group admins, primary caregivers, elder creators, AND assigned caregivers
  */
 export async function canAccessElderProfile(
   userId: string,
@@ -863,6 +864,19 @@ export async function canAccessElderProfile(
         console.log('[canAccessElderProfile] Access granted via createdBy');
         return true;
       }
+    }
+
+    // Check if user is an assigned caregiver via elder_access subcollection
+    // This document is created when admin assigns a caregiver to an elder
+    try {
+      const elderAccessDoc = await getDoc(doc(db, 'users', userId, 'elder_access', elderId));
+      if (elderAccessDoc.exists() && elderAccessDoc.data()?.active) {
+        console.log('[canAccessElderProfile] Access granted via elder_access subcollection');
+        return true;
+      }
+    } catch (accessError) {
+      // Subcollection might not exist for non-caregivers, that's fine
+      console.log('[canAccessElderProfile] elder_access check failed (may not exist):', accessError);
     }
 
     console.log('[canAccessElderProfile] Access DENIED - no matching criteria');
