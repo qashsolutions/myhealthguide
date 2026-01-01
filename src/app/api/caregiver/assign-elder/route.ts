@@ -260,6 +260,21 @@ export async function POST(req: NextRequest) {
       }, { merge: true });
     }
 
+    // Create group_access subcollection doc for canAccessGroup() rule check
+    // Path: users/{caregiverId}/group_access/{groupId}
+    const groupAccessDocRef = adminDb
+      .collection('users')
+      .doc(caregiverId)
+      .collection('group_access')
+      .doc(groupId);
+    batch.set(groupAccessDocRef, {
+      groupId,
+      agencyId,
+      active: true,
+      assignedAt: Timestamp.now(),
+      assignedBy
+    }, { merge: true });
+
     // Commit all changes atomically
     await batch.commit();
     console.log(`Assigned ${elderIds.length} elders to caregiver ${caregiverId} in agency ${agencyId}`);

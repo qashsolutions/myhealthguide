@@ -44,12 +44,15 @@ export async function POST(req: NextRequest) {
     let migratedCount = 0;
     const createdDocuments: string[] = [];
 
+    const processedGroups = new Set<string>();
+
     for (const assignmentDoc of assignmentsSnapshot.docs) {
       const assignment = assignmentDoc.data();
       const caregiverId = assignment.caregiverId;
       const elderIds = assignment.elderIds || [];
       const groupId = assignment.groupId;
 
+      // Create elder_access documents
       for (const elderId of elderIds) {
         // Use subcollection: users/{caregiverId}/elder_access/{elderId}
         const accessDocRef = adminDb
@@ -72,6 +75,32 @@ export async function POST(req: NextRequest) {
           });
           migratedCount++;
           createdDocuments.push(`users/${caregiverId}/elder_access/${elderId}`);
+        }
+      }
+
+      // Create group_access document (once per caregiver-group combination)
+      const groupKey = `${caregiverId}_${groupId}`;
+      if (!processedGroups.has(groupKey)) {
+        processedGroups.add(groupKey);
+
+        const groupAccessDocRef = adminDb
+          .collection('users')
+          .doc(caregiverId)
+          .collection('group_access')
+          .doc(groupId);
+
+        const existingGroupDoc = await groupAccessDocRef.get();
+        if (!existingGroupDoc.exists) {
+          batch.set(groupAccessDocRef, {
+            groupId,
+            agencyId,
+            active: true,
+            assignedAt: Timestamp.now(),
+            assignedBy: 'migration',
+            migratedFromAssignment: assignmentDoc.id
+          });
+          migratedCount++;
+          createdDocuments.push(`users/${caregiverId}/group_access/${groupId}`);
         }
       }
     }

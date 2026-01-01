@@ -142,14 +142,11 @@ service cloud.firestore {
     }
 
     // Check if user can access a specific group (either member or assigned caregiver)
+    // Uses subcollection: users/{userId}/group_access/{groupId}
     function canAccessGroup(groupId) {
       return isGroupAdmin(groupId) ||
         isMemberOfGroup(groupId) ||
-        (
-          // Check if caregiver is assigned to this group
-          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          groupId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencies[0].assignedGroupIds
-        );
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/group_access/$(groupId));
     }
 
     // ============= Users Collection =============
@@ -568,6 +565,24 @@ service cloud.firestore {
 
       // Only server (Admin SDK) can create access documents
       // Created by assign-elder API route
+      allow create: if false;
+
+      // Only server (Admin SDK) can update access documents
+      allow update: if false;
+
+      // Only server (Admin SDK) can delete access documents
+      allow delete: if false;
+    }
+
+    // ============= Group Access Subcollection (Phase 5) =============
+    // Helper subcollection for Firestore rules to check caregiver-group access
+    // Path: users/{userId}/group_access/{groupId}
+
+    match /users/{userId}/group_access/{groupId} {
+      // Caregiver can read their own access documents
+      allow read: if isOwner(userId);
+
+      // Only server (Admin SDK) can create access documents
       allow create: if false;
 
       // Only server (Admin SDK) can update access documents
