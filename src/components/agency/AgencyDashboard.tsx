@@ -243,31 +243,55 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
             <CardDescription>Current plan and billing</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
-                <Badge variant="default">
-                  {agency.subscription.tier.toUpperCase()}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
-                <Badge
-                  variant={agency.subscription.status === 'active' ? 'default' : 'secondary'}
-                  className={agency.subscription.status === 'active' ? 'bg-green-600' : ''}
-                >
-                  {agency.subscription.status.toUpperCase()}
-                </Badge>
-              </div>
-              {agency.subscription.status === 'trial' && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Trial Ends</span>
-                  <span className="text-sm font-medium">
-                    {new Date(agency.subscription.trialEndsAt).toLocaleDateString()}
-                  </span>
+            {(() => {
+              // Determine actual status - if trial expired but has Stripe subscription, it's active
+              // Handle Firestore Timestamp conversion
+              let trialEndsAt: Date | null = null;
+              if (agency.subscription.trialEndsAt) {
+                const raw = agency.subscription.trialEndsAt;
+                if (typeof raw === 'object' && 'seconds' in raw) {
+                  trialEndsAt = new Date((raw as any).seconds * 1000);
+                } else if (raw instanceof Date) {
+                  trialEndsAt = raw;
+                } else {
+                  trialEndsAt = new Date(raw);
+                }
+              }
+              const trialExpired = trialEndsAt && trialEndsAt < new Date();
+              const hasStripeSubscription = !!agency.subscription.stripeSubscriptionId;
+              const actualStatus = (agency.subscription.status === 'trial' && trialExpired && hasStripeSubscription)
+                ? 'active'
+                : agency.subscription.status;
+              const isActive = actualStatus === 'active';
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
+                    <Badge variant="default">
+                      {agency.subscription.tier.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                    <Badge
+                      variant={isActive ? 'default' : 'secondary'}
+                      className={isActive ? 'bg-green-600' : ''}
+                    >
+                      {actualStatus.toUpperCase()}
+                    </Badge>
+                  </div>
+                  {actualStatus === 'trial' && trialEndsAt && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Trial Ends</span>
+                      <span className="text-sm font-medium">
+                        {trialEndsAt.toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
