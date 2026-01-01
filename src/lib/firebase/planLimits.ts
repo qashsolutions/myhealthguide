@@ -402,3 +402,148 @@ export async function canAddGroupMember(
  * @deprecated Use getUpgradeMessage from @/lib/subscription instead
  */
 export { getUpgradeMessage };
+
+/**
+ * Multi-agency access status
+ */
+export interface MultiAgencyAccessStatus {
+  hasAccess: boolean;
+  status: 'trial' | 'active' | 'expired' | 'unknown';
+  message?: string;
+  trialEndsAt?: Date;
+  daysRemaining?: number;
+  elderCount?: number;
+  estimatedMonthlyBill?: number;
+}
+
+/**
+ * Check if a multi-agency super admin has access
+ * Used to block dashboard access when trial expires without payment
+ */
+export async function checkMultiAgencyAccess(userId: string): Promise<MultiAgencyAccessStatus> {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return { hasAccess: false, status: 'unknown', message: 'User not found' };
+    }
+
+    const userData = userDoc.data();
+
+    // Find the agency where user is super_admin
+    const superAdminMembership = userData?.agencies?.find(
+      (a: any) => a.role === 'super_admin'
+    );
+
+    if (!superAdminMembership) {
+      // Not a super admin - check if regular caregiver (they have access if agency does)
+      const caregiverMembership = userData?.agencies?.find(
+        (a: any) => a.role === 'caregiver' || a.role === 'caregiver_admin'
+      );
+
+      if (!caregiverMembership) {
+        return { hasAccess: true, status: 'unknown' }; // Not in multi-agency at all
+      }
+
+      // Check the agency's status
+      const agencyDoc = await getDoc(doc(db, 'agencies', caregiverMembership.agencyId));
+      if (!agencyDoc.exists()) {
+        return { hasAccess: false, status: 'unknown', message: 'Agency not found' };
+      }
+
+      const agencyData = agencyDoc.data();
+      if (agencyData.subscription?.tier !== 'multi_agency') {
+        return { hasAccess: true, status: 'unknown' }; // Not multi-agency
+      }
+
+      const status = agencyData.subscription?.status;
+      if (status === 'expired') {
+        return {
+          hasAccess: false,
+          status: 'expired',
+          message: 'Agency subscription has expired. Please contact your agency administrator.',
+        };
+      }
+
+      return { hasAccess: true, status: status || 'unknown' };
+    }
+
+    // User is super_admin - check agency status
+    const agencyDoc = await getDoc(doc(db, 'agencies', superAdminMembership.agencyId));
+    if (!agencyDoc.exists()) {
+      return { hasAccess: false, status: 'unknown', message: 'Agency not found' };
+    }
+
+    const agencyData = agencyDoc.data();
+    const subscription = agencyData.subscription;
+
+    if (subscription?.tier !== 'multi_agency') {
+      return { hasAccess: true, status: 'unknown' }; // Not multi-agency
+    }
+
+    const trialEndsAt = subscription?.trialEndsAt
+      ? toSafeDate(subscription.trialEndsAt)
+      : null;
+    const now = new Date();
+
+    // Count elders
+    let elderCount = 0;
+    if (agencyData.groupIds?.length > 0) {
+      for (const gId of agencyData.groupIds) {
+        const q = query(collection(db, 'elders'), where('groupId', '==', gId));
+        const snap = await getDocs(q);
+        elderCount += snap.docs.filter((d) => !d.data().archived).length;
+      }
+    }
+
+    const estimatedMonthlyBill = elderCount * PLAN_CONFIG.multi_agency.price;
+
+    // Check if in trial
+    if (trialEndsAt && now < trialEndsAt) {
+      const daysRemaining = Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        hasAccess: true,
+        status: 'trial',
+        trialEndsAt,
+        daysRemaining,
+        elderCount,
+        estimatedMonthlyBill,
+        message: daysRemaining <= 3
+          ? `Your trial ends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}. Add a payment method to continue.`
+          : undefined,
+      };
+    }
+
+    // Check if has active subscription
+    const hasActivePayment = subscription?.status === 'active' &&
+      (agencyData.stripeSubscriptionIds?.length > 0 || subscription?.stripeSubscriptionId);
+
+    if (hasActivePayment) {
+      return {
+        hasAccess: true,
+        status: 'active',
+        elderCount,
+        estimatedMonthlyBill,
+      };
+    }
+
+    // Trial expired and no payment
+    const daysAgoTrialEnded = trialEndsAt
+      ? Math.floor((now.getTime() - trialEndsAt.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    return {
+      hasAccess: false,
+      status: 'expired',
+      elderCount,
+      estimatedMonthlyBill,
+      message: `Your ${MULTI_AGENCY_TRIAL_DAYS}-day free trial ended ${daysAgoTrialEnded} day${daysAgoTrialEnded !== 1 ? 's' : ''} ago. Add a payment method to restore access.`,
+    };
+  } catch (error) {
+    console.error('Error checking multi-agency access:', error);
+    return {
+      hasAccess: false,
+      status: 'unknown',
+      message: 'Error checking subscription status',
+    };
+  }
+}
