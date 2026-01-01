@@ -1040,62 +1040,6 @@ export interface UserAlertPreferences {
   updatedAt: Date;
 }
 
-// ============= Medical Disclaimer & Consent Types =============
-
-export type MedicalFeatureType =
-  | 'medication_interactions'
-  | 'side_effects'
-  | 'schedule_conflicts'
-  | 'dementia_screening'
-  | 'all_medical_features';
-
-export interface MedicalDisclaimerConsent {
-  id: string;
-  userId: string;
-  groupId: string;
-  featureType: MedicalFeatureType;
-  disclaimerVersion: string; // e.g., "v1.0" - increment when disclaimer changes
-  consentGiven: boolean;
-  consentText: string; // Full text user agreed to (for legal record)
-  // Proof of reading
-  timeSpentReading: number; // Milliseconds - ensure they actually read it
-  scrolledToBottom: boolean; // Must scroll to end before agreeing
-  // Consent details
-  consentedAt: Date;
-  ipAddress?: string; // Optional for audit trail
-  userAgent?: string; // Browser info
-  // Re-consent tracking
-  expiresAt: Date; // Consent expires after 90 days
-  isActive: boolean; // False if expired or revoked
-  revokedAt?: Date;
-  revokedReason?: string;
-  // Audit
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface MedicalFeatureAccessLog {
-  id: string;
-  userId: string;
-  groupId: string;
-  elderId?: string;
-  featureType: MedicalFeatureType;
-  action: 'viewed' | 'acknowledged' | 'dismissed';
-  // What they viewed
-  interactionData?: {
-    medicationIds?: string[];
-    interactionCount?: number;
-    severity?: 'minor' | 'moderate' | 'major' | 'contraindicated';
-  };
-  // Consent verification
-  consentId: string; // Link to the consent record
-  consentValid: boolean; // Was consent active when accessed?
-  // Audit
-  timestamp: Date;
-  ipAddress?: string;
-  userAgent?: string;
-}
-
 // ============= Medication Interaction Types (FDA API) =============
 
 export interface DrugInteraction {
