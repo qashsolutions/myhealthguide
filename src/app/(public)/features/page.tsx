@@ -400,6 +400,7 @@ export default function FeaturesPage() {
     }
 
     loadRankingData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?.subscriptionTier]);
 
   // Reorder categories based on ranking
@@ -410,6 +411,7 @@ export default function FeaturesPage() {
     return rankedCategories
       .map(ranked => categoryMap.get(ranked.id))
       .filter(Boolean) as typeof featureCategoriesData;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rankedCategories]);
 
   // Get ranking info for a category

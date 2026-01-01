@@ -55,6 +55,11 @@ export async function POST(req: NextRequest) {
       targetAgencyId = userData.agencies[0].agencyId;
     }
 
+    // Safety check - should never happen after fallback
+    if (!targetAgencyId) {
+      return NextResponse.json({ error: 'No agency found for user' }, { status: 400 });
+    }
+
     // Get the agency
     const agencyDoc = await adminDb.collection('agencies').doc(targetAgencyId).get();
     if (!agencyDoc.exists) {
