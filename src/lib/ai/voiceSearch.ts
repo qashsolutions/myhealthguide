@@ -312,7 +312,7 @@ Respond in JSON format:
         {
           label: 'Contact Support',
           action: 'external',
-          url: '/contact',
+          url: 'mailto:admin@myguide.health',
         }
       ],
     };
@@ -351,7 +351,7 @@ function buildKnowledgeContext(permissions?: {
     context += '\n## HOW TO GET STARTED:\n';
     context += '- Sign Up: Go to /signup for 45-day free trial\n';
     context += '- Login: Go to /login if you already have an account\n';
-    context += '- Contact Us: Visit /contact for questions\n';
+    context += '- Contact Us: Email admin@myguide.health for questions\n';
     context += '- View Pricing: Visit /pricing to compare plans\n';
 
     context += '\nIMPORTANT FOR PUBLIC USERS:\n';

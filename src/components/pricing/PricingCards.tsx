@@ -319,7 +319,7 @@ export function PricingCards({
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               Need help choosing?{' '}
-              <a href="/contact" className="text-blue-600 hover:underline">
+              <a href="mailto:admin@myguide.health" className="text-blue-600 hover:underline">
                 Contact us
               </a>
             </p>
