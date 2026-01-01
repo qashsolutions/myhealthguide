@@ -220,10 +220,9 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
             })}
           </div>
 
-          {/* Actions */}
-          <div className="border-t border-gray-100 dark:border-gray-700">
-            {/* Only show Add New Elder for admins/super admins */}
-            {canAddElders && (
+          {/* Actions - only show for admins/super admins who can manage elders */}
+          {canAddElders && (
+            <div className="border-t border-gray-100 dark:border-gray-700">
               <button
                 onClick={() => {
                   setIsOpen(false);
@@ -234,19 +233,19 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
                 <Plus className="w-4 h-4 text-gray-500" />
                 <span className="text-sm text-gray-700 dark:text-gray-300">Add New Elder</span>
               </button>
-            )}
 
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                router.push('/dashboard/elders');
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            >
-              <Settings className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">{canAddElders ? 'Manage All Elders' : 'View All Elders'}</span>
-            </button>
-          </div>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push('/dashboard/elders');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <Settings className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Manage All Elders</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

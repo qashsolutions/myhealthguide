@@ -35,9 +35,30 @@ import {
 
 type DialogType = 'archive' | 'delete' | null;
 
+// Check if user can manage elders (add/edit/delete)
+function canUserManageElders(user: any): boolean {
+  // If user has no agencies, they can manage elders (single family plan)
+  if (!user?.agencies || user.agencies.length === 0) return true;
+
+  // User can manage elders only if they have super_admin or admin role
+  return user.agencies.some((agency: any) =>
+    (agency.role === 'super_admin' || agency.role === 'admin') &&
+    agency.status === 'active'
+  );
+}
+
+// Check if user is a caregiver in a multi-agency
+function isUserCaregiver(user: any): boolean {
+  if (!user?.agencies || user.agencies.length === 0) return false;
+
+  return user.agencies.some((agency: any) =>
+    agency.role === 'caregiver' && agency.status === 'active'
+  );
+}
+
 export default function EldersPage() {
   const { user } = useAuth();
-  const { refreshElders } = useElder();
+  const { refreshElders, availableElders } = useElder();
   const router = useRouter();
   const [elders, setElders] = useState<Elder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +68,10 @@ export default function EldersPage() {
   const [processing, setProcessing] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [elderLimitCheck, setElderLimitCheck] = useState<PlanValidationResult | null>(null);
+
+  // Role-based permissions
+  const canManageElders = canUserManageElders(user);
+  const isCaregiver = isUserCaregiver(user);
 
   useEffect(() => {
     fetchElders();
@@ -62,12 +87,20 @@ export default function EldersPage() {
     try {
       const groupId = user.groups[0].groupId;
       const userRole = (user.groups[0].role || 'member') as 'admin' | 'caregiver' | 'member';
-      const fetchedElders = await ElderService.getEldersByGroup(groupId, user.id, userRole);
-      setElders(fetchedElders);
 
-      // Check if user can add more elders
-      const limitCheck = await canCreateElder(user.id, groupId);
-      setElderLimitCheck(limitCheck);
+      // For caregivers, use the availableElders from context (already filtered by assignment)
+      if (isCaregiver) {
+        setElders(availableElders);
+        setElderLimitCheck(null); // Caregivers don't need limit info
+      } else {
+        // For admins/super admins, fetch all elders in the group
+        const fetchedElders = await ElderService.getEldersByGroup(groupId, user.id, userRole);
+        setElders(fetchedElders);
+
+        // Check if user can add more elders
+        const limitCheck = await canCreateElder(user.id, groupId);
+        setElderLimitCheck(limitCheck);
+      }
     } catch (err) {
       console.error('Error fetching elders:', err);
       setError('Failed to load elders');
@@ -194,9 +227,9 @@ export default function EldersPage() {
     );
   }
 
-  // Determine if user can add elders
-  const canAddElder = elderLimitCheck?.allowed ?? true;
-  const isAtLimit = elderLimitCheck && !elderLimitCheck.allowed;
+  // Determine if user can add elders (only for admins/super admins)
+  const canAddElder = canManageElders && (elderLimitCheck?.allowed ?? true);
+  const isAtLimit = canManageElders && elderLimitCheck && !elderLimitCheck.allowed;
 
   return (
     <TooltipProvider>
@@ -204,11 +237,13 @@ export default function EldersPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Elders
+              {isCaregiver ? 'Your Assigned Elders' : 'Elders'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Manage elder profiles in your care
-              {elderLimitCheck?.limit && elderLimitCheck.limit > 1 && (
+              {isCaregiver
+                ? 'View elder profiles assigned to you'
+                : 'Manage elder profiles in your care'}
+              {canManageElders && elderLimitCheck?.limit && elderLimitCheck.limit > 1 && (
                 <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
                   ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
                 </span>
@@ -216,7 +251,8 @@ export default function EldersPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {archivedElders.length > 0 && (
+            {/* Only show archive toggle for admins/super admins */}
+            {canManageElders && archivedElders.length > 0 && (
               <Button
                 variant="outline"
                 onClick={() => setShowArchived(!showArchived)}
@@ -235,27 +271,30 @@ export default function EldersPage() {
                 )}
               </Button>
             )}
-            {canAddElder ? (
-              <Link href="/dashboard/elders/new">
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Elder
-                </Button>
-              </Link>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button disabled className="cursor-not-allowed opacity-60">
-                    <Lock className="w-4 h-4 mr-2" />
+            {/* Only show Add Elder button for admins/super admins */}
+            {canManageElders && (
+              canAddElder ? (
+                <Link href="/dashboard/elders/new">
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
                     Add Elder
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <p>
-                    {elderLimitCheck?.message || 'You have reached your plan limit.'}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
+                </Link>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button disabled className="cursor-not-allowed opacity-60">
+                      <Lock className="w-4 h-4 mr-2" />
+                      Add Elder
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p>
+                      {elderLimitCheck?.message || 'You have reached your plan limit.'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )
             )}
           </div>
         </div>
@@ -294,32 +333,24 @@ export default function EldersPage() {
       {activeElders.length === 0 && !showArchived ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {archivedElders.length > 0
-              ? 'No active elders. You have archived elders that can be reactivated.'
-              : 'No elders added yet'}
+            {isCaregiver
+              ? 'No elders have been assigned to you yet. Please contact your agency administrator.'
+              : archivedElders.length > 0
+                ? 'No active elders. You have archived elders that can be reactivated.'
+                : 'No elders added yet'}
           </p>
           <div className="flex justify-center gap-2">
-            {archivedElders.length > 0 && (
+            {/* Only show archived button for admins/super admins */}
+            {canManageElders && archivedElders.length > 0 && (
               <Button variant="outline" onClick={() => setShowArchived(true)}>
                 View Archived
               </Button>
             )}
-            {canAddElder ? (
-              <Link href="/dashboard/elders/new">
-                <Button>
-                  Add an Elder
-                  {elderLimitCheck?.limit && (
-                    <span className="ml-2 text-xs opacity-75">
-                      ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
-                    </span>
-                  )}
-                </Button>
-              </Link>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button disabled className="cursor-not-allowed opacity-60">
-                    <Lock className="w-4 h-4 mr-2" />
+            {/* Only show Add Elder button for admins/super admins */}
+            {canManageElders && (
+              canAddElder ? (
+                <Link href="/dashboard/elders/new">
+                  <Button>
                     Add an Elder
                     {elderLimitCheck?.limit && (
                       <span className="ml-2 text-xs opacity-75">
@@ -327,11 +358,25 @@ export default function EldersPage() {
                       </span>
                     )}
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{elderLimitCheck?.message || 'Plan limit reached'}</p>
-                </TooltipContent>
-              </Tooltip>
+                </Link>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button disabled className="cursor-not-allowed opacity-60">
+                      <Lock className="w-4 h-4 mr-2" />
+                      Add an Elder
+                      {elderLimitCheck?.limit && (
+                        <span className="ml-2 text-xs opacity-75">
+                          ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
+                        </span>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{elderLimitCheck?.message || 'Plan limit reached'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )
             )}
           </div>
         </div>
@@ -404,21 +449,26 @@ export default function EldersPage() {
                           <User className="h-4 w-4 mr-2" />
                           View Profile
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={(e) => handleArchiveClick(e as any, elder)}
-                          className="text-amber-600 focus:text-amber-600"
-                        >
-                          <Archive className="h-4 w-4 mr-2" />
-                          Archive
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => handleDeleteClick(e as any, elder)}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Permanently
-                        </DropdownMenuItem>
+                        {/* Only show archive/delete for admins/super admins */}
+                        {canManageElders && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={(e) => handleArchiveClick(e as any, elder)}
+                              className="text-amber-600 focus:text-amber-600"
+                            >
+                              <Archive className="h-4 w-4 mr-2" />
+                              Archive
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => handleDeleteClick(e as any, elder)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Permanently
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
