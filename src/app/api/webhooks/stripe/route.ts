@@ -129,24 +129,45 @@ export async function POST(req: NextRequest) {
           console.log('Subscription created and synced to Firestore:', subscription.id);
 
           // Also update the agency subscription tier if user has an agency
+          // Find the agency where user is super_admin (not just agencies[0])
           if (planKey) {
             const userDoc = await adminDb.collection('users').doc(userId).get();
             const userData = userDoc.data();
             if (userData?.agencies && userData.agencies.length > 0) {
-              const agencyId = userData.agencies[0].agencyId;
+              // Find agency where user is super_admin
+              let targetAgencyId: string | null = null;
+              for (const membership of userData.agencies) {
+                if (membership.role === 'super_admin') {
+                  const agencyDoc = await adminDb.collection('agencies').doc(membership.agencyId).get();
+                  if (agencyDoc.exists && agencyDoc.data()?.superAdminId === userId) {
+                    targetAgencyId = membership.agencyId;
+                    break;
+                  }
+                }
+              }
+
+              // Fallback to first agency if no super_admin role found
+              if (!targetAgencyId) {
+                targetAgencyId = userData.agencies[0].agencyId;
+              }
+
               const currentPeriodEnd = subscription.current_period_end
                 ? new Date(subscription.current_period_end * 1000)
                 : new Date();
+              const trialEnd = subscription.trial_end
+                ? new Date(subscription.trial_end * 1000)
+                : currentPeriodEnd;
 
-              await adminDb.collection('agencies').doc(agencyId).update({
+              await adminDb.collection('agencies').doc(targetAgencyId).update({
                 'subscription.tier': planKey,
                 'subscription.status': subscription.status === 'trialing' ? 'trial' : 'active',
                 'subscription.stripeCustomerId': subscription.customer as string,
                 'subscription.stripeSubscriptionId': subscription.id,
                 'subscription.currentPeriodEnd': Timestamp.fromDate(currentPeriodEnd),
+                'subscription.trialEndsAt': Timestamp.fromDate(trialEnd),
                 updatedAt: Timestamp.now(),
               });
-              console.log('Agency subscription synced:', agencyId, 'Tier:', planKey);
+              console.log('Agency subscription synced:', targetAgencyId, 'Tier:', planKey, 'Status:', subscription.status);
             }
           }
         }
@@ -225,10 +246,27 @@ export async function POST(req: NextRequest) {
           console.log('Subscription updated:', subscription.id, 'Status:', subscriptionStatus);
 
           // Also update the agency subscription tier if user has an agency
+          // Find the agency where user is super_admin (not just agencies[0])
           const userDoc = await adminDb.collection('users').doc(userId).get();
           const userData = userDoc.data();
           if (userData?.agencies && userData.agencies.length > 0) {
-            const agencyId = userData.agencies[0].agencyId;
+            // Find agency where user is super_admin
+            let targetAgencyId: string | null = null;
+            for (const membership of userData.agencies) {
+              if (membership.role === 'super_admin') {
+                const agencyDoc = await adminDb.collection('agencies').doc(membership.agencyId).get();
+                if (agencyDoc.exists && agencyDoc.data()?.superAdminId === userId) {
+                  targetAgencyId = membership.agencyId;
+                  break;
+                }
+              }
+            }
+
+            // Fallback to first agency if no super_admin role found
+            if (!targetAgencyId) {
+              targetAgencyId = userData.agencies[0].agencyId;
+            }
+
             const agencyUpdateData: Record<string, any> = {
               'subscription.status': subscriptionStatus,
               updatedAt: Timestamp.now(),
@@ -240,9 +278,12 @@ export async function POST(req: NextRequest) {
             if (subscription.current_period_end) {
               agencyUpdateData['subscription.currentPeriodEnd'] = Timestamp.fromMillis(subscription.current_period_end * 1000);
             }
+            if (subscription.trial_end) {
+              agencyUpdateData['subscription.trialEndsAt'] = Timestamp.fromMillis(subscription.trial_end * 1000);
+            }
 
-            await adminDb.collection('agencies').doc(agencyId).update(agencyUpdateData);
-            console.log('Agency subscription updated:', agencyId);
+            await adminDb.collection('agencies').doc(targetAgencyId).update(agencyUpdateData);
+            console.log('Agency subscription updated:', targetAgencyId, 'Status:', subscriptionStatus);
           }
         }
         break;

@@ -38,10 +38,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const agencyId = userData.agencies[0].agencyId;
+    // Find agency where user is super_admin (not just agencies[0])
+    let targetAgencyId: string | null = null;
+    for (const membership of userData.agencies) {
+      if (membership.role === 'super_admin') {
+        const agencyDoc = await adminDb.collection('agencies').doc(membership.agencyId).get();
+        if (agencyDoc.exists && agencyDoc.data()?.superAdminId === userId) {
+          targetAgencyId = membership.agencyId;
+          break;
+        }
+      }
+    }
+
+    // Fallback to first agency if no super_admin role found
+    if (!targetAgencyId) {
+      targetAgencyId = userData.agencies[0].agencyId;
+    }
 
     // Get the agency
-    const agencyDoc = await adminDb.collection('agencies').doc(agencyId).get();
+    const agencyDoc = await adminDb.collection('agencies').doc(targetAgencyId).get();
     if (!agencyDoc.exists) {
       return NextResponse.json({ error: 'Agency not found' }, { status: 404 });
     }
@@ -71,13 +86,21 @@ export async function POST(req: NextRequest) {
         updateData['subscription.currentPeriodEnd'] = userData.currentPeriodEnd;
       }
     }
+    // Also sync trial end date
+    if (userData.trialEndDate) {
+      if (userData.trialEndDate.seconds) {
+        updateData['subscription.trialEndsAt'] = Timestamp.fromMillis(userData.trialEndDate.seconds * 1000);
+      } else {
+        updateData['subscription.trialEndsAt'] = userData.trialEndDate;
+      }
+    }
 
-    await adminDb.collection('agencies').doc(agencyId).update(updateData);
+    await adminDb.collection('agencies').doc(targetAgencyId).update(updateData);
 
     return NextResponse.json({
       success: true,
       message: 'Agency subscription synced successfully',
-      agencyId,
+      agencyId: targetAgencyId,
       subscriptionTier,
       subscriptionStatus,
     });

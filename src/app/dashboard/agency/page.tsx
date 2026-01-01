@@ -51,23 +51,58 @@ export default function AgencyPage() {
         if (userDoc.exists()) {
           const userData = userDoc.data();
 
-          // Check subscription tier
-          const subscriptionTier = userData.subscriptionTier || 'family';
-          setIsMultiAgency(subscriptionTier === 'multi_agency');
-
-          // Get first agency (user might belong to multiple)
+          // Smart agency selection based on role and subscription tier
+          // Priority: 1) Multi-agency where user is super_admin
+          //           2) Multi-agency where user is caregiver
+          //           3) Personal family agency
           if (userData.agencies && userData.agencies.length > 0) {
-            const agencyMembership = userData.agencies[0];
-            setAgencyId(agencyMembership.agencyId);
+            let selectedAgency: any = null;
+            let selectedMembership: any = null;
 
-            // Check if super admin
-            const agency = await AgencyService.getAgency(agencyMembership.agencyId);
-            if (agency) {
-              setIsSuperAdmin(agency.superAdminId === user.uid);
+            // Load all agencies to check their tiers
+            const agencyPromises = userData.agencies.map(async (membership: any) => {
+              const agency = await AgencyService.getAgency(membership.agencyId);
+              return { membership, agency };
+            });
+            const agencyResults = await Promise.all(agencyPromises);
+
+            // Priority 1: Find multi_agency where user is super_admin
+            for (const { membership, agency } of agencyResults) {
+              if (agency && agency.subscription?.tier === 'multi_agency' && agency.superAdminId === user.uid) {
+                selectedAgency = agency;
+                selectedMembership = membership;
+                break;
+              }
+            }
+
+            // Priority 2: Find multi_agency where user is caregiver (not super_admin)
+            if (!selectedAgency) {
+              for (const { membership, agency } of agencyResults) {
+                if (agency && agency.subscription?.tier === 'multi_agency' && membership.role === 'caregiver') {
+                  selectedAgency = agency;
+                  selectedMembership = membership;
+                  break;
+                }
+              }
+            }
+
+            // Priority 3: Fall back to first agency (personal family agency)
+            if (!selectedAgency) {
+              const firstResult = agencyResults[0];
+              if (firstResult?.agency) {
+                selectedAgency = firstResult.agency;
+                selectedMembership = firstResult.membership;
+              }
+            }
+
+            if (selectedAgency) {
+              setAgencyId(selectedAgency.id);
+              setIsSuperAdmin(selectedAgency.superAdminId === user.uid);
+              setIsMultiAgency(selectedAgency.subscription?.tier === 'multi_agency');
 
               // Get first group in agency
-              if (agency.groupIds.length > 0) {
-                setGroupId(agency.groupIds[0]);
+              if (selectedAgency.groupIds?.length > 0) {
+                setGroupId(selectedAgency.groupIds[0]);
               }
             }
           } else if (userData.groups && userData.groups.length > 0) {
@@ -84,6 +119,7 @@ export default function AgencyPage() {
                 const agency = await AgencyService.getAgency(groupData.agencyId);
                 if (agency) {
                   setIsSuperAdmin(agency.superAdminId === user.uid);
+                  setIsMultiAgency(agency.subscription?.tier === 'multi_agency');
                 }
               }
             }
