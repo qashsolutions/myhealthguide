@@ -58,6 +58,32 @@ This bug caused authenticated users with active trials to be incorrectly redirec
 - FCM push notifications fail
 - reCAPTCHA/App Check failures
 
+### 2b. Stripe Pricing Configuration (UPDATED: Jan 1, 2026)
+
+**Current Pricing (in code):**
+| Plan | Price | Stripe Price ID Env Var |
+|------|-------|------------------------|
+| Family Plan A | $8.99/elder/month | `STRIPE_FAMILY_PRICE_ID` |
+| Family Plan B | $18.99/month | `STRIPE_SINGLE_AGENCY_PRICE_ID` |
+| Multi Agency | $55/elder/month | `STRIPE_MULTI_AGENCY_PRICE_ID` |
+
+**TESTING vs PRODUCTION:**
+- **Testing:** `STRIPE_MULTI_AGENCY_PRICE_ID` is set to a $30 test price (Stripe doesn't allow editing prices)
+- **Production:** Create a new $55 price in Stripe and update the environment variable
+
+**Before Production Launch:**
+1. Create new Stripe price for Multi Agency at $55/elder/month
+2. Update `STRIPE_MULTI_AGENCY_PRICE_ID` in Vercel production environment
+3. Optionally archive the old $30 test price in Stripe
+
+**Source of Truth:**
+- Display pricing: `src/lib/subscription/subscriptionService.ts` (PLAN_CONFIG)
+- Stripe charges: Determined by the price ID in environment variables
+
+**Trial Periods:**
+- Family Plan A & B: 45 days (TRIAL_DURATION_DAYS)
+- Multi Agency: 30 days (MULTI_AGENCY_TRIAL_DAYS)
+
 ### 3. Firestore Security Rules - Session Management
 
 **IMPORTANT:** The session management system writes to TWO collections:
