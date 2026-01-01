@@ -16,13 +16,18 @@ import {
   getMaxEldersPerCaregiver,
   getUpgradeMessage,
   PLAN_CONFIG,
+  MULTI_AGENCY_TRIAL_DAYS,
 } from '@/lib/subscription';
+import { toSafeDate } from '@/lib/utils/dateConversion';
 
 export interface PlanValidationResult {
   allowed: boolean;
   message?: string;
   limit?: number;
   current?: number;
+  // Multi-agency trial info
+  trialEndsAt?: Date;
+  daysRemaining?: number;
 }
 
 /**
@@ -110,10 +115,60 @@ export async function canCreateElder(
     ).length;
 
     if (tier === 'multi_agency') {
-      // For multi-agency super admin, only check total elders across the agency
-      // Per-caregiver limit (3) is enforced when ASSIGNING elders, not when creating
+      // For multi-agency super admin, check trial/payment status and elder limits
       const userDoc = await getDoc(doc(db, 'users', userId));
       const userData = userDoc.data();
+
+      // Find the agency where user is super_admin
+      const superAdminMembership = userData?.agencies?.find(
+        (a: any) => a.role === 'super_admin'
+      );
+
+      if (!superAdminMembership) {
+        return {
+          allowed: false,
+          message: 'You must be a super admin to add elders',
+        };
+      }
+
+      // Get agency data to check trial/payment status
+      const agencyDoc = await getDoc(doc(db, 'agencies', superAdminMembership.agencyId));
+      if (!agencyDoc.exists()) {
+        return {
+          allowed: false,
+          message: 'Agency not found',
+        };
+      }
+
+      const agencyData = agencyDoc.data();
+      const subscription = agencyData.subscription;
+
+      // Check if in trial period
+      const trialEndsAt = subscription?.trialEndsAt
+        ? toSafeDate(subscription.trialEndsAt)
+        : null;
+      const now = new Date();
+      const isInTrial = trialEndsAt && now < trialEndsAt;
+
+      // Check if has active payment (Stripe subscription)
+      const hasActivePayment = subscription?.status === 'active' &&
+        (agencyData.stripeSubscriptionIds?.length > 0 || subscription?.stripeSubscriptionId);
+
+      // After trial, require payment to add elders
+      if (!isInTrial && !hasActivePayment) {
+        const daysAgoTrialEnded = trialEndsAt
+          ? Math.floor((now.getTime() - trialEndsAt.getTime()) / (1000 * 60 * 60 * 24))
+          : 0;
+
+        return {
+          allowed: false,
+          message: trialEndsAt
+            ? `Your ${MULTI_AGENCY_TRIAL_DAYS}-day free trial ended ${daysAgoTrialEnded} day${daysAgoTrialEnded !== 1 ? 's' : ''} ago. Please add a payment method to continue adding elders.`
+            : 'Please add a payment method to add elders.',
+        };
+      }
+
+      // Count total elders across all agency groups
       const groupIds = userData?.groups?.map((g: { groupId: string }) => g.groupId) || [];
 
       let totalElders = 0;
@@ -134,11 +189,16 @@ export async function canCreateElder(
         };
       }
 
-      // Multi-agency super admin passed the total check - allow creation
+      // Multi-agency super admin passed all checks - allow creation
       return {
         allowed: true,
         limit: maxTotalElders,
         current: totalElders,
+        // Include trial info for UI
+        ...(isInTrial && trialEndsAt && {
+          trialEndsAt: trialEndsAt,
+          daysRemaining: Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+        }),
       };
     }
 

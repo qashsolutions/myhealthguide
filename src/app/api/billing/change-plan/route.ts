@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
-import { getPlanChangeType } from '@/lib/constants/pricing';
+import { getPlanChangeType, MULTI_AGENCY_TRIAL_DAYS } from '@/lib/constants/pricing';
 
 // Initialize Stripe
 function getStripe(): Stripe {
@@ -122,12 +122,38 @@ export async function POST(req: NextRequest) {
         updatedAt: Timestamp.now(),
       });
 
+      // For multi_agency upgrade, also update the agency with trial period
+      if (newPlan === 'multi_agency') {
+        // Find user's agency where they are super_admin
+        const userDoc = await adminDb.collection('users').doc(userId).get();
+        const userData = userDoc.data();
+        const superAdminMembership = userData?.agencies?.find(
+          (a: any) => a.role === 'super_admin'
+        );
+
+        if (superAdminMembership) {
+          const trialEndDate = new Date();
+          trialEndDate.setDate(trialEndDate.getDate() + MULTI_AGENCY_TRIAL_DAYS);
+
+          await adminDb.collection('agencies').doc(superAdminMembership.agencyId).update({
+            'subscription.tier': 'multi_agency',
+            'subscription.status': 'trial',
+            'subscription.trialEndsAt': Timestamp.fromDate(trialEndDate),
+            'subscription.currentPeriodEnd': Timestamp.fromDate(trialEndDate),
+            updatedAt: Timestamp.now(),
+          });
+        }
+      }
+
       return NextResponse.json({
         success: true,
         changeType: 'upgrade',
-        message: 'Your plan has been upgraded immediately. Prorated charges will be applied.',
+        message: newPlan === 'multi_agency'
+          ? `Your plan has been upgraded! You have a ${MULTI_AGENCY_TRIAL_DAYS}-day free trial. After the trial, you'll be charged $55 per elder per month.`
+          : 'Your plan has been upgraded immediately. Prorated charges will be applied.',
         newPlan,
         effectiveDate: 'immediate',
+        ...(newPlan === 'multi_agency' && { trialDays: MULTI_AGENCY_TRIAL_DAYS }),
       });
 
     } else {
