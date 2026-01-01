@@ -289,6 +289,25 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
                       </span>
                     </div>
                   )}
+                  {isActive && agency.subscription.currentPeriodEnd && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Renews</span>
+                      <span className="text-sm font-medium">
+                        {(() => {
+                          const raw = agency.subscription.currentPeriodEnd;
+                          let date: Date;
+                          if (typeof raw === 'object' && 'seconds' in raw) {
+                            date = new Date((raw as any).seconds * 1000);
+                          } else if (raw instanceof Date) {
+                            date = raw;
+                          } else {
+                            date = new Date(raw);
+                          }
+                          return date.toLocaleDateString();
+                        })()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })()}
