@@ -20,6 +20,7 @@ import { Group, GroupMember, Permission, PermissionLevel, PendingApproval } from
 import { generateInviteCode, encryptInviteCode, decryptInviteCode } from '@/lib/utils/inviteCode';
 import { NotificationService } from './notifications';
 import { canCreateGroup, canAddGroupMember } from './planLimits';
+import { toSafeDate } from '@/lib/utils/dateConversion';
 
 export class GroupService {
   /**
@@ -71,27 +72,6 @@ export class GroupService {
       }
 
       const data = groupDoc.data();
-
-      // Helper to safely convert Firestore Timestamp to Date
-      const toSafeDate = (timestamp: any): Date => {
-        if (!timestamp) return new Date();
-        if (typeof timestamp === 'object' && 'seconds' in timestamp) {
-          return new Date(timestamp.seconds * 1000);
-        }
-        if (timestamp instanceof Date) return timestamp;
-        if (typeof timestamp === 'string' || typeof timestamp === 'number') {
-          const date = new Date(timestamp);
-          return isNaN(date.getTime()) ? new Date() : date;
-        }
-        if (typeof timestamp.toDate === 'function') {
-          try {
-            return timestamp.toDate();
-          } catch {
-            return new Date();
-          }
-        }
-        return new Date();
-      };
 
       return {
         id: groupDoc.id,
@@ -491,27 +471,6 @@ export class GroupService {
       return snapshot.docs.map(doc => {
         const data = doc.data();
 
-        // Helper to safely convert Firestore Timestamp to Date
-        const toSafeDate = (timestamp: any): Date => {
-          if (!timestamp) return new Date();
-          if (typeof timestamp === 'object' && 'seconds' in timestamp) {
-            return new Date(timestamp.seconds * 1000);
-          }
-          if (timestamp instanceof Date) return timestamp;
-          if (typeof timestamp === 'string' || typeof timestamp === 'number') {
-            const date = new Date(timestamp);
-            return isNaN(date.getTime()) ? new Date() : date;
-          }
-          if (typeof timestamp.toDate === 'function') {
-            try {
-              return timestamp.toDate();
-            } catch {
-              return new Date();
-            }
-          }
-          return new Date();
-        };
-
         return {
           id: doc.id,
           name: data.name,
@@ -822,23 +781,6 @@ export class GroupService {
 
       return snapshot.docs.map(doc => {
         const data = doc.data();
-
-        // Helper to safely convert Firestore Timestamp to Date
-        const toSafeDate = (timestamp: any): Date => {
-          if (!timestamp) return new Date();
-          if (typeof timestamp === 'object' && 'seconds' in timestamp) {
-            return new Date(timestamp.seconds * 1000);
-          }
-          if (timestamp instanceof Date) return timestamp;
-          if (typeof timestamp.toDate === 'function') {
-            try {
-              return timestamp.toDate();
-            } catch {
-              return new Date();
-            }
-          }
-          return new Date();
-        };
 
         return {
           id: doc.id,

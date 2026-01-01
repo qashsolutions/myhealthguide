@@ -9,28 +9,12 @@ import { getAdminDb } from './admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { CaregiverNote, PublishedTip, CaregiverNoteCategory } from '@/types';
 import { logPHIAccess, UserRole } from '../medical/phiAuditLog';
+import { toSafeDate } from '@/lib/utils/dateConversion';
 
 const NOTES_COLLECTION = 'caregiver_notes';
 const TIPS_COLLECTION = 'published_tips';
 
 // ============= Helper Methods =============
-
-function toSafeDate(timestamp: any): Date {
-  if (!timestamp) return new Date();
-  if (typeof timestamp === 'object' && '_seconds' in timestamp) {
-    return new Date(timestamp._seconds * 1000);
-  }
-  if (typeof timestamp === 'object' && 'seconds' in timestamp) {
-    return new Date(timestamp.seconds * 1000);
-  }
-  if (timestamp instanceof Date) {
-    return timestamp;
-  }
-  if (timestamp.toDate) {
-    return timestamp.toDate();
-  }
-  return new Date(timestamp);
-}
 
 function docToNote(docSnapshot: FirebaseFirestore.DocumentSnapshot): CaregiverNote | null {
   if (!docSnapshot.exists) return null;

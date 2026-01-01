@@ -15,6 +15,7 @@ import {
 import { db } from './config';
 import { CaregiverNote, PublishedTip, CaregiverNoteCategory } from '@/types';
 import { logPHIAccess, UserRole } from '../medical/phiAuditLog';
+import { toSafeDate } from '@/lib/utils/dateConversion';
 
 /**
  * Caregiver Notes Service
@@ -27,17 +28,6 @@ export class CaregiverNotesService {
   private static TIPS_COLLECTION = 'published_tips';
 
   // ============= Helper Methods =============
-
-  private static toSafeDate(timestamp: any): Date {
-    if (!timestamp) return new Date();
-    if (typeof timestamp === 'object' && 'seconds' in timestamp) {
-      return new Date(timestamp.seconds * 1000);
-    }
-    if (timestamp instanceof Date) {
-      return timestamp;
-    }
-    return new Date(timestamp);
-  }
 
   private static docToNote(docSnapshot: any): CaregiverNote {
     const data = docSnapshot.data();
@@ -53,12 +43,12 @@ export class CaregiverNotesService {
       voiceTranscript: data.voiceTranscript,
       aiMetadata: data.aiMetadata ? {
         ...data.aiMetadata,
-        extractedAt: this.toSafeDate(data.aiMetadata.extractedAt)
+        extractedAt: toSafeDate(data.aiMetadata.extractedAt)
       } : undefined,
       status: data.status,
       publishedTipId: data.publishedTipId,
-      createdAt: this.toSafeDate(data.createdAt),
-      updatedAt: this.toSafeDate(data.updatedAt)
+      createdAt: toSafeDate(data.createdAt),
+      updatedAt: toSafeDate(data.updatedAt)
     };
   }
 
@@ -80,7 +70,7 @@ export class CaregiverNotesService {
       viewCount: data.viewCount || 0,
       likeCount: data.likeCount || 0,
       safetyScore: data.safetyScore,
-      publishedAt: this.toSafeDate(data.publishedAt),
+      publishedAt: toSafeDate(data.publishedAt),
       algoliaObjectId: data.algoliaObjectId
     };
   }
