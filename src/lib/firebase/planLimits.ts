@@ -27,6 +27,7 @@ export interface PlanValidationResult {
 
 /**
  * Get the subscription tier for a user
+ * For agency super admins, checks the agency subscription tier
  */
 export async function getUserTier(userId: string): Promise<PlanTier | null> {
   try {
@@ -36,6 +37,25 @@ export async function getUserTier(userId: string): Promise<PlanTier | null> {
     }
 
     const userData = userDoc.data();
+
+    // Check if user is a super_admin of an agency - use agency tier
+    if (userData.agencies && Array.isArray(userData.agencies)) {
+      const superAdminMembership = userData.agencies.find(
+        (a: any) => a.role === 'super_admin'
+      );
+
+      if (superAdminMembership) {
+        // Get the agency's subscription tier
+        const agencyDoc = await getDoc(doc(db, 'agencies', superAdminMembership.agencyId));
+        if (agencyDoc.exists()) {
+          const agencyData = agencyDoc.data();
+          // Check agency subscription tier
+          if (agencyData.subscription?.tier) {
+            return agencyData.subscription.tier as PlanTier;
+          }
+        }
+      }
+    }
 
     // If user has a paid subscription (stripeSubscriptionId), use their actual tier
     if (userData.stripeSubscriptionId && userData.subscriptionTier) {
