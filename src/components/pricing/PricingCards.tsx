@@ -8,7 +8,6 @@ import { Heart, Users, Shield, CheckCircle, Loader2 } from 'lucide-react';
 import {
   PLAN_CONFIG,
   CORE_FEATURES,
-  DETAILED_FEATURES,
   getStripePriceId,
   MULTI_AGENCY_TRIAL_DAYS,
   TRIAL_DURATION_DAYS,
@@ -236,38 +235,36 @@ export function PricingCards({
                       <div className="border-t border-gray-200 dark:border-gray-700" />
                     </li>
 
-                    {/* Core features label */}
-                    <li className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                      Core Features
-                    </li>
-
-                    {/* Core features (show 5 for cards) */}
-                    {CORE_FEATURES.slice(0, 5).map((feature, index) => (
-                      <li key={`core-${index}`} className="flex items-start gap-2.5">
-                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-
-                    {/* Show "+X more" for remaining core features */}
-                    {CORE_FEATURES.length > 5 && (
-                      <li className="text-xs text-gray-500 dark:text-gray-400 pl-6">
-                        + {CORE_FEATURES.length - 5} more core features
-                      </li>
+                    {/* Family Plan A: Show all core features */}
+                    {plan.id === 'family' && (
+                      <>
+                        <li className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                          Core Features
+                        </li>
+                        {CORE_FEATURES.map((feature, index) => (
+                          <li key={`core-${index}`} className="flex items-start gap-2.5">
+                            <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              {feature}
+                            </span>
+                          </li>
+                        ))}
+                      </>
                     )}
 
-                    {/* Plan extras (tier-specific) */}
-                    {plan.extras.length > 0 && (
+                    {/* Family Plan B: Inherits from A + Team Features */}
+                    {plan.id === 'single_agency' && (
                       <>
-                        <li className="pt-1">
+                        <li className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">
+                          All Features from Family Plan A, plus:
+                        </li>
+                        <li className="pt-2">
                           <div className="border-t border-gray-200 dark:border-gray-700" />
                         </li>
-                        <li className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">
-                          {plan.id === 'single_agency' ? 'Team Features' : 'Agency Features'}
+                        <li className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide pt-1">
+                          Team Features
                         </li>
-                        {plan.extras.slice(0, 4).map((extra, index) => (
+                        {plan.extras.map((extra, index) => (
                           <li key={`extra-${index}`} className="flex items-start gap-2.5">
                             <CheckCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
                             <span className="text-sm text-gray-700 dark:text-gray-300">
@@ -275,11 +272,29 @@ export function PricingCards({
                             </span>
                           </li>
                         ))}
-                        {plan.extras.length > 4 && (
-                          <li className="text-xs text-gray-500 dark:text-gray-400 pl-6">
-                            + {plan.extras.length - 4} more agency features
+                      </>
+                    )}
+
+                    {/* Multi Agency: Inherits from B + Agency Features */}
+                    {plan.id === 'multi_agency' && (
+                      <>
+                        <li className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">
+                          All Features from Family Plan B, plus:
+                        </li>
+                        <li className="pt-2">
+                          <div className="border-t border-gray-200 dark:border-gray-700" />
+                        </li>
+                        <li className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide pt-1">
+                          Agency Features
+                        </li>
+                        {plan.extras.map((extra, index) => (
+                          <li key={`extra-${index}`} className="flex items-start gap-2.5">
+                            <CheckCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              {extra}
+                            </span>
                           </li>
-                        )}
+                        ))}
                       </>
                     )}
                   </ul>
