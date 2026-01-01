@@ -2,17 +2,17 @@
 
 ## Pricing Tiers Overview
 
-| Plan | Price | Max Elders | Max Members | Storage |
-|------|-------|------------|-------------|---------|
-| **Family** | $8.99/elder/month | 1 | 2 | 25 MB |
-| **Single Agency** | $14.99/elder/month | 1 | 4 | 50 MB |
-| **Multi Agency** | $30/elder/month | 30 | 10 caregivers | 500 MB |
-
-**Free Trial:** 45 days with all Family plan features
+| Plan | Price | Target Audience | Max Elders | Max Members | Storage | Trial |
+|------|-------|-----------------|------------|-------------|---------|-------|
+| **Family** | $8.99/elder/month | Family caregivers | 1 | 2 | 25 MB | 45 days |
+| **Small Agency** | $18.99/month | Families with hired caregivers | 1 | 4 | 50 MB | 45 days |
+| **Multi Agency** | $55/elder/month | Professional caregiver agencies | 30 | 10 caregivers | 500 MB | 30 days |
 
 ---
 
 ## Family Plan — $8.99/elder/month
+
+**Target:** Individual family members caring for an elderly loved one.
 
 ### Dashboard & Elder Management
 - **Dashboard Overview** — Aggregate stats across all elders (compliance %, medications, meals)
@@ -93,7 +93,9 @@
 
 ---
 
-## Single Agency Plan — $14.99/elder/month
+## Small Agency Plan — $18.99/month
+
+**Target:** Families who hire professional caregivers to help care for their elderly loved ones.
 
 *Includes ALL Family Plan features PLUS:*
 
@@ -109,9 +111,11 @@
 
 ---
 
-## Multi Agency Plan — $30/elder/month
+## Multi Agency Plan — $55/elder/month
 
-*Includes ALL Single Agency features PLUS:*
+**Target:** Professional caregiver agencies managing multiple elders with multiple caregivers.
+
+*Includes ALL Small Agency features PLUS:*
 
 ### Agency Management Suite
 | Feature | Code Name | Description |
@@ -124,6 +128,7 @@
 | Advanced Analytics | `advanced_analytics` | Agency-wide analytics dashboard |
 | Timesheet | — | Track caregiver hours worked |
 | Caregiver Burnout | — | AI-driven burnout detection (admin only) |
+| Billing Dashboard | — | Elder subscription management |
 
 ### Shift Management Features
 - **Shift Calendar**
@@ -146,6 +151,13 @@
   - Adaptive thresholds via AI
   - Customizable analysis period
 
+### Billing & Subscription
+- **30-Day Free Trial** — Full access to all features
+- **$55/elder/month** — Billed after trial ends
+- **Automatic Billing** — Stripe subscription for each elder
+- **Trial Notifications** — Alerts on days 27, 28, 29 before trial ends
+- **Payment Required** — Access blocked if trial ends without payment
+
 ### Enhanced Limits
 - **Max Elders:** 30
 - **Max Caregivers:** 10
@@ -157,7 +169,7 @@
 
 ## Feature Gating Matrix
 
-| Feature | Family | Single Agency | Multi Agency |
+| Feature | Family | Small Agency | Multi Agency |
 |---------|:------:|:-------------:|:------------:|
 | Core Care Logging | ✅ | ✅ | ✅ |
 | AI Health Chat | ✅ | ✅ | ✅ |
@@ -176,8 +188,10 @@
 | Caregiver Availability | ❌ | ❌ | ✅ |
 | Advanced Analytics | ❌ | ❌ | ✅ |
 | Caregiver Burnout Detection | ❌ | ❌ | ✅ |
+| Timesheet Tracking | ❌ | ❌ | ✅ |
 | Max Elders | 1 | 1 | 30 |
-| Max Members | 2 | 4 | 10 |
+| Max Members | 2 | 4 | 10 caregivers |
+| Free Trial | 45 days | 45 days | 30 days |
 
 ---
 
@@ -243,6 +257,7 @@ type FeatureName =
 - `/api/caregiver-burnout` — Burnout analysis
 - `/api/timesheet` — Hour tracking
 - `/api/billing/*` — Subscription management
+- `/api/billing/trial-check` — Daily cron for trial notifications & billing
 
 ### AI Analytics
 - `/api/ai-analytics` — AI-driven insights (Gemini → Claude fallback)
@@ -255,13 +270,13 @@ type FeatureName =
 | Metric | Count |
 |--------|-------|
 | Total Dashboard Pages | 36 |
-| Total API Endpoints | 41+ |
+| Total API Endpoints | 42+ |
 | Core Features (All Plans) | ~25 |
-| Single Agency Exclusive | 2 |
-| Multi Agency Exclusive | 8 |
+| Small Agency Exclusive | 2 |
+| Multi Agency Exclusive | 9 |
 | AI-Powered Features | 12 |
 | Consent-Gated Features | 5 |
 
 ---
 
-*Last updated: December 24, 2025*
+*Last updated: January 1, 2026*

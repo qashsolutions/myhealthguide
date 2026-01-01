@@ -92,10 +92,10 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
   },
   single_agency: {
     id: 'single_agency',
-    name: 'Single Agency Plan',
+    name: 'Small Agency Plan',
     subtitle: 'For families with caregivers',
-    price: 24.99,
-    priceNote: '/elder/month',
+    price: 18.99,
+    priceNote: '/month',
     rank: 2,
     limits: {
       maxElders: 1,

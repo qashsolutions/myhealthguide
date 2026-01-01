@@ -10,6 +10,8 @@ import {
   CORE_FEATURES,
   DETAILED_FEATURES,
   getStripePriceId,
+  MULTI_AGENCY_TRIAL_DAYS,
+  TRIAL_DURATION_DAYS,
   type PlanTier,
 } from '@/lib/subscription';
 
@@ -103,6 +105,7 @@ export function PricingCards({
       iconColor: 'text-blue-600',
       iconBgColor: 'bg-blue-100 dark:bg-blue-900',
       popular: false,
+      trialDays: TRIAL_DURATION_DAYS,
       limits: [
         `${PLAN_CONFIG.family.limits.maxElders} elder`,
         `1 admin + 1 member`,
@@ -115,11 +118,12 @@ export function PricingCards({
       name: PLAN_CONFIG.single_agency.name,
       subtitle: PLAN_CONFIG.single_agency.subtitle,
       price: PLAN_CONFIG.single_agency.price,
-      priceNote: 'elder/month',
+      priceNote: 'month',
       icon: Users,
       iconColor: 'text-white',
       iconBgColor: 'bg-blue-600',
       popular: true,
+      trialDays: TRIAL_DURATION_DAYS,
       limits: [
         `${PLAN_CONFIG.single_agency.limits.maxElders} elder`,
         `1 admin + ${PLAN_CONFIG.single_agency.limits.maxMembers - 1} members`,
@@ -137,6 +141,7 @@ export function PricingCards({
       iconColor: 'text-purple-600 dark:text-purple-400',
       iconBgColor: 'bg-purple-100 dark:bg-purple-900',
       popular: false,
+      trialDays: MULTI_AGENCY_TRIAL_DAYS,
       limits: [
         `Up to ${PLAN_CONFIG.multi_agency.limits.maxElders} elders`,
         `Up to ${PLAN_CONFIG.multi_agency.limits.maxCaregivers} caregivers`,
@@ -160,7 +165,7 @@ export function PricingCards({
             </p>
             {showTrialInfo && (
               <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-                All plans include 45-day free trial. Cancel anytime for a full refund.
+                All plans include a free trial. Cancel anytime for a full refund.
               </p>
             )}
           </div>
@@ -296,7 +301,7 @@ export function PricingCards({
                         Processing...
                       </>
                     ) : (
-                      'Start 45-Day Free Trial'
+                      `Start ${plan.trialDays}-Day Free Trial`
                     )}
                   </Button>
                 </CardContent>
@@ -309,7 +314,8 @@ export function PricingCards({
         {showTrialInfo && (
           <div className="mt-16 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              All plans include a 45-day free trial. Cancel anytime for a full refund.
+              Family & Small Agency plans include a {TRIAL_DURATION_DAYS}-day free trial.
+              Multi Agency plan includes a {MULTI_AGENCY_TRIAL_DAYS}-day free trial.
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               Need help choosing?{' '}
