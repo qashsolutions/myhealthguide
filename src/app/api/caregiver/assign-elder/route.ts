@@ -241,6 +241,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Create elder_access subcollection docs under caregiver's user document
+    // Path: users/{caregiverId}/elder_access/{elderId}
+    // This allows Firestore rules to check access with exists() on deterministic paths
+    for (const elderId of elderIds) {
+      const accessDocRef = adminDb
+        .collection('users')
+        .doc(caregiverId)
+        .collection('elder_access')
+        .doc(elderId);
+      batch.set(accessDocRef, {
+        elderId,
+        agencyId,
+        groupId,
+        active: true,
+        assignedAt: Timestamp.now(),
+        assignedBy
+      }, { merge: true });
+    }
+
     // Commit all changes atomically
     await batch.commit();
     console.log(`Assigned ${elderIds.length} elders to caregiver ${caregiverId} in agency ${agencyId}`);

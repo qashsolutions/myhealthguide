@@ -134,14 +134,11 @@ service cloud.firestore {
 
     // Check if caregiver is assigned to a specific elder
     // SECURITY: This ensures caregivers can ONLY access their assigned elders
+    // Uses subcollection under user: users/{caregiverId}/elder_access/{elderId}
     function isCaregiverAssignedToElder(elderId) {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/elders/$(elderId)) &&
-        (
-          // Check user's agencies array for assigned elder IDs
-          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          elderId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencies[0].assignedElderIds
-        );
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/elder_access/$(elderId));
     }
 
     // Check if user can access a specific group (either member or assigned caregiver)
@@ -558,6 +555,26 @@ service cloud.firestore {
       allow delete: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
         isSuperAdmin(resource.data.agencyId);
+    }
+
+    // ============= Caregiver Elder Access Subcollection (Phase 5) =============
+    // Helper subcollection under users for Firestore rules to check caregiver-elder access
+    // Path: users/{userId}/elder_access/{elderId}
+    // This allows rules to use exists() with dynamic paths
+
+    match /users/{userId}/elder_access/{elderId} {
+      // Caregiver can read their own access documents
+      allow read: if isOwner(userId);
+
+      // Only server (Admin SDK) can create access documents
+      // Created by assign-elder API route
+      allow create: if false;
+
+      // Only server (Admin SDK) can update access documents
+      allow update: if false;
+
+      // Only server (Admin SDK) can delete access documents
+      allow delete: if false;
     }
 
     // ============= Notification Queue Collection (Phase 3) =============
