@@ -74,11 +74,12 @@ export default function DashboardPage() {
   }>>(new Map());
 
   // Check if user is multi-agency super admin
+  // Super admins are always active (they own the agency), so no status check needed
   const isMultiAgencySuperAdmin = user?.agencies?.some(
-    (a: any) => a.role === 'super_admin' && a.status === 'active'
+    (a: any) => a.role === 'super_admin'
   );
   const agencyId = user?.agencies?.find(
-    (a: any) => a.role === 'super_admin' && a.status === 'active'
+    (a: any) => a.role === 'super_admin'
   )?.agencyId;
 
   // Fetch dashboard stats when elders are available
@@ -102,18 +103,24 @@ export default function DashboardPage() {
 
       // For multi-agency super admins, load caregiver grouping data
       if (isMultiAgencySuperAdmin && agencyId) {
+        console.log('[Overview] Loading caregiver grouping for agency:', agencyId);
         try {
           const [groupedData, mappingData] = await Promise.all([
             AgencyService.getEldersGroupedByCaregiver(agencyId),
             AgencyService.getElderCaregiverMapping(agencyId)
           ]);
+          console.log('[Overview] Caregiver sections:', groupedData.sections.length, 'sections');
+          console.log('[Overview] Unassigned elders:', groupedData.unassignedElders.length);
+          console.log('[Overview] Elder-caregiver mapping size:', mappingData.size);
           setCaregiverSections(groupedData.sections);
           setUnassignedElders(groupedData.unassignedElders);
           setElderCaregiverMap(mappingData);
         } catch (caregiverError) {
-          console.error('Error loading caregiver grouping:', caregiverError);
+          console.error('[Overview] Error loading caregiver grouping:', caregiverError);
           // Don't fail the whole dashboard, just skip grouping
         }
+      } else {
+        console.log('[Overview] Not loading caregiver grouping - isMultiAgencySuperAdmin:', isMultiAgencySuperAdmin, 'agencyId:', agencyId);
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
