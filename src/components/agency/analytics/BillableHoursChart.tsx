@@ -29,7 +29,7 @@ export function BillableHoursChart({ data, loading }: BillableHoursChartProps) {
 
   const latestMonth = data[data.length - 1];
   const previousMonth = data[data.length - 2];
-  const percentChange = previousMonth
+  const percentChange = previousMonth && previousMonth.totalHours > 0
     ? ((latestMonth.totalHours - previousMonth.totalHours) / previousMonth.totalHours) * 100
     : 0;
 
