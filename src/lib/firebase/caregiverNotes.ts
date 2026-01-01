@@ -13,9 +13,17 @@ import {
   limit as firestoreLimit
 } from 'firebase/firestore';
 import { db } from './config';
-import { CaregiverNote, PublishedTip, CaregiverNoteCategory } from '@/types';
+import { CaregiverNote, PublishedTip } from '@/types';
 import { logPHIAccess, UserRole } from '../medical/phiAuditLog';
-import { toSafeDate } from '@/lib/utils/dateConversion';
+import {
+  NOTES_COLLECTION,
+  TIPS_COLLECTION,
+  mapDocToNote,
+  mapDocToTip,
+  buildNoteDocData,
+  buildTipDocData,
+  buildPublishedTipResult,
+} from './caregiverNotesHelpers';
 
 /**
  * Caregiver Notes Service
@@ -24,55 +32,16 @@ import { toSafeDate } from '@/lib/utils/dateConversion';
  * Follows the DietService pattern for consistency.
  */
 export class CaregiverNotesService {
-  private static NOTES_COLLECTION = 'caregiver_notes';
-  private static TIPS_COLLECTION = 'published_tips';
-
   // ============= Helper Methods =============
 
-  private static docToNote(docSnapshot: any): CaregiverNote {
+  private static docToNote(docSnapshot: any): CaregiverNote | null {
     const data = docSnapshot.data();
-    return {
-      id: docSnapshot.id,
-      userId: data.userId,
-      groupId: data.groupId,
-      title: data.title,
-      content: data.content,
-      userTags: data.userTags || [],
-      source: data.source,
-      inputMethod: data.inputMethod,
-      voiceTranscript: data.voiceTranscript,
-      aiMetadata: data.aiMetadata ? {
-        ...data.aiMetadata,
-        extractedAt: toSafeDate(data.aiMetadata.extractedAt)
-      } : undefined,
-      status: data.status,
-      publishedTipId: data.publishedTipId,
-      createdAt: toSafeDate(data.createdAt),
-      updatedAt: toSafeDate(data.updatedAt)
-    };
+    return mapDocToNote(docSnapshot.id, data);
   }
 
-  private static docToTip(docSnapshot: any): PublishedTip {
+  private static docToTip(docSnapshot: any): PublishedTip | null {
     const data = docSnapshot.data();
-    return {
-      id: docSnapshot.id,
-      sourceNoteId: data.sourceNoteId,
-      sourceUserId: data.sourceUserId,
-      title: data.title,
-      content: data.content,
-      summary: data.summary,
-      category: data.category,
-      keywords: data.keywords || [],
-      userTags: data.userTags || [],
-      authorFirstName: data.authorFirstName,
-      isAnonymous: data.isAnonymous,
-      source: data.source,
-      viewCount: data.viewCount || 0,
-      likeCount: data.likeCount || 0,
-      safetyScore: data.safetyScore,
-      publishedAt: toSafeDate(data.publishedAt),
-      algoliaObjectId: data.algoliaObjectId
-    };
+    return mapDocToTip(docSnapshot.id, data);
   }
 
   // ============= Private Notes CRUD =============
@@ -85,30 +54,8 @@ export class CaregiverNotesService {
     userId: string,
     userRole: UserRole
   ): Promise<CaregiverNote> {
-    // Build document data, excluding undefined fields
-    const docData: Record<string, any> = {
-      userId: note.userId,
-      groupId: note.groupId,
-      title: note.title,
-      content: note.content,
-      userTags: note.userTags || [],
-      inputMethod: note.inputMethod,
-      status: note.status || 'private',
-      createdAt: Timestamp.fromDate(note.createdAt),
-      updatedAt: Timestamp.fromDate(note.updatedAt)
-    };
-
-    // Add optional fields only if they have values
-    if (note.source) docData.source = note.source;
-    if (note.voiceTranscript) docData.voiceTranscript = note.voiceTranscript;
-    if (note.aiMetadata) {
-      docData.aiMetadata = {
-        ...note.aiMetadata,
-        extractedAt: Timestamp.fromDate(note.aiMetadata.extractedAt)
-      };
-    }
-
-    const docRef = await addDoc(collection(db, this.NOTES_COLLECTION), docData);
+    const docData = buildNoteDocData(note, (date) => Timestamp.fromDate(date));
+    const docRef = await addDoc(collection(db, NOTES_COLLECTION), docData);
     const result = { ...note, id: docRef.id };
 
     // Audit log (notes may contain PHI references)
@@ -137,7 +84,7 @@ export class CaregiverNotesService {
     limitCount?: number
   ): Promise<CaregiverNote[]> {
     let q = query(
-      collection(db, this.NOTES_COLLECTION),
+      collection(db, NOTES_COLLECTION),
       where('userId', '==', userId),
       orderBy('createdAt', 'desc')
     );
@@ -147,7 +94,7 @@ export class CaregiverNotesService {
     }
 
     const snapshot = await getDocs(q);
-    const notes = snapshot.docs.map(doc => this.docToNote(doc));
+    const notes = snapshot.docs.map(doc => this.docToNote(doc)).filter(Boolean) as CaregiverNote[];
 
     // Audit log
     if (notes.length > 0) {
@@ -174,12 +121,13 @@ export class CaregiverNotesService {
     userId: string,
     userRole: UserRole
   ): Promise<CaregiverNote | null> {
-    const docRef = doc(db, this.NOTES_COLLECTION, noteId);
+    const docRef = doc(db, NOTES_COLLECTION, noteId);
     const snapshot = await getDoc(docRef);
 
     if (!snapshot.exists()) return null;
 
     const note = this.docToNote(snapshot);
+    if (!note) return null;
 
     // Verify ownership
     if (note.userId !== userId) {
@@ -211,7 +159,7 @@ export class CaregiverNotesService {
     userId: string,
     userRole: UserRole
   ): Promise<void> {
-    const docRef = doc(db, this.NOTES_COLLECTION, noteId);
+    const docRef = doc(db, NOTES_COLLECTION, noteId);
 
     // Verify ownership first
     const snapshot = await getDoc(docRef);
@@ -220,6 +168,9 @@ export class CaregiverNotesService {
     }
 
     const existingNote = this.docToNote(snapshot);
+    if (!existingNote) {
+      throw new Error('Note not found');
+    }
     if (existingNote.userId !== userId) {
       throw new Error('Access denied: You can only update your own notes');
     }
@@ -268,7 +219,7 @@ export class CaregiverNotesService {
     userId: string,
     userRole: UserRole
   ): Promise<void> {
-    const docRef = doc(db, this.NOTES_COLLECTION, noteId);
+    const docRef = doc(db, NOTES_COLLECTION, noteId);
     const snapshot = await getDoc(docRef);
 
     if (!snapshot.exists()) {
@@ -276,6 +227,9 @@ export class CaregiverNotesService {
     }
 
     const note = this.docToNote(snapshot);
+    if (!note) {
+      throw new Error('Note not found');
+    }
 
     // Verify ownership
     if (note.userId !== userId) {
@@ -284,7 +238,7 @@ export class CaregiverNotesService {
 
     // If published, also delete the tip
     if (note.publishedTipId) {
-      const tipRef = doc(db, this.TIPS_COLLECTION, note.publishedTipId);
+      const tipRef = doc(db, TIPS_COLLECTION, note.publishedTipId);
       await deleteDoc(tipRef);
     }
 
@@ -317,36 +271,26 @@ export class CaregiverNotesService {
     userRole: UserRole
   ): Promise<PublishedTip> {
     // Get the source note
-    const note = await this.getNote(noteId, userId, userRole);
-    if (!note) throw new Error('Note not found');
+    const fetchedNote = await this.getNote(noteId, userId, userRole);
+    if (!fetchedNote) throw new Error('Note not found');
 
-    if (note.status === 'published') {
+    if (fetchedNote.status === 'published') {
       throw new Error('Note is already published');
     }
 
-    // Create public tip
-    const tipData: Record<string, any> = {
-      sourceNoteId: noteId,
-      sourceUserId: userId,
-      title: note.title,
-      content: note.content,
-      summary: note.aiMetadata?.summary || note.content.substring(0, 150),
-      category: note.aiMetadata?.category || 'daily_care',
-      keywords: note.aiMetadata?.keywords || [],
-      userTags: note.userTags,
-      authorFirstName: authorFirstName || null,
-      isAnonymous: !authorFirstName,
-      viewCount: 0,
-      likeCount: 0,
+    // Ensure note has id for type safety (it always has one from Firestore)
+    const note = { ...fetchedNote, id: noteId };
+
+    // Create public tip using shared helper
+    const tipData = buildTipDocData(
+      note,
+      authorFirstName,
       safetyScore,
-      publishedAt: Timestamp.fromDate(new Date())
-    };
+      userId,
+      () => Timestamp.fromDate(new Date())
+    );
 
-    if (note.source) {
-      tipData.source = note.source;
-    }
-
-    const tipRef = await addDoc(collection(db, this.TIPS_COLLECTION), tipData);
+    const tipRef = await addDoc(collection(db, TIPS_COLLECTION), tipData);
 
     // Update the source note
     await this.updateNote(noteId, {
@@ -354,24 +298,7 @@ export class CaregiverNotesService {
       publishedTipId: tipRef.id
     }, userId, userRole);
 
-    return {
-      id: tipRef.id,
-      sourceNoteId: noteId,
-      sourceUserId: userId,
-      title: note.title,
-      content: note.content,
-      summary: tipData.summary,
-      category: tipData.category as CaregiverNoteCategory,
-      keywords: tipData.keywords,
-      userTags: note.userTags,
-      authorFirstName: authorFirstName || undefined,
-      isAnonymous: !authorFirstName,
-      source: note.source,
-      viewCount: 0,
-      likeCount: 0,
-      safetyScore,
-      publishedAt: new Date()
-    };
+    return buildPublishedTipResult(tipRef.id, note, authorFirstName, safetyScore, userId, tipData);
   }
 
   /**
@@ -390,11 +317,11 @@ export class CaregiverNotesService {
     }
 
     // Delete the tip
-    const tipRef = doc(db, this.TIPS_COLLECTION, note.publishedTipId);
+    const tipRef = doc(db, TIPS_COLLECTION, note.publishedTipId);
     await deleteDoc(tipRef);
 
     // Update the note
-    await updateDoc(doc(db, this.NOTES_COLLECTION, noteId), {
+    await updateDoc(doc(db, NOTES_COLLECTION, noteId), {
       status: 'private',
       publishedTipId: null,
       updatedAt: Timestamp.fromDate(new Date())
@@ -425,20 +352,20 @@ export class CaregiverNotesService {
     const orderDir = sortBy === 'date' ? 'desc' : 'asc';
 
     const q = query(
-      collection(db, this.TIPS_COLLECTION),
+      collection(db, TIPS_COLLECTION),
       orderBy(orderField, orderDir),
       firestoreLimit(limitCount)
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => this.docToTip(doc));
+    return snapshot.docs.map(doc => this.docToTip(doc)).filter(Boolean) as PublishedTip[];
   }
 
   /**
    * Get a single published tip by ID
    */
   static async getTip(tipId: string): Promise<PublishedTip | null> {
-    const docRef = doc(db, this.TIPS_COLLECTION, tipId);
+    const docRef = doc(db, TIPS_COLLECTION, tipId);
     const snapshot = await getDoc(docRef);
 
     if (!snapshot.exists()) return null;
@@ -450,7 +377,7 @@ export class CaregiverNotesService {
    * Increment view count for a tip
    */
   static async incrementTipViewCount(tipId: string): Promise<void> {
-    const docRef = doc(db, this.TIPS_COLLECTION, tipId);
+    const docRef = doc(db, TIPS_COLLECTION, tipId);
     const snapshot = await getDoc(docRef);
 
     if (snapshot.exists()) {
@@ -468,7 +395,7 @@ export class CaregiverNotesService {
     tipId: string,
     algoliaObjectId: string
   ): Promise<void> {
-    const docRef = doc(db, this.TIPS_COLLECTION, tipId);
+    const docRef = doc(db, TIPS_COLLECTION, tipId);
     await updateDoc(docRef, { algoliaObjectId });
   }
 }

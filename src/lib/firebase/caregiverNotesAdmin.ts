@@ -7,61 +7,28 @@
 
 import { getAdminDb } from './admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { CaregiverNote, PublishedTip, CaregiverNoteCategory } from '@/types';
+import { CaregiverNote, PublishedTip } from '@/types';
 import { logPHIAccess, UserRole } from '../medical/phiAuditLog';
-import { toSafeDate } from '@/lib/utils/dateConversion';
-
-const NOTES_COLLECTION = 'caregiver_notes';
-const TIPS_COLLECTION = 'published_tips';
+import {
+  NOTES_COLLECTION,
+  TIPS_COLLECTION,
+  mapDocToNote,
+  mapDocToTip,
+  buildNoteDocData,
+  buildTipDocData,
+  buildPublishedTipResult,
+} from './caregiverNotesHelpers';
 
 // ============= Helper Methods =============
 
 function docToNote(docSnapshot: FirebaseFirestore.DocumentSnapshot): CaregiverNote | null {
   if (!docSnapshot.exists) return null;
-  const data = docSnapshot.data()!;
-  return {
-    id: docSnapshot.id,
-    userId: data.userId,
-    groupId: data.groupId,
-    title: data.title,
-    content: data.content,
-    userTags: data.userTags || [],
-    source: data.source,
-    inputMethod: data.inputMethod,
-    voiceTranscript: data.voiceTranscript,
-    aiMetadata: data.aiMetadata ? {
-      ...data.aiMetadata,
-      extractedAt: toSafeDate(data.aiMetadata.extractedAt)
-    } : undefined,
-    status: data.status,
-    publishedTipId: data.publishedTipId,
-    createdAt: toSafeDate(data.createdAt),
-    updatedAt: toSafeDate(data.updatedAt)
-  };
+  return mapDocToNote(docSnapshot.id, docSnapshot.data());
 }
 
 function docToTip(docSnapshot: FirebaseFirestore.DocumentSnapshot): PublishedTip | null {
   if (!docSnapshot.exists) return null;
-  const data = docSnapshot.data()!;
-  return {
-    id: docSnapshot.id,
-    sourceNoteId: data.sourceNoteId,
-    sourceUserId: data.sourceUserId,
-    title: data.title,
-    content: data.content,
-    summary: data.summary,
-    category: data.category,
-    keywords: data.keywords || [],
-    userTags: data.userTags || [],
-    authorFirstName: data.authorFirstName,
-    isAnonymous: data.isAnonymous,
-    source: data.source,
-    viewCount: data.viewCount || 0,
-    likeCount: data.likeCount || 0,
-    safetyScore: data.safetyScore,
-    publishedAt: toSafeDate(data.publishedAt),
-    algoliaObjectId: data.algoliaObjectId
-  };
+  return mapDocToTip(docSnapshot.id, docSnapshot.data());
 }
 
 // ============= Private Notes CRUD =============
@@ -76,27 +43,7 @@ export async function createNote(
 ): Promise<CaregiverNote> {
   const db = getAdminDb();
 
-  const docData: Record<string, any> = {
-    userId: note.userId,
-    groupId: note.groupId,
-    title: note.title,
-    content: note.content,
-    userTags: note.userTags || [],
-    inputMethod: note.inputMethod,
-    status: note.status || 'private',
-    createdAt: Timestamp.fromDate(note.createdAt),
-    updatedAt: Timestamp.fromDate(note.updatedAt)
-  };
-
-  if (note.source) docData.source = note.source;
-  if (note.voiceTranscript) docData.voiceTranscript = note.voiceTranscript;
-  if (note.aiMetadata) {
-    docData.aiMetadata = {
-      ...note.aiMetadata,
-      extractedAt: Timestamp.fromDate(note.aiMetadata.extractedAt)
-    };
-  }
-
+  const docData = buildNoteDocData(note, (date) => Timestamp.fromDate(date));
   const docRef = await db.collection(NOTES_COLLECTION).add(docData);
   const result = { ...note, id: docRef.id };
 
@@ -314,34 +261,20 @@ export async function publishNote(
   const db = getAdminDb();
 
   // Get the note
-  const note = await getNote(noteId, userId, userRole);
-  if (!note) {
+  const fetchedNote = await getNote(noteId, userId, userRole);
+  if (!fetchedNote) {
     throw new Error('Note not found');
   }
 
-  if (note.status === 'published') {
+  if (fetchedNote.status === 'published') {
     throw new Error('Note is already published');
   }
 
-  // Create the published tip
-  const tipData: Record<string, any> = {
-    sourceNoteId: noteId,
-    sourceUserId: userId,
-    title: note.title,
-    content: note.content,
-    summary: note.aiMetadata?.summary || note.content.substring(0, 200),
-    category: note.aiMetadata?.category || 'daily_care',
-    keywords: note.aiMetadata?.keywords || [],
-    userTags: note.userTags || [],
-    authorFirstName: authorFirstName,
-    isAnonymous: !authorFirstName,
-    source: note.source || null,
-    viewCount: 0,
-    likeCount: 0,
-    safetyScore,
-    publishedAt: Timestamp.now()
-  };
+  // Ensure note has id for type safety (it always has one from Firestore)
+  const note = { ...fetchedNote, id: noteId };
 
+  // Create the published tip using shared helper
+  const tipData = buildTipDocData(note, authorFirstName, safetyScore, userId, () => Timestamp.now());
   const tipRef = await db.collection(TIPS_COLLECTION).add(tipData);
 
   // Update the original note
@@ -364,24 +297,7 @@ export async function publishNote(
     method: 'web_app',
   });
 
-  return {
-    id: tipRef.id,
-    sourceNoteId: noteId,
-    sourceUserId: userId,
-    title: note.title,
-    content: note.content,
-    summary: tipData.summary,
-    category: tipData.category,
-    keywords: tipData.keywords,
-    userTags: tipData.userTags,
-    authorFirstName: authorFirstName || undefined,
-    isAnonymous: !authorFirstName,
-    source: note.source,
-    viewCount: 0,
-    likeCount: 0,
-    safetyScore,
-    publishedAt: new Date()
-  };
+  return buildPublishedTipResult(tipRef.id, note, authorFirstName, safetyScore, userId, tipData);
 }
 
 /**
