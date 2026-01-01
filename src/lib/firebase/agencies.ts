@@ -780,4 +780,146 @@ export class AgencyService {
       throw error;
     }
   }
+
+  /**
+   * Get elder-to-caregiver mapping for display purposes
+   * Returns Map<elderId, { caregiverId, caregiverName, isPrimary }>
+   * Uses primary caregiver if set, otherwise first assigned caregiver
+   */
+  static async getElderCaregiverMapping(agencyId: string): Promise<Map<string, {
+    caregiverId: string;
+    caregiverName: string;
+    isPrimary: boolean;
+  }>> {
+    try {
+      const [assignments, elders] = await Promise.all([
+        this.getAgencyAssignments(agencyId),
+        this.getAgencyElders(agencyId)
+      ]);
+
+      // Build mapping of caregiverId to assigned elderIds
+      const caregiverToElders = new Map<string, string[]>();
+      for (const assignment of assignments) {
+        if (!assignment.active) continue;
+        for (const elderId of assignment.elderIds) {
+          const existing = caregiverToElders.get(assignment.caregiverId) || [];
+          if (!existing.includes(elderId)) {
+            existing.push(elderId);
+            caregiverToElders.set(assignment.caregiverId, existing);
+          }
+        }
+      }
+
+      // Get unique caregiver IDs
+      const caregiverIds = Array.from(caregiverToElders.keys());
+
+      // Fetch caregiver names
+      const caregiverNames = new Map<string, string>();
+      for (const caregiverId of caregiverIds) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', caregiverId));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            const name = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unknown';
+            caregiverNames.set(caregiverId, name);
+          }
+        } catch {
+          caregiverNames.set(caregiverId, 'Unknown');
+        }
+      }
+
+      // Build elder-to-caregiver mapping
+      const elderCaregiverMap = new Map<string, {
+        caregiverId: string;
+        caregiverName: string;
+        isPrimary: boolean;
+      }>();
+
+      for (const elder of elders) {
+        // Prefer primary caregiver if set
+        if (elder.primaryCaregiverId && elder.primaryCaregiverName) {
+          elderCaregiverMap.set(elder.id, {
+            caregiverId: elder.primaryCaregiverId,
+            caregiverName: elder.primaryCaregiverName,
+            isPrimary: true
+          });
+        } else {
+          // Find first assigned caregiver
+          for (const [caregiverId, elderIds] of caregiverToElders.entries()) {
+            if (elderIds.includes(elder.id)) {
+              elderCaregiverMap.set(elder.id, {
+                caregiverId,
+                caregiverName: caregiverNames.get(caregiverId) || 'Unknown',
+                isPrimary: false
+              });
+              break;
+            }
+          }
+        }
+      }
+
+      return elderCaregiverMap;
+    } catch (error) {
+      console.error('Error getting elder-caregiver mapping:', error);
+      return new Map();
+    }
+  }
+
+  /**
+   * Get elders grouped by caregiver with caregiver names
+   * Returns sections: Array<{ caregiverId, caregiverName, elders: Elder[] }>
+   * Plus unassignedElders separately
+   */
+  static async getEldersGroupedByCaregiver(agencyId: string): Promise<{
+    sections: Array<{
+      caregiverId: string;
+      caregiverName: string;
+      elders: Elder[];
+    }>;
+    unassignedElders: Elder[];
+  }> {
+    try {
+      const { caregiverElders, unassignedElders } = await this.getEldersByCaregiver(agencyId);
+
+      // Get unique caregiver IDs
+      const caregiverIds = Array.from(caregiverElders.keys());
+
+      // Fetch caregiver names
+      const sections: Array<{
+        caregiverId: string;
+        caregiverName: string;
+        elders: Elder[];
+      }> = [];
+
+      for (const caregiverId of caregiverIds) {
+        const elders = caregiverElders.get(caregiverId) || [];
+        if (elders.length === 0) continue;
+
+        let caregiverName = 'Unknown';
+        try {
+          const userDoc = await getDoc(doc(db, 'users', caregiverId));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            caregiverName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Unknown';
+          }
+        } catch {
+          // Keep default 'Unknown'
+        }
+
+        sections.push({
+          caregiverId,
+          caregiverName,
+          elders
+        });
+      }
+
+      // Sort sections by caregiver name
+      sections.sort((a, b) => a.caregiverName.localeCompare(b.caregiverName));
+
+      return { sections, unassignedElders };
+    } catch (error) {
+      console.error('Error getting elders grouped by caregiver:', error);
+      return { sections: [], unassignedElders: [] };
+    }
+  }
 }
