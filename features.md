@@ -4,15 +4,15 @@
 
 | Plan | Price | Target Audience | Max Elders | Max Members | Storage | Trial |
 |------|-------|-----------------|------------|-------------|---------|-------|
-| **Family** | $8.99/elder/month | Family caregivers | 1 | 2 | 25 MB | 45 days |
-| **Small Agency** | $18.99/month | Families with hired caregivers | 1 | 4 | 50 MB | 45 days |
+| **Family Plan A** | $8.99/elder/month | Individual caregivers | 1 | 2 | 25 MB | 45 days |
+| **Family Plan B** | $18.99/month | Caregivers + family/friends | 1 | 4 | 50 MB | 45 days |
 | **Multi Agency** | $55/elder/month | Professional caregiver agencies | 30 | 10 caregivers | 500 MB | 30 days |
 
 ---
 
-## Family Plan — $8.99/elder/month
+## Family Plan A — $8.99/elder/month
 
-**Target:** Individual family members caring for an elderly loved one.
+**Target:** Individual family members caring for an elderly loved one on their own.
 
 ### Dashboard & Elder Management
 - **Dashboard Overview** — Aggregate stats across all elders (compliance %, medications, meals)
@@ -93,21 +93,27 @@
 
 ---
 
-## Small Agency Plan — $18.99/month
+## Family Plan B — $18.99/month
 
-**Target:** Families who hire professional caregivers to help care for their elderly loved ones.
+**Target:** Family caregivers who want to involve additional family members or friends in tracking their elder's care. Can also be used by families who hire a professional caregiver.
 
-*Includes ALL Family Plan features PLUS:*
+*Includes ALL Family Plan A features PLUS:*
 
 ### Additional Features
 | Feature | Code Name | Description |
 |---------|-----------|-------------|
-| Real-time Collaboration | `real_time_collaboration` | Live dashboard updates for team members |
-| Agency Dashboard | `agency_dashboard` | Agency-level monitoring and overview |
+| Real-time Collaboration | `real_time_collaboration` | Live dashboard updates for all members |
+| Team Dashboard | `agency_dashboard` | Overview for the care team |
 
 ### Enhanced Limits
-- **Max Members:** 4 (1 admin + 3 members)
+- **Max Members:** 4 (1 admin + 3 family/friends)
 - **Storage:** 50 MB
+
+### Use Cases
+- **Family coordination** — Siblings sharing caregiving responsibilities
+- **Extended family** — Grandchildren, nieces/nephews helping track care
+- **Friends** — Close friends who help with caregiving
+- **Hired help** — Professional caregiver working with family
 
 ---
 
@@ -169,8 +175,8 @@
 
 ## Feature Gating Matrix
 
-| Feature | Family | Small Agency | Multi Agency |
-|---------|:------:|:-------------:|:------------:|
+| Feature | Family Plan A | Family Plan B | Multi Agency |
+|---------|:-------------:|:-------------:|:------------:|
 | Core Care Logging | ✅ | ✅ | ✅ |
 | AI Health Chat | ✅ | ✅ | ✅ |
 | Drug Interactions | ✅ | ✅ | ✅ |
@@ -181,7 +187,7 @@
 | Health Analytics | ✅ | ✅ | ✅ |
 | Document Storage | 25 MB | 50 MB | 500 MB |
 | Real-time Collaboration | ❌ | ✅ | ✅ |
-| Agency Dashboard | ❌ | ✅ | ✅ |
+| Team Dashboard | ❌ | ✅ | ✅ |
 | Shift Calendar | ❌ | ❌ | ✅ |
 | Shift Handoff | ❌ | ❌ | ✅ |
 | Multi-Caregiver Coordination | ❌ | ❌ | ✅ |
@@ -190,7 +196,7 @@
 | Caregiver Burnout Detection | ❌ | ❌ | ✅ |
 | Timesheet Tracking | ❌ | ❌ | ✅ |
 | Max Elders | 1 | 1 | 30 |
-| Max Members | 2 | 4 | 10 caregivers |
+| Max Members | 1 admin + 1 | 1 admin + 3 | 10 caregivers |
 | Free Trial | 45 days | 45 days | 30 days |
 
 ---
@@ -272,7 +278,7 @@ type FeatureName =
 | Total Dashboard Pages | 36 |
 | Total API Endpoints | 42+ |
 | Core Features (All Plans) | ~25 |
-| Small Agency Exclusive | 2 |
+| Family Plan B Exclusive | 2 |
 | Multi Agency Exclusive | 9 |
 | AI-Powered Features | 12 |
 | Consent-Gated Features | 5 |

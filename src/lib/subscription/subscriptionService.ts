@@ -74,8 +74,8 @@ export const CORE_FEATURES = [
 export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
   family: {
     id: 'family',
-    name: 'Family Plan',
-    subtitle: 'Perfect for small families',
+    name: 'Family Plan A',
+    subtitle: 'For individual caregivers',
     price: 8.99,
     priceNote: '/elder/month',
     rank: 1,
@@ -92,8 +92,8 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
   },
   single_agency: {
     id: 'single_agency',
-    name: 'Small Agency Plan',
-    subtitle: 'For families with caregivers',
+    name: 'Family Plan B',
+    subtitle: 'Add up to 3 family members or friends',
     price: 18.99,
     priceNote: '/month',
     rank: 2,
@@ -106,7 +106,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
       storageBytes: 50 * 1024 * 1024,
     },
     features: ['real_time_collaboration', 'agency_dashboard'],
-    extras: ['Real-time collaboration', 'Agency dashboard'],
+    extras: ['Real-time updates for all members', 'Team dashboard'],
   },
   multi_agency: {
     id: 'multi_agency',

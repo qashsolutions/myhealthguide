@@ -265,7 +265,7 @@ export function PricingCards({
                           <div className="border-t border-gray-200 dark:border-gray-700" />
                         </li>
                         <li className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">
-                          {plan.id === 'single_agency' ? 'Agency Features' : 'Multi-Agency Features'}
+                          {plan.id === 'single_agency' ? 'Team Features' : 'Agency Features'}
                         </li>
                         {plan.extras.slice(0, 4).map((extra, index) => (
                           <li key={`extra-${index}`} className="flex items-start gap-2.5">
@@ -314,7 +314,7 @@ export function PricingCards({
         {showTrialInfo && (
           <div className="mt-16 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Family & Small Agency plans include a {TRIAL_DURATION_DAYS}-day free trial.
+              Family Plans (A & B) include a {TRIAL_DURATION_DAYS}-day free trial.
               Multi Agency plan includes a {MULTI_AGENCY_TRIAL_DAYS}-day free trial.
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
