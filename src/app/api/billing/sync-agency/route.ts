@@ -5,8 +5,36 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 
 /**
+ * Find the agency where user is super_admin
+ * Returns null if user is not super_admin of any agency
+ */
+async function findSuperAdminAgency(
+  adminDb: FirebaseFirestore.Firestore,
+  userId: string,
+  userData: FirebaseFirestore.DocumentData
+): Promise<string | null> {
+  if (!userData?.agencies || userData.agencies.length === 0) {
+    return null;
+  }
+
+  // Find agency where user has super_admin role AND is verified as superAdminId
+  for (const membership of userData.agencies) {
+    if (membership.role === 'super_admin') {
+      const agencyDoc = await adminDb.collection('agencies').doc(membership.agencyId).get();
+      if (agencyDoc.exists && agencyDoc.data()?.superAdminId === userId) {
+        return membership.agencyId;
+      }
+    }
+  }
+
+  // User is not super_admin of any agency
+  return null;
+}
+
+/**
  * Sync agency subscription from user's subscription
  * Used to fix agencies where the subscription tier wasn't properly synced
+ * Only works for super_admin users - caregivers cannot sync agency subscriptions
  */
 export async function POST(req: NextRequest) {
   try {
@@ -38,39 +66,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find agency where user is super_admin (not just agencies[0])
-    let targetAgencyId: string | null = null;
-    for (const membership of userData.agencies) {
-      if (membership.role === 'super_admin') {
-        const agencyDoc = await adminDb.collection('agencies').doc(membership.agencyId).get();
-        if (agencyDoc.exists && agencyDoc.data()?.superAdminId === userId) {
-          targetAgencyId = membership.agencyId;
-          break;
-        }
-      }
-    }
+    // Find agency where user is super_admin (NO fallback)
+    const agencyId = await findSuperAdminAgency(adminDb, userId, userData);
 
-    // Fallback to first agency if no super_admin role found
-    if (!targetAgencyId) {
-      targetAgencyId = userData.agencies[0].agencyId;
-    }
-
-    // Safety check - should never happen after fallback
-    if (!targetAgencyId) {
-      return NextResponse.json({ error: 'No agency found for user' }, { status: 400 });
+    if (!agencyId) {
+      return NextResponse.json(
+        { error: 'User is not super_admin of any agency. Only super admins can sync agency subscriptions.' },
+        { status: 403 }
+      );
     }
 
     // Get the agency
-    const agencyDoc = await adminDb.collection('agencies').doc(targetAgencyId).get();
+    const agencyDoc = await adminDb.collection('agencies').doc(agencyId).get();
     if (!agencyDoc.exists) {
       return NextResponse.json({ error: 'Agency not found' }, { status: 404 });
     }
 
-    // Sync subscription data from user to agency
+    // Build update data from user's subscription
     const subscriptionTier = userData.subscriptionTier || 'family';
     const subscriptionStatus = userData.subscriptionStatus || 'trial';
 
-    const updateData: Record<string, any> = {
+    const agencyUpdateData: Record<string, any> = {
       'subscription.tier': subscriptionTier,
       'subscription.status': subscriptionStatus,
       updatedAt: Timestamp.now(),
@@ -78,34 +94,36 @@ export async function POST(req: NextRequest) {
 
     // Sync Stripe IDs if available
     if (userData.stripeCustomerId) {
-      updateData['subscription.stripeCustomerId'] = userData.stripeCustomerId;
+      agencyUpdateData['subscription.stripeCustomerId'] = userData.stripeCustomerId;
     }
     if (userData.stripeSubscriptionId) {
-      updateData['subscription.stripeSubscriptionId'] = userData.stripeSubscriptionId;
+      agencyUpdateData['subscription.stripeSubscriptionId'] = userData.stripeSubscriptionId;
     }
+
+    // Sync dates with proper Firestore Timestamp conversion
     if (userData.currentPeriodEnd) {
-      // Convert Firestore Timestamp if needed
       if (userData.currentPeriodEnd.seconds) {
-        updateData['subscription.currentPeriodEnd'] = Timestamp.fromMillis(userData.currentPeriodEnd.seconds * 1000);
-      } else {
-        updateData['subscription.currentPeriodEnd'] = userData.currentPeriodEnd;
-      }
-    }
-    // Also sync trial end date
-    if (userData.trialEndDate) {
-      if (userData.trialEndDate.seconds) {
-        updateData['subscription.trialEndsAt'] = Timestamp.fromMillis(userData.trialEndDate.seconds * 1000);
-      } else {
-        updateData['subscription.trialEndsAt'] = userData.trialEndDate;
+        agencyUpdateData['subscription.currentPeriodEnd'] = Timestamp.fromMillis(userData.currentPeriodEnd.seconds * 1000);
+      } else if (userData.currentPeriodEnd instanceof Date) {
+        agencyUpdateData['subscription.currentPeriodEnd'] = Timestamp.fromDate(userData.currentPeriodEnd);
       }
     }
 
-    await adminDb.collection('agencies').doc(targetAgencyId).update(updateData);
+    if (userData.trialEndDate) {
+      if (userData.trialEndDate.seconds) {
+        agencyUpdateData['subscription.trialEndsAt'] = Timestamp.fromMillis(userData.trialEndDate.seconds * 1000);
+      } else if (userData.trialEndDate instanceof Date) {
+        agencyUpdateData['subscription.trialEndsAt'] = Timestamp.fromDate(userData.trialEndDate);
+      }
+    }
+
+    // Update agency
+    await adminDb.collection('agencies').doc(agencyId).update(agencyUpdateData);
 
     return NextResponse.json({
       success: true,
       message: 'Agency subscription synced successfully',
-      agencyId: targetAgencyId,
+      agencyId,
       subscriptionTier,
       subscriptionStatus,
     });
