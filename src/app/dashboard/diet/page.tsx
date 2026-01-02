@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Mic, Utensils, Loader2, Clock, TrendingUp, AlertTriangle, CheckCircle2, Info, Flame } from 'lucide-react';
+import { Plus, Mic, Utensils, Loader2, Clock, TrendingUp, AlertTriangle, CheckCircle2, Info, Flame, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { useElder } from '@/contexts/ElderContext';
 import { DietService } from '@/lib/firebase/diet';
 import type { DietEntry, DietAnalysis } from '@/types';
 import { format } from 'date-fns';
+import { analyzeDietEntryWithParsing } from '@/lib/ai/geminiService';
 
 export default function DietPage() {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export default function DietPage() {
   const [entries, setEntries] = useState<DietEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
 
   // Determine user's role
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
@@ -102,6 +104,62 @@ export default function DietPage() {
       case 'alert': return <AlertTriangle className="w-3 h-3 text-red-500" />;
       case 'warning': return <AlertTriangle className="w-3 h-3 text-amber-500" />;
       default: return <Info className="w-3 h-3 text-blue-500" />;
+    }
+  };
+
+  // Re-analyze an entry that's missing aiAnalysis
+  const handleReanalyze = async (entry: DietEntry) => {
+    if (!user || !selectedElder || reanalyzingId) return;
+
+    setReanalyzingId(entry.id);
+    setError(null);
+
+    try {
+      // Reconstruct freeform text from items
+      const freeformText = entry.items.join(', ');
+
+      // Get analysis from Gemini
+      const result = await analyzeDietEntryWithParsing(
+        {
+          meal: entry.meal,
+          freeformText,
+          elderAge: selectedElder.approximateAge || 75,
+          existingConditions: selectedElder.knownConditions || [],
+        },
+        user.id,
+        getUserRole(),
+        entry.groupId,
+        entry.elderId,
+        {
+          weight: selectedElder.weight,
+          biologicalSex: selectedElder.biologicalSex,
+          dietaryRestrictions: selectedElder.dietaryRestrictions || [],
+        }
+      );
+
+      if (result.analysis) {
+        // Update the entry in Firestore
+        await DietService.updateEntry(
+          entry.id,
+          { aiAnalysis: result.analysis },
+          user.id,
+          getUserRole()
+        );
+
+        // Update local state
+        setEntries(prev =>
+          prev.map(e =>
+            e.id === entry.id ? { ...e, aiAnalysis: result.analysis } : e
+          )
+        );
+      } else {
+        setError('Analysis failed - please try again');
+      }
+    } catch (err: any) {
+      console.error('Re-analysis failed:', err);
+      setError(err.message || 'Failed to re-analyze entry');
+    } finally {
+      setReanalyzingId(null);
     }
   };
 
@@ -262,6 +320,29 @@ export default function DietPage() {
                       </div>
                     )}
                   </div>
+                )}
+
+                {/* Re-analyze button for entries without analysis */}
+                {!entry.aiAnalysis && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleReanalyze(entry)}
+                    disabled={reanalyzingId === entry.id}
+                    className="w-full"
+                  >
+                    {reanalyzingId === entry.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Analyze Nutrition
+                      </>
+                    )}
+                  </Button>
                 )}
 
                 {entry.notes && (
