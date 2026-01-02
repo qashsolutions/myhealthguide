@@ -68,13 +68,22 @@ export default function ShiftHandoffPage() {
     if (!user || !selectedElder) return;
 
     try {
+      console.log('[ShiftHandoff] Loading active shift for elder:', selectedElder.id);
       const response = await authenticatedFetch(
         `/api/shift-handoff?elderId=${selectedElder.id}&type=active`
       );
       const data = await response.json();
+      console.log('[ShiftHandoff] API response:', data);
 
       if (data.success) {
         if (data.activeShift) {
+          console.log('[ShiftHandoff] Active shift found:', {
+            id: data.activeShift.id,
+            caregiverId: data.activeShift.caregiverId,
+            elderId: data.activeShift.elderId,
+            status: data.activeShift.status,
+            startTime: data.activeShift.startTime
+          });
           setActiveShift({
             ...data.activeShift,
             startTime: data.activeShift.startTime ? new Date(data.activeShift.startTime) : null,
@@ -83,11 +92,12 @@ export default function ShiftHandoffPage() {
             updatedAt: data.activeShift.updatedAt ? new Date(data.activeShift.updatedAt) : null
           } as ShiftSession);
         } else {
+          console.log('[ShiftHandoff] No active shift found');
           setActiveShift(null);
         }
       }
     } catch (err: any) {
-      console.error('Error loading active shift:', err);
+      console.error('[ShiftHandoff] Error loading active shift:', err);
     }
   };
 
@@ -148,7 +158,22 @@ export default function ShiftHandoffPage() {
   };
 
   const handleClockOut = async () => {
-    if (!user || !selectedElder || !activeShift) return;
+    if (!user || !selectedElder || !activeShift) {
+      console.log('[ShiftHandoff] Clock out blocked - missing data:', {
+        user: !!user,
+        selectedElder: !!selectedElder,
+        activeShift: !!activeShift
+      });
+      return;
+    }
+
+    console.log('[ShiftHandoff] Clocking out with:', {
+      shiftSessionId: activeShift.id,
+      groupId: user.groups?.[0]?.groupId || 'NO_GROUP',
+      elderId: selectedElder.id,
+      elderName: selectedElder.name,
+      activeShiftData: activeShift
+    });
 
     setLoading(true);
     setError(null);
@@ -167,6 +192,7 @@ export default function ShiftHandoffPage() {
 
       // TODO: Send handoff note notification to next caregiver + admin
     } catch (err: any) {
+      console.error('[ShiftHandoff] Clock out error:', err);
       setError('Failed to clock out: ' + err.message);
     } finally {
       setLoading(false);

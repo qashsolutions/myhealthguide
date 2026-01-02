@@ -14,6 +14,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   doc,
@@ -48,20 +49,18 @@ export async function generateShiftHandoffNote(
   caregiverName?: string
 ): Promise<ShiftHandoffNote | null> {
   try {
-    // Get shift session
-    const shiftQuery = query(
-      collection(db, 'shiftSessions'),
-      where('id', '==', shiftSessionId)
-    );
-    const shiftSnap = await getDocs(shiftQuery);
+    // Get shift session by document ID
+    const shiftRef = doc(db, 'shiftSessions', shiftSessionId);
+    const shiftSnap = await getDoc(shiftRef);
 
-    if (shiftSnap.empty) {
+    if (!shiftSnap.exists()) {
+      console.error('[ShiftHandoff] Shift session not found:', shiftSessionId);
       throw new Error('Shift session not found');
     }
 
     const shift = {
-      id: shiftSnap.docs[0].id,
-      ...shiftSnap.docs[0].data()
+      id: shiftSnap.id,
+      ...shiftSnap.data()
     } as ShiftSession;
 
     if (!shift.endTime) {
@@ -716,18 +715,16 @@ async function sendFamilyPushNotifications(
   handoffNoteId: string
 ): Promise<void> {
   try {
-    // Get group to find family members
-    const groupDoc = await getDocs(query(
-      collection(db, 'groups'),
-      where('id', '==', groupId)
-    ));
+    // Get group by document ID to find family members
+    const groupRef = doc(db, 'groups', groupId);
+    const groupSnap = await getDoc(groupRef);
 
-    if (groupDoc.empty) {
-      console.log('Group not found for notifications');
+    if (!groupSnap.exists()) {
+      console.log('Group not found for notifications:', groupId);
       return;
     }
 
-    const groupData = groupDoc.docs[0].data();
+    const groupData = groupSnap.data();
     const members = groupData.members || [];
 
     // Get all member user IDs except the caregiver who created the note
