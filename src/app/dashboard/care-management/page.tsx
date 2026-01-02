@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,9 @@ export default function CareManagementPage() {
   const { user } = useAuth();
   const { isMultiAgency } = useSubscription();
 
+  // Check if user is super admin
+  const userIsSuperAdmin = isSuperAdmin(user);
+
   // Check if user has agency access
   if (!isMultiAgency) {
     return (
@@ -39,7 +43,8 @@ export default function CareManagementPage() {
     );
   }
 
-  const features = [
+  // Features available to all agency caregivers
+  const caregiverFeatures = [
     {
       title: 'Shift Handoff',
       description: 'Share notes between caregivers at shift change',
@@ -49,7 +54,7 @@ export default function CareManagementPage() {
     },
     {
       title: 'Timesheet',
-      description: 'Track caregiver hours worked',
+      description: 'Track your hours worked',
       icon: FileText,
       href: '/dashboard/timesheet',
       color: 'green',
@@ -68,6 +73,10 @@ export default function CareManagementPage() {
       href: '/dashboard/family-updates',
       color: 'orange',
     },
+  ];
+
+  // Additional features only for super admins
+  const adminOnlyFeatures = [
     {
       title: 'Caregiver Burnout',
       description: 'Monitor caregiver stress levels',
@@ -83,6 +92,11 @@ export default function CareManagementPage() {
       color: 'yellow',
     },
   ];
+
+  // Combine features based on user role
+  const features = userIsSuperAdmin
+    ? [...caregiverFeatures, ...adminOnlyFeatures]
+    : caregiverFeatures;
 
   const colorClasses: Record<string, { bg: string; icon: string }> = {
     blue: { bg: 'bg-blue-100 dark:bg-blue-900/30', icon: 'text-blue-600 dark:text-blue-400' },

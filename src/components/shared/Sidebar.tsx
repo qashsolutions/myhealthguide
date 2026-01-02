@@ -4,8 +4,10 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useElder } from '@/contexts/ElderContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 import { useSubscription } from '@/lib/subscription';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import {
   Home,
   Heart,
@@ -32,7 +34,7 @@ const featureTooltips: Record<string, string> = {
   '/dashboard': 'View your overall caregiving dashboard',
   '/dashboard/elder-profile': 'View and manage health profile information',
   '/dashboard/daily-care': 'Track medications, supplements, diet & activity',
-  '/dashboard/ask-ai': 'AI-powered health insights and chat',
+  '/dashboard/ask-ai': 'Smart health insights and chat',
   '/dashboard/safety-alerts': 'View drug interactions, incidents, and screening results',
   '/dashboard/analytics': 'View health trends and compliance analytics',
   '/dashboard/notes': 'Capture and share caregiving insights',
@@ -48,8 +50,16 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
   const { isMultiAgency } = useSubscription();
   const { selectedElder, availableElders } = useElder();
+
+  // Check if user is a super admin (has full access to agency features)
+  const userIsSuperAdmin = isSuperAdmin(user);
+
+  // Caregivers only see limited sidebar items
+  // Super admins and family plan admins see everything
+  const showFullInsights = userIsSuperAdmin || !isMultiAgency;
 
   // Get a unique display name for the selected elder
   // Priority: preferredName > unique first name > full name (for duplicates)
@@ -269,16 +279,21 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               icon={MessageSquare}
               label="Insights"
             />
-            <NavItem
-              href="/dashboard/safety-alerts"
-              icon={AlertTriangle}
-              label="Safety Alerts"
-            />
-            <NavItem
-              href="/dashboard/analytics"
-              icon={BarChart3}
-              label="Analytics"
-            />
+            {/* Safety Alerts and Analytics: Only for super admins and family plan users */}
+            {showFullInsights && (
+              <>
+                <NavItem
+                  href="/dashboard/safety-alerts"
+                  icon={AlertTriangle}
+                  label="Safety Alerts"
+                />
+                <NavItem
+                  href="/dashboard/analytics"
+                  icon={BarChart3}
+                  label="Analytics"
+                />
+              </>
+            )}
           </div>
 
           {/* Personal Section */}
@@ -301,11 +316,14 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   icon={Users}
                   label="Care Management"
                 />
-                <NavItem
-                  href="/dashboard/agency"
-                  icon={Building2}
-                  label="Agency Management"
-                />
+                {/* Agency Management: Only for super admins */}
+                {userIsSuperAdmin && (
+                  <NavItem
+                    href="/dashboard/agency"
+                    icon={Building2}
+                    label="Agency Management"
+                  />
+                )}
               </div>
             </>
           )}

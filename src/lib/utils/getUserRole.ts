@@ -100,3 +100,39 @@ export function userHasFeatureAccess(user: User | null, requiredRoles: UserRole[
   const userRoles = getAllUserRoles(user);
   return userRoles.some(role => requiredRoles.includes(role));
 }
+
+/**
+ * Check if user is a super admin of any agency
+ * Super admins have full access to all agency features
+ */
+export function isSuperAdmin(user: User | null): boolean {
+  if (!user) return false;
+  return user.agencies?.some((a) => a.role === 'super_admin') ?? false;
+}
+
+/**
+ * Check if user is a caregiver (not super admin)
+ * Caregivers have limited access to agency features
+ */
+export function isCaregiver(user: User | null): boolean {
+  if (!user) return false;
+  const role = getUserRole(user);
+  return role === 'caregiver' || role === 'caregiver_admin';
+}
+
+/**
+ * Check if user is a caregiver admin (can manage some caregivers)
+ */
+export function isCaregiverAdmin(user: User | null): boolean {
+  if (!user) return false;
+  return user.agencies?.some((a) => a.role === 'caregiver_admin') ?? false;
+}
+
+/**
+ * Check if user is a family plan admin
+ */
+export function isFamilyAdmin(user: User | null): boolean {
+  if (!user) return false;
+  const role = getUserRole(user);
+  return role === 'admin';
+}

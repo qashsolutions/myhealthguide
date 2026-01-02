@@ -23,6 +23,7 @@ import {
 import { Elder } from '@/types';
 import Link from 'next/link';
 import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCardGrid';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
 
 // Check if user can add elders (must be super_admin or admin with active status)
 function canUserAddElders(user: any): boolean {
@@ -59,11 +60,8 @@ export default function DashboardPage() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
 
-  // Check if user is multi-agency super admin
-  // Super admins are always active (they own the agency), so no status check needed
-  const isMultiAgencySuperAdmin = user?.agencies?.some(
-    (a: any) => a.role === 'super_admin'
-  );
+  // Check if user is multi-agency super admin using the helper function
+  const isMultiAgencySuperAdmin = isSuperAdmin(user);
   const agencyId = user?.agencies?.find(
     (a: any) => a.role === 'super_admin'
   )?.agencyId;
