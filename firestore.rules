@@ -789,14 +789,14 @@ service cloud.firestore {
          canAccessGroup(resource.data.groupId));
 
       // Caregivers can create their own shift sessions
-      // Uses canAccessGroup which includes agency caregiver assignments
+      // Agency caregivers: hasActiveAccess includes agency membership check
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        request.resource.data.caregiverId == request.auth.uid &&
-        canAccessGroup(request.resource.data.groupId);
+        request.resource.data.caregiverId == request.auth.uid;
 
       // Caregivers can update their own sessions (to end shift)
-      allow update: if hasActiveAccess(request.auth.uid) &&
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
         resource.data.caregiverId == request.auth.uid;
 
       // Agency admin can delete sessions for cleanup
@@ -807,23 +807,24 @@ service cloud.firestore {
     // ============= Shift Handoff Notes Collection (Phase 1) =============
 
     match /shiftHandoffNotes/{noteId} {
-      // All caregivers in the group can read handoff notes
+      // Caregivers can read handoff notes they created or for their group
       // Agency super admin can read all notes
-      // Uses canAccessGroup for agency caregiver access
       allow read: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        ((resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId)) ||
+        (resource.data.caregiverId == request.auth.uid ||
+         (resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId)) ||
          canAccessGroup(resource.data.groupId));
 
-      // System creates handoff notes when shift ends
-      // Uses canAccessGroup which includes agency caregiver assignments
+      // Caregivers can create handoff notes for their own shifts
+      // Agency caregivers: hasActiveAccess includes agency membership check
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        canAccessGroup(request.resource.data.groupId);
+        request.resource.data.caregiverId == request.auth.uid;
 
-      // Caregivers can update to acknowledge reading the handoff
-      allow update: if hasActiveAccess(request.auth.uid) &&
-        canAccessGroup(resource.data.groupId);
+      // Caregivers can update their own handoff notes
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        resource.data.caregiverId == request.auth.uid;
 
       // GDPR: Admin can delete even without active trial
       allow delete: if isGroupAdmin(resource.data.groupId) ||
