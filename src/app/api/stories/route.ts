@@ -28,6 +28,46 @@ let cacheTimestamp = 0;
 const CACHE_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 /**
+ * Check if content qualifies as a real story
+ * Must have personal experience, not just book recommendations or test content
+ */
+function isValidStory(content: string, title: string): boolean {
+  const text = `${title} ${content}`.toLowerCase();
+
+  // Minimum length - must be substantial
+  if (content.length < 100) {
+    return false;
+  }
+
+  // Must contain personal pronouns indicating real experience
+  const personalPronouns = ['i ', 'my ', 'we ', 'our ', 'me ', 'us '];
+  const hasPersonalExperience = personalPronouns.some(pronoun => text.includes(pronoun));
+
+  // Exclude book/resource recommendations without stories
+  const recommendationPatterns = [
+    'read the book',
+    'read this book',
+    'check out',
+    'recommend reading',
+    'great resource',
+    'good book',
+  ];
+  const isJustRecommendation = recommendationPatterns.some(pattern => text.includes(pattern))
+    && !hasPersonalExperience;
+
+  // Exclude obvious test content
+  const testPatterns = ['test', 'lorem ipsum', 'placeholder', 'example'];
+  const isTestContent = testPatterns.some(pattern => text.includes(pattern));
+
+  if (isTestContent || isJustRecommendation) {
+    return false;
+  }
+
+  // Must have personal experience OR be substantial enough (200+ chars)
+  return hasPersonalExperience || content.length >= 200;
+}
+
+/**
  * Convert a published tip content to a short story (15-20 words)
  */
 function summarizeToStory(content: string, title: string): string {
@@ -95,10 +135,12 @@ export async function GET() {
 
     tipsSnapshot.docs.forEach((doc) => {
       const data = doc.data();
+      const content = data.content || '';
+      const title = data.title || '';
 
-      // Only include tips with enough content
-      if (data.content && data.content.length > 20) {
-        const storyText = summarizeToStory(data.content, data.title || '');
+      // Only include tips that qualify as real stories
+      if (isValidStory(content, title)) {
+        const storyText = summarizeToStory(content, title);
         const authorName = data.isAnonymous
           ? 'Anonymous caregiver'
           : data.authorFirstName
@@ -109,7 +151,7 @@ export async function GET() {
           id: doc.id,
           text: storyText,
           author: authorName,
-          type: determineStoryType(data.category || '', data.content),
+          type: determineStoryType(data.category || '', content),
           source: 'agentic',
         });
       }
