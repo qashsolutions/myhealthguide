@@ -489,9 +489,10 @@ export class AgencyService {
    * Sync all existing caregiver assignments to group members
    * Use this to migrate existing assignments that weren't synced
    */
-  static async syncAllCaregiverAssignments(agencyId: string): Promise<{ synced: number; errors: number }> {
+  static async syncAllCaregiverAssignments(agencyId: string): Promise<{ synced: number; errors: number; syncedAt: Date }> {
     let synced = 0;
     let errors = 0;
+    const syncedAt = new Date();
 
     try {
       const assignments = await this.getAgencyAssignments(agencyId);
@@ -512,8 +513,14 @@ export class AgencyService {
         }
       }
 
-      console.log('[AgencyService] Sync complete:', { agencyId, synced, errors });
-      return { synced, errors };
+      // Save the sync timestamp to agency document
+      await updateDoc(doc(db, 'agencies', agencyId), {
+        lastCaregiverSyncAt: Timestamp.fromDate(syncedAt),
+        updatedAt: Timestamp.now()
+      });
+
+      console.log('[AgencyService] Sync complete:', { agencyId, synced, errors, syncedAt });
+      return { synced, errors, syncedAt };
     } catch (error) {
       console.error('Error syncing caregiver assignments:', error);
       throw error;

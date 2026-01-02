@@ -22,7 +22,8 @@ import {
   CheckCircle2,
   Pencil,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  X
 } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
@@ -55,6 +56,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
   // Caregiver sync state
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ synced: number; errors: number } | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     loadAgencyData();
@@ -122,14 +124,55 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
     try {
       setSyncing(true);
       setSyncResult(null);
+      setShowToast(false);
       const result = await AgencyService.syncAllCaregiverAssignments(agencyId);
       setSyncResult(result);
+      setShowToast(true);
+
+      // Update local agency state with new sync timestamp
+      if (agency) {
+        setAgency({ ...agency, lastCaregiverSyncAt: result.syncedAt });
+      }
+
+      // Auto-dismiss toast after 5 seconds
+      setTimeout(() => {
+        setShowToast(false);
+      }, 5000);
     } catch (err: any) {
       console.error('Error syncing caregivers:', err);
       setError(err.message || 'Failed to sync caregivers');
     } finally {
       setSyncing(false);
     }
+  };
+
+  // Helper to format relative time
+  const formatRelativeTime = (date: Date | undefined): string => {
+    if (!date) return '';
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSecs < 60) return 'just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Convert Firestore Timestamp to Date for lastCaregiverSyncAt
+  const getLastSyncDate = (): Date | undefined => {
+    if (!agency?.lastCaregiverSyncAt) return undefined;
+    const raw = agency.lastCaregiverSyncAt;
+    if (typeof raw === 'object' && 'seconds' in raw) {
+      return new Date((raw as any).seconds * 1000);
+    }
+    if (raw instanceof Date) return raw;
+    return new Date(raw);
   };
 
   if (loading) {
@@ -161,8 +204,33 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
   const totalElders = elders.length;
   const activeCaregivers = new Set(assignments.filter(a => a.active).map(a => a.caregiverId)).size;
 
+  const lastSyncDate = getLastSyncDate();
+
   return (
     <div className="space-y-6">
+      {/* Toast Notification - Fixed position */}
+      {showToast && syncResult && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in duration-300">
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
+            syncResult.errors > 0
+              ? 'bg-yellow-50 dark:bg-yellow-900/90 border-yellow-200 dark:border-yellow-700 text-yellow-800 dark:text-yellow-100'
+              : 'bg-green-50 dark:bg-green-900/90 border-green-200 dark:border-green-700 text-green-800 dark:text-green-100'
+          }`}>
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            <span className="font-medium">
+              {syncResult.synced} caregiver(s) synced
+              {syncResult.errors > 0 && `, ${syncResult.errors} error(s)`}
+            </span>
+            <button
+              onClick={() => setShowToast(false)}
+              className="ml-2 p-1 rounded hover:bg-black/10 dark:hover:bg-white/10"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Agency Header */}
       <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
         <CardHeader>
@@ -174,43 +242,39 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
               </CardDescription>
             </div>
             {isSuperAdmin && (
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={handleSyncCaregivers}
-                  disabled={syncing}
-                  variant="outline"
-                  size="sm"
-                  title="Sync all caregiver permissions"
-                >
-                  {syncing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                      Sync Permissions
-                    </>
-                  )}
-                </Button>
-                <Badge variant="default" className="bg-purple-600">
-                  Super Admin
-                </Badge>
+              <div className="flex flex-col items-end gap-1">
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleSyncCaregivers}
+                    disabled={syncing}
+                    variant="outline"
+                    size="sm"
+                    title="Sync all caregiver permissions"
+                  >
+                    {syncing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Sync Permissions
+                      </>
+                    )}
+                  </Button>
+                  <Badge variant="default" className="bg-purple-600">
+                    Super Admin
+                  </Badge>
+                </div>
+                {lastSyncDate && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Last synced: {formatRelativeTime(lastSyncDate)}
+                  </span>
+                )}
               </div>
             )}
           </div>
-          {syncResult && (
-            <div className={`mt-3 p-3 rounded-lg text-sm ${syncResult.errors > 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'}`}>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>
-                  Sync Complete: {syncResult.synced} caregiver(s) synced
-                  {syncResult.errors > 0 && `, ${syncResult.errors} error(s)`}
-                </span>
-              </div>
-            </div>
-          )}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

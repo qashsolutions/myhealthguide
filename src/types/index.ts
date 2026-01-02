@@ -186,6 +186,9 @@ export interface Agency {
   totalRevenue?: number; // Lifetime revenue (informational)
   stripeCustomerId?: string; // Agency-level Stripe customer ID
   stripeSubscriptionIds?: string[]; // All active elder subscription IDs
+
+  // Admin tools
+  lastCaregiverSyncAt?: Date; // Last time caregiver permissions were synced
 }
 
 export interface AgencyMembership {
