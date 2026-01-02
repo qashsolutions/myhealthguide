@@ -9,20 +9,46 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-comp
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      // Disable navigation preload if supported
       if (self.registration.navigationPreload) {
-        await self.registration.navigationPreload.disable();
+        try {
+          await self.registration.navigationPreload.disable();
+        } catch (e) {
+          // Ignore errors if already disabled
+        }
       }
+      // Claim all clients immediately
+      await self.clients.claim();
     })()
   );
 });
 
-// Handle fetch events - pass through to network for navigation requests
+// Skip waiting to activate new service worker immediately
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+// Handle fetch events - properly consume preloadResponse to avoid cancellation errors
 self.addEventListener('fetch', (event) => {
-  // Only handle navigation requests to avoid preload errors
+  // Only handle navigation requests
   if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      (async () => {
+        // If there's a preload response, wait for it to settle before fetching
+        // This prevents "preloadResponse cancelled" errors
+        try {
+          const preloadResponse = await event.preloadResponse;
+          if (preloadResponse) {
+            return preloadResponse;
+          }
+        } catch (e) {
+          // Preload not available, continue with normal fetch
+        }
+        return fetch(event.request);
+      })()
+    );
   }
-  // Let other requests pass through normally
+  // Let other requests pass through normally (don't call respondWith)
 });
 
 // Initialize Firebase in the service worker
