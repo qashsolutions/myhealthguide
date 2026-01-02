@@ -103,7 +103,12 @@ export function useSubscription(): SubscriptionState {
     // Tier checks
     const isFamily = tier === 'family';
     const isSingleAgency = tier === 'single_agency';
-    const isMultiAgency = tier === 'multi_agency';
+
+    // Multi-agency check: either user has multi_agency tier OR they are part of an agency
+    // Caregivers invited to an agency don't have their own subscription tier,
+    // but they should have access to multi-agency features through the agency
+    const hasAgencyMembership = (user?.agencies && user.agencies.length > 0) || false;
+    const isMultiAgency = tier === 'multi_agency' || hasAgencyMembership;
 
     // Get plan config and limits
     const config = getPlanConfig(tier);
