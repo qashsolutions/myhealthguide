@@ -132,8 +132,28 @@ export class DietService {
       createdAt: doc.data().createdAt.toDate()
     })) as DietEntry[];
 
-    // Sort client-side by timestamp descending (newest first)
-    entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    // Meal order priority for sorting within same day
+    const mealOrder: Record<string, number> = {
+      'breakfast': 1,
+      'lunch': 2,
+      'dinner': 3,
+      'snack': 4
+    };
+
+    // Sort client-side by date descending, then by meal order within same day
+    entries.sort((a, b) => {
+      // First compare dates (ignore time, just date)
+      const dateA = new Date(a.timestamp.getFullYear(), a.timestamp.getMonth(), a.timestamp.getDate());
+      const dateB = new Date(b.timestamp.getFullYear(), b.timestamp.getMonth(), b.timestamp.getDate());
+      const dateDiff = dateB.getTime() - dateA.getTime();
+
+      if (dateDiff !== 0) {
+        return dateDiff; // Different days - sort by date descending
+      }
+
+      // Same day - sort by meal order (breakfast → lunch → dinner → snack)
+      return (mealOrder[a.meal] || 99) - (mealOrder[b.meal] || 99);
+    });
 
     // HIPAA Audit Log: Record diet entries access for specific elder
     if (entries.length > 0) {

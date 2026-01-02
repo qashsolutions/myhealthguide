@@ -373,7 +373,7 @@ function SupplementsTab({ supplements, elderId }: { supplements: Supplement[]; e
 
 // Diet Tab Content
 function DietTab({ dietEntries, elderId }: { dietEntries: DietEntry[]; elderId: string }) {
-  const mealTypes: ('breakfast' | 'lunch' | 'dinner')[] = ['breakfast', 'lunch', 'dinner'];
+  const mealTypes: ('breakfast' | 'lunch' | 'dinner' | 'snack')[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
   return (
     <div className="space-y-3">
