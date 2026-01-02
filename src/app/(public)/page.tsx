@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PricingCards } from '@/components/pricing/PricingCards';
 import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
+import { CaregiverStories } from '@/components/marketing/CaregiverStories';
 import { type PlanTier } from '@/lib/subscription';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -70,6 +71,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Caregiver Stories */}
+      <CaregiverStories />
 
       {/*
         ========================================
