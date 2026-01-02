@@ -237,9 +237,9 @@ async function gatherShiftData(
   startTime: Date,
   endTime: Date
 ) {
-  // Get medication logs during shift
+  // Get medication logs during shift (collection is snake_case in Firestore)
   const medLogsQuery = query(
-    collection(db, 'medicationLogs'),
+    collection(db, 'medication_logs'),
     where('groupId', '==', groupId),
     where('elderId', '==', elderId),
     where('createdAt', '>=', Timestamp.fromDate(startTime)),
@@ -252,9 +252,9 @@ async function gatherShiftData(
     ...doc.data()
   })) as MedicationLog[];
 
-  // Get supplement logs during shift
+  // Get supplement logs during shift (collection is snake_case in Firestore)
   const suppLogsQuery = query(
-    collection(db, 'supplementLogs'),
+    collection(db, 'supplement_logs'),
     where('groupId', '==', groupId),
     where('elderId', '==', elderId),
     where('timestamp', '>=', Timestamp.fromDate(startTime)),
@@ -267,9 +267,9 @@ async function gatherShiftData(
     ...doc.data()
   })) as SupplementLog[];
 
-  // Get diet entries during shift
+  // Get diet entries during shift (collection is snake_case in Firestore)
   const dietQuery = query(
-    collection(db, 'dietEntries'),
+    collection(db, 'diet_entries'),
     where('groupId', '==', groupId),
     where('elderId', '==', elderId),
     where('timestamp', '>=', Timestamp.fromDate(startTime)),
