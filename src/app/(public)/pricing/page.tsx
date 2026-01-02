@@ -27,25 +27,61 @@
   The old duplicated code has been commented out below for reference.
 */
 
+'use client';
+
+import { useState } from 'react';
 import { PricingCards } from '@/components/pricing/PricingCards';
+import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
+import { type PlanTier } from '@/lib/subscription';
 
 export default function PricingPage() {
+  const [userType, setUserType] = useState<UserType>(null);
+
+  // Map user type to recommended plan
+  const getRecommendedPlan = (type: UserType): PlanTier | null => {
+    switch (type) {
+      case 'family':
+        return 'single_agency'; // Family Plan B - best value for family caregivers
+      case 'agency':
+        return 'multi_agency'; // Multi-Agency Plan
+      default:
+        return null;
+    }
+  };
+
+  const recommendedPlan = getRecommendedPlan(userType);
+
   return (
     <div>
-      {/* Page Title - Slightly different from homepage header */}
+      {/* Page Title */}
       <div className="py-12 bg-gray-50 dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 sm:text-5xl">
             Simple, Transparent Pricing
           </h1>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-            Choose the plan that&apos;s right for you. All plans include a 45-day free trial.
+            Choose the plan that&apos;s right for you. All plans include a free trial.
           </p>
         </div>
       </div>
 
+      {/* User Type Selector */}
+      <div className="bg-gray-50 dark:bg-gray-900 pt-8">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <UserTypeSelector
+            selectedType={userType}
+            onSelect={setUserType}
+          />
+        </div>
+      </div>
+
       {/* Shared Pricing Component */}
-      <PricingCards showHeader={false} showTrialInfo={true} defaultSelectedPlan="single_agency" />
+      <PricingCards
+        showHeader={false}
+        showTrialInfo={true}
+        defaultSelectedPlan={recommendedPlan || 'single_agency'}
+        recommendedPlan={recommendedPlan}
+      />
     </div>
   );
 }
