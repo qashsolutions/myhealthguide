@@ -29,11 +29,14 @@ import {
  * - Prevents bugs like the $144 vs $30 discrepancy
  */
 
+import { type UserType } from './UserTypeSelector';
+
 export interface PricingCardsProps {
   showHeader?: boolean;
   showTrialInfo?: boolean;
   defaultSelectedPlan?: PlanTier;
   recommendedPlan?: PlanTier | null;
+  userType?: UserType;
 }
 
 export function PricingCards({
@@ -41,10 +44,23 @@ export function PricingCards({
   showTrialInfo = true,
   defaultSelectedPlan = 'single_agency',
   recommendedPlan = null,
+  userType = null,
 }: PricingCardsProps) {
   const [selectedPlan, setSelectedPlan] = useState<PlanTier>(defaultSelectedPlan);
   const [loading, setLoading] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Determine if a plan should be greyed out based on user type selection
+  const isPlanDisabled = (planId: PlanTier): boolean => {
+    if (!userType) return false; // No selection yet, nothing disabled
+    if (userType === 'family') {
+      return planId === 'multi_agency'; // Grey out multi_agency for family
+    }
+    if (userType === 'agency') {
+      return planId === 'family' || planId === 'single_agency'; // Grey out family plans for agency
+    }
+    return false;
+  };
 
   const handleSubscribe = async (planId: PlanTier, planName: string) => {
     // If not logged in, redirect to signup
@@ -152,8 +168,13 @@ export function PricingCards({
     },
   ];
 
+  // Don't show cards until user makes a selection
+  if (!userType) {
+    return null;
+  }
+
   return (
-    <div className="py-24 sm:py-32 bg-gray-50 dark:bg-gray-900">
+    <div className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Header */}
         {showHeader && (
@@ -177,16 +198,19 @@ export function PricingCards({
           {plans.map((plan) => {
             const Icon = plan.icon;
             const isSelected = selectedPlan === plan.id;
+            const isDisabled = isPlanDisabled(plan.id);
 
             return (
               <Card
                 key={plan.id}
-                className={`relative cursor-pointer transition-all ${
-                  isSelected
-                    ? 'border-2 border-blue-600 shadow-xl'
-                    : 'border hover:border-blue-300'
+                className={`relative transition-all ${
+                  isDisabled
+                    ? 'opacity-40 cursor-not-allowed'
+                    : isSelected
+                      ? 'border-2 border-blue-600 shadow-xl cursor-pointer'
+                      : 'border hover:border-blue-300 cursor-pointer'
                 }`}
-                onClick={() => setSelectedPlan(plan.id)}
+                onClick={() => !isDisabled && setSelectedPlan(plan.id)}
               >
                 {/* Recommended badge - takes priority */}
                 {recommendedPlan === plan.id && (
@@ -315,20 +339,27 @@ export function PricingCards({
 
                   {/* CTA Button */}
                   <Button
-                    variant={isSelected ? 'default' : 'outline'}
+                    variant={isSelected && !isDisabled ? 'default' : 'outline'}
                     className={`w-full ${
-                      isSelected
-                        ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
-                        : ''
+                      isDisabled
+                        ? 'opacity-50 cursor-not-allowed'
+                        : isSelected
+                          ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
+                          : ''
                     }`}
-                    onClick={() => handleSubscribe(plan.id, plan.name)}
-                    disabled={loading === plan.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isDisabled) handleSubscribe(plan.id, plan.name);
+                    }}
+                    disabled={loading === plan.id || isDisabled}
                   >
                     {loading === plan.id ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Processing...
                       </>
+                    ) : isDisabled ? (
+                      'Not available'
                     ) : (
                       `Start ${plan.trialDays}-Day Free Trial`
                     )}

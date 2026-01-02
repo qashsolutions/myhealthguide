@@ -81,6 +81,7 @@ export default function PricingPage() {
         showTrialInfo={true}
         defaultSelectedPlan={recommendedPlan || 'single_agency'}
         recommendedPlan={recommendedPlan}
+        userType={userType}
       />
     </div>
   );

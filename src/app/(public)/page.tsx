@@ -101,6 +101,7 @@ export default function LandingPage() {
         showTrialInfo={true}
         defaultSelectedPlan={recommendedPlan || 'single_agency'}
         recommendedPlan={recommendedPlan}
+        userType={userType}
       />
 
       {/*
