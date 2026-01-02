@@ -40,9 +40,15 @@ export class DietService {
 
     // Only add optional fields if they have values
     if (entry.notes) docData.notes = entry.notes;
-    if (entry.aiAnalysis) docData.aiAnalysis = entry.aiAnalysis;
+    if (entry.aiAnalysis) {
+      docData.aiAnalysis = entry.aiAnalysis;
+      console.log('[DietService] Saving with aiAnalysis, score:', entry.aiAnalysis.nutritionScore);
+    } else {
+      console.log('[DietService] Saving WITHOUT aiAnalysis');
+    }
 
     const docRef = await addDoc(collection(db, this.COLLECTION), docData);
+    console.log('[DietService] Saved diet entry:', docRef.id, 'hasAiAnalysis:', !!entry.aiAnalysis);
 
     const result = { ...entry, id: docRef.id };
 
