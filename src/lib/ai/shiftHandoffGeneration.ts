@@ -58,9 +58,25 @@ export async function generateShiftHandoffNote(
       throw new Error('Shift session not found');
     }
 
+    const shiftData = shiftSnap.data();
+
+    // Convert Firestore Timestamps to JavaScript Dates
+    const convertTimestamp = (ts: any): Date => {
+      if (!ts) return new Date();
+      if (ts instanceof Date) return ts;
+      if (typeof ts === 'object' && 'seconds' in ts) {
+        return new Date(ts.seconds * 1000);
+      }
+      return new Date(ts);
+    };
+
     const shift = {
       id: shiftSnap.id,
-      ...shiftSnap.data()
+      ...shiftData,
+      startTime: convertTimestamp(shiftData.startTime),
+      endTime: convertTimestamp(shiftData.endTime),
+      createdAt: convertTimestamp(shiftData.createdAt),
+      updatedAt: convertTimestamp(shiftData.updatedAt),
     } as ShiftSession;
 
     if (!shift.endTime) {
@@ -68,7 +84,7 @@ export async function generateShiftHandoffNote(
     }
 
     // Gather shift data (now includes supplements)
-    const shiftData = await gatherShiftData(
+    const gatheredData = await gatherShiftData(
       groupId,
       elderId,
       shift.startTime,
@@ -77,28 +93,28 @@ export async function generateShiftHandoffNote(
 
     // Analyze medications given during shift
     const medicationsGiven = analyzeMedicationsDuringShift(
-      shiftData.medicationLogs,
+      gatheredData.medicationLogs,
       shift.startTime,
       shift.endTime
     );
 
     // Analyze meals during shift
     const mealsLogged = analyzeMealsDuringShift(
-      shiftData.dietEntries,
+      gatheredData.dietEntries,
       shift.startTime,
       shift.endTime
     );
 
     // Extract notable events from notes
     const notableEvents = extractNotableEvents(
-      shiftData.medicationLogs,
-      shiftData.dietEntries
+      gatheredData.medicationLogs,
+      gatheredData.dietEntries
     );
 
     // Determine mood from logs
     const mood = determineMoodFromLogs(
-      shiftData.medicationLogs,
-      shiftData.dietEntries,
+      gatheredData.medicationLogs,
+      gatheredData.dietEntries,
       notableEvents
     );
 
@@ -124,9 +140,9 @@ export async function generateShiftHandoffNote(
       shiftStart: shift.startTime,
       shiftEnd: shift.endTime,
       caregiverName: caregiverName || 'Caregiver',
-      medicationLogs: shiftData.medicationLogs,
-      supplementLogs: shiftData.supplementLogs,
-      dietEntries: shiftData.dietEntries,
+      medicationLogs: gatheredData.medicationLogs,
+      supplementLogs: gatheredData.supplementLogs,
+      dietEntries: gatheredData.dietEntries,
       notableEvents,
       mood,
     });
