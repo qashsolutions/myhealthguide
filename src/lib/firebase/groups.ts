@@ -381,7 +381,7 @@ export class GroupService {
   static async getUserRole(
     groupId: string,
     userId: string
-  ): Promise<'admin' | 'member' | null> {
+  ): Promise<'admin' | 'member' | 'agency_caregiver' | null> {
     try {
       const group = await this.getGroup(groupId);
 
