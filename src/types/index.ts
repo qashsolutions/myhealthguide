@@ -288,6 +288,22 @@ export interface Elder {
   weight?: { value: number; unit: 'lb' | 'kg' };
   bloodType?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'unknown';
 
+  // Address (required for shift verification and invoicing)
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+
+  // QR Code for shift clock-in/out
+  qrCodeId?: string;
+
   // Known Conditions (baseline for AI context)
   knownConditions?: string[]; // e.g., ['diabetes', 'hypertension', 'dementia']
 
@@ -1582,3 +1598,6 @@ export interface ElderPaymentStatus {
   monthlyRate: number; // $30
   nextBillingDate?: Date;
 }
+
+// ============= Timesheet & Shift Verification Types =============
+export * from './timesheet';
