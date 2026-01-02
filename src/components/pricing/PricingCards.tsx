@@ -203,7 +203,7 @@ export function PricingCards({
             return (
               <Card
                 key={plan.id}
-                className={`relative transition-all ${
+                className={`relative transition-all flex flex-col ${
                   isDisabled
                     ? 'opacity-40 cursor-not-allowed'
                     : isSelected
@@ -232,7 +232,7 @@ export function PricingCards({
                   </div>
                 )}
 
-                <CardContent className="pt-8">
+                <CardContent className="pt-8 h-full flex flex-col">
                   {/* Icon & Title */}
                   <div className="text-center mb-6">
                     <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${plan.iconBgColor} mb-4`}>
@@ -257,7 +257,7 @@ export function PricingCards({
                   </div>
 
                   {/* Features */}
-                  <ul className="space-y-2.5 mb-8">
+                  <ul className="space-y-2.5 mb-8 flex-grow">
                     {/* Plan limits */}
                     {plan.limits.map((limit, index) => (
                       <li key={`limit-${index}`} className="flex items-start gap-2.5">
