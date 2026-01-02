@@ -21,7 +21,9 @@ import {
   AlertCircle,
   CheckCircle2,
   Pencil,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Wrench
 } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
@@ -50,6 +52,10 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [newGroupName, setNewGroupName] = useState('');
   const [savingGroupName, setSavingGroupName] = useState(false);
+
+  // Caregiver sync state
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ synced: number; errors: number } | null>(null);
 
   useEffect(() => {
     loadAgencyData();
@@ -110,6 +116,20 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
       setError(err.message || 'Failed to update group name');
     } finally {
       setSavingGroupName(false);
+    }
+  };
+
+  const handleSyncCaregivers = async () => {
+    try {
+      setSyncing(true);
+      setSyncResult(null);
+      const result = await AgencyService.syncAllCaregiverAssignments(agencyId);
+      setSyncResult(result);
+    } catch (err: any) {
+      console.error('Error syncing caregivers:', err);
+      setError(err.message || 'Failed to sync caregivers');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -360,6 +380,62 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
                   </div>
                 );
               })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Admin Tools - Only for Super Admin */}
+      {isSuperAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="w-5 h-5" />
+              Admin Tools
+            </CardTitle>
+            <CardDescription>
+              Maintenance and troubleshooting tools
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Sync Caregiver Permissions</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Ensure all caregivers have proper access to elder data
+                  </p>
+                </div>
+                <Button
+                  onClick={handleSyncCaregivers}
+                  disabled={syncing}
+                  variant="outline"
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Sync Now
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {syncResult && (
+                <div className={`p-4 rounded-lg ${syncResult.errors > 0 ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className={`w-5 h-5 ${syncResult.errors > 0 ? 'text-yellow-600' : 'text-green-600'}`} />
+                    <span className="font-medium">
+                      Sync Complete: {syncResult.synced} caregiver(s) synced
+                      {syncResult.errors > 0 && `, ${syncResult.errors} error(s)`}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
