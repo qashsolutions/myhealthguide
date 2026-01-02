@@ -347,9 +347,175 @@ export class AgencyService {
         }
       }
 
+      // Sync caregiver to group members for Firestore access control
+      await this.syncCaregiverToGroupMembers(
+        groupId,
+        caregiverId,
+        agencyId,
+        assignedBy,
+        true // canWrite = true for caregivers
+      );
+
       return { assignmentId: docRef.id };
     } catch (error) {
       console.error('Error assigning caregiver to elders:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sync caregiver to group members for Firestore access control
+   * This ensures caregivers can read/write elder data via group membership
+   */
+  static async syncCaregiverToGroupMembers(
+    groupId: string,
+    caregiverId: string,
+    agencyId: string,
+    addedBy: string,
+    canWrite: boolean = true
+  ): Promise<void> {
+    try {
+      const groupRef = doc(db, 'groups', groupId);
+      const groupSnap = await getDoc(groupRef);
+
+      if (!groupSnap.exists()) {
+        console.error('[AgencyService] Group not found for sync:', groupId);
+        return;
+      }
+
+      const groupData = groupSnap.data();
+      const members: GroupMember[] = groupData.members || [];
+      const memberIds: string[] = groupData.memberIds || [];
+      const writeMemberIds: string[] = groupData.writeMemberIds || [];
+
+      // Check if caregiver is already a member
+      const existingMember = members.find(m => m.userId === caregiverId);
+      if (existingMember) {
+        // Update existing member's canWrite permission if needed
+        if (existingMember.canWrite !== canWrite) {
+          const updatedMembers = members.map(m =>
+            m.userId === caregiverId ? { ...m, canWrite } : m
+          );
+          const updatedWriteMemberIds = canWrite
+            ? [...new Set([...writeMemberIds, caregiverId])]
+            : writeMemberIds.filter(id => id !== caregiverId);
+
+          await updateDoc(groupRef, {
+            members: updatedMembers,
+            writeMemberIds: updatedWriteMemberIds,
+            updatedAt: Timestamp.now()
+          });
+        }
+        return;
+      }
+
+      // Add new caregiver as group member
+      const newMember: GroupMember = {
+        userId: caregiverId,
+        role: 'agency_caregiver',
+        permissionLevel: canWrite ? 'write' : 'read',
+        permissions: [], // Legacy field
+        addedAt: new Date(),
+        addedBy,
+        approvalStatus: 'approved', // Auto-approved for agency caregivers
+        approvedAt: new Date(),
+        approvedBy: addedBy,
+        agencyId,
+        canWrite
+      };
+
+      const updatedMemberIds = [...new Set([...memberIds, caregiverId])];
+      const updatedWriteMemberIds = canWrite
+        ? [...new Set([...writeMemberIds, caregiverId])]
+        : writeMemberIds;
+
+      await updateDoc(groupRef, {
+        members: [...members, newMember],
+        memberIds: updatedMemberIds,
+        writeMemberIds: updatedWriteMemberIds,
+        updatedAt: Timestamp.now()
+      });
+
+      console.log('[AgencyService] Synced caregiver to group members:', {
+        groupId,
+        caregiverId,
+        canWrite
+      });
+    } catch (error) {
+      console.error('Error syncing caregiver to group members:', error);
+      // Don't throw - this is a secondary operation
+    }
+  }
+
+  /**
+   * Remove caregiver from group members (when unassigning)
+   */
+  static async removeCaregiverFromGroupMembers(
+    groupId: string,
+    caregiverId: string
+  ): Promise<void> {
+    try {
+      const groupRef = doc(db, 'groups', groupId);
+      const groupSnap = await getDoc(groupRef);
+
+      if (!groupSnap.exists()) return;
+
+      const groupData = groupSnap.data();
+      const members: GroupMember[] = groupData.members || [];
+      const memberIds: string[] = groupData.memberIds || [];
+      const writeMemberIds: string[] = groupData.writeMemberIds || [];
+
+      // Only remove if they are an agency_caregiver (not a family member)
+      const member = members.find(m => m.userId === caregiverId);
+      if (!member || member.role !== 'agency_caregiver') return;
+
+      await updateDoc(groupRef, {
+        members: members.filter(m => m.userId !== caregiverId),
+        memberIds: memberIds.filter(id => id !== caregiverId),
+        writeMemberIds: writeMemberIds.filter(id => id !== caregiverId),
+        updatedAt: Timestamp.now()
+      });
+
+      console.log('[AgencyService] Removed caregiver from group members:', {
+        groupId,
+        caregiverId
+      });
+    } catch (error) {
+      console.error('Error removing caregiver from group members:', error);
+    }
+  }
+
+  /**
+   * Sync all existing caregiver assignments to group members
+   * Use this to migrate existing assignments that weren't synced
+   */
+  static async syncAllCaregiverAssignments(agencyId: string): Promise<{ synced: number; errors: number }> {
+    let synced = 0;
+    let errors = 0;
+
+    try {
+      const assignments = await this.getAgencyAssignments(agencyId);
+
+      for (const assignment of assignments) {
+        try {
+          await this.syncCaregiverToGroupMembers(
+            assignment.groupId,
+            assignment.caregiverId,
+            agencyId,
+            'system_migration',
+            true // canWrite = true for caregivers
+          );
+          synced++;
+        } catch (err) {
+          console.error('Failed to sync assignment:', assignment.id, err);
+          errors++;
+        }
+      }
+
+      console.log('[AgencyService] Sync complete:', { agencyId, synced, errors });
+      return { synced, errors };
+    } catch (error) {
+      console.error('Error syncing caregiver assignments:', error);
       throw error;
     }
   }

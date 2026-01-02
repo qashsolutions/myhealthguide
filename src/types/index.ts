@@ -75,7 +75,7 @@ export interface Group {
 
 export interface GroupMember {
   userId: string;
-  role: 'admin' | 'member';
+  role: 'admin' | 'member' | 'agency_caregiver';
   permissionLevel: PermissionLevel; // Simplified permission system
   permissions: Permission[]; // Legacy - kept for backward compatibility
   addedAt: Date;
@@ -83,13 +83,17 @@ export interface GroupMember {
   approvalStatus: 'pending' | 'approved' | 'rejected';
   approvedAt?: Date;
   approvedBy?: string;
+  // Agency caregiver specific fields
+  agencyId?: string; // Only for agency_caregiver role
+  canWrite?: boolean; // Explicit write permission flag
 }
 
 export interface GroupMembership {
   groupId: string;
-  role: 'admin' | 'member';
+  role: 'admin' | 'member' | 'agency_caregiver';
   permissionLevel: PermissionLevel;
   joinedAt: Date;
+  agencyId?: string; // Only for agency_caregiver role
 }
 
 export interface PendingApproval {
