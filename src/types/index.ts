@@ -879,6 +879,71 @@ export interface ShiftHandoffNote {
   viewedBy: string[]; // User IDs who have read this handoff
   acknowledgedBy?: string; // Next caregiver who acknowledged
   acknowledgedAt?: Date;
+
+  // SOAP format note (AI-generated)
+  soapNote?: SOAPNote;
+}
+
+// ============= SOAP Note Types =============
+export type ActionPriority = 'critical' | 'follow_up' | 'routine';
+
+export interface SOAPNote {
+  // Subjective: Elder's reported symptoms, mood, complaints
+  subjective: {
+    reports: string[]; // "Feeling tired today", "No pain complaints"
+    moodObservation: string; // "Slightly withdrawn after lunch"
+    complaints: string[]; // Any complaints mentioned
+  };
+
+  // Objective: Measurable data - meds, vitals, meals, supplements
+  objective: {
+    medications: Array<{
+      name: string;
+      dose: string;
+      time: Date;
+      status: 'on-time' | 'late' | 'missed';
+    }>;
+    supplements: Array<{
+      name: string;
+      time: Date;
+      taken: boolean;
+    }>;
+    nutrition: Array<{
+      meal: string;
+      time: Date;
+      percentageEaten: number;
+      notes?: string;
+    }>;
+    vitals?: Array<{
+      type: string;
+      value: string;
+      time: Date;
+      isAbnormal?: boolean;
+    }>;
+    activities?: string[]; // "Walked in garden", "Video call with daughter"
+  };
+
+  // Assessment: AI-generated summary of shift observations
+  assessment: {
+    summary: string; // 2-3 sentence summary of the shift
+    concerns: string[]; // Any concerns noted
+    positives: string[]; // Positive observations
+  };
+
+  // Plan: Action items for next shift + family alerts
+  plan: {
+    actions: Array<{
+      priority: ActionPriority;
+      action: string;
+      reason?: string;
+    }>;
+    familyAlertSent: boolean;
+    familyAlertMessage?: string;
+  };
+
+  // Metadata
+  generatedBy: 'ai' | 'rule_based';
+  generatedAt: Date;
 }
 
 // ============= Alert System Types =============

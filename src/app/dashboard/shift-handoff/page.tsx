@@ -7,12 +7,13 @@ import { useSubscription } from '@/lib/subscription';
 import { FeatureGate } from '@/components/shared/FeatureGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar, Lock } from 'lucide-react';
+import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar, Lock, ChevronDown, ChevronUp } from 'lucide-react';
 import { startShiftSession, endShiftSession } from '@/lib/ai/shiftHandoffGeneration';
 import { linkShiftToSession } from '@/lib/firebase/scheduleShifts';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ShiftSession, ShiftHandoffNote, ScheduledShift } from '@/types';
 import { format } from 'date-fns';
+import { SOAPNoteDisplay } from '@/components/shift-handoff/SOAPNoteDisplay';
 
 export default function ShiftHandoffPage() {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ export default function ShiftHandoffPage() {
   const [recentHandoffs, setRecentHandoffs] = useState<ShiftHandoffNote[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedHandoffId, setExpandedHandoffId] = useState<string | null>(null);
 
   // Load active shift, scheduled shift, and recent handoffs
   useEffect(() => {
@@ -340,85 +342,138 @@ export default function ShiftHandoffPage() {
             </p>
           ) : (
             <div className="space-y-4">
-              {recentHandoffs.map((handoff) => (
-                <Card key={handoff.id} className="border-2">
-                  <CardContent className="pt-6">
-                    <div className="space-y-3">
-                      {/* Header */}
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">
-                            {format(handoff.shiftPeriod.start, 'MMM d, yyyy')}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {format(handoff.shiftPeriod.start, 'h:mm a')} -
-                            {format(handoff.shiftPeriod.end, 'h:mm a')}
-                          </p>
+              {recentHandoffs.map((handoff) => {
+                const isExpanded = expandedHandoffId === handoff.id;
+                const hasSOAPNote = !!handoff.soapNote;
+
+                return (
+                  <Card key={handoff.id} className="border-2">
+                    {/* Collapsed Header - Always visible */}
+                    <button
+                      onClick={() => setExpandedHandoffId(isExpanded ? null : handoff.id)}
+                      className="w-full text-left"
+                    >
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <p className="font-semibold text-gray-900 dark:text-white">
+                                  {format(handoff.shiftPeriod.start, 'MMM d, yyyy')}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {format(handoff.shiftPeriod.start, 'h:mm a')} -
+                                  {format(handoff.shiftPeriod.end, 'h:mm a')}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Quick summary when collapsed */}
+                            {!isExpanded && (
+                              <div className="mt-2 flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                <span>Mood: {handoff.summary.mood.overall}</span>
+                                {handoff.summary.medicationsGiven.length > 0 && (
+                                  <span>
+                                    Meds: {handoff.summary.medicationsGiven.filter(m => m.status !== 'missed').length}/
+                                    {handoff.summary.medicationsGiven.length} given
+                                  </span>
+                                )}
+                                {handoff.soapNote?.plan.actions.some(a => a.priority === 'critical') && (
+                                  <span className="text-red-600 font-medium">Action Required</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {handoff.isRoutineShift ? (
+                              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-xs font-medium rounded-full">
+                                Routine
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs font-medium rounded-full">
+                                Attention Needed
+                              </span>
+                            )}
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
                         </div>
-                        {handoff.isRoutineShift ? (
-                          <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-xs font-medium rounded-full">
-                            Routine
-                          </span>
+                      </CardContent>
+                    </button>
+
+                    {/* Expanded Content - SOAP Note or Legacy Format */}
+                    {isExpanded && (
+                      <CardContent className="border-t pt-6">
+                        {hasSOAPNote && handoff.soapNote ? (
+                          <SOAPNoteDisplay
+                            soapNote={handoff.soapNote}
+                            elderName={selectedElder?.name || 'Elder'}
+                            shiftStart={handoff.shiftPeriod.start}
+                            shiftEnd={handoff.shiftPeriod.end}
+                          />
                         ) : (
-                          <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs font-medium rounded-full">
-                            Attention Needed
-                          </span>
+                          /* Legacy format for older handoff notes */
+                          <div className="space-y-3">
+                            {/* Mood */}
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                Mood
+                              </p>
+                              <p className="text-sm text-gray-900 dark:text-white capitalize">
+                                {handoff.summary.mood.overall}
+                                {handoff.summary.mood.notes && ` - ${handoff.summary.mood.notes}`}
+                              </p>
+                            </div>
+
+                            {/* Medications */}
+                            {handoff.summary.medicationsGiven.length > 0 && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
+                                  Medications Given
+                                </p>
+                                <div className="space-y-1">
+                                  {handoff.summary.medicationsGiven.map((med, idx) => (
+                                    <p key={idx} className="text-sm text-gray-900 dark:text-white">
+                                      • {med.name} -
+                                      <span className={
+                                        med.status === 'missed' ? 'text-red-600' :
+                                        med.status === 'late' ? 'text-yellow-600' :
+                                        'text-green-600'
+                                      }>
+                                        {' '}{med.status}
+                                      </span>
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Notes for Next Shift */}
+                            {handoff.summary.notesForNextShift.length > 0 && (
+                              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                <p className="text-xs font-medium text-blue-900 dark:text-blue-100 uppercase mb-2">
+                                  Important Notes
+                                </p>
+                                <div className="space-y-1">
+                                  {handoff.summary.notesForNextShift.map((note, idx) => (
+                                    <p key={idx} className="text-sm text-blue-800 dark:text-blue-200">
+                                      • {note}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         )}
-                      </div>
-
-                      {/* Mood */}
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                          Mood
-                        </p>
-                        <p className="text-sm text-gray-900 dark:text-white capitalize">
-                          {handoff.summary.mood.overall}
-                          {handoff.summary.mood.notes && ` - ${handoff.summary.mood.notes}`}
-                        </p>
-                      </div>
-
-                      {/* Medications */}
-                      {handoff.summary.medicationsGiven.length > 0 && (
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">
-                            Medications Given
-                          </p>
-                          <div className="space-y-1">
-                            {handoff.summary.medicationsGiven.map((med, idx) => (
-                              <p key={idx} className="text-sm text-gray-900 dark:text-white">
-                                • {med.name} -
-                                <span className={
-                                  med.status === 'missed' ? 'text-red-600' :
-                                  med.status === 'late' ? 'text-yellow-600' :
-                                  'text-green-600'
-                                }>
-                                  {med.status}
-                                </span>
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Notes for Next Shift */}
-                      {handoff.summary.notesForNextShift.length > 0 && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                          <p className="text-xs font-medium text-blue-900 dark:text-blue-100 uppercase mb-2">
-                            Important Notes
-                          </p>
-                          <div className="space-y-1">
-                            {handoff.summary.notesForNextShift.map((note, idx) => (
-                              <p key={idx} className="text-sm text-blue-800 dark:text-blue-200">
-                                • {note}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </CardContent>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>

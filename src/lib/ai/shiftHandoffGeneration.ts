@@ -25,8 +25,10 @@ import type {
   ShiftHandoffNote,
   MedicationLog,
   DietEntry,
+  SupplementLog,
   Elder
 } from '@/types';
+import { generateSOAPNote, shouldSendFamilyNotification, formatFamilyNotification } from './soapNoteGenerator';
 
 interface NotableEvent {
   type: 'symptom' | 'mood' | 'incident' | 'visitor' | 'activity' | 'other';
@@ -42,7 +44,8 @@ export async function generateShiftHandoffNote(
   shiftSessionId: string,
   groupId: string,
   elderId: string,
-  elderName: string
+  elderName: string,
+  caregiverName?: string
 ): Promise<ShiftHandoffNote | null> {
   try {
     // Get shift session
@@ -65,7 +68,7 @@ export async function generateShiftHandoffNote(
       throw new Error('Shift not ended yet');
     }
 
-    // Gather shift data
+    // Gather shift data (now includes supplements)
     const shiftData = await gatherShiftData(
       groupId,
       elderId,
@@ -100,7 +103,7 @@ export async function generateShiftHandoffNote(
       notableEvents
     );
 
-    // Generate AI notes for next shift
+    // Generate AI notes for next shift (legacy format)
     const notesForNextShift = generateNextShiftNotes(
       medicationsGiven,
       mealsLogged,
@@ -115,6 +118,19 @@ export async function generateShiftHandoffNote(
       notableEvents,
       mood
     );
+
+    // Generate SOAP note using AI/rule-based system
+    const soapNote = await generateSOAPNote({
+      elderName,
+      shiftStart: shift.startTime,
+      shiftEnd: shift.endTime,
+      caregiverName: caregiverName || 'Caregiver',
+      medicationLogs: shiftData.medicationLogs,
+      supplementLogs: shiftData.supplementLogs,
+      dietEntries: shiftData.dietEntries,
+      notableEvents,
+      mood,
+    });
 
     // Create handoff note - exclude undefined fields for Firestore
     const handoffNote: Record<string, any> = {
@@ -135,7 +151,28 @@ export async function generateShiftHandoffNote(
         notesForNextShift
       },
       isRoutineShift,
-      viewedBy: []
+      viewedBy: [],
+      // Add SOAP note
+      soapNote: {
+        ...soapNote,
+        // Convert dates to Firestore-compatible format
+        generatedAt: soapNote.generatedAt,
+        objective: {
+          ...soapNote.objective,
+          medications: soapNote.objective.medications.map(m => ({
+            ...m,
+            time: m.time
+          })),
+          supplements: soapNote.objective.supplements.map(s => ({
+            ...s,
+            time: s.time
+          })),
+          nutrition: soapNote.objective.nutrition.map(n => ({
+            ...n,
+            time: n.time
+          })),
+        }
+      }
     };
 
     // Save to Firestore
@@ -146,6 +183,19 @@ export async function generateShiftHandoffNote(
       handoffNoteGenerated: true,
       handoffNoteId: handoffRef.id
     });
+
+    // Check if family notification should be sent
+    if (shouldSendFamilyNotification(soapNote)) {
+      const alertMessage = formatFamilyNotification(soapNote, elderName);
+      // TODO: Send push notification to family members
+      console.log('Family notification triggered:', alertMessage);
+
+      // Update the handoff note with notification status
+      await updateDoc(handoffRef, {
+        'soapNote.plan.familyAlertSent': true,
+        'soapNote.plan.familyAlertMessage': alertMessage
+      });
+    }
 
     return { ...handoffNote, id: handoffRef.id } as ShiftHandoffNote;
   } catch (error) {
@@ -178,6 +228,21 @@ async function gatherShiftData(
     ...doc.data()
   })) as MedicationLog[];
 
+  // Get supplement logs during shift
+  const suppLogsQuery = query(
+    collection(db, 'supplementLogs'),
+    where('groupId', '==', groupId),
+    where('elderId', '==', elderId),
+    where('timestamp', '>=', Timestamp.fromDate(startTime)),
+    where('timestamp', '<=', Timestamp.fromDate(endTime)),
+    orderBy('timestamp', 'desc')
+  );
+  const suppLogsSnap = await getDocs(suppLogsQuery);
+  const supplementLogs = suppLogsSnap.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data()
+  })) as SupplementLog[];
+
   // Get diet entries during shift
   const dietQuery = query(
     collection(db, 'dietEntries'),
@@ -195,6 +260,7 @@ async function gatherShiftData(
 
   return {
     medicationLogs,
+    supplementLogs,
     dietEntries
   };
 }
