@@ -145,10 +145,13 @@ service cloud.firestore {
 
     // Check if user can access a specific group (either member or assigned caregiver)
     // Uses subcollection: users/{userId}/group_access/{groupId}
+    // Also allows access for agency caregivers (they have agencies array in user doc)
     function canAccessGroup(groupId) {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return isGroupAdmin(groupId) ||
         isMemberOfGroup(groupId) ||
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)/group_access/$(groupId));
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/group_access/$(groupId)) ||
+        (userData.agencies != null && userData.agencies.size() > 0);
     }
 
     // ============= Users Collection =============
