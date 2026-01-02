@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,8 +13,26 @@ import {
   Shield,
 } from 'lucide-react';
 import { PricingCards } from '@/components/pricing/PricingCards';
+import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
+import { type PlanTier } from '@/lib/subscription';
 
 export default function LandingPage() {
+  const [userType, setUserType] = useState<UserType>(null);
+
+  // Map user type to recommended plan
+  const getRecommendedPlan = (type: UserType): PlanTier | null => {
+    switch (type) {
+      case 'family':
+        return 'single_agency'; // Family Plan B
+      case 'agency':
+        return 'multi_agency';
+      default:
+        return null;
+    }
+  };
+
+  const recommendedPlan = getRecommendedPlan(userType);
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -66,7 +85,23 @@ export default function LandingPage() {
 
         The old duplicated code has been commented out below for reference.
       */}
-      <PricingCards showHeader={true} showTrialInfo={true} defaultSelectedPlan="single_agency" />
+
+      {/* User Type Selector */}
+      <div className="bg-gray-50 dark:bg-gray-900 pt-16">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <UserTypeSelector
+            selectedType={userType}
+            onSelect={setUserType}
+          />
+        </div>
+      </div>
+
+      <PricingCards
+        showHeader={false}
+        showTrialInfo={true}
+        defaultSelectedPlan={recommendedPlan || 'single_agency'}
+        recommendedPlan={recommendedPlan}
+      />
 
       {/*
         ========================================
