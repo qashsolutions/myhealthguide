@@ -20,7 +20,8 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Check if user has active trial OR subscription
+    // Check if user has active trial OR subscription OR agency membership
+    // Caregivers don't have personal subscriptions - they're under agency subscription
     // Optimized to use single get() call to reduce read count
     function hasActiveAccess(userId) {
       let userData = get(/databases/$(database)/documents/users/$(userId)).data;
@@ -29,7 +30,8 @@ service cloud.firestore {
         (userData.subscriptionStatus == 'active' ||
          (userData.subscriptionStatus == 'trial' &&
           userData.trialEndDate != null &&
-          request.time < userData.trialEndDate));
+          request.time < userData.trialEndDate) ||
+         (userData.agencies != null && userData.agencies.size() > 0));
     }
 
     // Check if user has verified email
@@ -784,13 +786,14 @@ service cloud.firestore {
         hasActiveAccess(request.auth.uid) &&
         (resource.data.caregiverId == request.auth.uid ||
          (resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId)) ||
-         isMemberOfGroup(resource.data.groupId));
+         canAccessGroup(resource.data.groupId));
 
       // Caregivers can create their own shift sessions
+      // Uses canAccessGroup which includes agency caregiver assignments
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
         request.resource.data.caregiverId == request.auth.uid &&
-        isMemberOfGroup(request.resource.data.groupId);
+        canAccessGroup(request.resource.data.groupId);
 
       // Caregivers can update their own sessions (to end shift)
       allow update: if hasActiveAccess(request.auth.uid) &&
@@ -806,19 +809,21 @@ service cloud.firestore {
     match /shiftHandoffNotes/{noteId} {
       // All caregivers in the group can read handoff notes
       // Agency super admin can read all notes
+      // Uses canAccessGroup for agency caregiver access
       allow read: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
         ((resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId)) ||
-         isMemberOfGroup(resource.data.groupId));
+         canAccessGroup(resource.data.groupId));
 
       // System creates handoff notes when shift ends
+      // Uses canAccessGroup which includes agency caregiver assignments
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(request.resource.data.groupId);
+        canAccessGroup(request.resource.data.groupId);
 
       // Caregivers can update to acknowledge reading the handoff
       allow update: if hasActiveAccess(request.auth.uid) &&
-        isMemberOfGroup(resource.data.groupId);
+        canAccessGroup(resource.data.groupId);
 
       // GDPR: Admin can delete even without active trial
       allow delete: if isGroupAdmin(resource.data.groupId) ||
