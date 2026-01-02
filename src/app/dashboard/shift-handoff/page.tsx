@@ -158,7 +158,8 @@ export default function ShiftHandoffPage() {
         activeShift.id,
         user.groups?.[0]?.groupId || '',
         selectedElder.id,
-        selectedElder.name
+        selectedElder.name,
+        user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email || 'Caregiver' // Pass caregiver name for SOAP note
       );
 
       await loadActiveShift();

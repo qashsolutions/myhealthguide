@@ -665,7 +665,8 @@ export async function endShiftSession(
   shiftSessionId: string,
   groupId: string,
   elderId: string,
-  elderName: string
+  elderName: string,
+  caregiverName?: string
 ): Promise<ShiftHandoffNote | null> {
   try {
     // Update shift session
@@ -678,12 +679,13 @@ export async function endShiftSession(
       updatedAt: endTime
     });
 
-    // Generate handoff note
+    // Generate handoff note with SOAP format
     const handoffNote = await generateShiftHandoffNote(
       shiftSessionId,
       groupId,
       elderId,
-      elderName
+      elderName,
+      caregiverName
     );
 
     return handoffNote;
