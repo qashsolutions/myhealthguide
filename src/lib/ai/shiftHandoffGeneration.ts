@@ -187,8 +187,17 @@ export async function generateShiftHandoffNote(
     // Check if family notification should be sent
     if (shouldSendFamilyNotification(soapNote)) {
       const alertMessage = formatFamilyNotification(soapNote, elderName);
-      // TODO: Send push notification to family members
       console.log('Family notification triggered:', alertMessage);
+
+      // Send push notifications to family members
+      await sendFamilyPushNotifications(
+        groupId,
+        elderId,
+        elderName,
+        alertMessage,
+        shift.caregiverId,
+        handoffRef.id
+      );
 
       // Update the handoff note with notification status
       await updateDoc(handoffRef, {
@@ -692,5 +701,82 @@ export async function endShiftSession(
   } catch (error) {
     console.error('Error ending shift session:', error);
     return null;
+  }
+}
+
+/**
+ * Send push notifications to family members about shift handoff
+ */
+async function sendFamilyPushNotifications(
+  groupId: string,
+  elderId: string,
+  elderName: string,
+  alertMessage: string,
+  caregiverId: string,
+  handoffNoteId: string
+): Promise<void> {
+  try {
+    // Get group to find family members
+    const groupDoc = await getDocs(query(
+      collection(db, 'groups'),
+      where('id', '==', groupId)
+    ));
+
+    if (groupDoc.empty) {
+      console.log('Group not found for notifications');
+      return;
+    }
+
+    const groupData = groupDoc.docs[0].data();
+    const members = groupData.members || [];
+
+    // Get all member user IDs except the caregiver who created the note
+    const familyMemberIds = members
+      .filter((m: any) => m.userId !== caregiverId)
+      .map((m: any) => m.userId);
+
+    if (familyMemberIds.length === 0) {
+      console.log('No family members to notify');
+      return;
+    }
+
+    // Queue FCM notifications for each family member
+    const notificationPromises = familyMemberIds.map(async (userId: string) => {
+      try {
+        await addDoc(collection(db, 'fcm_notification_queue'), {
+          userId,
+          title: `Care Update: ${elderName}`,
+          body: alertMessage,
+          data: {
+            type: 'shift_handoff_alert',
+            groupId,
+            elderId,
+            handoffNoteId,
+            url: '/dashboard/shift-handoff'
+          },
+          webpush: {
+            fcmOptions: {
+              link: '/dashboard/shift-handoff'
+            },
+            notification: {
+              icon: '/icon-192x192.png',
+              badge: '/icon-192x192.png',
+              tag: `handoff-${handoffNoteId}`,
+              requireInteraction: true
+            }
+          },
+          status: 'pending',
+          createdAt: new Date()
+        });
+        console.log(`Queued notification for user: ${userId}`);
+      } catch (err) {
+        console.error(`Failed to queue notification for ${userId}:`, err);
+      }
+    });
+
+    await Promise.all(notificationPromises);
+    console.log(`Queued ${familyMemberIds.length} family notifications`);
+  } catch (error) {
+    console.error('Error sending family notifications:', error);
   }
 }
