@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,9 +16,22 @@ import {
 import { PricingCards } from '@/components/pricing/PricingCards';
 import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
 import { type PlanTier } from '@/lib/subscription';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LandingPage() {
   const [userType, setUserType] = useState<UserType>(null);
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // Redirect subscribed users to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      const status = user.subscriptionStatus;
+      if (status === 'active' || status === 'trial') {
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, loading, router]);
 
   // Map user type to recommended plan
   const getRecommendedPlan = (type: UserType): PlanTier | null => {
