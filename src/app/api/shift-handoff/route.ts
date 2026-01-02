@@ -27,13 +27,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    // Check multi-agency plan
-    if (userData.subscriptionTier !== 'multi_agency') {
+    // Check if user has agency membership or multi-agency subscription
+    // Caregivers don't have subscriptionTier but are part of an agency through agencies array
+    const hasAgencyMembership = userData.agencies && userData.agencies.length > 0;
+    const hasMultiAgencyTier = userData.subscriptionTier === 'multi_agency';
+
+    if (!hasAgencyMembership && !hasMultiAgencyTier) {
       return NextResponse.json({ success: false, error: 'Multi-agency plan required' }, { status: 403 });
     }
 
     // Check if user is caregiver or super_admin in an agency
-    const isAgencyCaregiver = userData.agencies?.some((a: any) => a.role === 'caregiver');
+    const isAgencyCaregiver = userData.agencies?.some((a: any) =>
+      a.role === 'caregiver' || a.role === 'caregiver_admin'
+    );
     const isSuperAdmin = userData.agencies?.some((a: any) => a.role === 'super_admin');
 
     if (!isAgencyCaregiver && !isSuperAdmin) {
