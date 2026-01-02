@@ -153,20 +153,30 @@ export default function NewDietEntryPage() {
     setError('');
 
     try {
-      const groupId = user.groups[0]?.groupId;
+      // Get elder data first - we need groupId from elder, not from user.groups
+      // This is critical for agency caregivers who may not have groups array populated
+      const elder = activeElders.find(e => e.id === elderId);
+      if (!elder) {
+        throw new Error('Elder not found');
+      }
+
+      const groupId = elder.groupId;
       if (!groupId) {
-        throw new Error('You must be part of a group');
+        throw new Error('Elder does not have a group assigned');
       }
 
       const userId = user.id;
-      const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
 
-      if (!userRole) {
-        throw new Error('Unable to determine user role');
+      // Determine user role - check agency role first, then group role
+      const agencyRole = user.agencies?.[0]?.role;
+      let userRole: 'admin' | 'caregiver' | 'member' = 'member';
+      if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') {
+        userRole = 'admin';
+      } else if (agencyRole === 'caregiver') {
+        userRole = 'caregiver';
+      } else if (user.groups?.[0]?.role === 'admin') {
+        userRole = 'admin';
       }
-
-      // Get elder data for enhanced analysis
-      const elder = activeElders.find(e => e.id === elderId);
       const elderAge = elder?.approximateAge || 75;
       const elderConditions = elder?.knownConditions || [];
       const elderWeight = elder?.weight;
