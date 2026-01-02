@@ -177,7 +177,17 @@ export default function NewDietEntryPage() {
       let finalAnalysis = analysis;
       let finalItems = parsedItems.length > 0 ? parsedItems : [];
 
+      console.log('[DietNew] Starting save:', {
+        hasExistingAnalysis: !!analysis,
+        existingScore: analysis?.nutritionScore,
+        parsedItemsCount: parsedItems.length,
+        meal,
+        elderId,
+        groupId
+      });
+
       if (!finalAnalysis || finalItems.length === 0) {
+        console.log('[DietNew] Running auto-analysis...');
         try {
           const result = await analyzeDietEntryWithParsing(
             {
@@ -196,6 +206,11 @@ export default function NewDietEntryPage() {
               dietaryRestrictions: elderDietaryRestrictions
             }
           );
+          console.log('[DietNew] Auto-analysis result:', {
+            hasResult: !!result,
+            score: result?.nutritionScore,
+            parsedItems: result?.parsedItems?.length
+          });
           finalAnalysis = result;
           if (result.parsedItems && result.parsedItems.length > 0) {
             finalItems = result.parsedItems;
@@ -203,7 +218,7 @@ export default function NewDietEntryPage() {
           }
           setAnalysis(finalAnalysis);
         } catch (analysisErr) {
-          console.warn('Auto-analysis failed, saving with raw input:', analysisErr);
+          console.error('[DietNew] Auto-analysis FAILED:', analysisErr);
           // If parsing failed, use the raw input as a single item
           if (finalItems.length === 0 && freeformInput.trim()) {
             finalItems = [freeformInput.trim()];
@@ -215,6 +230,12 @@ export default function NewDietEntryPage() {
       if (finalItems.length === 0 && freeformInput.trim()) {
         finalItems = [freeformInput.trim()];
       }
+
+      console.log('[DietNew] About to save entry:', {
+        hasAiAnalysis: !!finalAnalysis,
+        aiAnalysisScore: finalAnalysis?.nutritionScore,
+        itemsCount: finalItems.length
+      });
 
       await DietService.createEntry({
         elderId,
@@ -229,6 +250,7 @@ export default function NewDietEntryPage() {
         createdAt: new Date()
       }, userId, userRole);
 
+      console.log('[DietNew] Entry saved successfully');
       router.push('/dashboard/diet');
     } catch (err: any) {
       console.error('Save error:', err);

@@ -42,12 +42,22 @@ export default function DietPage() {
       setError(null);
 
       try {
+        console.log('[DietPage] Loading entries for elder:', selectedElder.id, 'groupId:', selectedElder.groupId);
         const dietEntries = await DietService.getEntriesByElder(
           selectedElder.id,
           selectedElder.groupId,
           user.id,
           getUserRole()
         );
+        console.log('[DietPage] Loaded entries:', dietEntries.length);
+        dietEntries.forEach((entry, idx) => {
+          console.log(`[DietPage] Entry ${idx}: ${entry.meal}`, {
+            id: entry.id,
+            hasAiAnalysis: !!entry.aiAnalysis,
+            score: entry.aiAnalysis?.nutritionScore,
+            items: entry.items
+          });
+        });
         setEntries(dietEntries);
       } catch (err: any) {
         console.error('Error loading diet entries:', err);
