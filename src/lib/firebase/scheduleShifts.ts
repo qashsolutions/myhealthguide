@@ -148,16 +148,11 @@ export async function createScheduledShift(
   recurringScheduleId?: string
 ): Promise<{ success: boolean; shiftId?: string; error?: string; conflict?: ScheduleConflict }> {
   try {
-    // Check for conflicts (including availability)
-    const conflict = await checkScheduleConflicts(caregiverId, agencyId, date, startTime, endTime);
-    if (conflict) {
-      return { success: false, error: conflict.message, conflict };
-    }
-
     // Calculate duration
     const duration = parseTime(endTime) - parseTime(startTime);
 
-    const shift: Omit<ScheduledShift, 'id'> = {
+    // Build shift object, excluding undefined fields (Firestore doesn't accept undefined)
+    const shift: Record<string, any> = {
       agencyId,
       groupId,
       elderId,
@@ -169,13 +164,19 @@ export async function createScheduledShift(
       endTime,
       duration,
       status: 'scheduled',
-      notes,
       isRecurring,
-      recurringScheduleId,
       createdBy,
       createdAt: new Date(),
       updatedAt: new Date()
     };
+
+    // Only add optional fields if they have values
+    if (notes) {
+      shift.notes = notes;
+    }
+    if (recurringScheduleId) {
+      shift.recurringScheduleId = recurringScheduleId;
+    }
 
     const shiftRef = await addDoc(collection(db, 'scheduledShifts'), shift);
 
@@ -183,7 +184,7 @@ export async function createScheduledShift(
     await notifyShiftAssigned(agencyId, caregiverId, {
       id: shiftRef.id,
       ...shift
-    });
+    } as ScheduledShift);
 
     return { success: true, shiftId: shiftRef.id };
   } catch (error: any) {
