@@ -55,6 +55,16 @@ function DailyCareContent() {
   // Dialog state
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
 
+  // Determine user's role (needed for ReminderDialog)
+  const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
+    const agencyRole = user?.agencies?.[0]?.role;
+    if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') return 'admin';
+    if (agencyRole === 'caregiver') return 'caregiver';
+    const groupRole = user?.groups?.[0]?.role;
+    if (groupRole === 'admin') return 'admin';
+    return 'member';
+  };
+
   // Load medications
   const { data: medications, loading: medsLoading } = useElderDataLoader<Medication[]>({
     fetcher: (elder, user, role) =>
