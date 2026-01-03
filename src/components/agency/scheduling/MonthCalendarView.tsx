@@ -30,6 +30,19 @@ import {
 } from 'date-fns';
 import type { ScheduledShift } from '@/types';
 
+// Caregiver color type - must match ShiftSchedulingCalendar
+interface CaregiverColor {
+  bg: string;
+  border: string;
+  text: string;
+}
+
+interface CaregiverInfo {
+  id: string;
+  name: string;
+  color: CaregiverColor;
+}
+
 interface MonthCalendarViewProps {
   shifts: ScheduledShift[];
   selectedDates: Date[];
@@ -39,9 +52,17 @@ interface MonthCalendarViewProps {
   onSelectPattern: (pattern: 'weekdays' | 'weekends' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') => void;
   currentMonth: Date;
   onMonthChange: (date: Date) => void;
+  caregivers?: CaregiverInfo[];
 }
 
 const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Default color for shifts when caregiver color not found
+const DEFAULT_SHIFT_COLOR: CaregiverColor = {
+  bg: 'bg-green-100 dark:bg-green-900/30',
+  border: 'border-green-400',
+  text: 'text-green-700 dark:text-green-300'
+};
 
 export function MonthCalendarView({
   shifts,
@@ -51,9 +72,16 @@ export function MonthCalendarView({
   onClearSelection,
   onSelectPattern,
   currentMonth,
-  onMonthChange
+  onMonthChange,
+  caregivers = []
 }: MonthCalendarViewProps) {
   const today = startOfDay(new Date());
+
+  // Get color for a caregiver
+  const getCaregiverColor = (caregiverId: string): CaregiverColor => {
+    const caregiver = caregivers.find(c => c.id === caregiverId);
+    return caregiver?.color || DEFAULT_SHIFT_COLOR;
+  };
 
   // Generate calendar days for the month (including padding days from prev/next months)
   const calendarDays = useMemo(() => {
@@ -284,14 +312,17 @@ export function MonthCalendarView({
                   {/* Shift Indicators */}
                   {hasShifts && (
                     <div className="mt-1 space-y-0.5">
-                      {dayShifts.slice(0, 2).map((shift, shiftIdx) => (
-                        <div
-                          key={shiftIdx}
-                          className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded px-1 truncate"
-                        >
-                          {shift.startTime} {shift.caregiverName?.split(' ')[0]}
-                        </div>
-                      ))}
+                      {dayShifts.slice(0, 2).map((shift, shiftIdx) => {
+                        const color = getCaregiverColor(shift.caregiverId);
+                        return (
+                          <div
+                            key={shiftIdx}
+                            className={`text-[10px] ${color.bg} ${color.text} rounded px-1 truncate`}
+                          >
+                            {shift.startTime} {shift.caregiverName?.split(' ')[0]}
+                          </div>
+                        );
+                      })}
                       {dayShifts.length > 2 && (
                         <div className="text-[10px] text-gray-500">
                           +{dayShifts.length - 2} more

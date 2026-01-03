@@ -666,6 +666,7 @@ export function ShiftSchedulingCalendar({
           onSelectPattern={handleSelectPattern}
           currentMonth={currentMonth}
           onMonthChange={setCurrentMonth}
+          caregivers={caregivers}
         />
       ) : (
         /* Week View */
