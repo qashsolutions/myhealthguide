@@ -324,6 +324,11 @@ export default function DietPage() {
 
                 {/* Re-analyze button for entries without analysis */}
                 {!entry.aiAnalysis && (
+                  <div className="p-2 bg-amber-100 text-amber-800 rounded text-xs mb-2">
+                    No nutrition analysis - click below to analyze
+                  </div>
+                )}
+                {!entry.aiAnalysis && (
                   <Button
                     variant="outline"
                     size="sm"
