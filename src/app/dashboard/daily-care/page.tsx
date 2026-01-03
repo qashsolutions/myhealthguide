@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { useFeatureTracking, useTabTracking } from '@/hooks/useFeatureTracking';
+import { useElderDataLoader } from '@/hooks/useDataLoader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,72 +52,39 @@ function DailyCareContent() {
     activity: 'daily_care_activity',
   });
 
-  // Data states
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [supplements, setSupplements] = useState<Supplement[]>([]);
-  const [dietEntries, setDietEntries] = useState<DietEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Dialog state
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
 
-  // Determine user's role
-  const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
-    const agencyRole = user?.agencies?.[0]?.role;
-    if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') return 'admin';
-    if (agencyRole === 'caregiver') return 'caregiver';
-    const groupRole = user?.groups?.[0]?.role;
-    if (groupRole === 'admin') return 'admin';
-    return 'member';
-  };
+  // Load medications
+  const { data: medications, loading: medsLoading } = useElderDataLoader<Medication[]>({
+    fetcher: (elder, user, role) =>
+      MedicationService.getMedicationsByElder(elder.id, elder.groupId, user.id, role),
+    elder: selectedElder,
+    user,
+    errorPrefix: 'Failed to load medications',
+  });
 
-  // Load data for selected elder
-  useEffect(() => {
-    async function loadData() {
-      if (!selectedElder || !user) {
-        setMedications([]);
-        setSupplements([]);
-        setDietEntries([]);
-        setLoading(false);
-        return;
-      }
+  // Load supplements
+  const { data: supplements, loading: suppsLoading } = useElderDataLoader<Supplement[]>({
+    fetcher: (elder, user, role) =>
+      SupplementService.getSupplementsByElder(elder.id, elder.groupId, user.id, role),
+    elder: selectedElder,
+    user,
+    errorPrefix: 'Failed to load supplements',
+  });
 
-      setLoading(true);
+  // Load diet entries (filtered to today)
+  const { data: dietEntries, loading: dietLoading } = useElderDataLoader<DietEntry[]>({
+    fetcher: (elder, user, role) =>
+      DietService.getEntriesByElder(elder.id, elder.groupId, user.id, role),
+    elder: selectedElder,
+    user,
+    transform: (entries) => entries.filter(d => isToday(new Date(d.timestamp))),
+    errorPrefix: 'Failed to load diet entries',
+  });
 
-      try {
-        const [meds, supps, diet] = await Promise.all([
-          MedicationService.getMedicationsByElder(
-            selectedElder.id,
-            selectedElder.groupId,
-            user.id,
-            getUserRole()
-          ),
-          SupplementService.getSupplementsByElder(
-            selectedElder.id,
-            selectedElder.groupId,
-            user.id,
-            getUserRole()
-          ),
-          DietService.getEntriesByElder(
-            selectedElder.id,
-            selectedElder.groupId,
-            user.id,
-            getUserRole()
-          ),
-        ]);
-
-        setMedications(meds);
-        setSupplements(supps);
-        setDietEntries(diet.filter(d => isToday(new Date(d.timestamp))));
-      } catch (err: any) {
-        console.error('Error loading data:', err);
-        console.error('Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedElder, user]);
+  // Combined loading state
+  const loading = medsLoading || suppsLoading || dietLoading;
 
   // Change tab
   const setActiveTab = (tab: TabType) => {
