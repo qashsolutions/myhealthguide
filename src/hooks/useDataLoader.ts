@@ -109,6 +109,11 @@ export interface UseDataLoaderReturn<T> {
    * Whether data has been loaded at least once
    */
   hasLoaded: boolean;
+
+  /**
+   * Manually update data (for local updates without refetch)
+   */
+  setData: React.Dispatch<React.SetStateAction<T>>;
 }
 
 /**
@@ -223,6 +228,7 @@ export function useDataLoader<T>(
     reload,
     reset,
     hasLoaded,
+    setData,
   };
 }
 

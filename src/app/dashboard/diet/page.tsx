@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Mic, Utensils, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { DietService } from '@/lib/firebase/diet';
+import { useElderDataLoader } from '@/hooks/useDataLoader';
 import type { DietEntry } from '@/types';
 import { isToday, startOfDay, format } from 'date-fns';
 import { analyzeDietEntryWithParsing } from '@/lib/ai/geminiService';
@@ -16,12 +17,18 @@ import { CollapsibleDaySection } from '@/components/diet/CollapsibleDaySection';
 export default function DietPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
-  const [entries, setEntries] = useState<DietEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
+  const [reanalyzeError, setReanalyzeError] = useState<string | null>(null);
 
-  // Determine user's role
+  const { data: entries, loading, error, setData: setEntries } = useElderDataLoader<DietEntry[]>({
+    fetcher: (elder, user, role) =>
+      DietService.getEntriesByElder(elder.id, elder.groupId, user.id, role),
+    elder: selectedElder,
+    user,
+    errorPrefix: 'Failed to load diet entries',
+  });
+
+  // Get user role for re-analysis (still needed for handleReanalyze)
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
     const agencyRole = user?.agencies?.[0]?.role;
     if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') return 'admin';
@@ -30,38 +37,6 @@ export default function DietPage() {
     if (groupRole === 'admin') return 'admin';
     return 'member';
   };
-
-  // Load diet entries for selected elder
-  useEffect(() => {
-    async function loadEntries() {
-      if (!selectedElder || !user) {
-        setEntries([]);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const dietEntries = await DietService.getEntriesByElder(
-          selectedElder.id,
-          selectedElder.groupId,
-          user.id,
-          getUserRole()
-        );
-        setEntries(dietEntries);
-      } catch (err: any) {
-        console.error('Error loading diet entries:', err);
-        setError(err.message || 'Failed to load diet entries');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadEntries();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedElder, user]);
 
   // Group entries by date
   const entriesByDate = useMemo(() => {
@@ -91,7 +66,7 @@ export default function DietPage() {
     if (!user || !selectedElder || reanalyzingId) return;
 
     setReanalyzingId(entry.id);
-    setError(null);
+    setReanalyzeError(null);
 
     try {
       const freeformText = entry.items.join(', ');
@@ -128,11 +103,11 @@ export default function DietPage() {
           )
         );
       } else {
-        setError('Analysis failed - please try again');
+        setReanalyzeError('Analysis failed - please try again');
       }
     } catch (err: any) {
       console.error('Re-analysis failed:', err);
-      setError(err.message || 'Failed to re-analyze entry');
+      setReanalyzeError(err.message || 'Failed to re-analyze entry');
     } finally {
       setReanalyzingId(null);
     }
@@ -184,9 +159,9 @@ export default function DietPage() {
         </div>
       </div>
 
-      {error && (
+      {(error || reanalyzeError) && (
         <div className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-          {error}
+          {error || reanalyzeError}
         </div>
       )}
 
