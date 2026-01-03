@@ -10,7 +10,7 @@ import { DietService } from '@/lib/firebase/diet';
 import type { DietEntry } from '@/types';
 import { isToday, startOfDay, format } from 'date-fns';
 import { analyzeDietEntryWithParsing } from '@/lib/ai/geminiService';
-import { DailyCaloriePieChart } from '@/components/diet/DailyCaloriePieChart';
+import { WeeklyNutritionSummary } from '@/components/diet/WeeklyNutritionSummary';
 import { CollapsibleDaySection } from '@/components/diet/CollapsibleDaySection';
 
 export default function DietPage() {
@@ -204,12 +204,9 @@ export default function DietPage() {
         </div>
       ) : (
         <>
-          {/* Today's Summary Pie Chart */}
+          {/* Weekly Nutrition Summary with Day Tabs */}
           {entriesByDate.length > 0 && (
-            <DailyCaloriePieChart
-              entries={entries}
-              selectedDate={new Date()}
-            />
+            <WeeklyNutritionSummary entries={entries} />
           )}
 
           {/* Entries Grouped by Day */}
