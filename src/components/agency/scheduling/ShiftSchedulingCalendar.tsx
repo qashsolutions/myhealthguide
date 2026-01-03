@@ -35,6 +35,7 @@ import {
 } from 'date-fns';
 import { getScheduledShifts } from '@/lib/firebase/scheduleShifts';
 import { AgencyService } from '@/lib/firebase/agencies';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ScheduledShift, CaregiverAssignment, Elder } from '@/types';
 import { CreateShiftDialog } from './CreateShiftDialog';
 import { ShiftDetailsPopover } from './ShiftDetailsPopover';
@@ -125,8 +126,24 @@ export function ShiftSchedulingCalendar({
         uniqueCaregiverIds.add(shift.caregiverId);
       });
 
-      // Fetch actual caregiver names from users collection
-      const caregiverNames = await AgencyService.getUserNames(Array.from(uniqueCaregiverIds));
+      // Fetch actual caregiver names via API (avoids Firestore permission issues)
+      let caregiverNames = new Map<string, string>();
+      try {
+        const response = await authenticatedFetch('/api/agency/caregiver-names', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userIds: Array.from(uniqueCaregiverIds),
+            agencyId
+          })
+        });
+        const data = await response.json();
+        if (data.success && data.names) {
+          caregiverNames = new Map(Object.entries(data.names));
+        }
+      } catch (err) {
+        console.error('Error fetching caregiver names:', err);
+      }
 
       // Build caregiver info list with real names
       const caregiverInfos: CaregiverInfo[] = [];
