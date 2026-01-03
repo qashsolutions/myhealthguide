@@ -1,5 +1,5 @@
 - review the documents. build prod ready files, do not add To-Dos. do not assume-ask me when in doubt.
-- today is Nov 25, 2025.
+- today is Jan 3, 2026.
 
 ## CRITICAL: Authentication & Firestore Best Practices
 
@@ -196,7 +196,7 @@ match /sessionEvents/{eventId} {
 - `src/app/(auth)/phone-login/page.tsx`
 
 **Do NOT remove** the +1 prefix logic - it's required for Firebase phone authentication to work correctly for US numbers.
-- Today is Nov 28, 2025
+- Today is Jan 3, 2026
 - the firebase config will not work in local
 
 ### 7. Unified AI & Medical Consent System (IMPLEMENTED: Nov 28, 2025)
@@ -334,9 +334,19 @@ import {
 - Create new QuickInsights-style components - use `QuickInsightsCard`
 - Use 'late' as a database status - map to 'taken' instead
 
-### 9. Gemini API Configuration (UPDATED: Dec 29, 2025)
+### 9. Gemini API Configuration (UPDATED: Jan 3, 2026)
 
 **Model:** `gemini-3-pro-preview` with thinking mode
+
+**CRITICAL - Google Model Retirement Notice (Jan 2026):**
+| Model | Retirement Date | Status |
+|-------|-----------------|--------|
+| gemini-2.5-flash-preview-09-2025 | Jan 15, 2026 | ⚠️ Imminent |
+| gemini-2.0-flash | Mar 3, 2026 | Migrated ✅ |
+| gemini-2.0-flash-lite | Mar 3, 2026 | N/A |
+| gemini-1.5-pro | Older | Migrated ✅ |
+
+**All files now use `gemini-3-pro-preview`** - migration completed Jan 3, 2026.
 
 **API Endpoint (Direct Gemini API):**
 ```
@@ -348,25 +358,32 @@ https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:gen
 generationConfig: {
   temperature: 0.7,
   maxOutputTokens: 1024,
-  thinking_config: {
-    include_thoughts: false // Set to true for deep reasoning tasks
+  thinkingConfig: {
+    thinkingLevel: 'medium'  // 'low' | 'medium' | 'high'
   }
 }
 ```
 
 **Configuration for Vertex AI SDK (@google-cloud/vertexai):**
 ```typescript
-// Gemini 3 uses thinkingConfig with thinkingLevel (not thinking_config)
-generationConfig: {
-  temperature: 0.3,
-  maxOutputTokens: 8192,
-},
-// thinkingLevel: 'high' | 'low' for Gemini 3 Pro
-// thinkingLevel: 'minimal' | 'low' | 'medium' | 'high' for Gemini 3 Flash
-thinkingConfig: {
-  thinkingLevel: 'high'
-}
+// Gemini 3 uses thinkingConfig at model level (NOT inside generationConfig)
+const model = vertex.preview.getGenerativeModel({
+  model: 'gemini-3-pro-preview',
+  generationConfig: {
+    temperature: 0.3,
+    maxOutputTokens: 8192,
+  },
+  // @ts-ignore - thinkingConfig is valid for Gemini 3
+  thinkingConfig: {
+    thinkingLevel: 'medium'  // 'low' | 'medium' | 'high'
+  },
+});
 ```
+
+**Thinking Levels:**
+- `low` - Fast, minimal reasoning
+- `medium` - Balanced (recommended for most tasks)
+- `high` - Deep reasoning for complex medical/analytical queries
 
 **Environment Variables:**
 - `GEMINI_API_KEY` - Primary AI provider for direct Gemini API (Vercel environment variable)
@@ -374,21 +391,31 @@ thinkingConfig: {
 - `GOOGLE_APPLICATION_CREDENTIALS_JSON` - Service account JSON for Vertex AI SDK (Vercel environment variable)
 - `GOOGLE_CLOUD_PROJECT_ID` - GCP project ID for Vertex AI
 
-**Files using Gemini 3 Pro Preview:**
+**Files using Gemini 3 Pro Preview (ALL files migrated):**
 - `src/lib/ai/chatService.ts` - Smart Assistant chat (Direct API)
 - `src/lib/ai/geminiService.ts` - General AI service (Direct API)
 - `src/lib/ai/voiceSearch.ts` - Voice search (Direct API)
 - `src/lib/ai/medgemmaService.ts` - Medical AI queries (Vertex AI SDK)
 - `src/lib/ai/agenticAnalytics.ts` - AI-driven analytics (Direct API with Claude fallback)
+- `src/lib/ai/soapNoteGenerator.ts` - SOAP note generation (Direct API)
+- `src/lib/ai/elderHealthInsights.ts` - Health insights (Direct API)
+- `src/lib/ai/documentAnalysis.ts` - Document analysis (Vertex AI SDK)
+- `src/lib/ai/nutritionScoring.ts` - Nutrition analysis (Direct API)
+- `src/lib/ai/noteProcessingService.ts` - Note processing (Direct API)
+- `src/lib/medical/dementiaAssessment/` - Dementia assessment (Direct API)
 
 **DEPRECATED Models (DO NOT USE):**
-- `medlm-large` - Deprecated September 29, 2025. Use `gemini-3-pro-preview` instead.
-- `gemini-2.0-flash` - Being discontinued. Use `gemini-3-pro-preview` or `gemini-3-flash-preview`.
+- `medlm-large` - Deprecated September 29, 2025
+- `gemini-2.0-flash` - Retired March 3, 2026
+- `gemini-2.0-flash-lite` - Retired March 3, 2026
+- `gemini-1.5-pro` - Superseded by Gemini 3
+- `gemini-2.5-flash-preview-09-2025` - Retired January 15, 2026
 
 **DO NOT:**
-- Use deprecated models (medlm-large, gemini-2.0-flash)
-- Mix thinking_config (Direct API) with thinkingConfig (Vertex AI) syntaxes
+- Use any deprecated models listed above
+- Mix thinkingConfig placement (Direct API: inside generationConfig, Vertex AI: at model level)
 - Expose GEMINI_API_KEY or ANTHROPIC_API_KEY to client-side (must go through API routes)
+- Forget to add `// @ts-ignore` before thinkingConfig in Vertex AI SDK calls (TypeScript types may be outdated)
 
 ### 10. Agentic AI Analytics (IMPLEMENTED: Dec 8, 2025)
 
