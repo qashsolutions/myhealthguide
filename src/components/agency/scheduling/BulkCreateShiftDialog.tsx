@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,7 @@ interface BulkCreateShiftDialogProps {
   elders: Elder[];
   onShiftsCreated: () => void;
   onClearSelection: () => void;
+  preSelectedCaregiverId?: string; // Pre-select if caregiver filter is active
 }
 
 interface CreationResult {
@@ -63,7 +64,8 @@ export function BulkCreateShiftDialog({
   caregivers,
   elders,
   onShiftsCreated,
-  onClearSelection
+  onClearSelection,
+  preSelectedCaregiverId
 }: BulkCreateShiftDialogProps) {
   const [selectedCaregiver, setSelectedCaregiver] = useState<string>('');
   const [selectedElder, setSelectedElder] = useState<string>('');
@@ -75,6 +77,22 @@ export function BulkCreateShiftDialog({
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<CreationResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  // Store created shift details for success message
+  const [createdShiftDetails, setCreatedShiftDetails] = useState<{
+    caregiverName: string;
+    elderName: string;
+    startTime: string;
+    endTime: string;
+    totalHours: number;
+  } | null>(null);
+
+  // Pre-select caregiver if filter is active
+  useEffect(() => {
+    if (open && preSelectedCaregiverId) {
+      setSelectedCaregiver(preSelectedCaregiverId);
+    }
+  }, [open, preSelectedCaregiverId]);
 
   const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
 
@@ -160,6 +178,14 @@ export function BulkCreateShiftDialog({
 
     const successCount = creationResults.filter(r => r.success).length;
     if (successCount > 0) {
+      // Store details for success message
+      setCreatedShiftDetails({
+        caregiverName: caregiver.name,
+        elderName: elder.name,
+        startTime,
+        endTime,
+        totalHours: (duration * successCount) / 60
+      });
       onShiftsCreated();
     }
   };
@@ -167,7 +193,7 @@ export function BulkCreateShiftDialog({
   const handleClose = () => {
     if (!loading) {
       // Reset form
-      setSelectedCaregiver('');
+      setSelectedCaregiver(preSelectedCaregiverId || '');
       setSelectedElder('');
       setStartTime('09:00');
       setEndTime('17:00');
@@ -176,6 +202,7 @@ export function BulkCreateShiftDialog({
       setProgress(0);
       setResults([]);
       setShowResults(false);
+      setCreatedShiftDetails(null);
       onOpenChange(false);
     }
   };
@@ -221,6 +248,25 @@ export function BulkCreateShiftDialog({
                 </div>
               )}
             </div>
+
+            {/* Show created shift details */}
+            {createdShiftDetails && successCount > 0 && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-600 dark:text-gray-400">Caregiver:</div>
+                  <div className="font-medium">{createdShiftDetails.caregiverName}</div>
+
+                  <div className="text-gray-600 dark:text-gray-400">Elder:</div>
+                  <div className="font-medium">{createdShiftDetails.elderName}</div>
+
+                  <div className="text-gray-600 dark:text-gray-400">Time:</div>
+                  <div className="font-medium">{createdShiftDetails.startTime} - {createdShiftDetails.endTime}</div>
+
+                  <div className="text-gray-600 dark:text-gray-400">Total Hours:</div>
+                  <div className="font-medium">{createdShiftDetails.totalHours.toFixed(1)} hours</div>
+                </div>
+              </div>
+            )}
 
             {failCount > 0 && (
               <div className="space-y-2">

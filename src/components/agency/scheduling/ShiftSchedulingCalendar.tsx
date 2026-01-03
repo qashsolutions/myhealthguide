@@ -768,6 +768,7 @@ export function ShiftSchedulingCalendar({
         elders={elders}
         onShiftsCreated={handleShiftCreated}
         onClearSelection={handleClearSelection}
+        preSelectedCaregiverId={selectedCaregiver !== 'all' ? selectedCaregiver : undefined}
       />
 
       {/* Shift Details Popover */}
