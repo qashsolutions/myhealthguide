@@ -21,12 +21,11 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { CalendarIcon, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { createScheduledShift } from '@/lib/firebase/scheduleShifts';
 import { AgencyService } from '@/lib/firebase/agencies';
-import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
-import type { Elder, ScheduleConflict } from '@/types';
+import type { Elder } from '@/types';
 
 interface CaregiverInfo {
   id: string;
@@ -64,9 +63,6 @@ export function CreateShiftDialog({
   const [elders, setElders] = useState<Elder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [conflict, setConflict] = useState<ScheduleConflict | null>(null);
-  const [checkingConflict, setCheckingConflict] = useState(false);
-  const [conflictChecked, setConflictChecked] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -78,13 +74,6 @@ export function CreateShiftDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, agencyId, initialDate]);
 
-  useEffect(() => {
-    // Reset conflict when inputs change
-    setConflict(null);
-    setConflictChecked(false);
-    setError(null);
-  }, [selectedCaregiver, date, startTime, endTime]);
-
   const loadElders = async () => {
     try {
       // Get elders from the elders collection via AgencyService
@@ -92,38 +81,6 @@ export function CreateShiftDialog({
       setElders(eldersData);
     } catch (err) {
       console.error('Error loading elders:', err);
-    }
-  };
-
-  const handleCheckConflict = async () => {
-    if (!selectedCaregiver || !date) return;
-
-    setCheckingConflict(true);
-    setConflict(null);
-    try {
-      const response = await authenticatedFetch('/api/agency/check-conflicts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caregiverId: selectedCaregiver,
-          agencyId,
-          date: date.toISOString(),
-          startTime,
-          endTime
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setConflict(data.conflict);
-        setConflictChecked(true);
-      } else {
-        console.error('Error checking conflicts:', data.error);
-      }
-    } catch (err) {
-      console.error('Error checking conflicts:', err);
-    } finally {
-      setCheckingConflict(false);
     }
   };
 
@@ -176,10 +133,7 @@ export function CreateShiftDialog({
         setDate(undefined);
         onShiftCreated();
       } else {
-        if (result.conflict) {
-          setConflict(result.conflict);
-        }
-        setError(result.error || 'Failed to create shift');
+        setError(result.conflict?.message || result.error || 'Failed to create shift');
       }
     } catch (err: any) {
       console.error('Error creating shift:', err);
@@ -218,26 +172,6 @@ export function CreateShiftDialog({
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Conflict Warning */}
-          {conflict && (
-            <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800 dark:text-amber-200">
-                <strong>Scheduling Conflict:</strong> {conflict.message}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* No Conflict - Success */}
-          {conflictChecked && !conflict && (
-            <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800 dark:text-green-200">
-                No conflicts detected. Caregiver is available for this time slot.
-              </AlertDescription>
             </Alert>
           )}
 
@@ -317,19 +251,6 @@ export function CreateShiftDialog({
             </span>
           </div>
 
-          {/* Check Conflict Button */}
-          {selectedCaregiver && date && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCheckConflict}
-              disabled={checkingConflict}
-              className="w-full"
-            >
-              {checkingConflict ? 'Checking...' : 'Check for Conflicts'}
-            </Button>
-          )}
-
           {/* Notes */}
           <div className="space-y-2">
             <Label>Notes (optional)</Label>
@@ -346,7 +267,7 @@ export function CreateShiftDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || !!conflict}>
+          <Button onClick={handleSubmit} disabled={loading}>
             {loading ? 'Creating...' : 'Create Shift'}
           </Button>
         </DialogFooter>
