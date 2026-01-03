@@ -5,40 +5,7 @@
 
 import { DailySummary, DietAnalysis, AIAnalysis } from '@/types';
 import { logPHIThirdPartyDisclosure, UserRole } from '../medical/phiAuditLog';
-
-/**
- * Clean object for Firestore - removes undefined and null values
- * Firestore throws errors if you try to save undefined values
- */
-function cleanForFirestore<T extends Record<string, any>>(obj: T): T {
-  const cleaned: Record<string, any> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    // Skip undefined and null values
-    if (value === undefined || value === null) {
-      continue;
-    }
-
-    // Recursively clean nested objects
-    if (typeof value === 'object' && !Array.isArray(value)) {
-      cleaned[key] = cleanForFirestore(value);
-    }
-    // Clean arrays - filter out undefined/null and clean objects
-    else if (Array.isArray(value)) {
-      cleaned[key] = value
-        .filter(item => item !== undefined && item !== null)
-        .map(item =>
-          typeof item === 'object' ? cleanForFirestore(item) : item
-        );
-    }
-    // Keep primitive values as-is
-    else {
-      cleaned[key] = value;
-    }
-  }
-
-  return cleaned as T;
-}
+import { cleanForFirestore } from '@/lib/utils/firestoreHelpers';
 
 /**
  * Generate daily summary using Gemini AI
@@ -336,7 +303,7 @@ Return ONLY valid JSON matching this structure:
           const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            return cleanForFirestore(parsed);
+            return cleanForFirestore(parsed, { removeNull: true }) as DietAnalysis;
           }
         }
       } catch (geminiError) {
@@ -368,7 +335,7 @@ Return ONLY valid JSON matching this structure:
           const jsonMatch = claudeText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            return cleanForFirestore(parsed);
+            return cleanForFirestore(parsed, { removeNull: true }) as DietAnalysis;
           }
         }
       } catch (claudeError) {
@@ -527,7 +494,7 @@ Return ONLY valid JSON:
           const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            return cleanForFirestore(parsed);
+            return cleanForFirestore(parsed, { removeNull: true }) as DietAnalysis;
           }
         }
       } catch (geminiError) {
@@ -559,7 +526,7 @@ Return ONLY valid JSON:
           const jsonMatch = claudeText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            return cleanForFirestore(parsed);
+            return cleanForFirestore(parsed, { removeNull: true }) as DietAnalysis;
           }
         }
       } catch (claudeError) {
