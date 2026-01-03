@@ -34,6 +34,7 @@ import { CaregiverEldersOverview } from './CaregiverEldersOverview';
 import { PendingCaregiversSection } from './PendingCaregiversSection';
 import { ActiveCaregiversSection } from './ActiveCaregiversSection';
 import { FeedbackDashboard } from '@/components/feedback/FeedbackDashboard';
+import { ShiftTrackingDashboard } from './ShiftTrackingDashboard';
 
 interface AgencyDashboardProps {
   userId: string;
@@ -557,6 +558,11 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
           currentCaregiverCount={activeCaregivers}
           maxCaregivers={10}
         />
+      )}
+
+      {/* Shift Tracking Dashboard - Actual vs Planned */}
+      {isSuperAdmin && (
+        <ShiftTrackingDashboard agencyId={agencyId} />
       )}
 
       {/* Smart Feedback Dashboard - Only for Super Admin */}

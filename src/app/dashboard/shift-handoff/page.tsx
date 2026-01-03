@@ -126,30 +126,91 @@ export default function ShiftHandoffPage() {
     }
   };
 
+  // Check if clock-in is allowed (within 10 minutes of scheduled start)
+  const canClockIn = (): { allowed: boolean; reason?: string; minutesUntilStart?: number } => {
+    if (!scheduledShift) {
+      return { allowed: false, reason: 'No shift scheduled. Contact your supervisor to assign a shift.' };
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const shiftDate = scheduledShift.date instanceof Date ? scheduledShift.date : new Date(scheduledShift.date);
+    const shiftDay = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
+
+    // Check if shift is for today
+    if (today.getTime() !== shiftDay.getTime()) {
+      return { allowed: false, reason: `Shift is scheduled for ${format(shiftDate, 'MMM d, yyyy')}, not today.` };
+    }
+
+    // Parse scheduled start time
+    const [hours, minutes] = scheduledShift.startTime.split(':').map(Number);
+    const scheduledStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+
+    const diffMinutes = (scheduledStart.getTime() - now.getTime()) / (1000 * 60);
+
+    // Can't clock in more than 10 minutes early
+    if (diffMinutes > 10) {
+      return {
+        allowed: false,
+        reason: `Too early to clock in. Your shift starts at ${scheduledShift.startTime}.`,
+        minutesUntilStart: Math.ceil(diffMinutes)
+      };
+    }
+
+    // Can't clock in more than 30 minutes late (optional grace period)
+    if (diffMinutes < -30) {
+      return {
+        allowed: false,
+        reason: `Shift start time (${scheduledShift.startTime}) has passed by more than 30 minutes. Contact your supervisor.`
+      };
+    }
+
+    return { allowed: true };
+  };
+
   const handleClockIn = async () => {
     if (!user || !selectedElder) return;
+
+    // Check if clock-in is allowed
+    const clockInCheck = canClockIn();
+    if (!clockInCheck.allowed) {
+      setError(clockInCheck.reason || 'Cannot clock in at this time');
+      return;
+    }
+
+    if (!scheduledShift) {
+      setError('No scheduled shift found');
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
-      // Start shift session
-      const shiftSessionId = await startShiftSession(
-        user.groups?.[0]?.groupId || '',
-        selectedElder.id,
-        user.id,
-        user.agencies?.[0]?.agencyId
-      );
-
-      // Link to scheduled shift if exists
-      if (scheduledShift) {
-        await linkShiftToSession(scheduledShift.id, shiftSessionId);
+      // Use elder's groupId (caregivers don't have user.groups populated)
+      const groupId = selectedElder.groupId;
+      if (!groupId) {
+        throw new Error('Elder does not have a group assigned');
       }
 
-      await loadActiveShift();
-      setScheduledShift(null); // Clear scheduled shift after clock-in
+      // Start shift session with scheduled shift reference
+      const shiftSessionId = await startShiftSession(
+        groupId,
+        selectedElder.id,
+        user.id,
+        user.agencies?.[0]?.agencyId,
+        scheduledShift.duration, // Pass planned duration
+        scheduledShift.id, // Pass scheduled shift ID
+        scheduledShift.startTime, // Pass planned start time
+        scheduledShift.endTime // Pass planned end time
+      );
 
-      // TODO: Send notification to admin
+      // Link to scheduled shift (mandatory now)
+      await linkShiftToSession(scheduledShift.id, shiftSessionId);
+
+      await loadActiveShift();
+      await loadScheduledShift(); // Refresh to show updated status
+
     } catch (err: any) {
       setError('Failed to clock in: ' + err.message);
     } finally {
@@ -167,9 +228,16 @@ export default function ShiftHandoffPage() {
       return;
     }
 
+    // Use elder's groupId (caregivers don't have user.groups populated)
+    const groupId = selectedElder.groupId;
+    if (!groupId) {
+      setError('Elder does not have a group assigned');
+      return;
+    }
+
     console.log('[ShiftHandoff] Clocking out with:', {
       shiftSessionId: activeShift.id,
-      groupId: user.groups?.[0]?.groupId || 'NO_GROUP',
+      groupId,
       elderId: selectedElder.id,
       elderName: selectedElder.name,
       activeShiftData: activeShift
@@ -181,7 +249,7 @@ export default function ShiftHandoffPage() {
     try {
       await endShiftSession(
         activeShift.id,
-        user.groups?.[0]?.groupId || '',
+        groupId,
         selectedElder.id,
         selectedElder.name,
         user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email || 'Caregiver' // Pass caregiver name for SOAP note
@@ -312,11 +380,22 @@ export default function ShiftHandoffPage() {
             </>
           ) : (
             <>
-              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                  No active shift. Clock in to start tracking your shift.
-                </p>
-              </div>
+              {/* No Scheduled Shift */}
+              {!scheduledShift && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                        No Shift Scheduled
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        Contact your supervisor to assign a shift for today.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Scheduled Shift Indicator */}
               {scheduledShift && (
@@ -329,12 +408,35 @@ export default function ShiftHandoffPage() {
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         {scheduledShift.startTime} - {scheduledShift.endTime}
+                        {scheduledShift.date && (
+                          <span className="ml-2">
+                            ({format(scheduledShift.date instanceof Date ? scheduledShift.date : new Date(scheduledShift.date), 'MMM d')})
+                          </span>
+                        )}
                       </p>
                       {scheduledShift.notes && (
                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                           Note: {scheduledShift.notes}
                         </p>
                       )}
+                      {/* Clock-in status */}
+                      {(() => {
+                        const status = canClockIn();
+                        if (status.allowed) {
+                          return (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-medium">
+                              ✓ Ready to clock in
+                            </p>
+                          );
+                        } else if (status.minutesUntilStart) {
+                          return (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                              Clock-in available in {status.minutesUntilStart} minutes
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -342,12 +444,12 @@ export default function ShiftHandoffPage() {
 
               <Button
                 onClick={handleClockIn}
-                disabled={loading}
+                disabled={loading || !canClockIn().allowed}
                 className="w-full"
                 size="lg"
               >
                 <PlayCircle className="w-5 h-5 mr-2" />
-                Clock In
+                {canClockIn().allowed ? 'Clock In' : 'Clock In (Not Available)'}
               </Button>
             </>
           )}

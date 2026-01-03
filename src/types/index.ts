@@ -1316,6 +1316,12 @@ export interface ScheduledShift {
   cancelledBy?: string;
   cancelledAt?: Date;
   cancellationReason?: string;
+  // Actual vs Planned tracking (set on clock-out)
+  actualStartTime?: Date;
+  actualEndTime?: Date;
+  actualDuration?: number; // Actual minutes worked
+  durationVariance?: number; // Actual - Planned (positive = overtime)
+  completedAt?: Date;
 }
 
 export interface ShiftRequest {

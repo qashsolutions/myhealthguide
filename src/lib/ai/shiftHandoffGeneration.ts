@@ -655,24 +655,33 @@ export async function startShiftSession(
   elderId: string,
   caregiverId: string,
   agencyId?: string,
-  plannedDuration?: number
+  plannedDuration?: number,
+  scheduledShiftId?: string,
+  plannedStartTime?: string,
+  plannedEndTime?: string
 ): Promise<string> {
   try {
+    const now = new Date();
+
     // Build session data without undefined values (Firestore doesn't accept undefined)
     const shiftSession: Record<string, any> = {
       groupId,
       elderId,
       caregiverId,
-      startTime: new Date(),
+      startTime: now,
+      actualStartTime: now, // Track actual vs planned
       status: 'active',
       handoffNoteGenerated: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: now,
+      updatedAt: now
     };
 
     // Only add optional fields if they have values
     if (agencyId) shiftSession.agencyId = agencyId;
     if (plannedDuration) shiftSession.plannedDuration = plannedDuration;
+    if (scheduledShiftId) shiftSession.scheduledShiftId = scheduledShiftId;
+    if (plannedStartTime) shiftSession.plannedStartTime = plannedStartTime;
+    if (plannedEndTime) shiftSession.plannedEndTime = plannedEndTime;
 
     const sessionRef = await addDoc(collection(db, 'shiftSessions'), shiftSession);
     return sessionRef.id;
@@ -693,15 +702,54 @@ export async function endShiftSession(
   caregiverName?: string
 ): Promise<ShiftHandoffNote | null> {
   try {
-    // Update shift session
+    // Get shift session to retrieve scheduled shift info
     const shiftRef = doc(db, 'shiftSessions', shiftSessionId);
-    const endTime = new Date();
+    const shiftSnap = await getDoc(shiftRef);
 
+    if (!shiftSnap.exists()) {
+      throw new Error('Shift session not found');
+    }
+
+    const shiftData = shiftSnap.data();
+    const endTime = new Date();
+    const startTime = shiftData.startTime?.toDate ? shiftData.startTime.toDate() : new Date(shiftData.startTime);
+
+    // Calculate actual duration in minutes
+    const actualDuration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+
+    // Update shift session with actual end time and duration
     await updateDoc(shiftRef, {
       endTime,
+      actualEndTime: endTime,
+      actualDuration,
       status: 'completed',
       updatedAt: endTime
     });
+
+    // If linked to a scheduled shift, update it with actual times
+    if (shiftData.scheduledShiftId) {
+      const scheduledShiftRef = doc(db, 'scheduledShifts', shiftData.scheduledShiftId);
+      const scheduledSnap = await getDoc(scheduledShiftRef);
+
+      if (scheduledSnap.exists()) {
+        const scheduledData = scheduledSnap.data();
+        const plannedDuration = scheduledData.duration || 0;
+
+        // Calculate variance (positive = worked longer, negative = worked shorter)
+        const durationVariance = actualDuration - plannedDuration;
+
+        await updateDoc(scheduledShiftRef, {
+          status: 'completed',
+          actualStartTime: startTime,
+          actualEndTime: endTime,
+          actualDuration,
+          durationVariance,
+          shiftSessionId,
+          completedAt: endTime,
+          updatedAt: endTime
+        });
+      }
+    }
 
     // Generate handoff note with SOAP format
     const handoffNote = await generateShiftHandoffNote(
