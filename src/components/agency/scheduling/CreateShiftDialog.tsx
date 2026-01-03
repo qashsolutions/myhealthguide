@@ -21,10 +21,11 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { CalendarIcon, AlertTriangle, Clock } from 'lucide-react';
+import { CalendarIcon, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import { createScheduledShift, checkScheduleConflicts } from '@/lib/firebase/scheduleShifts';
+import { createScheduledShift } from '@/lib/firebase/scheduleShifts';
 import { AgencyService } from '@/lib/firebase/agencies';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { Elder, ScheduleConflict } from '@/types';
 
 interface CaregiverInfo {
@@ -65,6 +66,7 @@ export function CreateShiftDialog({
   const [error, setError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<ScheduleConflict | null>(null);
   const [checkingConflict, setCheckingConflict] = useState(false);
+  const [conflictChecked, setConflictChecked] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -79,6 +81,7 @@ export function CreateShiftDialog({
   useEffect(() => {
     // Reset conflict when inputs change
     setConflict(null);
+    setConflictChecked(false);
     setError(null);
   }, [selectedCaregiver, date, startTime, endTime]);
 
@@ -96,15 +99,27 @@ export function CreateShiftDialog({
     if (!selectedCaregiver || !date) return;
 
     setCheckingConflict(true);
+    setConflict(null);
     try {
-      const result = await checkScheduleConflicts(
-        selectedCaregiver,
-        agencyId,
-        date,
-        startTime,
-        endTime
-      );
-      setConflict(result);
+      const response = await authenticatedFetch('/api/agency/check-conflicts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caregiverId: selectedCaregiver,
+          agencyId,
+          date: date.toISOString(),
+          startTime,
+          endTime
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setConflict(data.conflict);
+        setConflictChecked(true);
+      } else {
+        console.error('Error checking conflicts:', data.error);
+      }
     } catch (err) {
       console.error('Error checking conflicts:', err);
     } finally {
@@ -212,6 +227,16 @@ export function CreateShiftDialog({
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800 dark:text-amber-200">
                 <strong>Scheduling Conflict:</strong> {conflict.message}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* No Conflict - Success */}
+          {conflictChecked && !conflict && (
+            <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800 dark:text-green-200">
+                No conflicts detected. Caregiver is available for this time slot.
               </AlertDescription>
             </Alert>
           )}
