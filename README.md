@@ -1,5 +1,7 @@
 # myguide.health - Caregiver Webapp
 
+[![Tests](https://github.com/qashsolutions/myhealthguide/actions/workflows/tests.yml/badge.svg)](https://github.com/qashsolutions/myhealthguide/actions/workflows/tests.yml)
+
 Production-ready caregiving management platform with voice-powered logging, AI insights, and real-time collaboration.
 
 ## 🚀 Quick Start
@@ -149,6 +151,11 @@ npm start
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript compiler check
+- `npm run test` - Run Jest unit tests
+- `npm run test:rules` - Run Firestore security rules tests (requires emulator)
+- `npm run test:e2e` - Run Playwright E2E tests
+- `npm run test:e2e:smoke` - Run quick smoke tests
+- `npm run test:e2e:ui` - Run E2E tests with interactive UI
 
 ## 🆘 Support
 
