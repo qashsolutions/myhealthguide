@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useDataLoader } from '@/hooks/useDataLoader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,28 +31,15 @@ export default function NutritionAnalysisPage() {
   const elderId = selectedElder?.id;
   const elderName = selectedElder?.name || 'Elder';
 
-  const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [report, setReport] = useState<NutritionAnalysisReport | null>(null);
 
-  useEffect(() => {
-    loadReport();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId, elderId]);
-
-  async function loadReport() {
-    if (!groupId || !elderId) return;
-
-    setLoading(true);
-    try {
-      const result = await getLatestNutritionAnalysis(groupId, elderId);
-      setReport(result);
-    } catch (error) {
-      console.error('Error loading report:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: report, loading, setData: setReport } = useDataLoader<NutritionAnalysisReport | null>({
+    fetcher: () => getLatestNutritionAnalysis(groupId!, elderId!),
+    dependencies: [groupId, elderId],
+    ready: !!groupId && !!elderId,
+    defaultValue: null,
+    errorPrefix: 'Failed to load nutrition report',
+  });
 
   async function runAnalysis() {
     if (!groupId || !elderId) return;
