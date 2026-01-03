@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Mic, Pill, Clock, Calendar, Loader2, Trash2, Edit } from 'lucide-react';
+import { Plus, Mic, Pill, Clock, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,57 +8,21 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
+import { useElderDataLoader } from '@/hooks/useDataLoader';
 import { format } from 'date-fns';
 import type { Medication } from '@/types';
 
 export default function MedicationsPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Determine user's role
-  const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
-    const agencyRole = user?.agencies?.[0]?.role;
-    if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') return 'admin';
-    if (agencyRole === 'caregiver') return 'caregiver';
-    const groupRole = user?.groups?.[0]?.role;
-    if (groupRole === 'admin') return 'admin';
-    return 'member';
-  };
-
-  // Load medications for selected elder
-  useEffect(() => {
-    async function loadMedications() {
-      if (!selectedElder || !user) {
-        setMedications([]);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const meds = await MedicationService.getMedicationsByElder(
-          selectedElder.id,
-          selectedElder.groupId,
-          user.id,
-          getUserRole()
-        );
-        setMedications(meds);
-      } catch (err: any) {
-        console.error('Error loading medications:', err);
-        setError(err.message || 'Failed to load medications');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadMedications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedElder, user]);
+  const { data: medications, loading, error } = useElderDataLoader<Medication[]>({
+    fetcher: (elder, user, role) =>
+      MedicationService.getMedicationsByElder(elder.id, elder.groupId, user.id, role),
+    elder: selectedElder,
+    user,
+    errorPrefix: 'Failed to load medications',
+  });
 
   if (loading) {
     return (

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Plus, Pill, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,56 +7,20 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { SupplementService } from '@/lib/firebase/supplements';
+import { useElderDataLoader } from '@/hooks/useDataLoader';
 import type { Supplement } from '@/types';
 
 export default function SupplementsPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
-  const [supplements, setSupplements] = useState<Supplement[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Determine user's role
-  const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
-    const agencyRole = user?.agencies?.[0]?.role;
-    if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') return 'admin';
-    if (agencyRole === 'caregiver') return 'caregiver';
-    const groupRole = user?.groups?.[0]?.role;
-    if (groupRole === 'admin') return 'admin';
-    return 'member';
-  };
-
-  // Load supplements for selected elder
-  useEffect(() => {
-    async function loadSupplements() {
-      if (!selectedElder || !user) {
-        setSupplements([]);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const supps = await SupplementService.getSupplementsByElder(
-          selectedElder.id,
-          selectedElder.groupId,
-          user.id,
-          getUserRole()
-        );
-        setSupplements(supps);
-      } catch (err: any) {
-        console.error('Error loading supplements:', err);
-        setError(err.message || 'Failed to load supplements');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadSupplements();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedElder, user]);
+  const { data: supplements, loading, error } = useElderDataLoader<Supplement[]>({
+    fetcher: (elder, user, role) =>
+      SupplementService.getSupplementsByElder(elder.id, elder.groupId, user.id, role),
+    elder: selectedElder,
+    user,
+    errorPrefix: 'Failed to load supplements',
+  });
 
   if (loading) {
     return (
