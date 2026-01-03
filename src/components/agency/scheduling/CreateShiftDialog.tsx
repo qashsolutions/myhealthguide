@@ -24,7 +24,7 @@ import {
 import { CalendarIcon, AlertTriangle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { createScheduledShift, checkScheduleConflicts } from '@/lib/firebase/scheduleShifts';
-import { GroupService } from '@/lib/firebase/groups';
+import { AgencyService } from '@/lib/firebase/agencies';
 import type { Elder, ScheduleConflict } from '@/types';
 
 interface CaregiverInfo {
@@ -74,7 +74,7 @@ export function CreateShiftDialog({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, groupId, initialDate]);
+  }, [open, agencyId, initialDate]);
 
   useEffect(() => {
     // Reset conflict when inputs change
@@ -84,10 +84,9 @@ export function CreateShiftDialog({
 
   const loadElders = async () => {
     try {
-      const group = await GroupService.getGroup(groupId);
-      if (group) {
-        setElders(group.elders);
-      }
+      // Get elders from the elders collection via AgencyService
+      const eldersData = await AgencyService.getAgencyElders(agencyId);
+      setElders(eldersData);
     } catch (err) {
       console.error('Error loading elders:', err);
     }
