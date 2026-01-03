@@ -12,8 +12,16 @@ import {
   User,
   Filter,
   Grid3X3,
-  LayoutGrid
+  LayoutGrid,
+  Download,
+  Printer
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import {
   Select,
   SelectContent,
@@ -307,6 +315,117 @@ export function ShiftSchedulingCalendar({
     });
   };
 
+  // Export to CSV
+  const handleExportCSV = () => {
+    const headers = ['Date', 'Day', 'Start Time', 'End Time', 'Duration (hrs)', 'Caregiver', 'Elder', 'Status', 'Notes'];
+    const sortedShifts = [...filteredShifts].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const rows = sortedShifts.map(shift => {
+      const shiftDate = new Date(shift.date);
+      return [
+        format(shiftDate, 'yyyy-MM-dd'),
+        format(shiftDate, 'EEEE'),
+        shift.startTime,
+        shift.endTime,
+        ((shift.duration || 0) / 60).toFixed(1),
+        shift.caregiverName,
+        shift.elderName,
+        shift.status,
+        shift.notes || ''
+      ].map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const periodLabel = viewMode === 'week'
+      ? `${format(currentWeekStart, 'MMM-d')}-${format(endOfWeek(currentWeekStart, { weekStartsOn: 0 }), 'MMM-d-yyyy')}`
+      : format(currentMonth, 'MMMM-yyyy');
+    link.href = URL.createObjectURL(blob);
+    link.download = `shift-schedule-${periodLabel}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  // Print schedule
+  const handlePrint = () => {
+    const sortedShifts = [...filteredShifts].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const periodLabel = viewMode === 'week'
+      ? `${format(currentWeekStart, 'MMM d')} - ${format(endOfWeek(currentWeekStart, { weekStartsOn: 0 }), 'MMM d, yyyy')}`
+      : format(currentMonth, 'MMMM yyyy');
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Shift Schedule - ${periodLabel}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { font-size: 24px; margin-bottom: 5px; }
+          .period { color: #666; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          tr:nth-child(even) { background-color: #fafafa; }
+          .status { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+          .status-scheduled { background: #dbeafe; color: #1e40af; }
+          .status-confirmed { background: #dcfce7; color: #166534; }
+          .status-completed { background: #f3f4f6; color: #374151; }
+          .status-cancelled { background: #fee2e2; color: #991b1b; }
+          .summary { margin-top: 20px; padding: 15px; background: #f9fafb; border-radius: 8px; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <h1>Shift Schedule</h1>
+        <div class="period">${periodLabel}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Caregiver</th>
+              <th>Elder</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sortedShifts.map(shift => `
+              <tr>
+                <td>${format(new Date(shift.date), 'EEE, MMM d')}</td>
+                <td>${shift.startTime} - ${shift.endTime}</td>
+                <td>${shift.caregiverName}</td>
+                <td>${shift.elderName}</td>
+                <td><span class="status status-${shift.status}">${shift.status}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="summary">
+          <strong>Summary:</strong> ${sortedShifts.length} shifts,
+          ${(sortedShifts.reduce((sum, s) => sum + (s.duration || 0) / 60, 0)).toFixed(1)} total hours
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    }
+  };
+
   const getShiftStatusColor = (status: ScheduledShift['status']) => {
     switch (status) {
       case 'scheduled': return 'bg-blue-500';
@@ -397,6 +516,28 @@ export function ShiftSchedulingCalendar({
               <Plus className="w-4 h-4 mr-2" />
               Create {selectedDates.length} Shift{selectedDates.length > 1 ? 's' : ''}
             </Button>
+          )}
+
+          {/* Export Menu */}
+          {filteredShifts.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCSV}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handlePrint}>
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print Schedule
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

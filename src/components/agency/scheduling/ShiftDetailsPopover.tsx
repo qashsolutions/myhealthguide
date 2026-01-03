@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Clock,
   User,
@@ -28,11 +30,10 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  Trash2,
-  ArrowRightLeft
+  Copy
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { cancelScheduledShift, confirmScheduledShift } from '@/lib/firebase/scheduleShifts';
+import { format, addDays } from 'date-fns';
+import { cancelScheduledShift, confirmScheduledShift, createScheduledShift } from '@/lib/firebase/scheduleShifts';
 import type { ScheduledShift } from '@/types';
 
 interface ShiftDetailsPopoverProps {
@@ -55,6 +56,9 @@ export function ShiftDetailsPopover({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [copyDate, setCopyDate] = useState<string>(format(addDays(new Date(shift.date), 1), 'yyyy-MM-dd'));
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const getStatusBadge = (status: ScheduledShift['status']) => {
     switch (status) {
@@ -109,6 +113,48 @@ export function ShiftDetailsPopover({
     } finally {
       setLoading(false);
       setConfirmCancelOpen(false);
+    }
+  };
+
+  const handleCopyShift = async () => {
+    if (!copyDate) return;
+
+    setLoading(true);
+    setError(null);
+    setCopySuccess(false);
+
+    try {
+      const newDate = new Date(copyDate + 'T00:00:00');
+      const result = await createScheduledShift(
+        shift.agencyId,
+        shift.groupId,
+        shift.elderId,
+        shift.elderName,
+        shift.caregiverId,
+        shift.caregiverName,
+        newDate,
+        shift.startTime,
+        shift.endTime,
+        shift.notes,
+        userId,
+        false
+      );
+
+      if (result.success) {
+        setCopySuccess(true);
+        onUpdate();
+        // Close after a brief delay to show success
+        setTimeout(() => {
+          setCopyDialogOpen(false);
+          setCopySuccess(false);
+        }, 1000);
+      } else {
+        setError(result.error || 'Failed to copy shift');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to copy shift');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -210,6 +256,17 @@ export function ShiftDetailsPopover({
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* Copy Shift Button - always available */}
+            <Button
+              variant="outline"
+              onClick={() => setCopyDialogOpen(true)}
+              disabled={loading}
+              className="flex-1 text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy to...
+            </Button>
+
             {canModify && (
               <>
                 {shift.status === 'scheduled' && (
@@ -275,6 +332,78 @@ export function ShiftDetailsPopover({
               disabled={loading}
             >
               {loading ? 'Cancelling...' : 'Cancel Shift'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy Shift Dialog */}
+      <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-600">
+              <Copy className="w-5 h-5" />
+              Copy Shift
+            </DialogTitle>
+            <DialogDescription>
+              Create a duplicate shift on a different date
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {/* Original Shift Info */}
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-1 text-sm">
+              <div><strong>Original:</strong> {format(new Date(shift.date), 'EEEE, MMM d')}</div>
+              <div><strong>Time:</strong> {shift.startTime} - {shift.endTime}</div>
+              <div><strong>Caregiver:</strong> {shift.caregiverName}</div>
+              <div><strong>Elder:</strong> {shift.elderName}</div>
+            </div>
+
+            {/* Date Picker */}
+            <div className="space-y-2">
+              <Label htmlFor="copyDate">Copy to Date</Label>
+              <Input
+                id="copyDate"
+                type="date"
+                value={copyDate}
+                onChange={(e) => setCopyDate(e.target.value)}
+                min={format(new Date(), 'yyyy-MM-dd')}
+              />
+            </div>
+
+            {/* Success Message */}
+            {copySuccess && (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700">
+                  Shift copied successfully!
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCopyDialogOpen(false);
+                setError(null);
+              }}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCopyShift}
+              disabled={loading || !copyDate || copySuccess}
+            >
+              {loading ? 'Copying...' : 'Copy Shift'}
             </Button>
           </DialogFooter>
         </DialogContent>
