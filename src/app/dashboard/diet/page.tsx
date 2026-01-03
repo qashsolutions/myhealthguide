@@ -137,11 +137,11 @@ export default function DietPage() {
         }
       );
 
-      if (result.analysis) {
+      if (result) {
         // Update the entry in Firestore
         await DietService.updateEntry(
           entry.id,
-          { aiAnalysis: result.analysis },
+          { aiAnalysis: result },
           user.id,
           getUserRole()
         );
@@ -149,7 +149,7 @@ export default function DietPage() {
         // Update local state
         setEntries(prev =>
           prev.map(e =>
-            e.id === entry.id ? { ...e, aiAnalysis: result.analysis } : e
+            e.id === entry.id ? { ...e, aiAnalysis: result } : e
           )
         );
       } else {
@@ -323,11 +323,6 @@ export default function DietPage() {
                 )}
 
                 {/* Re-analyze button for entries without analysis */}
-                {!entry.aiAnalysis && (
-                  <div className="p-2 bg-amber-100 text-amber-800 rounded text-xs mb-2">
-                    No nutrition analysis - click below to analyze
-                  </div>
-                )}
                 {!entry.aiAnalysis && (
                   <Button
                     variant="outline"
