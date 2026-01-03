@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,11 +9,10 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   Plus,
-  Clock,
   User,
-  Users,
-  AlertTriangle,
-  Filter
+  Filter,
+  Grid3X3,
+  LayoutGrid
 } from 'lucide-react';
 import {
   Select,
@@ -26,19 +25,27 @@ import {
   format,
   startOfWeek,
   endOfWeek,
+  startOfMonth,
+  endOfMonth,
   addWeeks,
   subWeeks,
+  addMonths,
+  subMonths,
   eachDayOfInterval,
   isSameDay,
   isToday,
-  addDays
+  getDay,
+  isBefore,
+  startOfDay
 } from 'date-fns';
 import { getScheduledShifts } from '@/lib/firebase/scheduleShifts';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
-import type { ScheduledShift, CaregiverAssignment, Elder } from '@/types';
+import type { ScheduledShift, Elder } from '@/types';
 import { CreateShiftDialog } from './CreateShiftDialog';
 import { ShiftDetailsPopover } from './ShiftDetailsPopover';
+import { MonthCalendarView } from './MonthCalendarView';
+import { BulkCreateShiftDialog } from './BulkCreateShiftDialog';
 
 interface ShiftSchedulingCalendarProps {
   agencyId: string;
@@ -66,14 +73,19 @@ interface CaregiverInfo {
   color: typeof CAREGIVER_COLORS[0];
 }
 
+type ViewMode = 'week' | 'month';
+type PatternType = 'weekdays' | 'weekends' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
 export function ShiftSchedulingCalendar({
   agencyId,
   groupId,
   userId
 }: ShiftSchedulingCalendarProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 0 })
   );
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [shifts, setShifts] = useState<ScheduledShift[]>([]);
   const [caregivers, setCaregivers] = useState<CaregiverInfo[]>([]);
   const [elders, setElders] = useState<Elder[]>([]);
@@ -81,7 +93,9 @@ export function ShiftSchedulingCalendar({
   const [selectedCaregiver, setSelectedCaregiver] = useState<string>('all');
   const [selectedElder, setSelectedElder] = useState<string>('all');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [bulkCreateDialogOpen, setBulkCreateDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [selectedShift, setSelectedShift] = useState<ScheduledShift | null>(null);
 
   const weekDays = useMemo(() =>
@@ -92,23 +106,30 @@ export function ShiftSchedulingCalendar({
     [currentWeekStart]
   );
 
+  // Load data based on view mode
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agencyId, groupId, currentWeekStart]);
+  }, [agencyId, groupId, currentWeekStart, currentMonth, viewMode]);
 
   const loadData = async () => {
     try {
       setLoading(true);
 
-      const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
+      // Determine date range based on view mode
+      let startDate: Date;
+      let endDate: Date;
 
-      // Load shifts for the week
-      const shiftsData = await getScheduledShifts(
-        agencyId,
-        currentWeekStart,
-        weekEnd
-      );
+      if (viewMode === 'week') {
+        startDate = currentWeekStart;
+        endDate = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
+      } else {
+        startDate = startOfMonth(currentMonth);
+        endDate = endOfMonth(currentMonth);
+      }
+
+      // Load shifts for the period
+      const shiftsData = await getScheduledShifts(agencyId, startDate, endDate);
       setShifts(shiftsData);
 
       // Load caregivers from assignments
@@ -126,7 +147,7 @@ export function ShiftSchedulingCalendar({
         uniqueCaregiverIds.add(shift.caregiverId);
       });
 
-      // Fetch actual caregiver names via API (avoids Firestore permission issues)
+      // Fetch actual caregiver names via API
       let caregiverNames = new Map<string, string>();
       try {
         const response = await authenticatedFetch('/api/agency/caregiver-names', {
@@ -150,7 +171,6 @@ export function ShiftSchedulingCalendar({
       let colorIndex = 0;
 
       uniqueCaregiverIds.forEach(caregiverId => {
-        // First try to get name from shifts (already denormalized)
         const shiftWithName = shiftsData.find(s => s.caregiverId === caregiverId && s.caregiverName);
         const name = shiftWithName?.caregiverName || caregiverNames.get(caregiverId) || `Caregiver ${caregiverId.substring(0, 6)}`;
 
@@ -164,21 +184,9 @@ export function ShiftSchedulingCalendar({
 
       setCaregivers(caregiverInfos);
 
-      // Get unique elders from shifts
-      const elderMap = new Map<string, Elder>();
-      shiftsData.forEach(shift => {
-        if (!elderMap.has(shift.elderId)) {
-          elderMap.set(shift.elderId, {
-            id: shift.elderId,
-            groupId: shift.groupId,
-            name: shift.elderName || 'Unknown Elder',
-            dateOfBirth: new Date(),
-            notes: '',
-            createdAt: new Date()
-          });
-        }
-      });
-      setElders(Array.from(elderMap.values()));
+      // Load elders from agency
+      const eldersData = await AgencyService.getAgencyElders(agencyId);
+      setElders(eldersData);
 
     } catch (error) {
       console.error('Error loading shift data:', error);
@@ -209,9 +217,10 @@ export function ShiftSchedulingCalendar({
     return caregiver?.color || CAREGIVER_COLORS[0];
   };
 
+  // Week view navigation
   const handlePrevWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const handleNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
-  const handleToday = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const handleTodayWeek = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
 
   const handleDayClick = (date: Date) => {
     setSelectedDate(date);
@@ -221,7 +230,81 @@ export function ShiftSchedulingCalendar({
   const handleShiftCreated = () => {
     loadData();
     setCreateDialogOpen(false);
+    setBulkCreateDialogOpen(false);
     setSelectedDate(null);
+  };
+
+  // Multi-select date handlers for month view
+  const handleDateSelect = (date: Date) => {
+    setSelectedDates(prev => [...prev, date]);
+  };
+
+  const handleDateDeselect = (date: Date) => {
+    setSelectedDates(prev => prev.filter(d => !isSameDay(d, date)));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedDates([]);
+  };
+
+  // Pattern selection for bulk scheduling
+  const handleSelectPattern = (pattern: PatternType) => {
+    const today = startOfDay(new Date());
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+    let patternDays: number[] = [];
+
+    switch (pattern) {
+      case 'weekdays':
+        patternDays = [1, 2, 3, 4, 5]; // Mon-Fri
+        break;
+      case 'weekends':
+        patternDays = [0, 6]; // Sun, Sat
+        break;
+      case 'monday':
+        patternDays = [1];
+        break;
+      case 'tuesday':
+        patternDays = [2];
+        break;
+      case 'wednesday':
+        patternDays = [3];
+        break;
+      case 'thursday':
+        patternDays = [4];
+        break;
+      case 'friday':
+        patternDays = [5];
+        break;
+      case 'saturday':
+        patternDays = [6];
+        break;
+      case 'sunday':
+        patternDays = [0];
+        break;
+    }
+
+    const newSelectedDates = daysInMonth.filter(day => {
+      // Only future dates
+      if (isBefore(day, today)) return false;
+      // Match pattern
+      return patternDays.includes(getDay(day));
+    });
+
+    // Add to existing selection (toggle behavior)
+    setSelectedDates(prev => {
+      const existingSet = new Set(prev.map(d => d.toISOString()));
+      const newDates = newSelectedDates.filter(d => !existingSet.has(d.toISOString()));
+
+      if (newDates.length === 0) {
+        // All pattern dates already selected, deselect them
+        return prev.filter(d => !patternDays.includes(getDay(d)));
+      }
+
+      return [...prev, ...newDates];
+    });
   };
 
   const getShiftStatusColor = (status: ScheduledShift['status']) => {
@@ -236,19 +319,19 @@ export function ShiftSchedulingCalendar({
     }
   };
 
-  // Calculate weekly stats
-  const weeklyStats = useMemo(() => {
+  // Calculate stats
+  const stats = useMemo(() => {
     const totalShifts = filteredShifts.length;
     const totalHours = filteredShifts.reduce((sum, s) => sum + (s.duration || 0) / 60, 0);
-    const uniqueCaregiversThisWeek = new Set(filteredShifts.map(s => s.caregiverId)).size;
+    const uniqueCaregiversCount = new Set(filteredShifts.map(s => s.caregiverId)).size;
     const pendingConfirmation = filteredShifts.filter(s => s.status === 'scheduled').length;
 
-    return { totalShifts, totalHours, uniqueCaregiversThisWeek, pendingConfirmation };
+    return { totalShifts, totalHours, uniqueCaregiversCount, pendingConfirmation };
   }, [filteredShifts]);
 
   return (
     <div className="space-y-4">
-      {/* Header with Navigation */}
+      {/* Header with View Toggle */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -256,46 +339,84 @@ export function ShiftSchedulingCalendar({
             Shift Schedule
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {format(currentWeekStart, 'MMM d')} - {format(endOfWeek(currentWeekStart, { weekStartsOn: 0 }), 'MMM d, yyyy')}
+            {viewMode === 'week'
+              ? `${format(currentWeekStart, 'MMM d')} - ${format(endOfWeek(currentWeekStart, { weekStartsOn: 0 }), 'MMM d, yyyy')}`
+              : format(currentMonth, 'MMMM yyyy')}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handlePrevWeek}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleToday}>
-            Today
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleNextWeek}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button onClick={() => {
-            setSelectedDate(new Date());
-            setCreateDialogOpen(true);
-          }}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Shift
-          </Button>
+          {/* View Toggle */}
+          <div className="flex border rounded-lg overflow-hidden">
+            <Button
+              variant={viewMode === 'week' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('week')}
+              className="rounded-none"
+            >
+              <Grid3X3 className="w-4 h-4 mr-1" />
+              Week
+            </Button>
+            <Button
+              variant={viewMode === 'month' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('month')}
+              className="rounded-none"
+            >
+              <LayoutGrid className="w-4 h-4 mr-1" />
+              Month
+            </Button>
+          </div>
+
+          {viewMode === 'week' && (
+            <>
+              <Button variant="outline" size="sm" onClick={handlePrevWeek}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleTodayWeek}>
+                Today
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleNextWeek}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </>
+          )}
+
+          {viewMode === 'week' && (
+            <Button onClick={() => {
+              setSelectedDate(new Date());
+              setCreateDialogOpen(true);
+            }}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Shift
+            </Button>
+          )}
+
+          {viewMode === 'month' && selectedDates.length > 0 && (
+            <Button onClick={() => setBulkCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create {selectedDates.length} Shift{selectedDates.length > 1 ? 's' : ''}
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-3">
-          <div className="text-2xl font-bold">{weeklyStats.totalShifts}</div>
+          <div className="text-2xl font-bold">{stats.totalShifts}</div>
           <div className="text-xs text-gray-500">Total Shifts</div>
         </Card>
         <Card className="p-3">
-          <div className="text-2xl font-bold">{weeklyStats.totalHours.toFixed(1)}h</div>
+          <div className="text-2xl font-bold">{stats.totalHours.toFixed(1)}h</div>
           <div className="text-xs text-gray-500">Total Hours</div>
         </Card>
         <Card className="p-3">
-          <div className="text-2xl font-bold">{weeklyStats.uniqueCaregiversThisWeek}</div>
+          <div className="text-2xl font-bold">{stats.uniqueCaregiversCount}</div>
           <div className="text-xs text-gray-500">Caregivers</div>
         </Card>
         <Card className="p-3">
-          <div className="text-2xl font-bold text-amber-600">{weeklyStats.pendingConfirmation}</div>
+          <div className="text-2xl font-bold text-amber-600">{stats.pendingConfirmation}</div>
           <div className="text-xs text-gray-500">Pending Confirmation</div>
         </Card>
       </div>
@@ -366,14 +487,26 @@ export function ShiftSchedulingCalendar({
         </div>
       )}
 
-      {/* Calendar Grid */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="h-96 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-            </div>
-          ) : (
+      {/* Calendar Views */}
+      {loading ? (
+        <Card className="h-96 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </Card>
+      ) : viewMode === 'month' ? (
+        <MonthCalendarView
+          shifts={filteredShifts}
+          selectedDates={selectedDates}
+          onDateSelect={handleDateSelect}
+          onDateDeselect={handleDateDeselect}
+          onClearSelection={handleClearSelection}
+          onSelectPattern={handleSelectPattern}
+          currentMonth={currentMonth}
+          onMonthChange={setCurrentMonth}
+        />
+      ) : (
+        /* Week View */
+        <Card>
+          <CardContent className="p-0">
             <div className="grid grid-cols-7 border-b dark:border-gray-700">
               {/* Day Headers */}
               {weekDays.map(day => (
@@ -443,11 +576,11 @@ export function ShiftSchedulingCalendar({
                 );
               })}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Create Shift Dialog */}
+      {/* Create Single Shift Dialog (Week View) */}
       <CreateShiftDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
@@ -457,6 +590,20 @@ export function ShiftSchedulingCalendar({
         initialDate={selectedDate}
         caregivers={caregivers}
         onShiftCreated={handleShiftCreated}
+      />
+
+      {/* Bulk Create Shift Dialog (Month View) */}
+      <BulkCreateShiftDialog
+        open={bulkCreateDialogOpen}
+        onOpenChange={setBulkCreateDialogOpen}
+        agencyId={agencyId}
+        groupId={groupId}
+        userId={userId}
+        selectedDates={selectedDates}
+        caregivers={caregivers}
+        elders={elders}
+        onShiftsCreated={handleShiftCreated}
+        onClearSelection={handleClearSelection}
       />
 
       {/* Shift Details Popover */}
