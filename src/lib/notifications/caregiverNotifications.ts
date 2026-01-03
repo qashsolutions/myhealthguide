@@ -40,20 +40,29 @@ async function createNotification(
   expiresAt?: Date
 ): Promise<{ success: boolean; notificationId?: string; error?: string }> {
   try {
-    const notification: Omit<CaregiverNotification, 'id'> = {
+    // Build notification object, excluding undefined fields (Firestore doesn't accept undefined)
+    const notification: Record<string, any> = {
       agencyId,
       caregiverId,
       type,
       title,
       message,
-      data,
       priority,
       read: false,
       actionRequired,
-      actionUrl,
-      createdAt: new Date(),
-      expiresAt
+      createdAt: new Date()
     };
+
+    // Only add optional fields if they have values
+    if (data) {
+      notification.data = data;
+    }
+    if (actionUrl) {
+      notification.actionUrl = actionUrl;
+    }
+    if (expiresAt) {
+      notification.expiresAt = expiresAt;
+    }
 
     const notificationRef = await addDoc(collection(db, 'caregiverNotifications'), notification);
     return { success: true, notificationId: notificationRef.id };
