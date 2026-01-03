@@ -188,13 +188,18 @@ async function analyzeWithGeminiMultimodal(
 }> {
   const vertex = getVertexAI();
 
-  // Use Gemini 1.5 Pro which has multimodal (vision) capabilities
+  // Use Gemini 3 Pro Preview with multimodal capabilities
   const model = vertex.preview.getGenerativeModel({
-    model: 'gemini-1.5-pro',
+    model: 'gemini-3-pro-preview',
     generationConfig: {
       temperature: 0.2, // Low temperature for accuracy
       topP: 0.95,
       maxOutputTokens: 8192,
+    },
+    // Gemini 3 uses thinkingConfig at model level
+    // @ts-ignore - thinkingConfig is valid for Gemini 3
+    thinkingConfig: {
+      thinkingLevel: 'medium'
     },
     systemInstruction: `You are a medical document analyzer. Your role is to:
 1. Read and extract text from the document
@@ -363,7 +368,7 @@ export async function analyzeDocument(
     fileType,
     filePath: fileUrl,
     status: 'processing',
-    analysisModel: 'gemini-1.5-pro-multimodal',
+    analysisModel: 'gemini-3-pro-preview',
     createdAt: new Date(),
   };
 
@@ -377,7 +382,7 @@ export async function analyzeDocument(
       userRole,
       groupId,
       elderId,
-      serviceName: 'Google Gemini 1.5 Pro (Vertex AI)',
+      serviceName: 'Google Gemini 3 Pro Preview (Vertex AI)',
       serviceType: 'document_analysis',
       dataShared: ['document_image', 'document_content'],
       purpose: 'Analyze medical document to extract structured information using multimodal AI',

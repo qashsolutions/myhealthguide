@@ -21,7 +21,7 @@ import type { ElderHealthInsight, Elder, ActionFlag } from '@/types';
 import { Timestamp } from 'firebase-admin/firestore';
 
 // API endpoints
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent';
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
 /**
@@ -130,6 +130,9 @@ async function callGeminiAPI(prompt: string): Promise<string> {
       generationConfig: {
         temperature: 0.1, // Very low for factual output
         maxOutputTokens: 256,
+        thinkingConfig: {
+          thinkingLevel: 'medium'
+        }
       }
     })
   });
