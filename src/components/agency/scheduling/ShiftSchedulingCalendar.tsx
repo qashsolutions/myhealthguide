@@ -112,40 +112,37 @@ export function ShiftSchedulingCalendar({
 
       // Load caregivers from assignments
       const assignments = await AgencyService.getAgencyAssignments(agencyId);
-      const uniqueCaregivers = new Map<string, string>();
+      const uniqueCaregiverIds = new Set<string>();
 
       assignments.forEach(a => {
-        if (a.active && !uniqueCaregivers.has(a.caregiverId)) {
-          uniqueCaregivers.set(a.caregiverId, a.caregiverId);
+        if (a.active) {
+          uniqueCaregiverIds.add(a.caregiverId);
         }
       });
 
-      // Get caregiver names from shifts or use IDs
-      const caregiverInfos: CaregiverInfo[] = [];
-      const seenCaregivers = new Set<string>();
-
-      // First from shifts (has names)
+      // Also add caregivers from shifts
       shiftsData.forEach(shift => {
-        if (!seenCaregivers.has(shift.caregiverId)) {
-          seenCaregivers.add(shift.caregiverId);
-          caregiverInfos.push({
-            id: shift.caregiverId,
-            name: shift.caregiverName || `Caregiver ${shift.caregiverId.substring(0, 6)}`,
-            color: CAREGIVER_COLORS[caregiverInfos.length % CAREGIVER_COLORS.length]
-          });
-        }
+        uniqueCaregiverIds.add(shift.caregiverId);
       });
 
-      // Then from assignments
-      uniqueCaregivers.forEach((_, id) => {
-        if (!seenCaregivers.has(id)) {
-          seenCaregivers.add(id);
-          caregiverInfos.push({
-            id,
-            name: `Caregiver ${id.substring(0, 6)}`,
-            color: CAREGIVER_COLORS[caregiverInfos.length % CAREGIVER_COLORS.length]
-          });
-        }
+      // Fetch actual caregiver names from users collection
+      const caregiverNames = await AgencyService.getUserNames(Array.from(uniqueCaregiverIds));
+
+      // Build caregiver info list with real names
+      const caregiverInfos: CaregiverInfo[] = [];
+      let colorIndex = 0;
+
+      uniqueCaregiverIds.forEach(caregiverId => {
+        // First try to get name from shifts (already denormalized)
+        const shiftWithName = shiftsData.find(s => s.caregiverId === caregiverId && s.caregiverName);
+        const name = shiftWithName?.caregiverName || caregiverNames.get(caregiverId) || `Caregiver ${caregiverId.substring(0, 6)}`;
+
+        caregiverInfos.push({
+          id: caregiverId,
+          name,
+          color: CAREGIVER_COLORS[colorIndex % CAREGIVER_COLORS.length]
+        });
+        colorIndex++;
       });
 
       setCaregivers(caregiverInfos);

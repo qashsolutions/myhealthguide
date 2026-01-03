@@ -1095,4 +1095,41 @@ export class AgencyService {
       return { sections: [], unassignedElders: [] };
     }
   }
+
+  /**
+   * Get user names by their IDs (for displaying caregiver names)
+   */
+  static async getUserNames(userIds: string[]): Promise<Map<string, string>> {
+    const names = new Map<string, string>();
+
+    if (userIds.length === 0) return names;
+
+    try {
+      // Fetch users in parallel (max 10 at a time to avoid too many concurrent requests)
+      const batchSize = 10;
+      for (let i = 0; i < userIds.length; i += batchSize) {
+        const batch = userIds.slice(i, i + batchSize);
+        const promises = batch.map(async (userId) => {
+          const userRef = doc(db, 'users', userId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            const name = data.firstName && data.lastName
+              ? `${data.firstName} ${data.lastName}`
+              : data.firstName || data.lastName || data.email || `User ${userId.substring(0, 6)}`;
+            return { userId, name };
+          }
+          return { userId, name: `User ${userId.substring(0, 6)}` };
+        });
+
+        const results = await Promise.all(promises);
+        results.forEach(({ userId, name }) => names.set(userId, name));
+      }
+
+      return names;
+    } catch (error) {
+      console.error('Error getting user names:', error);
+      return names;
+    }
+  }
 }
