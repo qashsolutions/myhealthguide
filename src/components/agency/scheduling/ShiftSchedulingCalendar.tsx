@@ -472,18 +472,41 @@ export function ShiftSchedulingCalendar({
 
       {/* Caregiver Legend */}
       {caregivers.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {caregivers.map(c => (
-            <Badge
-              key={c.id}
-              variant="outline"
-              className={`${c.color.bg} ${c.color.border} ${c.color.text} cursor-pointer`}
-              onClick={() => setSelectedCaregiver(selectedCaregiver === c.id ? 'all' : c.id)}
-            >
-              <User className="w-3 h-3 mr-1" />
-              {c.name}
-            </Badge>
-          ))}
+        <div className="flex flex-wrap gap-3">
+          {caregivers.map(c => {
+            const isSelected = selectedCaregiver === c.id;
+            const shiftCount = shifts.filter(s => s.caregiverId === c.id).length;
+            const totalHours = shifts
+              .filter(s => s.caregiverId === c.id)
+              .reduce((sum, s) => sum + (s.duration || 0) / 60, 0);
+
+            return (
+              <button
+                key={c.id}
+                onClick={() => setSelectedCaregiver(isSelected ? 'all' : c.id)}
+                className={`
+                  flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all
+                  ${c.color.bg} ${c.color.text}
+                  ${isSelected
+                    ? 'ring-2 ring-offset-2 ring-blue-500 border-blue-500 shadow-md scale-105'
+                    : `${c.color.border} hover:shadow-sm hover:scale-102`
+                  }
+                `}
+                title={`${c.name}: ${shiftCount} shifts, ${totalHours.toFixed(1)}h this period`}
+              >
+                <User className="w-4 h-4" />
+                <span className="font-medium">{c.name}</span>
+                {shiftCount > 0 && (
+                  <span className={`
+                    ml-1 px-2 py-0.5 text-xs rounded-full
+                    ${isSelected ? 'bg-blue-500 text-white' : 'bg-white/50 dark:bg-black/20'}
+                  `}>
+                    {shiftCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
