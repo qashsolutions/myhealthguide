@@ -23,8 +23,8 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { AlertTriangle, Clock, Calendar, CheckCircle, X } from 'lucide-react';
-import { format } from 'date-fns';
+import { AlertTriangle, Clock, Calendar, CheckCircle } from 'lucide-react';
+import { format, getDay } from 'date-fns';
 import { createScheduledShift } from '@/lib/firebase/scheduleShifts';
 import type { Elder } from '@/types';
 
@@ -95,6 +95,48 @@ export function BulkCreateShiftDialog({
   }, [open, preSelectedCaregiverId]);
 
   const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+
+  // Generate smart summary of selected dates
+  const getDatesSummary = () => {
+    if (sortedDates.length === 0) return '';
+    if (sortedDates.length === 1) return format(sortedDates[0], 'EEE, MMM d, yyyy');
+
+    const firstDate = sortedDates[0];
+    const lastDate = sortedDates[sortedDates.length - 1];
+    const dateRange = `${format(firstDate, 'MMM d')} - ${format(lastDate, 'MMM d, yyyy')}`;
+
+    // Check which days of week are included
+    const daysIncluded = new Set(sortedDates.map(d => getDay(d)));
+    const weekdays = [1, 2, 3, 4, 5]; // Mon-Fri
+    const weekends = [0, 6]; // Sun, Sat
+
+    const isAllWeekdays = weekdays.every(d => daysIncluded.has(d)) &&
+                          !weekends.some(d => daysIncluded.has(d));
+    const isAllWeekends = weekends.every(d => daysIncluded.has(d)) &&
+                          !weekdays.some(d => daysIncluded.has(d));
+
+    // Check for single day pattern (all Mondays, all Tuesdays, etc.)
+    const dayNames = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
+    if (daysIncluded.size === 1) {
+      const dayIndex = Array.from(daysIncluded)[0];
+      return `${dateRange} • All ${dayNames[dayIndex]}`;
+    }
+
+    if (isAllWeekdays) {
+      return `${dateRange} • Weekdays (Mon-Fri)`;
+    }
+
+    if (isAllWeekends) {
+      return `${dateRange} • Weekends (Sat-Sun)`;
+    }
+
+    // Custom selection - show which days
+    const selectedDayNames = Array.from(daysIncluded)
+      .sort()
+      .map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]);
+
+    return `${dateRange} • ${selectedDayNames.join(', ')}`;
+  };
 
   const calculateDuration = () => {
     if (!startTime || !endTime) return 0;
@@ -296,16 +338,17 @@ export function BulkCreateShiftDialog({
               </Alert>
             )}
 
-            {/* Selected Dates Preview */}
-            <div className="space-y-2">
-              <Label>Selected Dates</Label>
-              <div className="flex flex-wrap gap-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-24 overflow-y-auto">
-                {sortedDates.map((date, idx) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
-                    {format(date, 'EEE, MMM d')}
-                  </Badge>
-                ))}
+            {/* Selected Dates Summary */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-blue-600" />
+                <span className="font-medium text-blue-800 dark:text-blue-200">
+                  {sortedDates.length} date{sortedDates.length > 1 ? 's' : ''} selected
+                </span>
               </div>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                {getDatesSummary()}
+              </p>
             </div>
 
             {/* Caregiver Selection */}
