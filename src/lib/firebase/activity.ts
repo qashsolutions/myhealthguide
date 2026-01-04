@@ -37,18 +37,31 @@ async function hashIPAddress(ip: string): Promise<string> {
   return hashHex;
 }
 
+// Cache IP address for the session to avoid repeated API calls
+let cachedIPAddress = '';
+
 /**
  * Get user's IP address (from request headers or API)
+ * Cached per session to avoid rate limiting and timeouts
  */
 async function getIPAddress(): Promise<string> {
+  // Return cached IP if available
+  if (cachedIPAddress) {
+    return cachedIPAddress;
+  }
+
   try {
-    // For client-side, use a free IP API
-    const response = await fetch('https://api.ipify.org?format=json');
+    // For client-side, use a free IP API with short timeout
+    const response = await fetch('https://api.ipify.org?format=json', {
+      signal: AbortSignal.timeout(3000) // 3 second timeout
+    });
     const data = await response.json();
-    return data.ip || 'unknown';
+    cachedIPAddress = data.ip || 'unknown';
+    return cachedIPAddress;
   } catch (error) {
-    console.error('Error fetching IP address:', error);
-    return 'unknown';
+    // Don't log every timeout - just return unknown
+    cachedIPAddress = 'unknown';
+    return cachedIPAddress;
   }
 }
 
