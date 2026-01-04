@@ -150,6 +150,17 @@ export function useDataLoader<T>(
   const isMounted = useRef(true);
   const fetchIdRef = useRef(0);
 
+  // Store fetcher and transform in refs to avoid stale closures
+  // This prevents infinite loops when inline functions are passed
+  const fetcherRef = useRef(fetcher);
+  const transformRef = useRef(transform);
+
+  // Keep refs updated with latest functions
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+    transformRef.current = transform;
+  });
+
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -173,15 +184,17 @@ export function useDataLoader<T>(
     setError(null);
 
     try {
-      const result = await fetcher();
+      // Use ref to get latest fetcher (avoids stale closure)
+      const result = await fetcherRef.current();
 
       // Check if this is still the latest fetch and component is mounted
       if (!isMounted.current || fetchId !== fetchIdRef.current) {
         return;
       }
 
-      // Apply transform if provided
-      const transformedData = transform ? transform(result) : result;
+      // Apply transform if provided (use ref for latest transform)
+      const currentTransform = transformRef.current;
+      const transformedData = currentTransform ? currentTransform(result) : result;
       setData(transformedData);
       setHasLoaded(true);
       onSuccess?.(transformedData);
@@ -200,8 +213,9 @@ export function useDataLoader<T>(
         setLoading(false);
       }
     }
+    // Dependencies: only actual data deps, not function refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, fetcher, transform, errorPrefix, ...dependencies]);
+  }, [ready, errorPrefix, ...dependencies]);
 
   // Fetch on mount and when dependencies change
   useEffect(() => {
