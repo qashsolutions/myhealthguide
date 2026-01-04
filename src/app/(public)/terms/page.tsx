@@ -338,10 +338,14 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">12.3 Liability Cap</h3>
             <p className="mb-4">
-              <strong>IN NO EVENT SHALL QASH SOLUTIONS INC.&apos;S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE TOTAL AMOUNTS ACTUALLY PAID BY YOU TO QASH SOLUTIONS INC. FOR THE SERVICE DURING THE TWELVE (12) MONTHS IMMEDIATELY PRECEDING THE DATE THE CLAIM AROSE, CALCULATED ON A PER-ELDER BASIS WHERE APPLICABLE.</strong>
+              <strong>IN NO EVENT SHALL QASH SOLUTIONS INC.&apos;S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE TOTAL AMOUNTS ACTUALLY PAID BY YOU TO QASH SOLUTIONS INC. FOR THE SERVICE.</strong>
             </p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li><strong>For subscribed users:</strong> Our liability is limited to the equivalent of your monthly subscription plan amount.</li>
+              <li><strong>For free trial users:</strong> As no payment has been made, you may delete all your data and discontinue use of the Service at any time. Our liability to free trial users is zero.</li>
+            </ul>
             <p className="mb-4">
-              For clarity, if you are on a per-elder pricing plan, liability is limited to the subscription fees paid for the specific elder(s) to which the claim relates. THE LIMITATIONS OF THIS SECTION SHALL APPLY TO ANY THEORY OF LIABILITY, WHETHER BASED ON WARRANTY, CONTRACT, STATUTE, TORT (INCLUDING NEGLIGENCE), OR OTHERWISE, AND WHETHER OR NOT WE HAVE BEEN INFORMED OF THE POSSIBILITY OF SUCH DAMAGE.
+              THE LIMITATIONS OF THIS SECTION SHALL APPLY TO ANY THEORY OF LIABILITY, WHETHER BASED ON WARRANTY, CONTRACT, STATUTE, TORT (INCLUDING NEGLIGENCE), OR OTHERWISE, AND WHETHER OR NOT WE HAVE BEEN INFORMED OF THE POSSIBILITY OF SUCH DAMAGE.
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">12.4 Third-Party Services</h3>
