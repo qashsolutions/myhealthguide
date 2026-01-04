@@ -1,20 +1,28 @@
 /**
  * Firebase Cloud Functions for MyGuide Health
  * Handles push notifications and background tasks
+ *
+ * NOTIFICATION STRATEGY (Jan 2026):
+ * - Currently using FCM (Firebase Cloud Messaging) ONLY for push notifications
+ * - FCM requires users to install the PWA and enable notifications
+ * - Twilio SMS integration is commented out but preserved for future use
+ * - When Twilio is needed, uncomment the relevant code and configure credentials
  */
 
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import { defineString } from 'firebase-functions/params';
-import * as twilio from 'twilio';
+// import { defineString } from 'firebase-functions/params';
+
+// ============= TWILIO SMS - DISABLED (Using FCM Only) =============
+// Uncomment when ready to use Twilio for SMS notifications
+// import * as twilio from 'twilio';
+// const twilioAccountSid = defineString('TWILIO_ACCOUNT_SID');
+// const twilioAuthToken = defineString('TWILIO_AUTH_TOKEN');
+// const twilioPhoneNumber = defineString('TWILIO_PHONE_NUMBER');
+// ===================================================================
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
-
-// Define Twilio environment parameters (modern approach)
-const twilioAccountSid = defineString('TWILIO_ACCOUNT_SID');
-const twilioAuthToken = defineString('TWILIO_AUTH_TOKEN');
-const twilioPhoneNumber = defineString('TWILIO_PHONE_NUMBER');
 
 // ============= SCHEDULED FUNCTIONS =============
 
@@ -1573,82 +1581,88 @@ export const processNotificationQueue = functions.firestore
     }
   });
 
-// ============= SMS DELIVERY VIA TWILIO =============
-
-/**
- * Process SMS queue and send via Twilio
- * Trigger: Firestore onCreate in 'sms_queue' collection
- *
- * This function is triggered when a document is added to sms_queue.
- * It sends the SMS via Twilio API and updates the delivery status.
- */
-export const processSMSQueue = functions.firestore
-  .document('sms_queue/{messageId}')
-  .onCreate(async (snapshot, context) => {
-    const messageId = context.params.messageId;
-    const messageData = snapshot.data();
-
-    console.log('Processing SMS:', {
-      id: messageId,
-      to: messageData.to
-    });
-
-    try {
-      // Initialize Twilio client with environment parameters
-      const accountSid = twilioAccountSid.value();
-      const authToken = twilioAuthToken.value();
-      const fromNumber = twilioPhoneNumber.value();
-
-      // Validate Twilio configuration
-      if (!accountSid || !authToken || !fromNumber) {
-        throw new Error('Twilio credentials not configured in environment');
-      }
-
-      // Create Twilio client
-      const client = twilio.default(accountSid, authToken);
-
-      // Send SMS via Twilio
-      const message = await client.messages.create({
-        body: messageData.body,
-        from: fromNumber,
-        to: messageData.to
-      });
-
-      console.log('✅ SMS sent successfully:', {
-        messageId: message.sid,
-        status: message.status,
-        to: messageData.to
-      });
-
-      // Update document with success status
-      await snapshot.ref.update({
-        delivery: {
-          state: 'SUCCESS',
-          endTime: admin.firestore.Timestamp.now(),
-          twilioMessageSid: message.sid,
-          twilioStatus: message.status
-        }
-      });
-
-      return { success: true, twilioSid: message.sid };
-    } catch (error) {
-      console.error('❌ Error sending SMS:', error);
-
-      // Update document with error status
-      await snapshot.ref.update({
-        delivery: {
-          state: 'ERROR',
-          endTime: admin.firestore.Timestamp.now(),
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }
-      });
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  });
+// ============= SMS DELIVERY VIA TWILIO - DISABLED =============
+// Currently using FCM only. Uncomment when Twilio is configured.
+// To enable:
+// 1. Uncomment Twilio imports at top of file
+// 2. Configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+// 3. Uncomment the processSMSQueue function below
+//
+// /**
+//  * Process SMS queue and send via Twilio
+//  * Trigger: Firestore onCreate in 'sms_queue' collection
+//  *
+//  * This function is triggered when a document is added to sms_queue.
+//  * It sends the SMS via Twilio API and updates the delivery status.
+//  */
+// export const processSMSQueue = functions.firestore
+//   .document('sms_queue/{messageId}')
+//   .onCreate(async (snapshot, context) => {
+//     const messageId = context.params.messageId;
+//     const messageData = snapshot.data();
+//
+//     console.log('Processing SMS:', {
+//       id: messageId,
+//       to: messageData.to
+//     });
+//
+//     try {
+//       // Initialize Twilio client with environment parameters
+//       const accountSid = twilioAccountSid.value();
+//       const authToken = twilioAuthToken.value();
+//       const fromNumber = twilioPhoneNumber.value();
+//
+//       // Validate Twilio configuration
+//       if (!accountSid || !authToken || !fromNumber) {
+//         throw new Error('Twilio credentials not configured in environment');
+//       }
+//
+//       // Create Twilio client
+//       const client = twilio.default(accountSid, authToken);
+//
+//       // Send SMS via Twilio
+//       const message = await client.messages.create({
+//         body: messageData.body,
+//         from: fromNumber,
+//         to: messageData.to
+//       });
+//
+//       console.log('✅ SMS sent successfully:', {
+//         messageId: message.sid,
+//         status: message.status,
+//         to: messageData.to
+//       });
+//
+//       // Update document with success status
+//       await snapshot.ref.update({
+//         delivery: {
+//           state: 'SUCCESS',
+//           endTime: admin.firestore.Timestamp.now(),
+//           twilioMessageSid: message.sid,
+//           twilioStatus: message.status
+//         }
+//       });
+//
+//       return { success: true, twilioSid: message.sid };
+//     } catch (error) {
+//       console.error('❌ Error sending SMS:', error);
+//
+//       // Update document with error status
+//       await snapshot.ref.update({
+//         delivery: {
+//           state: 'ERROR',
+//           endTime: admin.firestore.Timestamp.now(),
+//           error: error instanceof Error ? error.message : 'Unknown error'
+//         }
+//       });
+//
+//       return {
+//         success: false,
+//         error: error instanceof Error ? error.message : 'Unknown error'
+//       };
+//     }
+//   });
+// ================================================================
 
 // ============= MEDICATION REMINDERS =============
 

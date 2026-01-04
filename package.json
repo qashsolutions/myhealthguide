@@ -15,7 +15,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:smoke": "playwright test smoke.spec.ts",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "test:functions": "cd functions && npm run test:functions"
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.10.0",
