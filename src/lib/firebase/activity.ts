@@ -38,13 +38,11 @@ async function hashIPAddress(ip: string): Promise<string> {
 }
 
 // Cache IP address for the session to avoid repeated API calls
-// Use Promise-based cache to prevent race conditions with parallel requests
 let cachedIPAddress = '';
-let ipFetchPromise: Promise<string> | null = null;
 
 /**
  * Get user's IP address (from our own API route to avoid CORS)
- * Uses Promise-based caching to ensure only one fetch even with parallel calls
+ * Cached per session to avoid repeated API calls
  */
 async function getIPAddress(): Promise<string> {
   // Return cached IP if available
@@ -52,26 +50,19 @@ async function getIPAddress(): Promise<string> {
     return cachedIPAddress;
   }
 
-  // If already fetching, return the existing promise (prevents race conditions)
-  if (ipFetchPromise) {
-    return ipFetchPromise;
-  }
-
-  // Start fetch and cache the promise
-  ipFetchPromise = (async () => {
-    try {
-      const response = await fetch('/api/client-ip', {
-        signal: AbortSignal.timeout(3000)
-      });
-      const data = await response.json();
-      cachedIPAddress = data.ip || 'unknown';
-    } catch {
-      cachedIPAddress = 'unknown';
-    }
+  try {
+    // Use our own API route to get client IP (avoids CORS issues)
+    const response = await fetch('/api/client-ip', {
+      signal: AbortSignal.timeout(3000) // 3 second timeout
+    });
+    const data = await response.json();
+    cachedIPAddress = data.ip || 'unknown';
     return cachedIPAddress;
-  })();
-
-  return ipFetchPromise;
+  } catch (error) {
+    // Don't log errors - just return unknown silently
+    cachedIPAddress = 'unknown';
+    return cachedIPAddress;
+  }
 }
 
 /**
