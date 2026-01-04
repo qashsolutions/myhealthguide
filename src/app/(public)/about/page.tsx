@@ -383,7 +383,7 @@ export default function AboutPage() {
               <h3 className="mt-4 text-xl font-bold text-white">Single Agency Plan</h3>
               <p className="mt-2 text-sm text-blue-100">For families with caregivers</p>
               <div className="mt-4">
-                <span className="text-4xl font-bold text-white">$14.99</span>
+                <span className="text-4xl font-bold text-white">$18.99</span>
                 <span className="text-blue-100">/month</span>
               </div>
               <ul className="mt-6 space-y-3">

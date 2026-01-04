@@ -149,9 +149,9 @@ export function TrialExpirationGate({ children, featureName }: TrialExpirationGa
                     </ul>
                   </div>
                   <div className="pt-2">
-                    <p className="text-2xl font-bold text-blue-600 mb-1">$4.99/month</p>
+                    <p className="text-2xl font-bold text-blue-600 mb-1">Starting at $8.99/month</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Family Plan - Up to 2 elders
+                      Choose the plan that fits your needs
                     </p>
                   </div>
                   <Button
