@@ -175,10 +175,10 @@ export function ReminderDialog({
             <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-400" />
           </div>
           <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-            Admin Access Required
+            Owner Access Required
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Only group admins can create reminder schedules.
+            Only the group owner can create reminder schedules.
           </p>
         </div>
       );

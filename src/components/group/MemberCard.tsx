@@ -162,15 +162,15 @@ export function MemberCard({
               <DropdownMenuContent align="end">
                 {member.role !== 'admin' && onUpdateRole && (
                   <DropdownMenuItem onClick={handleRoleChange}>
-                    <Shield className="w-4 h-4 mr-2" />
-                    Make Admin
+                    <Crown className="w-4 h-4 mr-2" />
+                    Make Owner
                   </DropdownMenuItem>
                 )}
 
                 {member.role === 'admin' && onUpdateRole && (
                   <DropdownMenuItem onClick={handleRoleChange}>
-                    <User className="w-4 h-4 mr-2" />
-                    Make Member
+                    <Eye className="w-4 h-4 mr-2" />
+                    Make Viewer
                   </DropdownMenuItem>
                 )}
 

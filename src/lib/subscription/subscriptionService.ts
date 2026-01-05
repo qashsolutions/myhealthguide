@@ -26,6 +26,7 @@ export interface PlanLimits {
   storageBytes: number;
   maxCaregivers?: number;
   maxEldersPerCaregiver?: number;
+  maxMembersPerCaregiver?: number;
   maxMembersPerGroup?: number;
 }
 
@@ -124,6 +125,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
       storageBytes: 500 * 1024 * 1024,
       maxCaregivers: 10,
       maxEldersPerCaregiver: 3,
+      maxMembersPerCaregiver: 2,
       maxMembersPerGroup: 4,
     },
     features: [
@@ -516,6 +518,7 @@ export const PLAN_LIMITS = {
     maxElders: PLAN_CONFIG.multi_agency.limits.maxElders,
     maxCaregivers: PLAN_CONFIG.multi_agency.limits.maxCaregivers,
     maxEldersPerCaregiver: PLAN_CONFIG.multi_agency.limits.maxEldersPerCaregiver,
+    maxMembersPerCaregiver: PLAN_CONFIG.multi_agency.limits.maxMembersPerCaregiver,
     maxGroups: PLAN_CONFIG.multi_agency.limits.maxGroups,
     maxMembersPerGroup: PLAN_CONFIG.multi_agency.limits.maxMembersPerGroup,
     storage: PLAN_CONFIG.multi_agency.limits.storageBytes,

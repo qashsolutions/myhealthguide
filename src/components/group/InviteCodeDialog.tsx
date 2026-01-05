@@ -112,7 +112,7 @@ export function InviteCodeDialog({
           <div className="space-y-4">
             {/* Role Selection */}
             <div className="space-y-2">
-              <Label>Member Role</Label>
+              <Label>Access Level</Label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setRole('member')}
@@ -122,9 +122,9 @@ export function InviteCodeDialog({
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <div className="font-medium">Member</div>
+                  <div className="font-medium">Viewer</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    View and log care
+                    View only (read-only)
                   </div>
                 </button>
                 <button
@@ -135,7 +135,7 @@ export function InviteCodeDialog({
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <div className="font-medium">Admin</div>
+                  <div className="font-medium">Owner</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Full access
                   </div>

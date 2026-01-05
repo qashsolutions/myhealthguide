@@ -310,9 +310,9 @@ export function AIFeaturesSettings({
     return (
       <Alert>
         <Shield className="h-4 w-4" />
-        <AlertTitle>Admin Access Required</AlertTitle>
+        <AlertTitle>Owner Access Required</AlertTitle>
         <AlertDescription>
-          Only group administrators can manage smart feature settings.
+          Only the group owner can manage smart feature settings.
         </AlertDescription>
       </Alert>
     );
