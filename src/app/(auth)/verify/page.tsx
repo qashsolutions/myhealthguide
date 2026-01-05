@@ -638,11 +638,14 @@ export default function VerifyPage() {
                   <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                     <p className="text-sm text-amber-800 dark:text-amber-200">
                       Enter your corrected email address below. A verification email will be sent to the new address.
-                      {authProvider === 'email' && (
-                        <span className="block mt-1 font-medium">
-                          Note: You will continue to use the same password you created during signup.
-                        </span>
-                      )}
+                      <span className="block mt-2 font-medium">
+                        After changing your email, sign in using:
+                      </span>
+                      <span className="block text-xs mt-1">
+                        • Phone number (recommended) - works immediately
+                        <br />
+                        • Email + password - use &quot;Forgot password&quot; on login page if needed
+                      </span>
                     </p>
                   </div>
 
@@ -659,60 +662,12 @@ export default function VerifyPage() {
                     />
                   </div>
 
-                  {authProvider === 'phone' && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">Create Password</Label>
-                        <div className="relative">
-                          <Input
-                            id="newPassword"
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="8+ alphanumeric characters"
-                            value={passwordInput}
-                            onChange={(e) => setPasswordInput(e.target.value)}
-                            className="h-12 pr-10"
-                            disabled={linkingEmail}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                          >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          Minimum 8 characters using only letters and numbers
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="newConfirmPassword">Confirm Password</Label>
-                        <Input
-                          id="newConfirmPassword"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Re-enter password"
-                          value={confirmPasswordInput}
-                          onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                          className="h-12"
-                          disabled={linkingEmail}
-                        />
-                      </div>
-
-                      {passwordError && (
-                        <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>
-                      )}
-                    </>
-                  )}
-
                   <div className="flex gap-3">
                     <Button
                       variant="outline"
                       onClick={() => {
                         setIsEditingEmail(false);
                         setEmailInput('');
-                        setPasswordInput('');
-                        setConfirmPasswordInput('');
                       }}
                       className="flex-1 h-12"
                       disabled={linkingEmail}
@@ -721,59 +676,53 @@ export default function VerifyPage() {
                     </Button>
                     <Button
                       onClick={async () => {
-                        if (authProvider === 'phone') {
-                          // For phone-auth users, use the existing link email flow
-                          await handleLinkEmail();
-                          setIsEditingEmail(false);
-                        } else {
-                          // For email-auth users, update email via API
-                          try {
-                            setLinkingEmail(true);
-                            setError('');
+                        // Update email via API (works for all auth types)
+                        try {
+                          setLinkingEmail(true);
+                          setError('');
 
-                            if (!emailInput) {
-                              setError('Please enter an email address');
-                              return;
-                            }
-
-                            // Use Firebase Admin to update email
-                            const { auth: firebaseAuth } = await import('@/lib/firebase/config');
-                            const token = await firebaseAuth.currentUser?.getIdToken();
-
-                            if (!token) {
-                              setError('Please sign in again');
-                              return;
-                            }
-
-                            const response = await fetch('/api/auth/update-email', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                              },
-                              body: JSON.stringify({
-                                newEmail: emailInput
-                              })
-                            });
-
-                            if (!response.ok) {
-                              const data = await response.json();
-                              throw new Error(data.error || 'Failed to update email');
-                            }
-
-                            setUserEmail(emailInput);
-                            setIsEditingEmail(false);
-                            setEmailLinkSent(true);
-                          } catch (err: any) {
-                            console.error('Error updating email:', err);
-                            setError(err.message || 'Failed to update email');
-                          } finally {
-                            setLinkingEmail(false);
+                          if (!emailInput) {
+                            setError('Please enter an email address');
+                            return;
                           }
+
+                          // Use Firebase Admin to update email
+                          const { auth: firebaseAuth } = await import('@/lib/firebase/config');
+                          const token = await firebaseAuth.currentUser?.getIdToken();
+
+                          if (!token) {
+                            setError('Please sign in again');
+                            return;
+                          }
+
+                          const response = await fetch('/api/auth/update-email', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                              newEmail: emailInput
+                            })
+                          });
+
+                          if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.error || 'Failed to update email');
+                          }
+
+                          setUserEmail(emailInput);
+                          setIsEditingEmail(false);
+                          setEmailLinkSent(true);
+                        } catch (err: any) {
+                          console.error('Error updating email:', err);
+                          setError(err.message || 'Failed to update email');
+                        } finally {
+                          setLinkingEmail(false);
                         }
                       }}
                       className="flex-1 h-12"
-                      disabled={linkingEmail || !emailInput || (authProvider === 'phone' && !passwordInput)}
+                      disabled={linkingEmail || !emailInput}
                     >
                       {linkingEmail ? (
                         <>
