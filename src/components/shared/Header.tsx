@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Moon, Sun, User, LogOut, Lightbulb } from 'lucide-react';
+import { Menu, X, Moon, Sun, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UnifiedSearch } from './UnifiedSearch';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,7 @@ import {
 const navigation = [
   { name: 'Features', href: '/features' },
   { name: 'Pricing', href: '/pricing' },
+  { name: 'Care Community', href: '/tips' },
   { name: 'About', href: '/about' },
   { name: 'Help', href: '/help' }
 ];
@@ -86,17 +87,6 @@ export function Header() {
         {/* Desktop CTA buttons */}
         <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-2 lg:items-center">
           <UnifiedSearch />
-
-          {/* Caregiver Tips */}
-          <Link href="/tips">
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Caregiver Tips"
-            >
-              <Lightbulb className="w-5 h-5" />
-            </Button>
-          </Link>
 
           <Button
             variant="ghost"
@@ -178,14 +168,6 @@ export function Header() {
               </Link>
             ))}
             <div className="mt-4 space-y-2">
-              {/* Caregiver Tips - Mobile */}
-              <Link href="/tips" className="block" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Lightbulb className="w-4 h-4 mr-2" />
-                  Caregiver Tips
-                </Button>
-              </Link>
-
               <Button
                 variant="outline"
                 size="sm"
