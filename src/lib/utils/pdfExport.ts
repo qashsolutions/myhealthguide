@@ -31,8 +31,14 @@ interface ComplianceMetrics {
 
 /**
  * Generate PDF health report
+ * @param data - Export data containing elder info, medications, logs
+ * @param returnBlob - If true, returns blob instead of downloading
+ * @returns Blob if returnBlob is true, void otherwise
  */
-export async function generateHealthReportPDF(data: ExportData): Promise<void> {
+export async function generateHealthReportPDF(
+  data: ExportData,
+  returnBlob: boolean = false
+): Promise<Blob | void> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -255,7 +261,11 @@ export async function generateHealthReportPDF(data: ExportData): Promise<void> {
     );
   }
 
-  // Save PDF
+  // Return blob or save PDF
+  if (returnBlob) {
+    return doc.output('blob');
+  }
+
   const fileName = `Health_Report_${data.elderName.replace(/\s+/g, '_')}_${format(data.startDate, 'yyyy-MM-dd')}_to_${format(data.endDate, 'yyyy-MM-dd')}.pdf`;
   doc.save(fileName);
 }

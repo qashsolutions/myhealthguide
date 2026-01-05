@@ -10,6 +10,38 @@ import { generateHealthReportPDF } from '../utils/pdfExport';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
+/**
+ * Convert Firestore Timestamp or various date formats to JavaScript Date
+ */
+function convertToDate(value: any): Date {
+  if (!value) return new Date();
+
+  // Already a Date object
+  if (value instanceof Date) return value;
+
+  // Firestore Timestamp object
+  if (typeof value === 'object' && 'seconds' in value) {
+    return new Date(value.seconds * 1000);
+  }
+
+  // Firestore Timestamp with toDate method
+  if (typeof value === 'object' && typeof value.toDate === 'function') {
+    return value.toDate();
+  }
+
+  // ISO string or other parseable format
+  if (typeof value === 'string') {
+    return new Date(value);
+  }
+
+  // Number (milliseconds)
+  if (typeof value === 'number') {
+    return new Date(value);
+  }
+
+  return new Date();
+}
+
 export interface CompleteDataExport {
   exportDate: string;
   user: {
@@ -223,11 +255,51 @@ For questions: support@myguide.health
           (med: any) => med.elderId === elder.id
         );
 
-        if (elderMedLogs.length > 0 || elderDietEntries.length > 0) {
-          // Generate PDF (this returns a blob in the current implementation)
-          // For now, we'll note it in the readme
-          // TODO: Update generateHealthReportPDF to return blob for ZIP embedding
-          console.log(`Would generate PDF for elder: ${elder.name}`);
+        // Generate PDF for each elder with data
+        const elderName = elder.name || elder.firstName || 'Unknown';
+        console.log(`Generating PDF for elder: ${elderName}`);
+
+        // Calculate date range (last 30 days or all data)
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        // Convert medication logs to proper format with Date objects
+        const formattedMedLogs = elderMedLogs.map((log: any) => ({
+          ...log,
+          scheduledTime: convertToDate(log.scheduledTime),
+          takenAt: log.takenAt ? convertToDate(log.takenAt) : null,
+        }));
+
+        // Convert diet entries to proper format
+        const formattedDietEntries = elderDietEntries.map((entry: any) => ({
+          ...entry,
+          timestamp: convertToDate(entry.timestamp || entry.createdAt),
+        }));
+
+        // Format medications for PDF
+        const formattedMeds = elderMeds.map((med: any) => ({
+          id: med.id,
+          name: med.name || 'Unknown Medication',
+          dosage: med.dosage || 'N/A',
+        }));
+
+        // Generate PDF as blob
+        const pdfBlob = await generateHealthReportPDF({
+          elderName: elderName,
+          startDate: thirtyDaysAgo,
+          endDate: now,
+          medicationLogs: formattedMedLogs,
+          dietEntries: formattedDietEntries,
+          medications: formattedMeds,
+        }, true);
+
+        if (pdfBlob && elderReportsFolder) {
+          const safeElderName = elderName.replace(/[^a-zA-Z0-9]/g, '_');
+          elderReportsFolder.file(
+            `Health_Report_${safeElderName}_${now.toISOString().split('T')[0]}.pdf`,
+            pdfBlob
+          );
+          console.log(`✅ PDF generated for elder: ${elderName}`);
         }
       } catch (error) {
         console.error(`Error generating PDF for elder ${elder.id}:`, error);
