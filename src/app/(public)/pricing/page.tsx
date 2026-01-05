@@ -29,27 +29,16 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { PricingCards } from '@/components/pricing/PricingCards';
 import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
 import { type PlanTier } from '@/lib/subscription';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function PricingPage() {
   const [userType, setUserType] = useState<UserType>(null);
-  const { user, loading } = useAuth();
-  const router = useRouter();
 
-  // Redirect subscribed users to dashboard
-  useEffect(() => {
-    if (!loading && user) {
-      const status = user.subscriptionStatus;
-      if (status === 'active' || status === 'trial') {
-        router.replace('/dashboard');
-      }
-    }
-  }, [user, loading, router]);
+  // Note: We allow logged-in users to view pricing page so they can compare plans
+  // and potentially upgrade their subscription
 
   // Map user type to recommended plan
   const getRecommendedPlan = (type: UserType): PlanTier | null => {
