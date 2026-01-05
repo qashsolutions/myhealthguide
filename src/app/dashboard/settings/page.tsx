@@ -1017,9 +1017,12 @@ function GroupSettings() {
                 <span className="font-medium text-gray-900 dark:text-white">
                   {planInfo.label}
                 </span>
-                <Badge variant={isTrial ? 'outline' : 'secondary'} className="text-xs">
-                  {members.length}/{maxMembers} members
-                </Badge>
+                {/* Show member count for Family/Single Agency, not Multi Agency */}
+                {!isMultiAgency && (
+                  <Badge variant={isTrial ? 'outline' : 'secondary'} className="text-xs">
+                    {members.length}/{maxMembers} members
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {planInfo.description}
