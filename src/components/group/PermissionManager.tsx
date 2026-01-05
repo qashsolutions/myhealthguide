@@ -5,10 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GroupService } from '@/lib/firebase/groups';
-import { Group, GroupMember, PermissionLevel } from '@/types';
-import { Shield, Key, RefreshCw, Copy, UserMinus, AlertCircle, CheckCircle, Eye, Edit, Crown, ChevronDown, ChevronUp } from 'lucide-react';
+import { GroupMember, PermissionLevel } from '@/types';
+import { Shield, Key, RefreshCw, Copy, UserMinus, AlertCircle, CheckCircle, Eye, Crown, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatInviteCodeForDisplay } from '@/lib/utils/inviteCode';
 
 interface PermissionManagerProps {
@@ -106,48 +105,6 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
     }
   };
 
-  const handlePermissionChange = async (userId: string, newPermission: PermissionLevel) => {
-    try {
-      setProcessingUserId(userId);
-      setError(null);
-
-      // Use API route to update permission (bypasses Firestore rules for updating other users)
-      const { auth } = await import('@/lib/firebase/config');
-      const token = await auth.currentUser?.getIdToken();
-
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(`/api/groups/${groupId}/permissions`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          userId,
-          permissionLevel: newPermission
-        })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update permission');
-      }
-
-      // Refresh members list
-      await loadData();
-      setSuccess('Permission updated successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      console.error('Error updating permission:', err);
-      setError(err.message || 'Failed to update permission');
-    } finally {
-      setProcessingUserId(null);
-    }
-  };
-
   const handleRemoveMember = async (userId: string, userName: string) => {
     if (!confirm(`Are you sure you want to remove ${userName} from the group?`)) {
       return;
@@ -171,22 +128,15 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
     }
   };
 
-  const getPermissionBadge = (permission: PermissionLevel) => {
-    switch (permission) {
-      case 'admin':
-        return <Badge className="bg-purple-600"><Crown className="w-3 h-3 mr-1" />Admin</Badge>;
-      case 'write':
-        return <Badge className="bg-blue-600"><Edit className="w-3 h-3 mr-1" />Write</Badge>;
-      case 'read':
-        return <Badge variant="secondary"><Eye className="w-3 h-3 mr-1" />Read</Badge>;
-      default:
-        return <Badge variant="secondary">{permission}</Badge>;
+  const getPermissionBadge = (permission: PermissionLevel, role?: string) => {
+    // Owner = group admin/creator
+    if (permission === 'admin' || role === 'admin') {
+      return <Badge className="bg-purple-600"><Crown className="w-3 h-3 mr-1" />Owner</Badge>;
     }
+    // All other members are Viewers (read-only)
+    return <Badge variant="secondary"><Eye className="w-3 h-3 mr-1" />Viewer</Badge>;
   };
 
-  const getWritePermissionCount = () => {
-    return members.filter(m => m.permissionLevel === 'write').length;
-  };
 
   if (loading) {
     return (
@@ -280,7 +230,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
                 Member Permissions
               </CardTitle>
               <CardDescription>
-                Manage member access levels. Only 1 member can have write permission.
+                View and manage who has access to your group.
               </CardDescription>
             </div>
             {isMembersExpanded ? (
@@ -329,7 +279,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
                           <h3 className="font-semibold text-gray-900 dark:text-white">
                             {member.name}
                           </h3>
-                          {getPermissionBadge(member.permissionLevel)}
+                          {getPermissionBadge(member.permissionLevel, member.role)}
                           {isCurrentMember && <Badge variant="outline">You</Badge>}
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{member.email}</p>
@@ -337,46 +287,17 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {!isAdmin && (
-                        <>
-                          <Select
-                            value={member.permissionLevel}
-                            onValueChange={(value) => handlePermissionChange(member.userId, value as PermissionLevel)}
-                            disabled={isProcessing}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="read">Read</SelectItem>
-                              <SelectItem
-                                value="write"
-                                disabled={getWritePermissionCount() >= 1 && member.permissionLevel !== 'write'}
-                              >
-                                Write {getWritePermissionCount() >= 1 && member.permissionLevel !== 'write' && '(Max 1)'}
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          {!isCurrentMember && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveMember(member.userId, member.name)}
-                              disabled={isProcessing}
-                              className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            >
-                              <UserMinus className="w-4 h-4 mr-1" />
-                              Remove
-                            </Button>
-                          )}
-                        </>
-                      )}
-
-                      {isAdmin && (
-                        <Badge variant="outline" className="border-purple-300 text-purple-700">
-                          Group Owner
-                        </Badge>
+                      {!isAdmin && !isCurrentMember && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveMember(member.userId, member.name)}
+                          disabled={isProcessing}
+                          className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <UserMinus className="w-4 h-4 mr-1" />
+                          Remove
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -392,7 +313,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
               className="flex items-center justify-between w-full text-left"
             >
               <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300">
-                Permission Levels
+                Access Levels
               </h4>
               {isPermissionLevelsExpanded ? (
                 <ChevronUp className="w-4 h-4 text-blue-500" />
@@ -402,9 +323,8 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
             </button>
             {isPermissionLevelsExpanded && (
               <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-2">
-                <li><strong>Admin:</strong> Full control - create, edit, delete, manage members</li>
-                <li><strong>Write:</strong> Can log doses, add entries, view data (max 1 member)</li>
-                <li><strong>Read:</strong> Can only view data, no editing allowed</li>
+                <li><strong>Owner:</strong> Full control over all elder care data and group settings</li>
+                <li><strong>Viewer:</strong> Can view care data but cannot make changes</li>
               </ul>
             )}
           </div>
