@@ -907,10 +907,34 @@ function GroupSettings() {
     }
     try {
       setLoading(true);
-      const membersData = await GroupService.getGroupMembersWithDetails(groupId);
-      setMembers(membersData);
+
+      // Use API route to fetch members (bypasses Firestore rules for reading other users)
+      const { auth } = await import('@/lib/firebase/config');
+      const token = await auth.currentUser?.getIdToken();
+
+      if (!token) {
+        console.error('No auth token available');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/groups/${groupId}/members`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch members');
+      }
+
+      const data = await response.json();
+      setMembers(data.members || []);
     } catch (error) {
       console.error('Error loading members:', error);
+      // Don't throw - just show empty members list
+      setMembers([]);
     } finally {
       setLoading(false);
     }

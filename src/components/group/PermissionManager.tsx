@@ -45,9 +45,27 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
       setLoading(true);
       setError(null);
 
-      // Load members with details
-      const membersData = await GroupService.getGroupMembersWithDetails(groupId);
-      setMembers(membersData);
+      // Load members with details via API (bypasses Firestore rules for reading other users)
+      const { auth } = await import('@/lib/firebase/config');
+      const token = await auth.currentUser?.getIdToken();
+
+      if (token) {
+        const response = await fetch(`/api/groups/${groupId}/members`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setMembers(data.members || []);
+        } else {
+          console.error('Failed to fetch members via API');
+          setMembers([]);
+        }
+      } else {
+        setMembers([]);
+      }
 
       // Load invite code
       const code = await GroupService.getInviteCode(groupId);
