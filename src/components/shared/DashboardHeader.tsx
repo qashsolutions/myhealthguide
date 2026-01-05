@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bell, Moon, Sun, Menu, CheckCircle, HelpCircle, UsersRound } from 'lucide-react';
+import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -87,6 +88,9 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
       <div className="hidden md:block flex-1" />
 
       <div className="flex items-center gap-2 lg:gap-4">
+        {/* Offline Indicator */}
+        <OfflineIndicator />
+
         {/* Unified Search - Always visible */}
         <UnifiedSearch />
         {/* Theme Toggle - Hidden on small mobile */}

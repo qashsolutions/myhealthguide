@@ -1,12 +1,14 @@
 {
   "name": "Careguide - Caregiving Made Simple",
   "short_name": "Careguide",
-  "description": "Track medications by voice. Get daily summaries. Never wonder if a dose was missed. Built for families and caregiving agencies.",
-  "start_url": "/",
+  "description": "Smart caregiving platform with offline support. Track medications by voice, get daily summaries, and never wonder if a dose was missed. Works offline for rural areas.",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -37,11 +39,20 @@
       "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Log Medication",
-      "short_name": "Medication",
-      "description": "Log medication dose",
-      "url": "/dashboard/medications/new",
+      "name": "Daily Care",
+      "short_name": "Daily Care",
+      "description": "Log medications, meals, and activities",
+      "url": "/dashboard/daily-care",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Health Profile",
+      "short_name": "Health",
+      "description": "View elder health profile",
+      "url": "/dashboard/health-profile",
       "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "related_applications": [],
+  "handle_links": "preferred"
 }

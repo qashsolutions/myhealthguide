@@ -4,6 +4,7 @@ import { Providers } from './providers';
 import { Footer } from '@/components/shared/Footer';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { CookieConsent } from '@/components/cookies/CookieConsent';
+import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -109,6 +110,7 @@ export default function RootLayout({
           {children}
           <Footer />
           <CookieConsent />
+          <ServiceWorkerRegistration />
         </Providers>
       </body>
     </html>

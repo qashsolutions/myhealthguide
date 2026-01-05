@@ -28,7 +28,10 @@ import {
   Building2,
   Stethoscope,
   Zap,
-  LogIn
+  LogIn,
+  WifiOff,
+  Smartphone,
+  Signal
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserFeatureStats } from '@/lib/engagement/featureTracker';
@@ -140,6 +143,40 @@ export default function FeaturesPage() {
           name: 'Refill Reminders',
           description: 'Get reminded when it\'s time to refill prescriptions',
           icon: Clock
+        }
+      ]
+    },
+    {
+      id: 'offline',
+      title: 'Works Without Internet',
+      description: 'Perfect for rural areas — view your data even when the signal drops',
+      icon: WifiOff,
+      color: 'teal',
+      features: [
+        {
+          name: 'View Data Offline',
+          description: 'See medications, schedules, and health info even without internet',
+          icon: WifiOff
+        },
+        {
+          name: 'Fast on Slow Connections',
+          description: 'App loads quickly even on weak cellular signals',
+          icon: Signal
+        },
+        {
+          name: 'Install on Your Phone',
+          description: 'Add to your home screen like a regular app — no app store needed',
+          icon: Smartphone
+        },
+        {
+          name: 'Smart Caching',
+          description: 'Your elder\'s info is saved locally for instant access',
+          icon: Database
+        },
+        {
+          name: 'Know When You\'re Offline',
+          description: 'Clear indicator shows your connection status',
+          icon: Signal
         }
       ]
     },
@@ -496,6 +533,10 @@ export default function FeaturesPage() {
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 <span>Share with Family</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <WifiOff className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <span>Works Offline</span>
               </div>
             </div>
 
