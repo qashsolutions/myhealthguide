@@ -111,7 +111,30 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
       setProcessingUserId(userId);
       setError(null);
 
-      await GroupService.updateMemberPermissionLevel(groupId, userId, newPermission);
+      // Use API route to update permission (bypasses Firestore rules for updating other users)
+      const { auth } = await import('@/lib/firebase/config');
+      const token = await auth.currentUser?.getIdToken();
+
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`/api/groups/${groupId}/permissions`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId,
+          permissionLevel: newPermission
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update permission');
+      }
 
       // Refresh members list
       await loadData();
