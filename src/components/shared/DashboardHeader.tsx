@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bell, Moon, Sun, Menu, CheckCircle, HelpCircle, UsersRound } from 'lucide-react';
+import { ClipboardHeartIcon } from '@/components/icons/ClipboardHeartIcon';
 import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -105,6 +106,17 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
           ) : (
             <Moon className="w-5 h-5" />
           )}
+        </Button>
+
+        {/* Symptom Checker - Hidden on small mobile */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push('/dashboard/symptom-checker')}
+          className="hidden sm:flex"
+          title="Symptom Checker"
+        >
+          <ClipboardHeartIcon size={20} />
         </Button>
 
         {/* Care Community - Hidden on small mobile */}

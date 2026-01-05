@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Moon, Sun, User, LogOut } from 'lucide-react';
+import { Menu, X, Moon, Sun, User, LogOut, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { UnifiedSearch } from './UnifiedSearch';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +20,7 @@ import {
 
 const navigation = [
   { name: 'Features', href: '/features' },
+  { name: 'Symptom Checker', href: '/symptom-checker', isNew: true },
   { name: 'Pricing', href: '/pricing' },
   { name: 'Care Community', href: '/tips' },
   { name: 'About', href: '/about' },
@@ -73,13 +75,18 @@ export function Header() {
               key={item.name}
               href={item.href}
               className={cn(
-                'text-sm font-semibold leading-6 transition-colors',
+                'text-sm font-semibold leading-6 transition-colors flex items-center gap-1.5',
                 pathname === item.href
                   ? 'text-blue-600 dark:text-blue-400'
                   : 'text-gray-900 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
               )}
             >
               {item.name}
+              {item.isNew && (
+                <Badge className="bg-green-600 hover:bg-green-600 text-[10px] px-1.5 py-0 h-4">
+                  New
+                </Badge>
+              )}
             </Link>
           ))}
         </div>
@@ -157,7 +164,7 @@ export function Header() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  'block rounded-lg px-3 py-2 text-base font-semibold leading-7 transition-colors',
+                  'flex items-center gap-2 rounded-lg px-3 py-2 text-base font-semibold leading-7 transition-colors',
                   pathname === item.href
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -165,6 +172,11 @@ export function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.name}
+                {item.isNew && (
+                  <Badge className="bg-green-600 hover:bg-green-600 text-[10px] px-1.5 py-0 h-4">
+                    New
+                  </Badge>
+                )}
               </Link>
             ))}
             <div className="mt-4 space-y-2">

@@ -1896,6 +1896,46 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ============= Symptom Checker Queries Collection =============
+    // Stores symptom check queries for guests and registered users
+    // Guest queries tracked by IP, registered user queries linked to userId/elderId
+
+    match /symptomCheckerQueries/{queryId} {
+      // Registered users can read their own queries
+      // Group members can read queries for elders in their group
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid ||
+         (resource.data.elderId != null &&
+          exists(/databases/$(database)/documents/elders/$(resource.data.elderId)) &&
+          isMemberOfGroup(get(/databases/$(database)/documents/elders/$(resource.data.elderId)).data.groupId)));
+
+      // Guest queries are created via API (no auth required)
+      // Registered user queries require authentication
+      // This is handled server-side via Admin SDK
+      allow create: if true;
+
+      // Registered users can update their own queries (for refinements)
+      allow update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+
+      // Registered users can delete their own queries (GDPR)
+      allow delete: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ============= Symptom Checker Rate Limits Collection =============
+    // Tracks daily usage limits - ID is IP address or userId
+    // Server-side only access for security
+
+    match /symptomCheckerRateLimits/{limitId} {
+      // Only server (Admin SDK) can access rate limits
+      // Prevents manipulation of rate limits
+      allow read: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default

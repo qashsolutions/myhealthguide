@@ -18,6 +18,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import type { MedicationLog, DietEntry, Elder } from '@/types';
+import type { SymptomCheckerQuery } from '@/types/symptomChecker';
 
 export interface FamilyUpdateReport {
   id: string;
@@ -38,6 +39,14 @@ export interface FamilyUpdateReport {
       mealsLogged: number;
       averagePerDay: number;
       summary: string; // "Ate well throughout the week"
+    };
+    symptomChecks?: {
+      count: number;
+      summaries: Array<{
+        date: Date;
+        symptoms: string;
+        assessment: string;
+      }>;
     };
     highlights: string[]; // Positive moments
     concerns: string[]; // Things to watch
@@ -67,12 +76,14 @@ export async function generateWeeklyFamilyUpdate(
     // Gather data
     const medicationLogs = await getMedicationLogs(groupId, elderId, startDate, endDate);
     const dietEntries = await getDietEntries(groupId, elderId, startDate, endDate);
+    const symptomQueries = await getSymptomCheckerQueries(elderId, startDate, endDate);
 
     // Analyze data
     const medCompliance = analyzeMedicationCompliance(medicationLogs);
     const dietSummary = analyzeDietSummary(dietEntries);
+    const symptomChecks = analyzeSymptomChecks(symptomQueries);
     const highlights = extractHighlights(medicationLogs, dietEntries);
-    const concerns = extractConcerns(medicationLogs, dietEntries, medCompliance);
+    const concerns = extractConcerns(medicationLogs, dietEntries, medCompliance, symptomQueries);
 
     // Determine overall tone
     const overallTone = determineOverallTone(medCompliance, dietSummary, concerns);
@@ -87,7 +98,8 @@ export async function generateWeeklyFamilyUpdate(
       dietSummary,
       highlights,
       concerns,
-      overallTone
+      overallTone,
+      symptomChecks
     );
 
     const report: Omit<FamilyUpdateReport, 'id'> = {
@@ -100,6 +112,7 @@ export async function generateWeeklyFamilyUpdate(
         headline,
         medicationCompliance: medCompliance,
         dietSummary,
+        symptomChecks: symptomChecks.count > 0 ? symptomChecks : undefined,
         highlights,
         concerns,
         overallTone
@@ -148,6 +161,61 @@ async function getDietEntries(groupId: string, elderId: string, start: Date, end
 
   const snap = await getDocs(q);
   return snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as DietEntry[];
+}
+
+async function getSymptomCheckerQueries(elderId: string, start: Date, end: Date) {
+  const q = query(
+    collection(db, 'symptomCheckerQueries'),
+    where('elderId', '==', elderId),
+    where('includeInReport', '==', true),
+    where('createdAt', '>=', Timestamp.fromDate(start)),
+    where('createdAt', '<=', Timestamp.fromDate(end)),
+    orderBy('createdAt', 'desc')
+  );
+
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      symptomsDescription: data.symptomsDescription,
+      initialResponse: data.initialResponse,
+      refinedResponse: data.refinedResponse,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+    };
+  });
+}
+
+function analyzeSymptomChecks(queries: any[]) {
+  const summaries = queries.map(q => {
+    // Parse AI response to extract assessment
+    let assessment = 'Assessment reviewed';
+    try {
+      const response = JSON.parse(q.refinedResponse || q.initialResponse);
+      if (response.assessment) {
+        // Truncate to first sentence or 150 chars
+        const firstSentence = response.assessment.split('.')[0];
+        assessment = firstSentence.length > 150
+          ? firstSentence.substring(0, 147) + '...'
+          : firstSentence;
+      }
+    } catch {
+      // Keep default assessment
+    }
+
+    return {
+      date: q.createdAt,
+      symptoms: q.symptomsDescription.length > 100
+        ? q.symptomsDescription.substring(0, 97) + '...'
+        : q.symptomsDescription,
+      assessment,
+    };
+  });
+
+  return {
+    count: queries.length,
+    summaries,
+  };
 }
 
 function analyzeMedicationCompliance(logs: MedicationLog[]) {
@@ -218,7 +286,8 @@ function extractHighlights(logs: MedicationLog[], entries: DietEntry[]): string[
 function extractConcerns(
   logs: MedicationLog[],
   entries: DietEntry[],
-  compliance: any
+  compliance: any,
+  symptomQueries?: any[]
 ): string[] {
   const concerns: string[] = [];
 
@@ -245,7 +314,12 @@ function extractConcerns(
     }
   });
 
-  return concerns.slice(0, 3); // Max 3 concerns
+  // Add symptom checks as concerns if there were any
+  if (symptomQueries && symptomQueries.length > 0) {
+    concerns.push(`${symptomQueries.length} symptom check${symptomQueries.length > 1 ? 's' : ''} this week - see details below`);
+  }
+
+  return concerns.slice(0, 4); // Max 4 concerns (increased to accommodate symptom checks)
 }
 
 function determineOverallTone(
@@ -280,7 +354,8 @@ function generateNarrativeEmail(
   diet: any,
   highlights: string[],
   concerns: string[],
-  tone: string
+  tone: string,
+  symptomChecks?: { count: number; summaries: Array<{ date: Date; symptoms: string; assessment: string }> }
 ): string {
   let narrative = `Hi there,\n\nHere's your weekly update for ${elderName}.\n\n`;
 
@@ -314,6 +389,25 @@ function generateNarrativeEmail(
       narrative += `• ${c}\n`;
     });
     narrative += `\nWe recommend discussing these with the doctor if they continue.\n`;
+  }
+
+  // Symptom Checks Section
+  if (symptomChecks && symptomChecks.count > 0) {
+    narrative += `\n\n--- Symptom Checks This Week ---\n`;
+    narrative += `${symptomChecks.count} symptom check${symptomChecks.count > 1 ? 's were' : ' was'} performed:\n\n`;
+
+    symptomChecks.summaries.forEach((check, index) => {
+      const dateStr = check.date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      });
+      narrative += `${index + 1}. ${dateStr}\n`;
+      narrative += `   Symptoms: ${check.symptoms}\n`;
+      narrative += `   Assessment: ${check.assessment}\n\n`;
+    });
+
+    narrative += `Note: These AI assessments are for informational purposes only and do not replace professional medical advice. Please discuss any concerns with your healthcare provider.\n`;
   }
 
   // Closing
