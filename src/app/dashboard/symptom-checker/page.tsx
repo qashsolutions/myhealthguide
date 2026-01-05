@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
-import { authenticatedFetch } from '@/lib/firebase/authFetch';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import {
@@ -119,7 +119,7 @@ export default function AuthenticatedSymptomCheckerPage() {
 
       // Get dietary restrictions as diet type hint
       const dietaryRestrictions = selectedElder.dietaryRestrictions || [];
-      let dietType = '';
+      let dietType: DietType | '' = '';
       if (dietaryRestrictions.some(r => r.toLowerCase().includes('vegetarian'))) {
         dietType = 'vegetarian';
       } else if (dietaryRestrictions.some(r => r.toLowerCase().includes('vegan'))) {
@@ -133,7 +133,7 @@ export default function AuthenticatedSymptomCheckerPage() {
       setFormData(prev => ({
         ...prev,
         age,
-        gender,
+        gender: gender as Gender | '',
         knownConditions,
         dietType,
       }));
