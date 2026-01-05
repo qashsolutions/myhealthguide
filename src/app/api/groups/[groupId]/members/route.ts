@@ -140,7 +140,23 @@ export async function GET(
           const lastName = userData?.lastName || '';
 
           // Use addedAt or joinedAt, whichever is available
-          const memberDate = member.addedAt || member.joinedAt;
+          // Convert Firestore Admin SDK Timestamp to ISO string for consistent handling
+          const rawDate = member.addedAt || member.joinedAt || member.createdAt;
+          let memberDate = null;
+          if (rawDate) {
+            // Admin SDK timestamps have _seconds, client SDK has seconds
+            if (rawDate._seconds) {
+              memberDate = new Date(rawDate._seconds * 1000).toISOString();
+            } else if (rawDate.seconds) {
+              memberDate = new Date(rawDate.seconds * 1000).toISOString();
+            } else if (rawDate.toDate) {
+              memberDate = rawDate.toDate().toISOString();
+            } else if (rawDate instanceof Date) {
+              memberDate = rawDate.toISOString();
+            } else if (typeof rawDate === 'string') {
+              memberDate = rawDate;
+            }
+          }
 
           return {
             userId: member.userId,
@@ -157,7 +173,18 @@ export async function GET(
           };
         } catch (error) {
           console.error(`Error fetching user ${member.userId}:`, error);
-          const memberDate = member.addedAt || member.joinedAt;
+          // Convert date in error case too
+          const rawDate = member.addedAt || member.joinedAt || member.createdAt;
+          let memberDate = null;
+          if (rawDate) {
+            if (rawDate._seconds) {
+              memberDate = new Date(rawDate._seconds * 1000).toISOString();
+            } else if (rawDate.seconds) {
+              memberDate = new Date(rawDate.seconds * 1000).toISOString();
+            } else if (typeof rawDate === 'string') {
+              memberDate = rawDate;
+            }
+          }
           return {
             userId: member.userId,
             role: member.role,
