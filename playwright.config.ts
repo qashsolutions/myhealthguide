@@ -47,8 +47,8 @@ export default defineConfig({
     navigationTimeout: 30000,
   },
 
-  // Global timeout for each test
-  timeout: 60000,
+  // Global timeout for each test (120s for production testing with full login)
+  timeout: 120000,
 
   // Expect timeout
   expect: {
@@ -85,10 +85,11 @@ export default defineConfig({
   ],
 
   // Run local server before starting the tests
-  webServer: {
+  // Set SKIP_WEB_SERVER=1 to skip starting the server (when already running)
+  webServer: process.env.SKIP_WEB_SERVER ? undefined : {
     command: process.env.CI ? 'npm run start' : 'npm run dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120000,
   },
 });

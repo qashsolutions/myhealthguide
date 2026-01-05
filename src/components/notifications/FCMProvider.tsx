@@ -23,10 +23,9 @@ export function FCMProvider() {
       return;
     }
 
-    // Only request notification permission for users with a subscription
-    // (includes 'active' and 'trial' with a Stripe subscription)
+    // Request notification permission for users with active subscription or trial
     const hasSubscription = user.subscriptionStatus === 'active' ||
-      (user.subscriptionStatus === 'trial' && user.stripeSubscriptionId);
+      user.subscriptionStatus === 'trial';
 
     // Setup FCM token
     const setupFCM = async () => {
