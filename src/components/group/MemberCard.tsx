@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { GroupMember } from '@/types';
-import { MoreVertical, Shield, User, Trash2, Crown } from 'lucide-react';
+import { MoreVertical, Trash2, Crown, Stethoscope, Eye, Shield, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +49,8 @@ interface MemberCardProps {
     name: string;
     email: string;
     profileImage?: string;
+    isCaregiver?: boolean;
+    assignedElderCount?: number;
   };
   isCurrentUser: boolean;
   isGroupAdmin: boolean;
@@ -121,19 +123,27 @@ export function MemberCard({
             </p>
 
             <div className="flex items-center gap-2">
-              <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
-                {member.role === 'admin' ? (
-                  <>
-                    <Shield className="w-3 h-3 mr-1" />
-                    Admin
-                  </>
-                ) : (
-                  <>
-                    <User className="w-3 h-3 mr-1" />
-                    Member
-                  </>
-                )}
-              </Badge>
+              {member.role === 'admin' ? (
+                <Badge className="bg-purple-600">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Owner
+                </Badge>
+              ) : member.isCaregiver ? (
+                <Badge className="bg-blue-600">
+                  <Stethoscope className="w-3 h-3 mr-1" />
+                  Caregiver
+                  {member.assignedElderCount ? (
+                    <span className="ml-1 opacity-80">
+                      ({member.assignedElderCount} elder{member.assignedElderCount > 1 ? 's' : ''})
+                    </span>
+                  ) : null}
+                </Badge>
+              ) : (
+                <Badge variant="secondary">
+                  <Eye className="w-3 h-3 mr-1" />
+                  Viewer
+                </Badge>
+              )}
 
               <span className="text-xs text-gray-400 dark:text-gray-500">
                 Joined {safeFormatDate(member.addedAt, 'MMM d, yyyy')}
