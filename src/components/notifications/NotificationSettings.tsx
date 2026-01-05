@@ -1,161 +1,198 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { NotificationPreferences, NotificationType } from '@/types';
 import { NotificationService } from '@/lib/firebase/notifications';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSubscription, getMaxRecipients as getMaxRecipientsFromService, getPlanDisplayInfo } from '@/lib/subscription';
-import { Bell, Plus, X, Check, MessageSquare, User, Info, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { useSubscription } from '@/lib/subscription';
+import { Bell, Check, CheckCircle2, XCircle, AlertCircle, Smartphone, Monitor, RefreshCw, Send } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import Link from 'next/link';
+import {
+  isNotificationSupported,
+  getNotificationPermission,
+  requestNotificationPermission,
+  getFCMToken
+} from '@/lib/firebase/fcm';
 
 interface NotificationSettingsProps {
   groupId: string;
 }
 
+type PushNotificationStatus = 'checking' | 'supported' | 'unsupported';
+type PermissionStatus = 'granted' | 'denied' | 'default' | 'unknown';
+type OSType = 'macos' | 'windows' | 'ios' | 'android' | 'unknown';
+
 /**
- * Format phone number to E.164 format (+1XXXXXXXXXX)
- * Accepts: 10 digits, or +1 followed by 10 digits
+ * Detect operating system
  */
-function formatPhoneE164(phone: string): string | null {
-  // Remove all non-digit characters except +
-  const cleaned = phone.replace(/[^\d+]/g, '');
+function detectOS(): OSType {
+  if (typeof window === 'undefined') return 'unknown';
 
-  // Extract just the digits
-  const digitsOnly = cleaned.replace(/\D/g, '');
+  const userAgent = navigator.userAgent.toLowerCase();
+  const platform = navigator.platform?.toLowerCase() || '';
 
-  // Handle different formats
-  if (digitsOnly.length === 10) {
-    // 10 digits - add +1
-    return `+1${digitsOnly}`;
-  } else if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
-    // 11 digits starting with 1 - add +
-    return `+${digitsOnly}`;
-  } else if (cleaned.startsWith('+1') && digitsOnly.length === 11) {
-    // Already in +1XXXXXXXXXX format
-    return `+${digitsOnly}`;
-  }
+  if (platform.includes('mac') || userAgent.includes('mac')) return 'macos';
+  if (platform.includes('win') || userAgent.includes('win')) return 'windows';
+  if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
+  if (/android/.test(userAgent)) return 'android';
 
-  return null; // Invalid format
+  return 'unknown';
 }
 
 /**
- * Check if string is a valid E.164 phone number
+ * Get browser name for instructions
  */
-function isValidE164(phone: string): boolean {
-  // E.164 format: +1 followed by 10 digits
-  const cleaned = phone.replace(/[^\d+]/g, '');
-  return /^\+1\d{10}$/.test(cleaned);
-}
+function getBrowserName(): string {
+  if (typeof window === 'undefined') return 'your browser';
 
-/**
- * Display phone number in user-friendly obfuscated format
- * +14692039202 -> (***) ***-9202
- * Shows only last 4 digits for privacy
- */
-function formatPhoneDisplay(phone: string, obfuscate: boolean = true): string {
-  // Check if this looks like a hash (not a valid phone number)
-  if (!isValidE164(phone)) {
-    return '***-***-****'; // Invalid/hash value
-  }
+  const userAgent = navigator.userAgent;
 
-  const cleaned = phone.replace(/\D/g, '');
-  // Remove leading 1 if present
-  const digits = cleaned.startsWith('1') && cleaned.length === 11
-    ? cleaned.slice(1)
-    : cleaned;
+  if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome';
+  if (userAgent.includes('Edg')) return 'Edge';
+  if (userAgent.includes('Firefox')) return 'Firefox';
+  if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
 
-  if (digits.length === 10) {
-    if (obfuscate) {
-      // Show only last 4 digits: (***) ***-1234
-      return `(***) ***-${digits.slice(6)}`;
-    }
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  }
-  return '***-***-****';
-}
-
-/**
- * Get plan info using centralized subscription service
- */
-function getNotificationPlanInfo(tier: string | null | undefined) {
-  const displayInfo = getPlanDisplayInfo(tier as 'family' | 'single_agency' | 'multi_agency' | null);
-  return {
-    label: displayInfo.name,
-    description: displayInfo.description,
-  };
+  return 'your browser';
 }
 
 export function NotificationSettings({ groupId }: NotificationSettingsProps) {
   const { user } = useAuth();
-  const { tier, isTrial, isMultiAgency } = useSubscription();
+  const { isTrial } = useSubscription();
+
+  // Notification preferences state
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     enabled: false,
     frequency: 'realtime',
     types: []
   });
-  const [recipients, setRecipients] = useState<string[]>([]);
-  const [newRecipient, setNewRecipient] = useState('');
+
+  // Push notification status
+  const [browserSupport, setBrowserSupport] = useState<PushNotificationStatus>('checking');
+  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>('unknown');
+  const [hasFCMToken, setHasFCMToken] = useState(false);
+
+  // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [enabling, setEnabling] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [adminPhoneAdded, setAdminPhoneAdded] = useState(false);
-  const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
 
-  // Get subscription-based limits using centralized service
-  const maxRecipients = getMaxRecipientsFromService(tier);
-  const planInfo = getNotificationPlanInfo(tier);
-  const isAtLimit = recipients.length >= maxRecipients;
+  // Detect OS and browser
+  const [os, setOS] = useState<OSType>('unknown');
+  const [browser, setBrowser] = useState('your browser');
 
-  // Get admin's phone number (E.164 format)
-  const adminPhone = user?.phoneNumber ? formatPhoneE164(user.phoneNumber) : null;
+  // Check push notification support on mount
+  useEffect(() => {
+    setOS(detectOS());
+    setBrowser(getBrowserName());
 
+    // Check browser support
+    if (isNotificationSupported()) {
+      setBrowserSupport('supported');
+      const permission = getNotificationPermission();
+      setPermissionStatus(permission || 'unknown');
+    } else {
+      setBrowserSupport('unsupported');
+    }
+  }, []);
+
+  // Load notification preferences
   useEffect(() => {
     loadSettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
-  // Auto-add admin's phone if no recipients and admin has verified phone
+  // Check if user has FCM token (fcmTokens is stored in Firestore but may not be in User type)
   useEffect(() => {
-    if (!loading && !adminPhoneAdded && recipients.length === 0 && adminPhone && user?.phoneVerified) {
-      // Auto-populate admin's phone as default recipient
-      setRecipients([adminPhone]);
-      setAdminPhoneAdded(true);
+    const userAny = user as any;
+    if (userAny?.fcmTokens && userAny.fcmTokens.length > 0) {
+      setHasFCMToken(true);
     }
-  }, [loading, recipients, adminPhone, adminPhoneAdded, user?.phoneVerified]);
+  }, [(user as any)?.fcmTokens]);
 
   const loadSettings = async () => {
     try {
       setLoading(true);
-      setError(''); // Clear any previous errors
+      setError('');
 
-      const [prefs, recips] = await Promise.all([
-        NotificationService.getGroupNotificationPreferences(groupId).catch(() => null),
-        NotificationService.getNotificationRecipients(groupId).catch(() => [])
-      ]);
+      const prefs = await NotificationService.getGroupNotificationPreferences(groupId).catch(() => null);
 
       if (prefs) {
         setPreferences(prefs);
       }
-      // Filter out invalid phone numbers (e.g., old hash values)
-      const validRecipients = (recips || []).filter(isValidE164);
-      setRecipients(validRecipients);
-      // No error shown - empty state is expected for new users
     } catch (err: any) {
-      // Only show error for unexpected issues, not for permission denied (new users)
       if (err?.code !== 'permission-denied' && !err?.message?.includes('Missing or insufficient permissions')) {
         console.error('Error loading notification settings:', err);
         setError('Failed to load notification settings');
       }
-      // For permission errors, just use defaults (this is expected for new users)
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    if (!user?.id) return;
+
+    try {
+      setEnabling(true);
+      setError('');
+
+      // Request permission
+      const permission = await requestNotificationPermission();
+      setPermissionStatus(permission);
+
+      if (permission === 'granted') {
+        // Get and save FCM token
+        const token = await getFCMToken(user.id);
+        if (token) {
+          setHasFCMToken(true);
+          setSuccess('Push notifications enabled successfully!');
+          setTimeout(() => setSuccess(''), 3000);
+        } else {
+          setError('Failed to register device. Please try again.');
+        }
+      } else if (permission === 'denied') {
+        setError('Notification permission was denied. Please enable in browser settings.');
+      }
+    } catch (err) {
+      console.error('Error enabling notifications:', err);
+      setError('Failed to enable notifications. Please try again.');
+    } finally {
+      setEnabling(false);
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    if (!user?.id) return;
+
+    try {
+      setSendingTest(true);
+      setError('');
+
+      // Use the API to send a test notification
+      const response = await fetch('/api/notifications/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      if (response.ok) {
+        setSuccess('Test notification sent! Check your device.');
+        setTimeout(() => setSuccess(''), 5000);
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to send test notification');
+      }
+    } catch (err) {
+      console.error('Error sending test notification:', err);
+      setError('Failed to send test notification');
+    } finally {
+      setSendingTest(false);
     }
   };
 
@@ -164,10 +201,7 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
       setSaving(true);
       setError('');
 
-      await Promise.all([
-        NotificationService.updateGroupNotificationPreferences(groupId, preferences),
-        NotificationService.updateNotificationRecipients(groupId, recipients)
-      ]);
+      await NotificationService.updateGroupNotificationPreferences(groupId, preferences);
 
       setSuccess('Notification settings saved successfully');
       setTimeout(() => setSuccess(''), 3000);
@@ -179,43 +213,13 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
     }
   };
 
-  const addRecipient = () => {
-    const trimmed = newRecipient.trim();
-
-    if (!trimmed) {
-      setError('Please enter a phone number');
-      return;
+  const refreshStatus = useCallback(() => {
+    if (isNotificationSupported()) {
+      setBrowserSupport('supported');
+      const permission = getNotificationPermission();
+      setPermissionStatus(permission || 'unknown');
     }
-
-    // Validate and format to E.164
-    const formattedPhone = formatPhoneE164(trimmed);
-    if (!formattedPhone) {
-      setError('Please enter a valid 10-digit US phone number');
-      return;
-    }
-
-    if (recipients.includes(formattedPhone)) {
-      setError('This phone number is already added');
-      return;
-    }
-
-    if (recipients.length >= maxRecipients) {
-      if (isTrial) {
-        setError(`Trial limit: ${maxRecipients} recipients. Subscribe for more.`);
-      } else {
-        setError(`${planInfo.label} plan limit: ${maxRecipients} recipients. Upgrade for more.`);
-      }
-      return;
-    }
-
-    setRecipients([...recipients, formattedPhone]);
-    setNewRecipient('');
-    setError('');
-  };
-
-  const removeRecipient = (phone: string) => {
-    setRecipients(recipients.filter(r => r !== phone));
-  };
+  }, []);
 
   const toggleNotificationType = (type: NotificationType) => {
     setPreferences(prev => ({
@@ -225,6 +229,74 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
         : [...prev.types, type]
     }));
   };
+
+  // Get OS-specific instructions
+  const getOSInstructions = () => {
+    switch (os) {
+      case 'macos':
+        return {
+          icon: <Monitor className="w-4 h-4" />,
+          title: 'macOS',
+          steps: [
+            `Open System Settings (or System Preferences)`,
+            `Go to Notifications`,
+            `Find "${browser}" in the list`,
+            `Enable "Allow Notifications"`,
+            `Set alert style to "Alerts" or "Banners"`
+          ]
+        };
+      case 'windows':
+        return {
+          icon: <Monitor className="w-4 h-4" />,
+          title: 'Windows',
+          steps: [
+            `Open Settings > System > Notifications`,
+            `Make sure "Notifications" is turned On`,
+            `Scroll down and find "${browser}"`,
+            `Enable notifications for ${browser}`
+          ]
+        };
+      case 'android':
+        return {
+          icon: <Smartphone className="w-4 h-4" />,
+          title: 'Android',
+          steps: [
+            `Open Settings > Apps > ${browser}`,
+            `Tap "Notifications"`,
+            `Enable "Allow notifications"`,
+            `Enable "Show notifications"`
+          ]
+        };
+      case 'ios':
+        return {
+          icon: <Smartphone className="w-4 h-4" />,
+          title: 'iOS',
+          steps: [
+            `Open Settings > Notifications`,
+            `Find "${browser}" in the list`,
+            `Enable "Allow Notifications"`,
+            `Choose your preferred alert style`
+          ]
+        };
+      default:
+        return {
+          icon: <Monitor className="w-4 h-4" />,
+          title: 'Your Device',
+          steps: [
+            `Open your device's notification settings`,
+            `Find your browser in the app list`,
+            `Enable notifications for your browser`
+          ]
+        };
+    }
+  };
+
+  const osInstructions = getOSInstructions();
+
+  // Determine overall status
+  const isFullySetup = browserSupport === 'supported' &&
+    permissionStatus === 'granted' &&
+    hasFCMToken;
 
   if (loading) {
     return <div className="text-center py-8">Loading notification settings...</div>;
@@ -251,198 +323,177 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
         </Alert>
       )}
 
-      {/* Notification Status */}
+      {/* Push Notification Setup Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5" />
-            SMS Notifications
-          </CardTitle>
-          <CardDescription>
-            Receive text message alerts for important care events
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-base">Enable SMS Notifications</Label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Receive text alerts for missed doses and important events
-              </p>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="w-5 h-5" />
+                Push Notifications
+              </CardTitle>
+              <CardDescription>
+                Get instant alerts on your device for medication reminders and care events
+              </CardDescription>
             </div>
-            <button
-              onClick={() => setPreferences(prev => ({ ...prev, enabled: !prev.enabled }))}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                preferences.enabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  preferences.enabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            {isFullySetup && (
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Enabled
+              </Badge>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Setup Status Steps */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span>Setup Status</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshStatus}
+                className="h-8 px-2"
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Refresh
+              </Button>
+            </div>
 
-      {/* Plan Limits Banner */}
-      <Card className={isTrial ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}>
-        <CardContent className="py-4">
-          <div className="flex items-start gap-3">
-            <Info className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isTrial ? 'text-amber-600' : 'text-blue-600'}`} />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {planInfo.label} Plan
-                </span>
-                <Badge variant={isTrial ? 'outline' : 'secondary'} className="text-xs">
-                  {recipients.length}/{maxRecipients} recipients
-                </Badge>
+            {/* Step 1: Browser Support */}
+            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex-shrink-0">
+                {browserSupport === 'checking' ? (
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                ) : browserSupport === 'supported' ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-red-500" />
+                )}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {planInfo.description}
-              </p>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 dark:text-white">
+                  Step 1: Browser Support
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {browserSupport === 'checking' && 'Checking...'}
+                  {browserSupport === 'supported' && `${browser} supports push notifications`}
+                  {browserSupport === 'unsupported' && 'Your browser does not support push notifications'}
+                </div>
+              </div>
+            </div>
 
-              {/* Show upgrade options - collapsible */}
-              {isTrial && (
-                <div className="mt-3">
-                  <button
-                    onClick={() => setShowUpgradeOptions(!showUpgradeOptions)}
-                    className="flex items-center gap-1 text-sm font-medium text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
-                  >
-                    {showUpgradeOptions ? (
-                      <>Hide plan options <ChevronUp className="w-4 h-4" /></>
-                    ) : (
-                      <>Upgrade for more recipients <ChevronDown className="w-4 h-4" /></>
-                    )}
-                  </button>
+            {/* Step 2: Browser Permission */}
+            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex-shrink-0">
+                {permissionStatus === 'granted' ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                ) : permissionStatus === 'denied' ? (
+                  <XCircle className="w-5 h-5 text-red-500" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-amber-500" />
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 dark:text-white">
+                  Step 2: Browser Permission
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {permissionStatus === 'granted' && 'Permission granted'}
+                  {permissionStatus === 'denied' && 'Permission blocked - enable in browser settings'}
+                  {permissionStatus === 'default' && 'Permission not yet requested'}
+                  {permissionStatus === 'unknown' && 'Unable to determine permission status'}
+                </div>
+              </div>
+              {browserSupport === 'supported' && permissionStatus !== 'granted' && permissionStatus !== 'denied' && (
+                <Button
+                  onClick={handleEnableNotifications}
+                  disabled={enabling}
+                  size="sm"
+                >
+                  {enabling ? 'Enabling...' : 'Enable Now'}
+                </Button>
+              )}
+            </div>
 
-                  {showUpgradeOptions && (
-                    <div className="mt-2 p-3 bg-white dark:bg-gray-900 rounded-lg border border-amber-200 dark:border-amber-700">
-                      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex justify-between">
-                          <span>Family Plan</span>
-                          <span>{getMaxRecipientsFromService('family')} recipients</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Single Agency</span>
-                          <span>{getMaxRecipientsFromService('single_agency')} recipients</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Multi-Agency</span>
-                          <span>{getMaxRecipientsFromService('multi_agency')} recipients</span>
-                        </div>
-                      </div>
-                      <Link href="/pricing" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
-                        View Plans <ArrowUpRight className="w-3 h-3" />
-                      </Link>
+            {/* Step 3: Device Notifications */}
+            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex-shrink-0 mt-0.5">
+                {osInstructions.icon}
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-gray-900 dark:text-white">
+                  Step 3: {osInstructions.title} Device Settings
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Ensure notifications are enabled at the system level
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* OS-Specific Instructions (shown when permission is denied or for guidance) */}
+          {(permissionStatus === 'denied' || !isFullySetup) && browserSupport === 'supported' && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-800 dark:text-amber-200 mb-2">
+                    {permissionStatus === 'denied'
+                      ? `Enable notifications in ${browser} settings:`
+                      : `To ensure you receive notifications on ${osInstructions.title}:`}
+                  </p>
+
+                  {/* Browser instructions for denied permission */}
+                  {permissionStatus === 'denied' && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+                        In {browser}:
+                      </p>
+                      <ol className="text-sm text-amber-700 dark:text-amber-300 space-y-1 list-decimal list-inside">
+                        <li>Click the lock/info icon in the address bar</li>
+                        <li>Find &quot;Notifications&quot; setting</li>
+                        <li>Change from &quot;Block&quot; to &quot;Allow&quot;</li>
+                        <li>Refresh this page</li>
+                      </ol>
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Show upgrade prompt when at limit (non-trial) */}
-              {!isTrial && isAtLimit && !isMultiAgency && (
-                <div className="mt-2">
-                  <Link href="/dashboard/settings?tab=subscription" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
-                    Upgrade for more recipients <ArrowUpRight className="w-3 h-3" />
-                  </Link>
+                  {/* OS-specific instructions */}
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+                    On {osInstructions.title}:
+                  </p>
+                  <ol className="text-sm text-amber-700 dark:text-amber-300 space-y-1 list-decimal list-inside">
+                    {osInstructions.steps.map((step, idx) => (
+                      <li key={idx}>{step}</li>
+                    ))}
+                  </ol>
                 </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notification Recipients */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            SMS Recipients
-          </CardTitle>
-          <CardDescription>
-            Add US phone numbers to receive SMS notifications ({recipients.length}/{maxRecipients})
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Add Recipient */}
-          <div className="flex gap-2">
-            <div className="flex flex-1">
-              <div className="flex items-center px-3 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md border-gray-300 dark:border-gray-600">
-                <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">+1</span>
               </div>
-              <Input
-                value={newRecipient}
-                onChange={(e) => {
-                  // Only allow digits, limit to 10 characters
-                  const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
-                  setNewRecipient(cleaned);
-                }}
-                placeholder="(555) 123-4567"
-                onKeyPress={(e) => e.key === 'Enter' && addRecipient()}
-                disabled={recipients.length >= maxRecipients}
-                className="rounded-l-none"
-                maxLength={10}
-              />
-            </div>
-            <Button
-              onClick={addRecipient}
-              disabled={recipients.length >= maxRecipients}
-              size="icon"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Enter 10-digit US phone number
-          </p>
-
-          {/* Recipients List */}
-          {recipients.length > 0 && (
-            <div className="space-y-2">
-              {recipients.map((phone, idx) => {
-                const isAdminPhone = phone === adminPhone;
-                return (
-                  <div
-                    key={phone}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      {isAdminPhone ? (
-                        <User className="w-4 h-4 text-blue-500" />
-                      ) : (
-                        <MessageSquare className="w-4 h-4 text-gray-500" />
-                      )}
-                      <span className="font-medium">+1 {formatPhoneDisplay(phone)}</span>
-                      {idx === 0 && (
-                        <Badge variant="outline">Primary</Badge>
-                      )}
-                      {isAdminPhone && (
-                        <Badge variant="secondary" className="text-xs">You</Badge>
-                      )}
-                    </div>
-                    {/* Admin cannot remove themselves from the recipient list */}
-                    {!isAdminPhone && (
-                      <button
-                        onClick={() => removeRecipient(phone)}
-                        className="text-gray-500 hover:text-red-600"
-                        title="Remove recipient"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
             </div>
           )}
 
-          {recipients.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-              No recipients added yet. Add a phone number to start receiving SMS alerts.
-            </p>
+          {/* Test Notification Button */}
+          {isFullySetup && (
+            <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div>
+                <p className="font-medium text-green-800 dark:text-green-200">
+                  Notifications are set up!
+                </p>
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Send a test notification to verify everything is working
+                </p>
+              </div>
+              <Button
+                onClick={handleSendTestNotification}
+                disabled={sendingTest}
+                variant="outline"
+                className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/40"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {sendingTest ? 'Sending...' : 'Send Test'}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -529,7 +580,7 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving || recipients.length === 0}>
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? 'Saving...' : 'Save Notification Settings'}
         </Button>
       </div>
@@ -541,14 +592,14 @@ export function NotificationSettings({ groupId }: NotificationSettingsProps) {
             <Bell className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-2">
               <p className="font-medium text-gray-900 dark:text-white">
-                SMS Notification Information
+                Push Notification Information
               </p>
               <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                <li>• Standard SMS rates may apply</li>
-                <li>• US phone numbers only (+1 country code)</li>
-                <li>• Reply TAKEN/MISSED/SKIP to confirm medication status</li>
-                <li>• Reply HELP for list of SMS commands</li>
-                <li>• Messages are brief and crisp, containing only essential information</li>
+                <li>• Works on desktop and mobile browsers</li>
+                <li>• Install as PWA for best notification experience</li>
+                <li>• Notifications appear even when the browser is closed</li>
+                <li>• Click notifications to open the app directly</li>
+                <li>• No SMS charges - completely free push notifications</li>
               </ul>
             </div>
           </div>
