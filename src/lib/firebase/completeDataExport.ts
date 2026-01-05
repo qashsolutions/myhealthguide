@@ -6,9 +6,10 @@
 
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from './config';
-import { generateHealthReportPDF } from '../utils/pdfExport';
+import { generateHealthReportPDF, generatePHIAuditLogPDF } from '../utils/pdfExport';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { format } from 'date-fns';
 
 /**
  * Convert Firestore Timestamp or various date formats to JavaScript Date
@@ -208,11 +209,8 @@ export async function exportAllUserData(userId: string): Promise<void> {
     // Create ZIP file
     const zip = new JSZip();
 
-    // Add JSON export
-    zip.file('complete-data-export.json', JSON.stringify(exportData, null, 2));
-
     // Add README
-    const readme = `MyGuide.Health Complete Data Export
+    const readme = `MyGuide.Health Health Data Export
 =====================================
 
 Export Date: ${new Date().toLocaleString()}
@@ -220,9 +218,14 @@ User: ${userData.firstName} ${userData.lastName}
 Email: ${userData.email}
 
 This archive contains:
-- complete-data-export.json: All your data in JSON format
-- elder-reports/: Individual PDF reports for each elder
-- phi-audit-log.json: Complete PHI access audit trail (HIPAA)
+- elder-reports/: Individual PDF health reports for each care recipient
+- PHI_Audit_Log.pdf: Complete PHI access audit trail (HIPAA compliance)
+
+Each elder report includes:
+- Medication compliance summary and statistics
+- Medication details with adherence rates
+- Missed doses log (if any)
+- Diet/nutrition summary
 
 IMPORTANT: This data contains Protected Health Information (PHI).
 Store securely and delete when no longer needed.
@@ -231,13 +234,23 @@ For questions: support@myguide.health
 `;
     zip.file('README.txt', readme);
 
-    // Add PHI Audit Log separately (HIPAA requirement)
-    zip.file('phi-audit-log.json', JSON.stringify({
-      exportDate: new Date().toISOString(),
-      userId: userId,
-      userEmail: userData.email,
-      logs: exportData.phiAuditLogs
-    }, null, 2));
+    // Generate PHI Audit Log PDF (HIPAA requirement)
+    try {
+      console.log('Generating PHI Audit Log PDF...');
+      const auditLogPDF = await generatePHIAuditLogPDF({
+        exportDate: format(new Date(), 'MMMM dd, yyyy h:mm a'),
+        userName: `${userData.firstName} ${userData.lastName}`,
+        userEmail: userData.email,
+        logs: exportData.phiAuditLogs,
+      }, true);
+
+      if (auditLogPDF) {
+        zip.file('PHI_Audit_Log.pdf', auditLogPDF);
+        console.log('✅ PHI Audit Log PDF generated');
+      }
+    } catch (error) {
+      console.error('Error generating PHI Audit Log PDF:', error);
+    }
 
     // Generate PDF reports for each elder
     const elderReportsFolder = zip.folder('elder-reports');

@@ -630,3 +630,207 @@ export async function generateClinicalNotePDF(
   const defaultFilename = `Clinical_Note_${data.patientInfo.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
   doc.save(filename || defaultFilename);
 }
+
+// ============= PHI Audit Log PDF Export =============
+
+export interface PHIAuditLogEntry {
+  id: string;
+  timestamp: Date | any;
+  action: string;
+  userId: string;
+  userRole?: string;
+  elderId?: string;
+  elderName?: string;
+  phiType?: string;
+  purpose?: string;
+  actionDetails?: string;
+  ipAddressHash?: string;
+  browser?: string;
+  deviceType?: string;
+}
+
+export interface PHIAuditLogPDFData {
+  exportDate: string;
+  userName: string;
+  userEmail: string;
+  logs: PHIAuditLogEntry[];
+}
+
+/**
+ * Generate a readable PHI Audit Log PDF (HIPAA Compliance)
+ */
+export async function generatePHIAuditLogPDF(
+  data: PHIAuditLogPDFData,
+  returnBlob: boolean = false
+): Promise<Blob | void> {
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let yPosition = margin;
+
+  // === HEADER ===
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PHI Access Audit Log', pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 8;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  doc.text('HIPAA Compliance Record - Protected Health Information Access History', pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 6;
+
+  doc.setFontSize(9);
+  doc.text(`Generated: ${data.exportDate}`, pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 5;
+  doc.text(`User: ${data.userName} (${data.userEmail})`, pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 8;
+
+  // Separator
+  doc.setDrawColor(200);
+  doc.line(margin, yPosition, pageWidth - margin, yPosition);
+  yPosition += 5;
+
+  // === SUMMARY SECTION ===
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0);
+  doc.text('Summary', margin, yPosition);
+  yPosition += 6;
+
+  // Calculate summary stats
+  const totalAccesses = data.logs.length;
+  const uniqueElders = new Set(data.logs.filter(l => l.elderId).map(l => l.elderId)).size;
+  const actionCounts: Record<string, number> = {};
+  data.logs.forEach(log => {
+    actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
+  });
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Total PHI Access Events: ${totalAccesses}`, margin, yPosition);
+  yPosition += 5;
+  doc.text(`Unique Care Recipients Accessed: ${uniqueElders}`, margin, yPosition);
+  yPosition += 5;
+
+  // Action breakdown
+  const actionSummary = Object.entries(actionCounts)
+    .map(([action, count]) => `${action}: ${count}`)
+    .join(' | ');
+  doc.text(`Actions: ${actionSummary}`, margin, yPosition);
+  yPosition += 10;
+
+  // === AUDIT LOG TABLE ===
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Access Log Details', margin, yPosition);
+  yPosition += 5;
+
+  // Prepare table data - limit to most recent 500 entries for readability
+  const recentLogs = data.logs.slice(0, 500);
+  const tableData = recentLogs.map(log => {
+    let timestamp: string;
+    try {
+      if (log.timestamp instanceof Date) {
+        timestamp = format(log.timestamp, 'MMM dd, yyyy HH:mm');
+      } else if (log.timestamp?.seconds) {
+        timestamp = format(new Date(log.timestamp.seconds * 1000), 'MMM dd, yyyy HH:mm');
+      } else if (log.timestamp?.toDate) {
+        timestamp = format(log.timestamp.toDate(), 'MMM dd, yyyy HH:mm');
+      } else {
+        timestamp = String(log.timestamp || 'N/A');
+      }
+    } catch {
+      timestamp = 'N/A';
+    }
+
+    return [
+      timestamp,
+      log.action || 'N/A',
+      log.phiType || 'N/A',
+      log.elderName || log.elderId?.substring(0, 8) || 'N/A',
+      log.userRole || 'N/A',
+      log.purpose || 'N/A',
+      log.deviceType || 'N/A',
+    ];
+  });
+
+  autoTable(doc, {
+    startY: yPosition,
+    head: [['Date/Time', 'Action', 'PHI Type', 'Care Recipient', 'Role', 'Purpose', 'Device']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [66, 139, 202],
+      fontSize: 8,
+      fontStyle: 'bold'
+    },
+    styles: {
+      fontSize: 7,
+      cellPadding: 2,
+    },
+    columnStyles: {
+      0: { cellWidth: 35 },
+      1: { cellWidth: 25 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 35 },
+      4: { cellWidth: 25 },
+      5: { cellWidth: 35 },
+      6: { cellWidth: 25 },
+    },
+    margin: { left: margin, right: margin },
+    didDrawPage: (hookData) => {
+      // Footer on each page
+      const pageNum = doc.getNumberOfPages();
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(
+        `Page ${hookData.pageNumber} | PHI Audit Log - ${data.userEmail}`,
+        pageWidth / 2,
+        pageHeight - 8,
+        { align: 'center' }
+      );
+    }
+  });
+
+  // === DISCLAIMER ===
+  const lastPage = doc.getNumberOfPages();
+  doc.setPage(lastPage);
+  const finalY = (doc as any).lastAutoTable?.finalY || pageHeight - 40;
+
+  if (finalY < pageHeight - 35) {
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100);
+    const disclaimer = 'This audit log is maintained in compliance with HIPAA Security Rule (§164.312). ' +
+      'It records all access to Protected Health Information (PHI) within the MyGuide Health application. ' +
+      'Retain this document according to your organization\'s data retention policy (minimum 6 years per HIPAA).';
+    const lines = doc.splitTextToSize(disclaimer, pageWidth - 2 * margin);
+    doc.text(lines, margin, Math.min(finalY + 10, pageHeight - 25));
+  }
+
+  // Show truncation notice if logs were limited
+  if (data.logs.length > 500) {
+    doc.setFontSize(9);
+    doc.setTextColor(200, 100, 0);
+    doc.text(
+      `Note: Showing most recent 500 of ${data.logs.length} total entries.`,
+      margin,
+      Math.min(finalY + 5, pageHeight - 30)
+    );
+  }
+
+  // Return blob or save
+  if (returnBlob) {
+    return doc.output('blob');
+  }
+
+  const fileName = `PHI_Audit_Log_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  doc.save(fileName);
+}
