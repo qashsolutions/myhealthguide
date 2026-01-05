@@ -1707,6 +1707,36 @@ service cloud.firestore {
         isSuperAdmin(resource.data.agencyId);
     }
 
+    // ============= Caregiver Member Invites Collection =============
+    // Invites sent by caregivers to family members for their assigned elders
+
+    match /caregiver_member_invites/{inviteId} {
+      // Caregiver can read invites they created
+      // Super admin can read all invites in their agency
+      allow read: if isSignedIn() &&
+        (resource.data.caregiverId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId));
+
+      // Caregivers with canInviteMembers permission can create invites
+      // Validated in API route - rules just check basic auth
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.caregiverId == request.auth.uid;
+
+      // Caregiver can update (cancel) their invites
+      // API route updates status when family member accepts
+      allow update: if isSignedIn() &&
+        (resource.data.caregiverId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId) ||
+         // Allow status update when accepting
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'acceptedBy']));
+
+      // Caregiver can delete their pending invites
+      allow delete: if isSignedIn() &&
+        (resource.data.caregiverId == request.auth.uid ||
+         isSuperAdmin(resource.data.agencyId));
+    }
+
     // ============= Caregiver Profiles Collection =============
     // Detailed caregiver profiles with certifications, availability, etc.
 

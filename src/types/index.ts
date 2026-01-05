@@ -86,6 +86,9 @@ export interface GroupMember {
   // Agency caregiver specific fields
   agencyId?: string; // Only for agency_caregiver role
   canWrite?: boolean; // Explicit write permission flag
+  // Caregiver-invited member fields (Multi-Agency only)
+  invitedByCaregiverId?: string; // Which caregiver invited this member
+  elderAccessIds?: string[]; // Which elders this member can view (limited to caregiver's assigned elders)
 }
 
 export interface GroupMembership {
