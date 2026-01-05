@@ -10,12 +10,16 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 interface GroupMember {
   userId: string;
-  role: 'admin' | 'member';
+  role: 'admin' | 'member' | 'agency_caregiver';
   joinedAt?: any;
+  addedAt?: any; // For backward compatibility with MemberCard
   name: string;
   email: string;
   profileImage?: string;
-  permission?: 'admin' | 'write' | 'read';
+  permissionLevel?: 'admin' | 'write' | 'read';
+  agencyId?: string;
+  isCaregiver?: boolean;
+  assignedElderCount?: number;
 }
 
 export async function GET(
@@ -91,48 +95,78 @@ export async function GET(
     const members = groupData?.members || [];
     const writeMemberIds = groupData?.writeMemberIds || [];
 
+    // Check if this is a multi-agency group
+    const agencyId = groupData?.agencyId;
+
+    // Get caregiver assignments if this is an agency group
+    let caregiverAssignments: Map<string, number> = new Map();
+    if (agencyId) {
+      const assignmentsSnap = await db.collection('caregiver_assignments')
+        .where('agencyId', '==', agencyId)
+        .where('active', '==', true)
+        .get();
+
+      assignmentsSnap.docs.forEach(doc => {
+        const data = doc.data();
+        const elderCount = data.elderIds?.length || 0;
+        caregiverAssignments.set(data.caregiverId, elderCount);
+      });
+    }
+
     // Fetch user details for each member
     const membersWithDetails: GroupMember[] = await Promise.all(
       members.map(async (member: any) => {
         try {
           const userDoc = await db.collection('users').doc(member.userId).get();
+          const userData = userDoc.exists ? userDoc.data() : null;
 
-          if (!userDoc.exists) {
-            return {
-              userId: member.userId,
-              role: member.role,
-              joinedAt: member.joinedAt,
-              name: 'Unknown User',
-              email: '',
-              permission: member.role === 'admin' ? 'admin' :
-                         writeMemberIds.includes(member.userId) ? 'write' : 'read'
-            };
+          // Determine if this user is a caregiver
+          const isCaregiver = member.role === 'agency_caregiver' ||
+                             member.agencyId ||
+                             (userData?.agencies && userData.agencies.length > 0);
+
+          // Get assigned elder count for caregivers
+          const assignedElderCount = caregiverAssignments.get(member.userId) || 0;
+
+          // Determine permission level
+          let permissionLevel: 'admin' | 'write' | 'read' = 'read';
+          if (member.role === 'admin') {
+            permissionLevel = 'admin';
+          } else if (isCaregiver || writeMemberIds.includes(member.userId)) {
+            permissionLevel = 'write';
           }
 
-          const userData = userDoc.data();
           const firstName = userData?.firstName || '';
           const lastName = userData?.lastName || '';
 
+          // Use addedAt or joinedAt, whichever is available
+          const memberDate = member.addedAt || member.joinedAt;
+
           return {
             userId: member.userId,
             role: member.role,
-            joinedAt: member.joinedAt,
+            joinedAt: memberDate,
+            addedAt: memberDate, // For backward compatibility with MemberCard
             name: `${firstName} ${lastName}`.trim() || 'Unknown User',
             email: userData?.email || '',
             profileImage: userData?.profileImage,
-            permission: member.role === 'admin' ? 'admin' :
-                       writeMemberIds.includes(member.userId) ? 'write' : 'read'
+            permissionLevel,
+            agencyId: member.agencyId,
+            isCaregiver,
+            assignedElderCount: isCaregiver ? assignedElderCount : undefined
           };
         } catch (error) {
           console.error(`Error fetching user ${member.userId}:`, error);
+          const memberDate = member.addedAt || member.joinedAt;
           return {
             userId: member.userId,
             role: member.role,
-            joinedAt: member.joinedAt,
+            joinedAt: memberDate,
+            addedAt: memberDate,
             name: 'Unknown User',
             email: '',
-            permission: member.role === 'admin' ? 'admin' :
-                       writeMemberIds.includes(member.userId) ? 'write' : 'read'
+            permissionLevel: member.role === 'admin' ? 'admin' : 'read' as const,
+            isCaregiver: false
           };
         }
       })

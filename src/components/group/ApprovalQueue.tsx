@@ -243,7 +243,7 @@ export function ApprovalQueue({ groupId, adminId }: ApprovalQueueProps) {
 
         <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            <strong className="text-blue-700 dark:text-blue-400">Note:</strong> Approved members will be added with read-only permission by default. You can grant write permission from the Permission Manager.
+            <strong className="text-blue-700 dark:text-blue-400">Note:</strong> Approved members will be added as Viewers (read-only access). Caregivers are added separately via Agency Management.
           </p>
         </div>
       </CardContent>

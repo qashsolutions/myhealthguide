@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { GroupService } from '@/lib/firebase/groups';
 import { GroupMember, PermissionLevel } from '@/types';
-import { Shield, Key, RefreshCw, Copy, UserMinus, AlertCircle, CheckCircle, Eye, Crown, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, Key, RefreshCw, Copy, UserMinus, AlertCircle, CheckCircle, Eye, Crown, ChevronDown, ChevronUp, Stethoscope } from 'lucide-react';
 import { formatInviteCodeForDisplay } from '@/lib/utils/inviteCode';
 
 interface PermissionManagerProps {
@@ -19,6 +19,8 @@ interface MemberWithDetails extends GroupMember {
   name: string;
   email: string;
   profileImage?: string;
+  isCaregiver?: boolean;
+  assignedElderCount?: number;
 }
 
 export function PermissionManager({ groupId, adminId }: PermissionManagerProps) {
@@ -128,10 +130,23 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
     }
   };
 
-  const getPermissionBadge = (permission: PermissionLevel, role?: string) => {
+  const getPermissionBadge = (member: MemberWithDetails) => {
     // Owner = group admin/creator
-    if (permission === 'admin' || role === 'admin') {
+    if (member.permissionLevel === 'admin' || member.role === 'admin') {
       return <Badge className="bg-purple-600"><Crown className="w-3 h-3 mr-1" />Owner</Badge>;
+    }
+    // Caregiver = has elder assignments
+    if (member.isCaregiver) {
+      const elderText = member.assignedElderCount
+        ? `${member.assignedElderCount} elder${member.assignedElderCount > 1 ? 's' : ''}`
+        : '';
+      return (
+        <Badge className="bg-blue-600">
+          <Stethoscope className="w-3 h-3 mr-1" />
+          Caregiver
+          {elderText && <span className="ml-1 opacity-80">({elderText})</span>}
+        </Badge>
+      );
     }
     // All other members are Viewers (read-only)
     return <Badge variant="secondary"><Eye className="w-3 h-3 mr-1" />Viewer</Badge>;
@@ -279,7 +294,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
                           <h3 className="font-semibold text-gray-900 dark:text-white">
                             {member.name}
                           </h3>
-                          {getPermissionBadge(member.permissionLevel, member.role)}
+                          {getPermissionBadge(member)}
                           {isCurrentMember && <Badge variant="outline">You</Badge>}
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{member.email}</p>
@@ -324,6 +339,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
             {isPermissionLevelsExpanded && (
               <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-2">
                 <li><strong>Owner:</strong> Full control over all elder care data and group settings</li>
+                <li><strong>Caregiver:</strong> Can manage care for assigned elders only (Multi-Agency)</li>
                 <li><strong>Viewer:</strong> Can view care data but cannot make changes</li>
               </ul>
             )}
