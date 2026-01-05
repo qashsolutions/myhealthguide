@@ -601,8 +601,8 @@ export function SubscriptionSettings() {
         </div>
       )}
 
-      {/* Change Plan - Show for active users */}
-      {isActive && !cancelAtPeriodEnd && (
+      {/* Change Plan - Show for active users who can upgrade (not Multi Agency) */}
+      {isActive && !cancelAtPeriodEnd && user?.subscriptionTier !== 'multi_agency' && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Change Your Plan</h3>
           <p className="text-sm text-gray-600">
