@@ -35,6 +35,8 @@ import { PendingCaregiversSection } from './PendingCaregiversSection';
 import { ActiveCaregiversSection } from './ActiveCaregiversSection';
 import { FeedbackDashboard } from '@/components/feedback/FeedbackDashboard';
 import { ShiftTrackingDashboard } from './ShiftTrackingDashboard';
+import { FamilyInviteManager } from '@/components/caregiver/FamilyInviteManager';
+import { SuperAdminFamilyOverview } from './SuperAdminFamilyOverview';
 
 interface AgencyDashboardProps {
   userId: string;
@@ -550,6 +552,14 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
         />
       )}
 
+      {/* Family Members Overview - Only for Super Admin */}
+      {isSuperAdmin && groups.length > 0 && (
+        <SuperAdminFamilyOverview
+          agencyId={agencyId}
+          groupId={groups[0].id}
+        />
+      )}
+
       {/* Caregiver Invite Manager - Only for Super Admin */}
       {isSuperAdmin && (
         <CaregiverInviteManager
@@ -574,18 +584,37 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
         />
       )}
 
+      {/* Caregiver View - Family Members & Limited Access Notice */}
       {!isSuperAdmin && (
-        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-              <AlertCircle className="w-5 h-5" />
-              Limited Access
-            </CardTitle>
-            <CardDescription className="text-blue-600 dark:text-blue-300">
-              You have caregiver access. Contact your agency super admin for full management features.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <>
+          {/* Family Invite Manager for Caregivers */}
+          {(() => {
+            // Find caregiver's assignment
+            const myAssignment = assignments.find(a => a.caregiverId === userId && a.active);
+            if (myAssignment && myAssignment.permissions?.canInviteMembers) {
+              return (
+                <FamilyInviteManager
+                  groupId={myAssignment.groupId}
+                  caregiverId={userId}
+                  elderCount={myAssignment.elderIds?.length || 0}
+                />
+              );
+            }
+            return null;
+          })()}
+
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                <AlertCircle className="w-5 h-5" />
+                Caregiver Access
+              </CardTitle>
+              <CardDescription className="text-blue-600 dark:text-blue-300">
+                You have caregiver access to your assigned elders. Contact your agency owner for additional features.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </>
       )}
     </div>
   );

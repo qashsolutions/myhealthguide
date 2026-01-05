@@ -1,11 +1,13 @@
 /**
  * Caregiver Invite Member API
  * Allows caregivers to invite family members (viewers) for their assigned elders
+ * Also allows superadmins to invite on behalf of caregivers
  *
  * Limits:
  * - Max 2 members per caregiver (maxMembersPerCaregiver)
  * - Members can only view elders assigned to the inviting caregiver
  * - Only caregivers with canInviteMembers permission can invite
+ * - Superadmins can invite on behalf of any caregiver in their agency
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,7 +20,7 @@ const MAX_MEMBERS_PER_CAREGIVER = PLAN_LIMITS.MULTI_AGENCY.maxMembersPerCaregive
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, name, groupId } = body;
+    const { email, name, groupId, onBehalfOfCaregiverId, agencyId: bodyAgencyId } = body;
 
     if (!email || !groupId) {
       return NextResponse.json(
@@ -60,9 +62,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const caregiverId = decodedToken.uid;
+    const callerId = decodedToken.uid;
+    let caregiverId = callerId;
+    let isSuperAdminInvite = false;
+    let agencyId = bodyAgencyId;
 
-    // Get the caregiver's assignment to verify they can invite members
+    // Check if this is a superadmin inviting on behalf of a caregiver
+    if (onBehalfOfCaregiverId && bodyAgencyId) {
+      // Verify caller is the superadmin of this agency
+      const agencyDoc = await db.collection('agencies').doc(bodyAgencyId).get();
+      if (!agencyDoc.exists) {
+        return NextResponse.json(
+          { error: 'Agency not found' },
+          { status: 404 }
+        );
+      }
+
+      const agencyData = agencyDoc.data();
+      if (agencyData?.superAdminId !== callerId) {
+        return NextResponse.json(
+          { error: 'Only the agency owner can invite on behalf of caregivers' },
+          { status: 403 }
+        );
+      }
+
+      // Use the specified caregiver ID
+      caregiverId = onBehalfOfCaregiverId;
+      isSuperAdminInvite = true;
+    }
+
+    // Get the caregiver's assignment
     const assignmentsSnap = await db.collection('caregiver_assignments')
       .where('caregiverId', '==', caregiverId)
       .where('active', '==', true)
@@ -70,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     if (assignmentsSnap.empty) {
       return NextResponse.json(
-        { error: 'You are not an active caregiver' },
+        { error: isSuperAdminInvite ? 'Selected caregiver has no active assignments' : 'You are not an active caregiver' },
         { status: 403 }
       );
     }
@@ -84,31 +113,34 @@ export async function POST(request: NextRequest) {
       if (data.groupId === groupId) {
         caregiverAssignment = { id: doc.id, ...data };
         assignedElderIds = data.elderIds || [];
+        agencyId = data.agencyId;
         break;
       }
     }
 
     if (!caregiverAssignment) {
       return NextResponse.json(
-        { error: 'You do not have access to this group' },
+        { error: isSuperAdminInvite ? 'Selected caregiver does not have access to this group' : 'You do not have access to this group' },
         { status: 403 }
       );
     }
 
-    // Check if caregiver has permission to invite members
-    const canInvite = caregiverAssignment.permissions?.canInviteMembers ||
-                      caregiverAssignment.role === 'caregiver_admin';
+    // Check if caregiver has permission to invite members (skip for superadmin invites)
+    if (!isSuperAdminInvite) {
+      const canInvite = caregiverAssignment.permissions?.canInviteMembers ||
+                        caregiverAssignment.role === 'caregiver_admin';
 
-    if (!canInvite) {
-      return NextResponse.json(
-        { error: 'You do not have permission to invite family members. Only primary caregivers can invite.' },
-        { status: 403 }
-      );
+      if (!canInvite) {
+        return NextResponse.json(
+          { error: 'You do not have permission to invite family members. Only primary caregivers can invite.' },
+          { status: 403 }
+        );
+      }
     }
 
     if (assignedElderIds.length === 0) {
       return NextResponse.json(
-        { error: 'You have no elders assigned. Please contact your agency owner.' },
+        { error: isSuperAdminInvite ? 'Selected caregiver has no elders assigned' : 'You have no elders assigned. Please contact your agency owner.' },
         { status: 400 }
       );
     }
@@ -167,7 +199,7 @@ export async function POST(request: NextRequest) {
     const inviteRef = db.collection('caregiver_member_invites').doc();
     const inviteToken = inviteRef.id; // Use doc ID as token
 
-    const inviteData = {
+    const inviteData: any = {
       id: inviteRef.id,
       email: email.toLowerCase(),
       name: name || '',
@@ -175,11 +207,17 @@ export async function POST(request: NextRequest) {
       caregiverId,
       caregiverName: '', // Will be filled from caregiver's user doc
       elderIds: assignedElderIds,
-      agencyId: caregiverAssignment.agencyId,
+      agencyId: agencyId || caregiverAssignment.agencyId,
       status: 'pending',
       createdAt: Timestamp.now(),
       expiresAt: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days
     };
+
+    // Track if invite was created by superadmin
+    if (isSuperAdminInvite) {
+      inviteData.createdBySuperAdmin = true;
+      inviteData.createdById = callerId;
+    }
 
     // Get caregiver's name
     const caregiverDoc = await db.collection('users').doc(caregiverId).get();
