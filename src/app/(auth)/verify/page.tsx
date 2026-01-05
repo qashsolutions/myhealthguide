@@ -303,11 +303,19 @@ export default function VerifyPage() {
             setTimeout(() => router.push('/dashboard'), 2000);
           }
         } else {
-          setError('Email not verified yet. Please check your inbox and click the verification link.');
+          setError('Email not verified yet. Please check your inbox and click the verification link, then come back and click this button again.');
         }
+      } else {
+        // User session expired - show error instead of redirecting
+        setError('Your session has expired. Please refresh the page to continue.');
       }
-    } catch (err) {
-      setError('Failed to check verification status');
+    } catch (err: any) {
+      console.error('Check email verification error:', err);
+      if (err.code === 'auth/user-token-expired') {
+        setError('Your session has expired. Please refresh the page to continue.');
+      } else {
+        setError('Failed to check verification status. Please try again.');
+      }
     } finally {
       setCheckingEmail(false);
     }
@@ -630,6 +638,11 @@ export default function VerifyPage() {
                   <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                     <p className="text-sm text-amber-800 dark:text-amber-200">
                       Enter your corrected email address below. A verification email will be sent to the new address.
+                      {authProvider === 'email' && (
+                        <span className="block mt-1 font-medium">
+                          Note: You will continue to use the same password you created during signup.
+                        </span>
+                      )}
                     </p>
                   </div>
 
