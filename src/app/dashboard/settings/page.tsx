@@ -1015,7 +1015,7 @@ function GroupSettings() {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-medium text-gray-900 dark:text-white">
-                  {planInfo.label} Plan
+                  {planInfo.label}
                 </span>
                 <Badge variant={isTrial ? 'outline' : 'secondary'} className="text-xs">
                   {members.length}/{maxMembers} members
@@ -1025,8 +1025,8 @@ function GroupSettings() {
                 {planInfo.description}
               </p>
 
-              {/* Collapsible upgrade options */}
-              {isTrial && (
+              {/* Collapsible upgrade options - hide for Multi Agency users (highest tier) */}
+              {isTrial && !isMultiAgency && (
                 <div className="mt-3">
                   <button
                     onClick={() => setShowUpgradeOptions(!showUpgradeOptions)}
