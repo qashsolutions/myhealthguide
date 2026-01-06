@@ -34,6 +34,7 @@ import {
   UrgencyLevel,
 } from '@/types/symptomChecker';
 import { getPersonalizedPromptAdditions } from '@/lib/ai/personalizedPrompting';
+import { buildSymptomContext, type PatientProfile } from '@/lib/ai/symptomContextBuilder';
 
 /**
  * Get client IP address from request headers
@@ -163,50 +164,29 @@ function validateRequest(
 
 /**
  * Build the AI prompt for symptom assessment
+ * Uses the symptomContextBuilder for comprehensive patient context
  */
 function buildSymptomPrompt(body: SymptomCheckerRequest, isRegistered: boolean): string {
-  const patientContext = `
-PATIENT INFORMATION:
-- Age: ${body.age} years
-- Gender: ${body.gender}
-${body.medications ? `- Current Medications: ${body.medications}` : ''}
-${body.knownConditions ? `- Known Health Conditions: ${body.knownConditions}` : ''}
-${body.dietType ? `- Diet Type: ${body.dietType}` : ''}
-${body.smoker !== undefined ? `- Smoking: ${body.smoker ? 'Yes' : 'No'}` : ''}
-${body.alcoholUse ? `- Alcohol Use: ${body.alcoholUse}` : ''}
-${body.activityLevel ? `- Activity Level: ${body.activityLevel}` : ''}
-`;
+  // Build comprehensive patient profile for context builder
+  const patientProfile: PatientProfile = {
+    age: body.age,
+    gender: body.gender,
+    medications: body.medications,
+    knownConditions: body.knownConditions,
+    dietType: body.dietType,
+    smoker: body.smoker,
+    alcoholUse: body.alcoholUse,
+    activityLevel: body.activityLevel,
+    isCaregiverReporting: isRegistered, // Registered users are typically caregivers
+  };
 
-  const elderlyNote = body.age >= 65 ? `
-IMPORTANT - ELDERLY PATIENT CONSIDERATIONS:
-- This patient is a senior (${body.age} years old)
-- Consider age-related factors in your assessment
-- Be aware of atypical presentations common in elderly
-- Note potential medication interactions
-- Consider mobility and cognitive factors
-` : '';
-
-  // Gender-specific considerations for more tailored responses
-  const genderNote = body.gender === 'female' ? `
-FEMALE PATIENT CONSIDERATIONS:
-- Consider gynecological causes (ovarian issues, uterine conditions)${body.age < 55 ? '\n- Consider menstrual cycle related symptoms' : ''}${body.age >= 45 && body.age <= 60 ? '\n- Consider perimenopause/menopause related symptoms' : ''}
-- Heart attack symptoms in women often present differently (fatigue, nausea, jaw/back pain rather than classic chest pain)
-- Higher risk of UTIs - consider urinary symptoms
-- Higher risk of autoimmune conditions
-- Consider thyroid-related symptoms (more common in women)
-` : body.gender === 'male' ? `
-MALE PATIENT CONSIDERATIONS:
-- Consider prostate-related issues${body.age >= 50 ? ' (especially given age over 50)' : ''}
-- Higher cardiovascular disease risk - be vigilant for cardiac symptoms
-- Men may underreport pain severity - probe for details
-- Consider hernia if abdominal/groin symptoms
-- Testicular issues if relevant to symptoms
-` : '';
+  // Get comprehensive symptom context from the builder
+  const symptomContext = buildSymptomContext(patientProfile);
 
   return `You are a compassionate healthcare information assistant helping a ${isRegistered ? 'caregiver' : 'user'} understand health symptoms. This is for INFORMATIONAL PURPOSES ONLY - this is NOT a medical diagnosis.
 
-${patientContext}
-${elderlyNote}${genderNote}
+${symptomContext.fullContext}
+
 SYMPTOMS DESCRIBED:
 ${body.symptomsDescription}
 
