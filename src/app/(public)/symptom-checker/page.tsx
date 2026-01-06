@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,7 @@ import {
   FeedbackRating,
 } from '@/types/symptomChecker';
 import { ClipboardHeartIcon } from '@/components/icons/ClipboardHeartIcon';
+import { cn } from '@/lib/utils';
 
 type Screen = 'disclaimer' | 'form' | 'results' | 'limit-reached';
 
@@ -67,7 +68,25 @@ export default function PublicSymptomCheckerPage() {
   const router = useRouter();
   const [currentScreen, setCurrentScreen] = useState<Screen>('disclaimer');
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [disclaimerTimeRemaining, setDisclaimerTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Countdown timer for disclaimer reading
+  useEffect(() => {
+    if (currentScreen !== 'disclaimer' || disclaimerTimeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setDisclaimerTimeRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [currentScreen, disclaimerTimeRemaining]);
   const [error, setError] = useState<string | null>(null);
   const [showRefinement, setShowRefinement] = useState(false);
 
@@ -263,10 +282,26 @@ export default function PublicSymptomCheckerPage() {
                   id="disclaimer"
                   checked={disclaimerAccepted}
                   onCheckedChange={(checked) => setDisclaimerAccepted(checked === true)}
+                  disabled={disclaimerTimeRemaining > 0}
                 />
-                <Label htmlFor="disclaimer" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                  I understand that this tool does not provide medical advice and should not be used for emergencies. I will consult a healthcare professional for any health concerns.
-                </Label>
+                <div className="flex-1">
+                  <Label
+                    htmlFor="disclaimer"
+                    className={cn(
+                      'text-sm cursor-pointer',
+                      disclaimerTimeRemaining > 0
+                        ? 'text-gray-400 dark:text-gray-500'
+                        : 'text-gray-700 dark:text-gray-300'
+                    )}
+                  >
+                    I understand that this tool does not provide medical advice and should not be used for emergencies. I will consult a healthcare professional for any health concerns.
+                  </Label>
+                  {disclaimerTimeRemaining > 0 && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                      Please read the disclaimer above. You can acknowledge in {disclaimerTimeRemaining} seconds.
+                    </p>
+                  )}
+                </div>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 p-6">
@@ -277,7 +312,6 @@ export default function PublicSymptomCheckerPage() {
                 size="lg"
               >
                 I Understand, Continue
-                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <p className="text-xs text-center text-gray-500 dark:text-gray-400">
                 <Shield className="w-3 h-3 inline mr-1" />
