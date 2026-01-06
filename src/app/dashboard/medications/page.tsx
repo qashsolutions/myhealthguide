@@ -1,10 +1,22 @@
 'use client';
 
-import { Plus, Mic, Pill, Clock, Calendar, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Mic, Pill, Clock, Calendar, Loader2, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
@@ -13,10 +25,30 @@ import { format } from 'date-fns';
 import type { Medication } from '@/types';
 
 export default function MedicationsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { selectedElder } = useElder();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [medicationToDelete, setMedicationToDelete] = useState<Medication | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const { data: medications, loading, error } = useElderDataLoader<Medication[]>({
+  // Determine user's role for HIPAA audit logging
+  const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
+    const agencyRole = user?.agencies?.[0]?.role;
+    if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') {
+      return 'admin';
+    }
+    if (agencyRole === 'caregiver') {
+      return 'caregiver';
+    }
+    const groupRole = user?.groups?.[0]?.role;
+    if (groupRole === 'admin') {
+      return 'admin';
+    }
+    return 'member';
+  };
+
+  const { data: medications, loading, error, reload } = useElderDataLoader<Medication[]>({
     fetcher: (elder, user, role) =>
       MedicationService.getMedicationsByElder(elder.id, elder.groupId, user.id, role),
     elder: selectedElder,
@@ -41,6 +73,28 @@ export default function MedicationsPage() {
       </div>
     );
   }
+
+  const handleDeleteClick = (med: Medication) => {
+    setMedicationToDelete(med);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!medicationToDelete || !user) return;
+
+    setDeleting(true);
+    try {
+      const userRole = getUserRole();
+      await MedicationService.deleteMedication(medicationToDelete.id, user.id, userRole);
+      setDeleteDialogOpen(false);
+      setMedicationToDelete(null);
+      reload();
+    } catch (err: any) {
+      console.error('Error deleting medication:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -129,12 +183,61 @@ export default function MedicationsPage() {
                     {med.instructions}
                   </div>
                 )}
+
+                <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/dashboard/medications/${med.id}/edit`)}
+                    className="flex-1"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteClick(med)}
+                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
               </CardContent>
             </Card>
             );
           })}
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Medication</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &ldquo;{medicationToDelete?.name}&rdquo;? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
