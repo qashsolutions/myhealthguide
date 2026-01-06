@@ -34,30 +34,6 @@ service cloud.firestore {
          (userData.agencies != null && userData.agencies.size() > 0));
     }
 
-    // Check if user has verified email
-    // Optimized to use single get() call
-    function hasVerifiedEmail(userId) {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(userId)) &&
-        get(/databases/$(database)/documents/users/$(userId)).data.emailVerified == true;
-    }
-
-    // Check if user has verified phone
-    // Optimized to use single get() call
-    function hasVerifiedPhone(userId) {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(userId)) &&
-        get(/databases/$(database)/documents/users/$(userId)).data.phoneVerified == true;
-    }
-
-    // Check if user has at least one verified contact method
-    function hasVerifiedContact(userId) {
-      let userData = get(/databases/$(database)/documents/users/$(userId)).data;
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(userId)) &&
-        (userData.emailVerified == true || userData.phoneVerified == true);
-    }
-
     // Check if user is fully verified (both email and phone)
     // Optimized: single get() call instead of calling two functions
     function isFullyVerified(userId) {
@@ -86,14 +62,6 @@ service cloud.firestore {
         get(/databases/$(database)/documents/groups/$(groupId)).data.adminId == request.auth.uid;
     }
 
-    // Check if user has a specific permission in a group
-    // Note: Firestore rules don't support array filtering, so we simplify:
-    // - Admins have all permissions
-    // - Members are checked for membership only (app-level permission enforcement)
-    function hasPermission(groupId) {
-      return isGroupAdmin(groupId) || isMemberOfGroup(groupId);
-    }
-
     // Check if user has write permission (can create/edit data)
     // Permission levels: 'admin', 'write', 'read'
     // Admin OR member in writeMemberIds array
@@ -103,17 +71,6 @@ service cloud.firestore {
         (get(/databases/$(database)/documents/groups/$(groupId)).data.adminId == request.auth.uid ||
          ('writeMemberIds' in get(/databases/$(database)/documents/groups/$(groupId)).data &&
           request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.writeMemberIds));
-    }
-
-    // Check if user has read permission (can view data)
-    function hasReadPermission(groupId) {
-      return isMemberOfGroup(groupId);
-    }
-
-    // Check if user's join request is approved
-    function isApprovedMember(groupId) {
-      return isSignedIn() &&
-        isMemberOfGroup(groupId);
     }
 
     // ============= Phase 5: Agency Helper Functions =============
