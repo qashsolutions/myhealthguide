@@ -121,6 +121,7 @@ export interface SymptomCheckerResponse {
 }
 
 export interface SymptomCheckerAIResponse {
+  assessmentHeadline: string; // Short 10-word max summary for quick reading
   assessment: string;
   possibleCauses: string[];
   recommendedNextSteps: string[];

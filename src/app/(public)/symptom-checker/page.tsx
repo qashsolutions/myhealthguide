@@ -513,6 +513,13 @@ export default function PublicSymptomCheckerPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
+              {/* Headline - quick summary */}
+              {aiResponse.assessmentHeadline && (
+                <p className="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                  {aiResponse.assessmentHeadline}
+                </p>
+              )}
+              {/* Detailed assessment */}
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                 {aiResponse.assessment}
               </p>

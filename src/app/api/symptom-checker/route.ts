@@ -211,22 +211,25 @@ Please provide a helpful response covering:
 
 1. URGENCY ASSESSMENT: Determine the urgency level (emergency/urgent/moderate/low) and if it's an emergency, explain why
 
-2. ASSESSMENT: A brief, caring overview of the described symptoms and general observations about what might be worth discussing with a doctor
+2. ASSESSMENT HEADLINE: A short, clear headline (max 10 words) summarizing the key takeaway for quick reading. Examples: "Persistent stomach pain warrants medical evaluation soon" or "Symptoms suggest possible viral infection, monitor closely"
 
-3. POSSIBLE CAUSES: List 2-3 possible explanations (from common to less common) that a doctor might consider. Be clear these are possibilities, not diagnoses.
+3. ASSESSMENT: A brief, caring overview of the described symptoms and general observations about what might be worth discussing with a doctor
 
-4. RECOMMENDED NEXT STEPS: Practical suggestions for what to do next. Always include "consult your physician" as a recommendation.
+4. POSSIBLE CAUSES: List 2-3 possible explanations (from common to less common) that a doctor might consider. Be clear these are possibilities, not diagnoses.
 
-5. RED FLAGS TO WATCH: Specific warning signs that would warrant immediate medical attention
+5. RECOMMENDED NEXT STEPS: Practical suggestions for what to do next. Always include "consult your physician" as a recommendation.
 
-6. QUESTIONS FOR DOCTOR: 3-4 helpful questions to ask when they see their healthcare provider
+6. RED FLAGS TO WATCH: Specific warning signs that would warrant immediate medical attention
+
+7. QUESTIONS FOR DOCTOR: 3-4 helpful questions to ask when they see their healthcare provider
 
 Format your response as JSON:
 {
   "urgencyLevel": "emergency" | "urgent" | "moderate" | "low",
   "isEmergency": true/false,
   "emergencyReason": "Only if isEmergency is true - brief explanation of why this is an emergency",
-  "assessment": "Brief compassionate overview...",
+  "assessmentHeadline": "Short 10-word max headline for quick reading",
+  "assessment": "Detailed compassionate overview...",
   "possibleCauses": ["Cause 1", "Cause 2", "Cause 3"],
   "recommendedNextSteps": ["Step 1", "Step 2", "Consult your physician for proper evaluation"],
   "redFlagsToWatch": ["Warning 1", "Warning 2"],
@@ -355,6 +358,9 @@ function generateFallbackResponse(body: SymptomCheckerRequest): SymptomCheckerAI
   const isEmergency = emergencyKeywords.some(keyword => symptomsLower.includes(keyword));
 
   return {
+    assessmentHeadline: isEmergency
+      ? 'Seek immediate medical attention for these symptoms'
+      : 'These symptoms warrant professional medical evaluation',
     assessment: `Based on the symptoms you've described, it would be helpful to discuss these concerns with a healthcare provider who can properly evaluate your situation. ${isElderly ? 'Given the patient\'s age, it\'s especially important to seek professional evaluation.' : ''} While I can provide general information, only a qualified healthcare professional can properly assess these symptoms.`,
     possibleCauses: [
       'Various conditions can cause similar symptoms',
