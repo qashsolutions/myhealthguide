@@ -65,6 +65,7 @@ import {
   FeedbackRating,
 } from '@/types/symptomChecker';
 import { ClipboardHeartIcon } from '@/components/icons/ClipboardHeartIcon';
+import { SymptomHistory } from '@/components/symptom-checker/SymptomHistory';
 import { cn } from '@/lib/utils';
 
 type Screen = 'disclaimer' | 'form' | 'follow-up' | 'results' | 'limit-reached';
@@ -596,6 +597,11 @@ export default function PublicSymptomCheckerPage() {
               </CardFooter>
             </form>
           </Card>
+
+          {/* Symptom History - Only for logged-in users */}
+          {user && (
+            <SymptomHistory className="mt-6" />
+          )}
         </div>
       </div>
     );

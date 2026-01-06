@@ -528,6 +528,60 @@ function generateFallbackResponse(body: SymptomCheckerRequest): SymptomCheckerAI
 }
 
 /**
+ * Fetch recent symptom history for context (for registered users)
+ * Returns a formatted string of past symptoms to include in AI prompt
+ */
+async function getSymptomHistoryContext(userId: string): Promise<string | null> {
+  try {
+    const adminDb = getAdminDb();
+    const queriesRef = adminDb.collection('symptomCheckerQueries');
+    const snapshot = await queriesRef
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .limit(5)
+      .get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const historyItems = snapshot.docs.map(doc => {
+      const data = doc.data();
+      const date = data.createdAt?.toDate?.()
+        ? data.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : 'Recently';
+
+      let summary = `- ${date}: ${data.symptomsDescription.substring(0, 100)}`;
+      if (data.urgencyLevel) {
+        summary += ` [${data.urgencyLevel}]`;
+      }
+
+      // Try to get assessment headline from refined response
+      if (data.refinedResponse) {
+        try {
+          const parsed = JSON.parse(data.refinedResponse);
+          if (parsed.assessmentHeadline) {
+            summary += ` → ${parsed.assessmentHeadline}`;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      return summary;
+    });
+
+    return `PREVIOUS SYMPTOM CHECKS (for context - may indicate patterns):
+${historyItems.join('\n')}
+
+Note: Consider if current symptoms may be related to or a continuation of previous issues.`;
+  } catch (error) {
+    console.error('[Symptom Checker] Error fetching history context:', error);
+    return null;
+  }
+}
+
+/**
  * Save query to Firestore
  */
 async function saveQuery(
@@ -614,6 +668,19 @@ export async function POST(request: NextRequest) {
     if (step === 'initial') {
       // Build initial prompt to get follow-up questions
       let prompt = buildInitialPrompt(body, userType === 'registered');
+
+      // Add symptom history context for registered users (agentic)
+      if (userId) {
+        try {
+          const historyContext = await getSymptomHistoryContext(userId);
+          if (historyContext) {
+            prompt = `${prompt}\n\n${historyContext}`;
+            console.log('[Symptom Checker API] Added symptom history context');
+          }
+        } catch (e) {
+          console.warn('[Symptom Checker API] History context failed:', e);
+        }
+      }
 
       // Apply personalization for registered users
       if (userId) {
@@ -706,6 +773,19 @@ export async function POST(request: NextRequest) {
     if (step === 'follow_up' && body.previousQueryId && body.followUpAnswers) {
       // Build final prompt with follow-up answers
       let prompt = buildFinalPrompt(body, body.followUpAnswers, userType === 'registered');
+
+      // Add symptom history context for registered users (agentic)
+      if (userId) {
+        try {
+          const historyContext = await getSymptomHistoryContext(userId);
+          if (historyContext) {
+            prompt = `${prompt}\n\n${historyContext}`;
+            console.log('[Symptom Checker API] Added symptom history context to final assessment');
+          }
+        } catch (e) {
+          console.warn('[Symptom Checker API] History context failed:', e);
+        }
+      }
 
       // Apply personalization
       if (userId) {
