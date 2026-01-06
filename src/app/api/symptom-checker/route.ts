@@ -600,9 +600,18 @@ async function updateQueryWithRefinement(
   additionalData: Partial<SymptomCheckerRequest>
 ): Promise<void> {
   const adminDb = getAdminDb();
+
+  // Filter out undefined values - Firestore doesn't accept undefined
+  const cleanedData: Record<string, any> = {};
+  for (const [key, value] of Object.entries(additionalData)) {
+    if (value !== undefined) {
+      cleanedData[key] = value;
+    }
+  }
+
   await adminDb.collection('symptomCheckerQueries').doc(queryId).update({
     refinedResponse,
-    ...additionalData,
+    ...cleanedData,
     updatedAt: new Date(),
   });
 }
