@@ -16,7 +16,6 @@ import {
 import { PricingCards } from '@/components/pricing/PricingCards';
 import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
 import { CaregiverStories } from '@/components/marketing/CaregiverStories';
-import { type PlanTier } from '@/lib/subscription';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LandingPage() {
@@ -34,19 +33,11 @@ export default function LandingPage() {
     }
   }, [user, loading, router]);
 
-  // Map user type to recommended plan
-  const getRecommendedPlan = (type: UserType): PlanTier | null => {
-    switch (type) {
-      case 'family':
-        return 'single_agency'; // Family Plan B
-      case 'agency':
-        return 'multi_agency';
-      default:
-        return null;
-    }
+  // Get default selected plan based on user type
+  const getDefaultPlan = (type: UserType) => {
+    if (type === 'agency') return 'multi_agency' as const;
+    return 'single_agency' as const;
   };
-
-  const recommendedPlan = getRecommendedPlan(userType);
 
   return (
     <div className="flex flex-col">
@@ -117,8 +108,7 @@ export default function LandingPage() {
       <PricingCards
         showHeader={false}
         showTrialInfo={true}
-        defaultSelectedPlan={recommendedPlan || 'single_agency'}
-        recommendedPlan={recommendedPlan}
+        defaultSelectedPlan={getDefaultPlan(userType)}
         userType={userType}
       />
 

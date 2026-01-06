@@ -32,7 +32,6 @@
 import { useState } from 'react';
 import { PricingCards } from '@/components/pricing/PricingCards';
 import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
-import { type PlanTier } from '@/lib/subscription';
 
 export default function PricingPage() {
   const [userType, setUserType] = useState<UserType>(null);
@@ -40,19 +39,11 @@ export default function PricingPage() {
   // Note: We allow logged-in users to view pricing page so they can compare plans
   // and potentially upgrade their subscription
 
-  // Map user type to recommended plan
-  const getRecommendedPlan = (type: UserType): PlanTier | null => {
-    switch (type) {
-      case 'family':
-        return 'single_agency'; // Family Plan B - best value for family caregivers
-      case 'agency':
-        return 'multi_agency'; // Multi-Agency Plan
-      default:
-        return null;
-    }
+  // Get default selected plan based on user type
+  const getDefaultPlan = (type: UserType) => {
+    if (type === 'agency') return 'multi_agency' as const;
+    return 'single_agency' as const;
   };
-
-  const recommendedPlan = getRecommendedPlan(userType);
 
   return (
     <div>
@@ -82,8 +73,7 @@ export default function PricingPage() {
       <PricingCards
         showHeader={false}
         showTrialInfo={true}
-        defaultSelectedPlan={recommendedPlan || 'single_agency'}
-        recommendedPlan={recommendedPlan}
+        defaultSelectedPlan={getDefaultPlan(userType)}
         userType={userType}
       />
     </div>

@@ -35,7 +35,6 @@ export interface PricingCardsProps {
   showHeader?: boolean;
   showTrialInfo?: boolean;
   defaultSelectedPlan?: PlanTier;
-  recommendedPlan?: PlanTier | null;
   userType?: UserType;
 }
 
@@ -43,7 +42,6 @@ export function PricingCards({
   showHeader = true,
   showTrialInfo = true,
   defaultSelectedPlan = 'single_agency',
-  recommendedPlan = null,
   userType = null,
 }: PricingCardsProps) {
   const [selectedPlan, setSelectedPlan] = useState<PlanTier>(defaultSelectedPlan);
@@ -212,19 +210,8 @@ export function PricingCards({
                 }`}
                 onClick={() => !isDisabled && setSelectedPlan(plan.id)}
               >
-                {/* Recommended badge - takes priority */}
-                {recommendedPlan === plan.id && (
-                  <div className="absolute top-0 right-6 transform -translate-y-1/2">
-                    <span className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      Recommended for you
-                    </span>
-                  </div>
-                )}
-                {/* Most Popular badge - only show if no recommendation */}
-                {plan.popular && recommendedPlan !== plan.id && !recommendedPlan && (
+                {/* Most Popular badge */}
+                {plan.popular && (
                   <div className="absolute top-0 right-6 transform -translate-y-1/2">
                     <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
                       Most Popular
