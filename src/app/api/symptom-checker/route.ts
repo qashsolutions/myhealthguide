@@ -186,10 +186,27 @@ IMPORTANT - ELDERLY PATIENT CONSIDERATIONS:
 - Consider mobility and cognitive factors
 ` : '';
 
+  // Gender-specific considerations for more tailored responses
+  const genderNote = body.gender === 'female' ? `
+FEMALE PATIENT CONSIDERATIONS:
+- Consider gynecological causes (ovarian issues, uterine conditions)${body.age < 55 ? '\n- Consider menstrual cycle related symptoms' : ''}${body.age >= 45 && body.age <= 60 ? '\n- Consider perimenopause/menopause related symptoms' : ''}
+- Heart attack symptoms in women often present differently (fatigue, nausea, jaw/back pain rather than classic chest pain)
+- Higher risk of UTIs - consider urinary symptoms
+- Higher risk of autoimmune conditions
+- Consider thyroid-related symptoms (more common in women)
+` : body.gender === 'male' ? `
+MALE PATIENT CONSIDERATIONS:
+- Consider prostate-related issues${body.age >= 50 ? ' (especially given age over 50)' : ''}
+- Higher cardiovascular disease risk - be vigilant for cardiac symptoms
+- Men may underreport pain severity - probe for details
+- Consider hernia if abdominal/groin symptoms
+- Testicular issues if relevant to symptoms
+` : '';
+
   return `You are a compassionate healthcare information assistant helping a ${isRegistered ? 'caregiver' : 'user'} understand health symptoms. This is for INFORMATIONAL PURPOSES ONLY - this is NOT a medical diagnosis.
 
 ${patientContext}
-${elderlyNote}
+${elderlyNote}${genderNote}
 SYMPTOMS DESCRIBED:
 ${body.symptomsDescription}
 

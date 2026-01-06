@@ -887,7 +887,6 @@ export default function PublicSymptomCheckerPage() {
               <Link href="/signup">
                 <Button className="w-full" size="lg">
                   Start Free Trial
-                  <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
             </CardContent>
