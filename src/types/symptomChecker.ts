@@ -8,7 +8,7 @@ export type Gender = 'male' | 'female' | 'other' | 'prefer_not_to_say';
 export type AlcoholUse = 'none' | 'occasional' | 'regular';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active';
 export type DietType = 'regular' | 'vegetarian' | 'vegan' | 'diabetic_friendly' | 'low_sodium' | 'gluten_free' | 'heart_healthy' | 'renal' | 'other';
-export type AIModel = 'gemini' | 'claude';
+export type AIModel = 'medgemma' | 'gemini' | 'claude';
 export type UrgencyLevel = 'emergency' | 'urgent' | 'moderate' | 'low';
 export type FeedbackRating = 'helpful' | 'not_helpful';
 
