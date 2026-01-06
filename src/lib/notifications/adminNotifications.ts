@@ -86,29 +86,18 @@ async function sendToAdmins(
 }
 
 /**
- * Send SMS via Twilio (or similar service)
+ * Send SMS notification
+ * NOTE: SMS via Twilio has been removed. Using FCM push notifications instead.
+ * This function now only logs for debugging purposes.
  */
 async function sendSMS(phoneNumber: string, message: string): Promise<void> {
   try {
-    // TODO: Implement with Twilio API
-    // For now, log to console
-    console.log(`[SMS] To: ${phoneNumber}`);
-    console.log(`[SMS] Message: ${message}`);
-
-    // Example Twilio implementation:
-    /*
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const client = require('twilio')(accountSid, authToken);
-
-    await client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: phoneNumber
-    });
-    */
+    // SMS functionality removed - using FCM push notifications instead
+    console.log(`[SMS-DISABLED] Would send to: ${phoneNumber}`);
+    console.log(`[SMS-DISABLED] Message: ${message}`);
+    // Use FCM push notifications for real-time alerts
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    console.error('Error in sendSMS:', error);
   }
 }
 

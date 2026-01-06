@@ -78,5 +78,11 @@ google-cloud-sdk/
 # Firebase Extensions Credentials
 extensions/*.env
 
+# Twilio credentials (DO NOT commit)
+**/twilio*.yaml
+**/twilio*.json
+**/*twilio*credentials*
+**/*twilio*config*
+
 # Firebase Functions Environment Variables
 functions/.env

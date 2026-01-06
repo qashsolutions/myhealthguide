@@ -32,24 +32,11 @@ export async function sendEmailOTP(email: string, otp: string): Promise<void> {
 }
 
 /**
- * Send OTP via SMS using Twilio
+ * Send OTP via SMS
+ * NOTE: SMS via Twilio has been removed. Using Firebase Phone Auth for OTP instead.
+ * This function is kept for reference but phone verification now uses Firebase Auth.
  */
 export async function sendSMSOTP(phoneNumber: string, otp: string): Promise<void> {
-  // For development, log to console
-  console.log(`[DEV] SMS OTP for ${phoneNumber}: ${otp}`);
-
-  // Production implementation with Twilio:
-  /*
-  const twilio = require('twilio');
-  const client = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
-
-  await client.messages.create({
-    body: `Your myguide.health verification code is: ${otp}`,
-    from: process.env.TWILIO_PHONE_NUMBER,
-    to: phoneNumber
-  });
-  */
+  // SMS OTP disabled - using Firebase Phone Auth instead
+  console.log(`[SMS-DISABLED] Phone verification uses Firebase Auth, not custom OTP`);
 }

@@ -3,20 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
-import twilio from 'twilio';
 import crypto from 'crypto';
-
-// Initialize Twilio client
-function getTwilioClient() {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-  if (!accountSid || !authToken) {
-    throw new Error('Twilio credentials not configured');
-  }
-
-  return twilio(accountSid, authToken);
-}
 
 // Normalize phone number to +1XXXXXXXXXX format
 function normalizePhoneNumber(phone: string): string {
@@ -157,57 +144,20 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
     const inviteUrl = `${appUrl}/caregiver-invite?token=${inviteToken}`;
 
-    // Check if this is a test phone number (555 numbers are fictional/test)
-    const isTestNumber = normalizedPhone.startsWith('+1555');
-
-    if (isTestNumber) {
-      // For test numbers, skip actual SMS and just create the invite
-      console.log(`Test phone number detected (${normalizedPhone}). Skipping Twilio SMS.`);
-
-      await inviteRef.set({
-        ...inviteData,
-        smsSentAt: Timestamp.now(),
-        smsMessageId: 'test-mode-skipped',
-        smsStatus: 'test_mode',
-        testInviteUrl: inviteUrl, // Store URL for easy testing
-      });
-
-      return NextResponse.json({
-        success: true,
-        inviteId: inviteRef.id,
-        message: 'Test invite created (SMS skipped for 555 number)',
-        inviteUrl, // Return URL for test purposes
-        expiresAt: expiresAt.toISOString(),
-        testMode: true,
-      });
-    }
-
-    // Send SMS via Twilio for real phone numbers
-    const twilioClient = getTwilioClient();
-    const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
-
-    if (!twilioPhoneNumber) {
-      throw new Error('Twilio phone number not configured');
-    }
-
-    const message = await twilioClient.messages.create({
-      body: `You've been invited to join ${agencyData.name || 'an agency'} as a caregiver on MyGuide.Health. Sign up here: ${inviteUrl}`,
-      from: twilioPhoneNumber,
-      to: normalizedPhone,
-    });
-
-    // Update invite with SMS details
+    // Create invite record (SMS removed - using FCM/in-app notifications now)
     await inviteRef.set({
       ...inviteData,
-      smsSentAt: Timestamp.now(),
-      smsMessageId: message.sid,
-      smsStatus: 'sent',
+      createdAt: Timestamp.now(),
+      notificationType: 'in_app', // Invites are now handled via in-app notifications
     });
+
+    // TODO: Send FCM notification to phone number if user exists
 
     return NextResponse.json({
       success: true,
       inviteId: inviteRef.id,
-      message: 'Invite sent successfully',
+      inviteUrl, // Return URL for sharing
+      message: 'Invite created successfully. Share the invite link with the caregiver.',
       expiresAt: expiresAt.toISOString(),
     });
   } catch (error) {
