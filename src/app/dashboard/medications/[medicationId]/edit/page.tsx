@@ -107,19 +107,26 @@ export default function EditMedicationPage() {
 
       const userRole = getUserRole();
 
+      // Build update data - only include endDate if it has a value
+      const updateData: Partial<Medication> = {
+        name: formData.name,
+        dosage: formData.dosage,
+        frequency: {
+          type: formData.frequency as 'daily' | 'weekly' | 'asNeeded',
+          times: timesArray
+        },
+        instructions: formData.instructions,
+        startDate: new Date(formData.startDate),
+      };
+
+      // Only add endDate if it's provided (Firestore doesn't accept undefined)
+      if (formData.endDate) {
+        updateData.endDate = new Date(formData.endDate);
+      }
+
       await MedicationService.updateMedication(
         medicationId,
-        {
-          name: formData.name,
-          dosage: formData.dosage,
-          frequency: {
-            type: formData.frequency as 'daily' | 'weekly' | 'asNeeded',
-            times: timesArray
-          },
-          instructions: formData.instructions,
-          startDate: new Date(formData.startDate),
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined
-        },
+        updateData,
         user.id,
         userRole
       );
