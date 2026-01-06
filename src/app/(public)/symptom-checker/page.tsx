@@ -42,6 +42,7 @@ import {
   Bot,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   SymptomCheckerRequest,
   SymptomCheckerResponse,
@@ -67,16 +68,41 @@ import { cn } from '@/lib/utils';
 
 type Screen = 'disclaimer' | 'form' | 'follow-up' | 'results' | 'limit-reached';
 
+const DISCLAIMER_SEEN_KEY = 'symptom_checker_disclaimer_seen';
+
 export default function PublicSymptomCheckerPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('disclaimer');
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [disclaimerTimeRemaining, setDisclaimerTimeRemaining] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
+  const [skipTimer, setSkipTimer] = useState(false);
 
-  // Countdown timer for disclaimer reading
+  // Check if logged-in user has already seen disclaimer today
   useEffect(() => {
-    if (currentScreen !== 'disclaimer' || disclaimerTimeRemaining <= 0) return;
+    if (user) {
+      const lastSeen = localStorage.getItem(DISCLAIMER_SEEN_KEY);
+      if (lastSeen) {
+        const lastSeenDate = new Date(lastSeen);
+        const now = new Date();
+        // Check if it's the same day
+        const isSameDay =
+          lastSeenDate.getDate() === now.getDate() &&
+          lastSeenDate.getMonth() === now.getMonth() &&
+          lastSeenDate.getFullYear() === now.getFullYear();
+        if (isSameDay) {
+          // Skip the timer for logged-in users who've seen it today
+          setSkipTimer(true);
+          setDisclaimerTimeRemaining(0);
+        }
+      }
+    }
+  }, [user]);
+
+  // Countdown timer for disclaimer reading (skip for logged-in users who've seen it today)
+  useEffect(() => {
+    if (currentScreen !== 'disclaimer' || disclaimerTimeRemaining <= 0 || skipTimer) return;
 
     const timer = setInterval(() => {
       setDisclaimerTimeRemaining((prev) => {
@@ -89,7 +115,15 @@ export default function PublicSymptomCheckerPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentScreen, disclaimerTimeRemaining]);
+  }, [currentScreen, disclaimerTimeRemaining, skipTimer]);
+
+  // Save disclaimer seen timestamp when user proceeds
+  const handleProceedFromDisclaimer = () => {
+    if (user) {
+      localStorage.setItem(DISCLAIMER_SEEN_KEY, new Date().toISOString());
+    }
+    setCurrentScreen('form');
+  };
   const [error, setError] = useState<string | null>(null);
   const [showRefinement, setShowRefinement] = useState(false);
 
@@ -339,6 +373,9 @@ export default function PublicSymptomCheckerPage() {
 
   // Render Disclaimer Screen
   if (currentScreen === 'disclaimer') {
+    // Get user's first name for personalized greeting
+    const userName = user?.firstName || user?.displayName?.split(' ')[0] || null;
+
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6">
         <div className="max-w-2xl mx-auto">
@@ -348,7 +385,11 @@ export default function PublicSymptomCheckerPage() {
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Symptom Checker</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Get helpful information about your symptoms
+              {userName ? (
+                <>Hi {userName}, get helpful information about your symptoms</>
+              ) : (
+                <>Get helpful information about your symptoms</>
+              )}
             </p>
           </div>
 
@@ -380,8 +421,8 @@ export default function PublicSymptomCheckerPage() {
                 </p>
               </div>
 
-              {/* Countdown Timer */}
-              {disclaimerTimeRemaining > 0 && (
+              {/* Countdown Timer - only show if not skipped (logged-in users who've seen it today skip) */}
+              {disclaimerTimeRemaining > 0 && !skipTimer && (
                 <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
@@ -422,17 +463,24 @@ export default function PublicSymptomCheckerPage() {
             </CardContent>
             <CardFooter className="flex flex-col gap-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 p-6">
               <Button
-                onClick={() => setCurrentScreen('form')}
+                onClick={handleProceedFromDisclaimer}
                 disabled={!disclaimerAccepted}
                 className="w-full"
                 size="lg"
               >
                 I Understand, Continue
               </Button>
-              <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                <Shield className="w-3 h-3 inline mr-1" />
-                Guest users: {RATE_LIMITS.guest} checks per day • <Link href="/signup" className="text-blue-600 hover:underline">Sign up</Link> for {RATE_LIMITS.registered} per day
-              </p>
+              {user ? (
+                <p className="text-sm text-center font-semibold text-gray-600 dark:text-gray-300">
+                  <Shield className="w-4 h-4 inline mr-1" />
+                  You have {RATE_LIMITS.registered} symptom checks per day
+                </p>
+              ) : (
+                <p className="text-sm text-center font-semibold text-gray-600 dark:text-gray-300">
+                  <Shield className="w-4 h-4 inline mr-1" />
+                  Guest users: {RATE_LIMITS.guest} checks per day • <Link href="/signup" className="text-blue-600 hover:underline font-bold">Sign up</Link> for {RATE_LIMITS.registered} per day
+                </p>
+              )}
             </CardFooter>
           </Card>
         </div>
