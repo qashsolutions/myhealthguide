@@ -69,7 +69,7 @@ export default function TipsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('relevant');
+  const [sortBy, setSortBy] = useState<SortOption>('author');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
 
   // Ranking state
@@ -470,10 +470,10 @@ export default function TipsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Lightbulb className="w-8 h-8 text-yellow-500" />
-              Caregiver Tips
+              Care Community
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Insights and tips shared by fellow caregivers
+              Your guide to caregiving wisdom
             </p>
           </div>
           {canShareTip ? (
@@ -501,6 +501,27 @@ export default function TipsPage() {
             </Tooltip>
           )}
         </div>
+
+      {/* Community Context */}
+      <div className="bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl p-6 border border-yellow-200 dark:border-yellow-800">
+        <div className="flex items-start gap-4">
+          <div className="p-2 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">
+            <Heart className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Learn from the caregiving community
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+              This is a space where caregivers share their experiences, insights, and practical tips
+              to help each other navigate the caregiving journey. Whether you&apos;re looking for
+              self-care strategies, communication techniques, medical knowledge, or daily care routines,
+              you&apos;ll find wisdom from those who&apos;ve walked this path before.
+              <span className="font-medium text-gray-700 dark:text-gray-300"> Share your own experiences to help others.</span>
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Search and Filters */}
       <Card>
