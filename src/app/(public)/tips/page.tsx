@@ -503,16 +503,18 @@ export default function TipsPage() {
         </div>
 
       {/* Community Context */}
-      <div className="text-center max-w-3xl mx-auto">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+      <div className="max-w-4xl">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
           Learn from the caregiving community
         </h2>
-        <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          This is a space where caregivers share their experiences, insights, and practical tips
-          to help each other navigate the caregiving journey. Whether you&apos;re looking for
-          self-care strategies, communication techniques, medical knowledge, or daily care routines,
-          you&apos;ll find wisdom from those who&apos;ve walked this path before.
-          <span className="font-medium text-gray-700 dark:text-gray-300"> Share your own experiences to help others.</span>
+        <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
+          This is a space where caregivers share their experiences, insights, and practical tips to help each other navigate the caregiving journey.
+        </p>
+        <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
+          Whether you&apos;re looking for self-care strategies, communication techniques, medical knowledge, or daily care routines, you&apos;ll find wisdom from those who&apos;ve walked this path before.
+        </p>
+        <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
+          Share your own experiences to help others.
         </p>
       </div>
 
