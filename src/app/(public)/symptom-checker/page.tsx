@@ -374,7 +374,7 @@ export default function PublicSymptomCheckerPage() {
   // Render Disclaimer Screen
   if (currentScreen === 'disclaimer') {
     // Get user's first name for personalized greeting
-    const userName = user?.firstName || user?.displayName?.split(' ')[0] || null;
+    const userName = user?.firstName || null;
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6">
