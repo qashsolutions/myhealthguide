@@ -22,16 +22,15 @@ service cloud.firestore {
 
     // Check if user has active trial OR subscription OR agency membership
     // Caregivers don't have personal subscriptions - they're under agency subscription
-    // Optimized to use single get() call to reduce read count
+    // Note: Trial expiration is handled at application level (ProtectedRoute)
+    // Security rules just verify the user has trial/active status
     function hasActiveAccess(userId) {
-      let userData = get(/databases/$(database)/documents/users/$(userId)).data;
       return isSignedIn() &&
         exists(/databases/$(database)/documents/users/$(userId)) &&
-        (userData.subscriptionStatus == 'active' ||
-         (userData.subscriptionStatus == 'trial' &&
-          userData.trialEndDate != null &&
-          request.time < userData.trialEndDate) ||
-         (userData.agencies != null && userData.agencies.size() > 0));
+        (get(/databases/$(database)/documents/users/$(userId)).data.subscriptionStatus == 'active' ||
+         get(/databases/$(database)/documents/users/$(userId)).data.subscriptionStatus == 'trial' ||
+         (get(/databases/$(database)/documents/users/$(userId)).data.agencies != null &&
+          get(/databases/$(database)/documents/users/$(userId)).data.agencies.size() > 0));
     }
 
     // Check if user is fully verified (both email and phone)
