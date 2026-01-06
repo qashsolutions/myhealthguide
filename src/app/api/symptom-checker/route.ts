@@ -14,7 +14,6 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { VertexAI } from '@google-cloud/vertexai';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { verifyAuthToken } from '@/lib/api/verifyAuth';
 import { logPHIThirdPartyDisclosure, UserRole } from '@/lib/medical/phiAuditLog';
@@ -374,89 +373,66 @@ Provide a comprehensive response as JSON:
 }
 
 /**
- * Initialize Vertex AI client for MedGemma
+ * Call Claude Opus 4.5 API for symptom assessment (PRIMARY)
+ * Claude Opus 4.5 is Anthropic's frontier model with excellent medical reasoning
+ * Model ID: claude-opus-4-5-20251101
  */
-let vertexAI: VertexAI | null = null;
+async function callClaudeOpusAPI<T>(prompt: string): Promise<{ success: boolean; response?: T; error?: string }> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-function getVertexAI(): VertexAI {
-  if (vertexAI) return vertexAI;
-
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-  const location = process.env.VERTEX_AI_LOCATION || 'us-central1';
-
-  if (!projectId) {
-    throw new Error('GOOGLE_CLOUD_PROJECT_ID not configured');
+  if (!apiKey) {
+    return { success: false, error: 'Anthropic API key not configured' };
   }
 
-  const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  if (credentialsJson) {
-    // Production (Vercel): Use JSON credentials from environment variable
-    const credentials = JSON.parse(credentialsJson);
-    vertexAI = new VertexAI({
-      project: projectId,
-      location: location,
-      googleAuthOptions: { credentials },
-    });
-  } else {
-    // Local Dev: Use default credentials
-    vertexAI = new VertexAI({ project: projectId, location: location });
-  }
-
-  console.log('[Symptom Checker] Vertex AI initialized for MedGemma');
-  return vertexAI;
-}
-
-/**
- * Call MedGemma via Vertex AI for symptom assessment
- * Uses medgemma-27b for medical-specialized responses
- */
-async function callMedGemmaAPI<T>(prompt: string): Promise<{ success: boolean; response?: T; error?: string }> {
   try {
-    const vertex = getVertexAI();
-
-    // MedGemma model configuration
-    // Note: medgemma-27b is available via Vertex AI Model Garden
-    const model = vertex.preview.getGenerativeModel({
-      model: 'medgemma-27b-it',  // MedGemma 27B instruction-tuned
-      generationConfig: {
-        temperature: 0.3,  // Lower for medical accuracy
-        topP: 0.95,
-        topK: 40,
-        maxOutputTokens: 4096,
+    console.log('[Symptom Checker] Calling Claude Opus 4.5...');
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
       },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5-20251101',
+        max_tokens: 4096,
+        temperature: 0.3,  // Lower temperature for medical accuracy
+        messages: [{ role: 'user', content: prompt }],
+      }),
     });
 
-    console.log('[Symptom Checker] Calling MedGemma...');
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    });
-
-    const generatedText = result.response.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!generatedText) {
-      console.error('[Symptom Checker] No response from MedGemma');
-      return { success: false, error: 'No response from MedGemma' };
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Symptom Checker] Claude Opus API error:', errorText);
+      return { success: false, error: 'Claude Opus API request failed' };
     }
 
-    console.log('[Symptom Checker] MedGemma response received, length:', generatedText.length);
+    const result = await response.json();
+    const generatedText = result.content?.[0]?.text;
+
+    if (!generatedText) {
+      return { success: false, error: 'No response from Claude Opus' };
+    }
+
+    console.log('[Symptom Checker] Claude Opus response received, length:', generatedText.length);
 
     // Parse JSON from response
     const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('[Symptom Checker] Failed to parse MedGemma JSON response');
-      return { success: false, error: 'Failed to parse MedGemma response' };
+      console.error('[Symptom Checker] Failed to parse Claude Opus JSON response');
+      return { success: false, error: 'Failed to parse Claude Opus response' };
     }
 
     const parsed = JSON.parse(jsonMatch[0]) as T;
     return { success: true, response: parsed };
   } catch (error) {
-    console.error('[Symptom Checker] MedGemma error:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'MedGemma error' };
+    console.error('[Symptom Checker] Claude Opus error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Claude Opus error' };
   }
 }
 
 /**
- * Fallback: Call Gemini API if MedGemma fails
+ * Call Gemini 3 Pro API for symptom assessment (SECONDARY/FALLBACK)
  */
 async function callGeminiAPI<T>(prompt: string): Promise<{ success: boolean; response?: T; error?: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -509,58 +485,6 @@ async function callGeminiAPI<T>(prompt: string): Promise<{ success: boolean; res
   }
 }
 
-/**
- * Call Claude API as fallback (generic - works for both steps)
- */
-async function callClaudeAPI<T>(prompt: string): Promise<{ success: boolean; response?: T; error?: string }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-
-  if (!apiKey) {
-    return { success: false, error: 'Claude API key not configured' };
-  }
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        temperature: 0.4,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[Symptom Checker] Claude API error:', errorText);
-      return { success: false, error: 'Claude API request failed' };
-    }
-
-    const result = await response.json();
-    const generatedText = result.content?.[0]?.text;
-
-    if (!generatedText) {
-      return { success: false, error: 'No response from Claude' };
-    }
-
-    // Parse JSON from response
-    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return { success: false, error: 'Failed to parse Claude response' };
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]) as T;
-    return { success: true, response: parsed };
-  } catch (error) {
-    console.error('[Symptom Checker] Claude error:', error);
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown Claude error' };
-  }
-}
 
 /**
  * Generate rule-based fallback response
@@ -785,33 +709,28 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Call AI for initial response - MedGemma first, then Gemini, then Claude
-      console.log('[Symptom Checker API] Step 1: Getting follow-up questions with MedGemma...');
+      // Call AI for initial response - Claude Opus 4.5 first, then Gemini 3 Pro
+      console.log('[Symptom Checker API] Step 1: Getting follow-up questions with Claude Opus 4.5...');
       let initialResponse: SymptomCheckerInitialResponse;
 
-      // Try MedGemma first (specialized medical AI)
-      const medgemmaResult = await callMedGemmaAPI<SymptomCheckerInitialResponse>(prompt);
-      if (medgemmaResult.success && medgemmaResult.response) {
-        initialResponse = medgemmaResult.response;
-        modelUsed = 'medgemma' as AIModel;
-        console.log('[Symptom Checker API] MedGemma succeeded for step 1');
+      // Try Claude Opus 4.5 first (excellent medical reasoning)
+      const claudeResult = await callClaudeOpusAPI<SymptomCheckerInitialResponse>(prompt);
+      if (claudeResult.success && claudeResult.response) {
+        initialResponse = claudeResult.response;
+        modelUsed = 'claude';
+        console.log('[Symptom Checker API] Claude Opus 4.5 succeeded for step 1');
       } else {
-        // Fallback to Gemini
-        console.log('[Symptom Checker API] MedGemma failed, trying Gemini...');
+        // Fallback to Gemini 3 Pro
+        console.log('[Symptom Checker API] Claude failed, trying Gemini 3 Pro...');
         const geminiResult = await callGeminiAPI<SymptomCheckerInitialResponse>(prompt);
         if (geminiResult.success && geminiResult.response) {
           initialResponse = geminiResult.response;
-          console.log('[Symptom Checker API] Gemini succeeded for step 1');
+          modelUsed = 'gemini';
+          console.log('[Symptom Checker API] Gemini 3 Pro succeeded for step 1');
         } else {
-          // Fallback to Claude
-          const claudeResult = await callClaudeAPI<SymptomCheckerInitialResponse>(prompt);
-          if (claudeResult.success && claudeResult.response) {
-            initialResponse = claudeResult.response;
-            modelUsed = 'claude';
-          } else {
-            // Final fallback: generate basic follow-up questions
-            initialResponse = generateInitialFallback(body);
-          }
+          // Final fallback: generate basic follow-up questions
+          console.log('[Symptom Checker API] Both AI models failed, using rule-based fallback');
+          initialResponse = generateInitialFallback(body);
         }
       }
 
@@ -901,33 +820,28 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Call AI for final response - MedGemma first, then Gemini, then Claude
-      console.log('[Symptom Checker API] Step 2: Getting final assessment with MedGemma...');
+      // Call AI for final response - Claude Opus 4.5 first, then Gemini 3 Pro
+      console.log('[Symptom Checker API] Step 2: Getting final assessment with Claude Opus 4.5...');
       let aiResponse: SymptomCheckerAIResponse;
 
-      // Try MedGemma first (specialized medical AI)
-      const medgemmaResult = await callMedGemmaAPI<SymptomCheckerAIResponse>(prompt);
-      if (medgemmaResult.success && medgemmaResult.response) {
-        aiResponse = medgemmaResult.response;
-        modelUsed = 'medgemma' as AIModel;
-        console.log('[Symptom Checker API] MedGemma succeeded for step 2');
+      // Try Claude Opus 4.5 first (excellent medical reasoning)
+      const claudeResult = await callClaudeOpusAPI<SymptomCheckerAIResponse>(prompt);
+      if (claudeResult.success && claudeResult.response) {
+        aiResponse = claudeResult.response;
+        modelUsed = 'claude';
+        console.log('[Symptom Checker API] Claude Opus 4.5 succeeded for step 2');
       } else {
-        // Fallback to Gemini
-        console.log('[Symptom Checker API] MedGemma failed, trying Gemini...');
+        // Fallback to Gemini 3 Pro
+        console.log('[Symptom Checker API] Claude failed, trying Gemini 3 Pro...');
         const geminiResult = await callGeminiAPI<SymptomCheckerAIResponse>(prompt);
         if (geminiResult.success && geminiResult.response) {
           aiResponse = geminiResult.response;
-          console.log('[Symptom Checker API] Gemini succeeded for step 2');
+          modelUsed = 'gemini';
+          console.log('[Symptom Checker API] Gemini 3 Pro succeeded for step 2');
         } else {
-          // Fallback to Claude
-          const claudeResult = await callClaudeAPI<SymptomCheckerAIResponse>(prompt);
-          if (claudeResult.success && claudeResult.response) {
-            aiResponse = claudeResult.response;
-            modelUsed = 'claude';
-          } else {
-            // Final fallback: rule-based response
-            aiResponse = generateFallbackResponse(body);
-          }
+          // Final fallback: rule-based response
+          console.log('[Symptom Checker API] Both AI models failed, using rule-based fallback');
+          aiResponse = generateFallbackResponse(body);
         }
       }
 
