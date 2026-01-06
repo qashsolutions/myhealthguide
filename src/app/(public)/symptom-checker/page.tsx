@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAuthHeaders } from '@/lib/api/authenticatedFetch';
 import {
   SymptomCheckerRequest,
   SymptomCheckerResponse,
@@ -171,9 +172,11 @@ export default function PublicSymptomCheckerPage() {
         step: 'initial',
       };
 
+      // Use auth headers to identify logged-in users for proper rate limiting
+      const headers = await getAuthHeaders();
       const response = await fetch('/api/symptom-checker', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(requestBody),
       });
 
@@ -258,9 +261,11 @@ export default function PublicSymptomCheckerPage() {
         followUpAnswers: answers,
       };
 
+      // Use auth headers to identify logged-in users for proper rate limiting
+      const headers = await getAuthHeaders();
       const response = await fetch('/api/symptom-checker', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(requestBody),
       });
 
