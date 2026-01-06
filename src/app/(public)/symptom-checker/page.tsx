@@ -277,6 +277,26 @@ export default function PublicSymptomCheckerPage() {
                 </p>
               </div>
 
+              {/* Countdown Timer */}
+              {disclaimerTimeRemaining > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      Please read the disclaimer above
+                    </span>
+                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      {disclaimerTimeRemaining}s
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-1000 ease-linear"
+                      style={{ width: `${((60 - disclaimerTimeRemaining) / 60) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-start space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Checkbox
                   id="disclaimer"
@@ -284,24 +304,17 @@ export default function PublicSymptomCheckerPage() {
                   onCheckedChange={(checked) => setDisclaimerAccepted(checked === true)}
                   disabled={disclaimerTimeRemaining > 0}
                 />
-                <div className="flex-1">
-                  <Label
-                    htmlFor="disclaimer"
-                    className={cn(
-                      'text-sm cursor-pointer',
-                      disclaimerTimeRemaining > 0
-                        ? 'text-gray-400 dark:text-gray-500'
-                        : 'text-gray-700 dark:text-gray-300'
-                    )}
-                  >
-                    I understand that this tool does not provide medical advice and should not be used for emergencies. I will consult a healthcare professional for any health concerns.
-                  </Label>
-                  {disclaimerTimeRemaining > 0 && (
-                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                      Please read the disclaimer above. You can acknowledge in {disclaimerTimeRemaining} seconds.
-                    </p>
+                <Label
+                  htmlFor="disclaimer"
+                  className={cn(
+                    'text-sm cursor-pointer',
+                    disclaimerTimeRemaining > 0
+                      ? 'text-gray-400 dark:text-gray-500'
+                      : 'text-gray-700 dark:text-gray-300'
                   )}
-                </div>
+                >
+                  I understand that this tool does not provide medical advice and should not be used for emergencies. I will consult a healthcare professional for any health concerns.
+                </Label>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 p-6">
