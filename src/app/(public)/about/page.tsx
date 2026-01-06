@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import SmartFeaturesGrid from '@/components/about/SmartFeaturesGrid';
 import HeroCTAButtons from '@/components/about/HeroCTAButtons';
+import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
   title: 'About Us | CareGuide',
@@ -328,7 +329,7 @@ export default function AboutPage() {
               Simple, Honest Pricing
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              Start with a 45-day free trial. No credit card required to try.
+              Start with a free trial. No credit card required to try.
             </p>
           </div>
 
@@ -428,7 +429,7 @@ export default function AboutPage() {
               <h3 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">Multi Agency Plan</h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">For professional caregivers</p>
               <div className="mt-4">
-                <span className="text-4xl font-bold text-gray-900 dark:text-white">$30</span>
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">$55</span>
                 <span className="text-gray-600 dark:text-gray-400">/elder/month</span>
               </div>
               <ul className="mt-6 space-y-3">
@@ -453,14 +454,10 @@ export default function AboutPage() {
           </div>
 
           <div className="mt-12 text-center">
-            <Link
-              href="/pricing"
-              className="inline-flex items-center text-blue-600 dark:text-blue-400 font-semibold hover:underline"
-            >
-              See full plan comparison
-              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 ml-1">
-                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <Link href="/pricing">
+              <Button variant="outline" size="lg">
+                See full plan comparison
+              </Button>
             </Link>
           </div>
         </div>
@@ -544,7 +541,7 @@ export default function AboutPage() {
             </h2>
             <p className="mt-4 text-lg text-blue-100">
               Join thousands of caregivers who are already using CareGuide.
-              Start your 45-day free trial today.
+              Start your free trial today.
             </p>
             <div className="mt-8">
               <Link

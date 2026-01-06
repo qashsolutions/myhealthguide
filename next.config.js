@@ -15,6 +15,16 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  // Redirects - Help merged into Features
+  async redirects() {
+    return [
+      {
+        source: '/help',
+        destination: '/features',
+        permanent: true,
+      },
+    ];
+  },
   // Security headers
   async headers() {
     return [

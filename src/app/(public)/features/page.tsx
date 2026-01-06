@@ -1,694 +1,397 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import MiniSearch from 'minisearch';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Mic,
-  Brain,
-  Pill,
-  Apple,
-  Utensils,
-  Activity,
-  Bell,
-  Users,
-  Shield,
-  AlertTriangle,
-  Clock,
-  TrendingUp,
-  FileText,
+  Search,
   Sparkles,
-  Heart,
-  Database,
-  MessageSquare,
-  Download,
-  UserCheck,
-  Building2,
-  Stethoscope,
-  Zap,
-  LogIn,
-  WifiOff,
-  Smartphone,
-  Signal
+  ArrowRight,
+  X,
+  Info,
+  Mic,
+  MicOff,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { getUserFeatureStats } from '@/lib/engagement/featureTracker';
-import {
-  rankFeatureCategories,
-  rankCategoriesForAnonymous,
-  getAggregateFeatureStats,
-  CRITICAL_FEATURES,
-  type RankedFeatureCategory,
-} from '@/lib/engagement/featureRanking';
-import type { UserFeatureEngagement } from '@/types/engagement';
+import { helpArticles, HelpArticle, HelpCategory } from '@/lib/help/articles';
+import { UserRole } from '@/types';
 
+/**
+ * Features Page - Agentic Feature Discovery
+ *
+ * This page automatically displays all features from the helpArticles database.
+ * New features added to /lib/help/articles.ts will automatically appear here.
+ *
+ * Features:
+ * - Full-text search with fuzzy matching
+ * - Voice search support
+ * - Category and role-based filtering
+ * - Featured articles shown by default
+ */
 export default function FeaturesPage() {
-  const { user } = useAuth();
-  const [activeSection, setActiveSection] = useState('');
-  const [userStats, setUserStats] = useState<UserFeatureEngagement[]>([]);
-  const [rankedCategories, setRankedCategories] = useState<RankedFeatureCategory[]>([]);
-  const [isPersonalized, setIsPersonalized] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<HelpCategory | 'all'>('all');
+  const [selectedRole, setSelectedRole] = useState<UserRole | 'all'>('all');
+  const [searchResults, setSearchResults] = useState<HelpArticle[]>([]);
 
-  // Static feature categories data
-  const featureCategoriesData = [
-    {
-      id: 'voice',
-      title: 'Just Speak to Log',
-      description: 'No typing needed — just say what happened and we\'ll record it',
-      icon: Mic,
-      color: 'blue',
-      features: [
-        {
-          name: 'Log Medications by Voice',
-          description: 'Say "Mom took her blood pressure pill at 9am" and it\'s saved',
-          icon: Pill
-        },
-        {
-          name: 'Log Meals by Voice',
-          description: 'Say "Dad had oatmeal and coffee for breakfast" — done!',
-          icon: Utensils
-        },
-        {
-          name: 'Works on Any Device',
-          description: 'Use your phone, tablet, or computer — whatever is handy',
-          icon: Mic
-        }
-      ]
-    },
-    {
-      id: 'ai',
-      title: 'Helpful Summaries',
-      description: 'See what\'s happening at a glance — no digging through records',
-      icon: Brain,
-      color: 'purple',
-      features: [
-        {
-          name: 'Daily Overview',
-          description: 'See a simple summary of medications taken, meals logged, and anything missed',
-          icon: Sparkles
-        },
-        {
-          name: 'Notes for Doctor Visits',
-          description: 'Get a printable summary to share with your loved one\'s doctor',
-          icon: FileText
-        },
-        {
-          name: 'Ask Questions',
-          description: 'Type a question like "What medications did Mom take this week?" and get answers',
-          icon: MessageSquare
-        },
-        {
-          name: 'Spot Patterns',
-          description: 'Notice things like "morning doses are often missed" so you can adjust',
-          icon: TrendingUp
-        },
-        {
-          name: 'Prepare for Appointments',
-          description: 'Have all the info ready before seeing the doctor',
-          icon: Stethoscope
-        }
-      ]
-    },
-    {
-      id: 'tracking',
-      title: 'Everything in One Place',
-      description: 'Medications, meals, vitamins — all organized and easy to find',
-      icon: Heart,
-      color: 'red',
-      features: [
-        {
-          name: 'Medication List',
-          description: 'Keep track of all pills, doses, and when to take them',
-          icon: Pill
-        },
-        {
-          name: 'Meal Tracking',
-          description: 'Log what your loved one eats each day',
-          icon: Utensils
-        },
-        {
-          name: 'Vitamins & Supplements',
-          description: 'Track vitamins alongside regular medications',
-          icon: Apple
-        },
-        {
-          name: 'Daily Activities',
-          description: 'Note walks, exercises, or other activities',
-          icon: Activity
-        },
-        {
-          name: 'Refill Reminders',
-          description: 'Get reminded when it\'s time to refill prescriptions',
-          icon: Clock
-        }
-      ]
-    },
-    {
-      id: 'offline',
-      title: 'Works Without Internet',
-      description: 'Perfect for rural areas — view your data even when the signal drops',
-      icon: WifiOff,
-      color: 'teal',
-      features: [
-        {
-          name: 'View Data Offline',
-          description: 'See medications, schedules, and health info even without internet',
-          icon: WifiOff
-        },
-        {
-          name: 'Fast on Slow Connections',
-          description: 'App loads quickly even on weak cellular signals',
-          icon: Signal
-        },
-        {
-          name: 'Install on Your Phone',
-          description: 'Add to your home screen like a regular app — no app store needed',
-          icon: Smartphone
-        },
-        {
-          name: 'Smart Caching',
-          description: 'Your elder\'s info is saved locally for instant access',
-          icon: Database
-        },
-        {
-          name: 'Know When You\'re Offline',
-          description: 'Clear indicator shows your connection status',
-          icon: Signal
-        }
-      ]
-    },
-    {
-      id: 'safety',
-      title: 'Safety Checks',
-      description: 'Catch potential problems before they become serious',
-      icon: AlertTriangle,
-      color: 'orange',
-      features: [
-        {
-          name: 'Drug Interaction Warnings',
-          description: 'Get alerted if two medications shouldn\'t be taken together',
-          icon: AlertTriangle
-        },
-        {
-          name: 'Timing Conflicts',
-          description: 'Know if medications need to be taken at different times',
-          icon: Clock
-        },
-        {
-          name: 'Health Change Alerts',
-          description: 'Notice when eating or activity patterns change unexpectedly',
-          icon: Brain
-        },
-        {
-          name: 'Caregiver Support',
-          description: 'Reminders to take care of yourself too',
-          icon: Heart
-        }
-      ]
-    },
-    {
-      id: 'notifications',
-      title: 'Reminders That Work',
-      description: 'Never forget a dose or appointment again',
-      icon: Bell,
-      color: 'green',
-      features: [
-        {
-          name: 'Medication Reminders',
-          description: 'Get a notification when it\'s time for each dose',
-          icon: Bell
-        },
-        {
-          name: 'Missed Dose Alerts',
-          description: 'Know right away if a dose was missed',
-          icon: AlertTriangle
-        },
-        {
-          name: 'Daily Summary',
-          description: 'See how the day went with a simple end-of-day update',
-          icon: TrendingUp
-        },
-        {
-          name: 'Works Everywhere',
-          description: 'Get reminders on your phone, tablet, or computer',
-          icon: Bell
-        }
-      ]
-    },
-    {
-      id: 'collaboration',
-      title: 'Share with Family',
-      description: 'Keep everyone in the loop — siblings, spouse, or hired help',
-      icon: Users,
-      color: 'indigo',
-      features: [
-        {
-          name: 'Invite Family Members',
-          description: 'Add up to 4 people to help with caregiving',
-          icon: Users
-        },
-        {
-          name: 'Control Who Sees What',
-          description: 'Decide what each person can view or change',
-          icon: UserCheck
-        },
-        {
-          name: 'Easy Invites',
-          description: 'Send a simple link to invite someone',
-          icon: Shield
-        },
-        {
-          name: 'See Who Did What',
-          description: 'Know who logged medications or made changes',
-          icon: FileText
-        },
-        {
-          name: 'Approve New Members',
-          description: 'You control who joins your care team',
-          icon: UserCheck
-        }
-      ]
-    },
-    {
-      id: 'agency',
-      title: 'For Professional Caregivers',
-      description: 'Home care agencies can manage multiple clients easily',
-      icon: Building2,
-      color: 'teal',
-      features: [
-        {
-          name: 'Manage Multiple Clients',
-          description: 'See all your clients from one dashboard',
-          icon: Building2
-        },
-        {
-          name: 'Assign Caregivers',
-          description: 'Match the right caregiver to each client',
-          icon: Users
-        },
-        {
-          name: 'Track Performance',
-          description: 'See how well medications are being given on time',
-          icon: TrendingUp
-        },
-        {
-          name: 'Staff Access Levels',
-          description: 'Give managers and caregivers different permissions',
-          icon: Shield
-        }
-      ]
-    },
-    {
-      id: 'analytics',
-      title: 'See the Big Picture',
-      description: 'Understand trends and spot changes over time',
-      icon: TrendingUp,
-      color: 'pink',
-      features: [
-        {
-          name: 'Medication Tracking',
-          description: 'See how well medications are being taken each week',
-          icon: TrendingUp
-        },
-        {
-          name: 'Eating Patterns',
-          description: 'Notice if eating habits are changing',
-          icon: Apple
-        },
-        {
-          name: 'Weekly Updates',
-          description: 'Compare this week to last week at a glance',
-          icon: TrendingUp
-        },
-        {
-          name: 'Family Updates',
-          description: 'Send reports to family members who live far away',
-          icon: FileText
-        },
-        {
-          name: 'Change Alerts',
-          description: 'Get notified when something seems different',
-          icon: AlertTriangle
-        }
-      ]
-    },
-    {
-      id: 'security',
-      title: 'Your Information is Safe',
-      description: 'We protect your loved one\'s health information',
-      icon: Shield,
-      color: 'gray',
-      features: [
-        {
-          name: 'Private & Secure',
-          description: 'Health information is encrypted and protected',
-          icon: FileText
-        },
-        {
-          name: 'HIPAA Standards',
-          description: 'We follow the same rules as hospitals and doctors',
-          icon: Database
-        },
-        {
-          name: 'Safe Sharing',
-          description: 'Invite links expire and can only be used once',
-          icon: Shield
-        },
-        {
-          name: 'You\'re in Control',
-          description: 'Choose what features to use and what data to share',
-          icon: UserCheck
-        }
-      ]
-    },
-    {
-      id: 'data',
-      title: 'Your Data, Your Choice',
-      description: 'Download or delete your information anytime',
-      icon: Download,
-      color: 'blue',
-      features: [
-        {
-          name: 'Download Everything',
-          description: 'Get a copy of all your data whenever you want',
-          icon: Download
-        },
-        {
-          name: 'Print Reports',
-          description: 'Create PDF reports to take to doctor appointments',
-          icon: FileText
-        },
-        {
-          name: 'Take It With You',
-          description: 'Your data belongs to you — export it anytime',
-          icon: Shield
-        },
-        {
-          name: 'Delete Anytime',
-          description: 'Close your account and we\'ll delete everything',
-          icon: AlertTriangle
-        }
-      ]
-    }
-  ];
-
-  // Load ranking data
-  useEffect(() => {
-    async function loadRankingData() {
-      setLoading(true);
-      try {
-        const categoryIds = featureCategoriesData.map(c => c.id);
-
-        if (user?.id) {
-          // Logged in: get personalized ranking
-          const stats = await getUserFeatureStats(user.id);
-          setUserStats(stats);
-
-          const isAgencyUser = user.subscriptionTier === 'multi_agency';
-          const ranked = rankFeatureCategories(categoryIds, stats, isAgencyUser);
-          setRankedCategories(ranked);
-          setIsPersonalized(ranked.some(r => r.isPersonalized));
-        } else {
-          // Anonymous: get aggregate-based ranking
-          const aggregateStats = await getAggregateFeatureStats();
-          const ranked = rankCategoriesForAnonymous(categoryIds, aggregateStats);
-          setRankedCategories(ranked);
-          setIsPersonalized(false);
-        }
-      } catch (error) {
-        console.error('Error loading ranking data:', error);
-        // Fallback to default order with critical features first
-        const categoryIds = featureCategoriesData.map(c => c.id);
-        const defaultRanked = categoryIds.map((id, index) => ({
-          id,
-          score: CRITICAL_FEATURES.includes(id as any)
-            ? 1000 - (CRITICAL_FEATURES.indexOf(id as any) * 100)
-            : 100 - index,
-          isCritical: CRITICAL_FEATURES.includes(id as any),
-          isPersonalized: false,
-        }));
-        setRankedCategories(defaultRanked.sort((a, b) => b.score - a.score));
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadRankingData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.subscriptionTier]);
-
-  // Reorder categories based on ranking
-  const featureCategories = useMemo(() => {
-    if (rankedCategories.length === 0) return featureCategoriesData;
-
-    const categoryMap = new Map(featureCategoriesData.map(c => [c.id, c]));
-    return rankedCategories
-      .map(ranked => categoryMap.get(ranked.id))
-      .filter(Boolean) as typeof featureCategoriesData;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rankedCategories]);
-
-  // Get ranking info for a category
-  const getRankingInfo = (categoryId: string): RankedFeatureCategory | undefined => {
-    return rankedCategories.find(r => r.id === categoryId);
-  };
-
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 120; // Account for sticky nav height
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-      setActiveSection(id);
-    }
-  };
-
-  // Set active section on scroll
-  useEffect(() => {
-    if (featureCategories.length === 0) return;
-
-    // Set initial active section
-    if (!activeSection && featureCategories.length > 0) {
-      setActiveSection(featureCategories[0].id);
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
-          }
-        });
+  // Initialize MiniSearch for agentic feature discovery
+  const miniSearch = useMemo(() => {
+    const ms = new MiniSearch<HelpArticle>({
+      fields: ['title', 'description', 'tags', 'value', 'path'],
+      storeFields: ['id', 'title', 'description', 'value', 'path', 'route', 'roles', 'category', 'featured', 'icon'],
+      searchOptions: {
+        boost: { title: 2, tags: 1.5 },
+        fuzzy: 0.2,
+        prefix: true,
       },
-      { threshold: 0.3, rootMargin: '-120px 0px -50% 0px' }
-    );
-
-    featureCategories.forEach((category) => {
-      const element = document.getElementById(category.id);
-      if (element) observer.observe(element);
     });
 
-    return () => observer.disconnect();
-  }, [featureCategories, activeSection]);
+    ms.addAll(helpArticles);
+    return ms;
+  }, []);
+
+  // Handle search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults(helpArticles);
+      return;
+    }
+
+    const results = miniSearch.search(searchQuery);
+    const articles = results.map((result) => {
+      const article = helpArticles.find((a) => a.id === result.id);
+      return article!;
+    });
+
+    setSearchResults(articles);
+  }, [searchQuery, miniSearch]);
+
+  // Filter by category and role
+  const filteredResults = useMemo(() => {
+    let results = searchResults;
+
+    // If no search query and no filters, show featured articles only
+    const hasActiveFilters = selectedCategory !== 'all' || selectedRole !== 'all';
+    if (!searchQuery.trim() && !hasActiveFilters) {
+      results = results.filter((article) => article.featured);
+    }
+
+    // Category filter
+    if (selectedCategory !== 'all') {
+      results = results.filter((article) => article.category === selectedCategory);
+    }
+
+    // Role filter
+    if (selectedRole !== 'all') {
+      results = results.filter((article) => article.roles.includes(selectedRole));
+    }
+
+    return results;
+  }, [searchResults, selectedCategory, selectedRole, searchQuery]);
+
+  // Voice search handler
+  const handleVoiceSearch = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceError('Voice search is not supported in your browser. Please try Chrome, Edge, or Safari.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setVoiceError('');
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+      setIsRecording(false);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+
+      if (event.error === 'not-allowed') {
+        setVoiceError('Microphone access denied. Please allow microphone access in your browser settings.');
+      } else if (event.error === 'no-speech') {
+        setVoiceError('No speech detected. Please try again and speak clearly.');
+      } else {
+        setVoiceError(`Voice search error: ${event.error}. Please try typing instead.`);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      setIsRecording(false);
+      setVoiceError('Could not start voice search. Please try again or use text search.');
+    }
+  };
+
+  // Category labels
+  const categories: { value: HelpCategory | 'all'; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'voice', label: 'Voice' },
+    { value: 'ai', label: 'Smart Assistant' },
+    { value: 'tracking', label: 'Tracking' },
+    { value: 'safety', label: 'Safety' },
+    { value: 'notifications', label: 'Notifications' },
+    { value: 'collaboration', label: 'Collaboration' },
+    { value: 'agency', label: 'Agency' },
+    { value: 'analytics', label: 'Analytics' },
+    { value: 'security', label: 'Security' },
+    { value: 'data', label: 'Data' },
+  ];
+
+  const roles: { value: UserRole | 'all'; label: string }[] = [
+    { value: 'all', label: 'All Roles' },
+    { value: 'admin', label: 'Family Admin' },
+    { value: 'caregiver', label: 'Member' },
+    { value: 'caregiver_admin', label: 'Caregiver Admin' },
+    { value: 'super_admin', label: 'Agency Admin' },
+  ];
 
   return (
-    <div className="bg-white dark:bg-gray-900">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-20 sm:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            {/* Simple Badge */}
-            <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
-              <Heart className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                Built for Family Caregivers
-              </span>
-            </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 sm:py-16">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white sm:text-5xl">
+            Features & Help
+          </h1>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+            Discover all features, learn how to use them, and find what you need
+          </p>
+        </div>
 
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Keep Track of Your Loved One&apos;s Health — Simply
-            </h1>
-            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Log medications, meals, and daily activities. Get reminders. Share updates with family. All in one easy-to-use app.
-            </p>
-
-            {/* Key Highlights - Simple Language */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-              <div className="flex items-center gap-2">
-                <Mic className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Speak to Log</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span>Never Miss a Dose</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>Share with Family</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <WifiOff className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                <span>Works Offline</span>
-              </div>
-            </div>
-
-            {/* Personalization indicator or CTA */}
-            {!loading && (
-              <div className="mt-8">
-                {isPersonalized ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
-                    <Zap className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                      Ordered based on your activity
-                    </span>
-                  </div>
-                ) : !user ? (
-                  <Link href="/login?redirect=/features">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <LogIn className="w-4 h-4" />
-                      Sign in to personalize
-                    </Button>
-                  </Link>
-                ) : (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                    <TrendingUp className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Popular features shown first
-                    </span>
-                  </div>
+        {/* Search Bar */}
+        <div className="mb-8">
+          <div className="relative max-w-3xl mx-auto">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search features... (e.g., 'medication', 'voice', 'drug interactions')"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 pr-24 py-6 text-lg border-2 border-gray-300 dark:border-gray-700 focus:border-blue-500"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchQuery('')}
+                    className="h-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 )}
+                <Button
+                  variant={isRecording ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={handleVoiceSearch}
+                  className={`h-10 transition-colors ${isRecording ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+                  disabled={isRecording}
+                >
+                  {isRecording ? (
+                    <>
+                      <MicOff className="w-4 h-4 mr-2" />
+                      Listening...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4 mr-2" />
+                      Voice
+                    </>
+                  )}
+                </Button>
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* Voice Error Alert */}
+          {voiceError && (
+            <div className="mt-4 max-w-3xl mx-auto">
+              <Alert variant="destructive">
+                <Info className="h-4 w-4" />
+                <AlertDescription>{voiceError}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {/* Quick Filters */}
+          <div className="mt-6 max-w-5xl mx-auto">
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              {/* Category Filter */}
+              <div className="flex flex-wrap gap-2 justify-center">
+                {categories.slice(0, 8).map((cat) => (
+                  <button
+                    key={cat.value}
+                    onClick={() => setSelectedCategory(cat.value)}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                      selectedCategory === cat.value
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:border-blue-400'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Role Filter */}
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value as UserRole | 'all')}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              >
+                {roles.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* Sticky Navigation - Two Rows */}
-      <div className="sticky top-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 py-4">
-            {featureCategories.map((category) => {
-              const CategoryIcon = category.icon;
-              const isActive = activeSection === category.id;
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => scrollToSection(category.id)}
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <CategoryIcon className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-xs sm:text-sm font-medium text-center leading-tight">{category.title}</span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Results Count */}
+        <div className="text-center mb-6 text-gray-600 dark:text-gray-400">
+          {searchQuery ? (
+            <>
+              Found <strong>{filteredResults.length}</strong> result
+              {filteredResults.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;
+            </>
+          ) : (
+            <>
+              Showing <strong>{filteredResults.length}</strong> of <strong>{helpArticles.length}</strong> features
+              {selectedCategory === 'all' && selectedRole === 'all' && (
+                <span className="text-gray-500"> (featured)</span>
+              )}
+            </>
+          )}
         </div>
-      </div>
 
-      {/* Feature Categories */}
-      <section className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-800">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="space-y-12">
-            {featureCategories.map((category, categoryIndex) => {
-              const CategoryIcon = category.icon;
-              const rankingInfo = getRankingInfo(category.id);
-              const colorClasses = {
-                blue: 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
-                purple: 'bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                red: 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400',
-                orange: 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400',
-                green: 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400',
-                indigo: 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400',
-                teal: 'bg-teal-100 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400',
-                pink: 'bg-pink-100 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400',
-                gray: 'bg-gray-100 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400'
-              };
+        {/* No Results */}
+        {searchQuery && filteredResults.length === 0 && (
+          <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+              <Search className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              No results found
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Try different keywords or browse all features
+            </p>
+            <Button onClick={() => setSearchQuery('')} variant="outline">
+              Clear Search
+            </Button>
+          </div>
+        )}
 
-              return (
-                <Card
-                  key={categoryIndex}
-                  id={category.id}
-                  className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg p-8 scroll-mt-32"
-                >
-                  <div className="space-y-8">
-                    {/* Category Header */}
-                    <div className="flex items-start gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
-                      <div className={`inline-flex p-4 rounded-2xl ${colorClasses[category.color as keyof typeof colorClasses]}`}>
-                        <CategoryIcon className="w-8 h-8" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                            {category.title}
-                          </h2>
-                          {rankingInfo?.isCritical && categoryIndex < 3 && (
-                            <Badge className="bg-blue-600 text-white text-xs">
-                              Essential
-                            </Badge>
-                          )}
-                          {rankingInfo?.isPersonalized && !rankingInfo?.isCritical && (
-                            <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400">
-                              <Zap className="w-3 h-3 mr-1" />
-                              For You
-                            </Badge>
-                          )}
-                          {!rankingInfo?.isPersonalized && !rankingInfo?.isCritical && categoryIndex < 5 && (
-                            <Badge variant="outline" className="text-xs">
-                              <TrendingUp className="w-3 h-3 mr-1" />
-                              Popular
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
-                          {category.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Feature Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {category.features.map((feature, featureIndex) => {
-                        const FeatureIcon = feature.icon;
-                        return (
-                          <Card key={featureIndex} className="border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all hover:shadow-md">
-                            <CardContent className="pt-6">
-                              <div className="flex items-start gap-3 mb-3">
-                                <div className={`p-2 rounded-lg ${colorClasses[category.color as keyof typeof colorClasses]}`}>
-                                  <FeatureIcon className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                    {feature.name}
-                                  </h3>
-                                </div>
-                              </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {feature.description}
-                              </p>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
+        {/* Results Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredResults.map((article) => (
+            <Card
+              key={article.id}
+              className="hover:shadow-lg transition-all cursor-pointer group"
+              onClick={() => router.push(article.route)}
+            >
+              <CardContent className="pt-6">
+                {/* Icon & Category Badge */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                    <Sparkles className="h-6 w-6" />
                   </div>
-                </Card>
-              );
-            })}
-          </div>
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 capitalize">
+                    {article.category}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  {article.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+                  {article.description}
+                </p>
+
+                {/* Value Proposition */}
+                <div className="flex items-center gap-2 mb-4 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <Sparkles className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                    {article.value}
+                  </span>
+                </div>
+
+                {/* Navigation Path */}
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">Access:</p>
+                  <p className="text-xs font-mono text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                    {article.path}
+                  </p>
+                </div>
+
+                {/* Roles */}
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">Available to:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {article.roles.map((role) => (
+                      <span
+                        key={role}
+                        className="text-xs px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 capitalize"
+                      >
+                        {role.replace('_', ' ')}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                >
+                  <span>Try it now</span>
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </section>
+
+        {/* Tip */}
+        {!searchQuery && (
+          <div className="mt-12 text-center text-sm text-gray-500 dark:text-gray-500">
+            <p>Try searching for &quot;medication&quot;, &quot;voice&quot;, &quot;AI&quot;, or &quot;agency&quot;</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Moon, Sun, User, LogOut } from 'lucide-react';
+import { Menu, X, Moon, Sun, User, LogOut, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UnifiedSearch } from './UnifiedSearch';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,13 +17,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+// Main navigation items (4 links)
 const navigation = [
   { name: 'Features', href: '/features' },
   { name: 'Symptom Checker', href: '/symptom-checker' },
-  { name: 'Pricing', href: '/pricing' },
   { name: 'Care Community', href: '/tips' },
-  { name: 'About', href: '/about' },
-  { name: 'Help', href: '/help' }
+];
+
+// About dropdown items
+const aboutDropdownItems = [
+  { name: 'About Us', href: '/about' },
+  { name: 'Pricing', href: '/pricing' },
 ];
 
 export function Header() {
@@ -68,7 +72,7 @@ export function Header() {
         </div>
 
         {/* Desktop navigation */}
-        <div className="hidden lg:flex lg:gap-x-8">
+        <div className="hidden lg:flex lg:gap-x-8 lg:items-center">
           {navigation.map((item) => (
             <Link
               key={item.name}
@@ -83,6 +87,36 @@ export function Header() {
               {item.name}
             </Link>
           ))}
+
+          {/* About Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(
+                'flex items-center gap-1 text-sm font-semibold leading-6 transition-colors outline-none',
+                pathname === '/about' || pathname === '/pricing'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-900 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+              )}
+            >
+              About
+              <ChevronDown className="w-4 h-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              {aboutDropdownItems.map((item) => (
+                <DropdownMenuItem key={item.name} asChild>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'w-full',
+                      pathname === item.href && 'text-blue-600 dark:text-blue-400'
+                    )}
+                  >
+                    {item.name}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Desktop CTA buttons */}
@@ -168,6 +202,29 @@ export function Header() {
                 {item.name}
               </Link>
             ))}
+
+            {/* About Section */}
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
+              <p className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                About
+              </p>
+              {aboutDropdownItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    'block rounded-lg px-3 py-2 text-base font-semibold leading-7 transition-colors',
+                    pathname === item.href
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                      : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  )}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+
             <div className="mt-4 space-y-2">
               <Button
                 variant="outline"
