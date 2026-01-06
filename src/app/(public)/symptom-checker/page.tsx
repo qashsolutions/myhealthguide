@@ -1078,12 +1078,21 @@ export default function PublicSymptomCheckerPage() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Check New Symptoms
             </Button>
-            <Link href="/signup" className="flex-1">
-              <Button className="w-full">
-                <Heart className="w-4 h-4 mr-2" />
-                Sign Up for Full Access
-              </Button>
-            </Link>
+            {user ? (
+              <Link href="/dashboard" className="flex-1">
+                <Button className="w-full">
+                  <Heart className="w-4 h-4 mr-2" />
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/signup" className="flex-1">
+                <Button className="w-full">
+                  <Heart className="w-4 h-4 mr-2" />
+                  Sign Up for Full Access
+                </Button>
+              </Link>
+            )}
           </div>
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4 print:hidden">
@@ -1096,6 +1105,8 @@ export default function PublicSymptomCheckerPage() {
 
   // Render Rate Limit Reached Screen
   if (currentScreen === 'limit-reached') {
+    const dailyLimit = user ? RATE_LIMITS.registered : RATE_LIMITS.guest;
+
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6">
         <div className="max-w-lg mx-auto text-center">
@@ -1108,39 +1119,59 @@ export default function PublicSymptomCheckerPage() {
           </h1>
 
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            You&apos;ve used your {RATE_LIMITS.guest} free symptom checks for today. Your limit resets at midnight.
+            You&apos;ve used your {dailyLimit} symptom checks for today. Your limit resets at midnight.
           </p>
 
-          <Card className="mb-8 border-2 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Want More Checks?
-              </h2>
-              <ul className="text-left space-y-2 text-gray-600 dark:text-gray-400 mb-4">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  {RATE_LIMITS.registered} symptom checks per day
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  Auto-fill from your elder&apos;s health profile
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  Include results in family updates
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  Full caregiving suite access
-                </li>
-              </ul>
-              <Link href="/signup">
-                <Button className="w-full" size="lg">
-                  Start Free Trial
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          {/* Show signup card only for guests */}
+          {!user ? (
+            <Card className="mb-8 border-2 border-blue-200 dark:border-blue-800">
+              <CardContent className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Want More Checks?
+                </h2>
+                <ul className="text-left space-y-2 text-gray-600 dark:text-gray-400 mb-4">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    {RATE_LIMITS.registered} symptom checks per day
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    Auto-fill from your elder&apos;s health profile
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    Include results in family updates
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    Full caregiving suite access
+                  </li>
+                </ul>
+                <Link href="/signup">
+                  <Button className="w-full" size="lg">
+                    Start Free Trial
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="mb-8 border-2 border-green-200 dark:border-green-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400 mb-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span className="font-semibold">You&apos;re logged in</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Your daily limit of {RATE_LIMITS.registered} checks will reset at midnight. Check back tomorrow!
+                </p>
+                <Link href="/dashboard">
+                  <Button className="w-full" size="lg">
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
           <p className="text-sm text-gray-500 dark:text-gray-400">
             <Link href="/" className="hover:underline">Back to Home</Link>
