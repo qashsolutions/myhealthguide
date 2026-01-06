@@ -18,7 +18,8 @@ export type FeedbackTargetType =
   | 'health_change'
   | 'compliance_prediction'
   | 'burnout_detection'
-  | 'drug_interaction';
+  | 'drug_interaction'
+  | 'symptom_checker';
 
 // Feedback categories
 export type FeedbackType = 'rating' | 'action' | 'correction';

@@ -9,6 +9,8 @@ export type AlcoholUse = 'none' | 'occasional' | 'regular';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active';
 export type DietType = 'regular' | 'vegetarian' | 'vegan' | 'diabetic_friendly' | 'low_sodium' | 'gluten_free' | 'heart_healthy' | 'renal' | 'other';
 export type AIModel = 'gemini' | 'claude';
+export type UrgencyLevel = 'emergency' | 'urgent' | 'moderate' | 'low';
+export type FeedbackRating = 'helpful' | 'not_helpful';
 
 /**
  * Symptom Checker Query - stored in Firestore
@@ -44,12 +46,24 @@ export interface SymptomCheckerQuery {
   initialResponse: string;
   refinedResponse: string | null; // if user provided additional info
 
+  // Urgency assessment
+  urgencyLevel: UrgencyLevel;
+  isEmergency: boolean;
+
+  // User feedback
+  feedbackRating: FeedbackRating | null;
+  feedbackComment: string | null;
+  feedbackTimestamp: Date | null;
+
   // Metadata
   includeInReport: boolean; // true for registered users
   createdAt: Date;
   updatedAt: Date;
   aiModelUsed: AIModel;
   responseTimeMs: number;
+
+  // TTL for guest queries (7 days)
+  expiresAt: Date | null; // null for registered users (permanent)
 }
 
 /**
@@ -113,6 +127,11 @@ export interface SymptomCheckerAIResponse {
   redFlagsToWatch: string[];
   questionsForDoctor: string[];
   disclaimer: string;
+  // New fields for enhanced features
+  urgencyLevel: UrgencyLevel; // emergency, urgent, moderate, low
+  isEmergency: boolean; // true if immediate 911 should be called
+  emergencyReason?: string; // explanation if isEmergency is true
+  aiNotice: string; // AI-generated notice about limitations
 }
 
 export interface SymptomCheckerErrorResponse {
@@ -188,3 +207,38 @@ export const ALCOHOL_USE_OPTIONS: { value: AlcoholUse; label: string }[] = [
   { value: 'occasional', label: 'Occasional' },
   { value: 'regular', label: 'Regular' },
 ];
+
+export const URGENCY_LEVEL_CONFIG: {
+  [key in UrgencyLevel]: { label: string; color: string; bgColor: string; borderColor: string; description: string };
+} = {
+  emergency: {
+    label: 'Emergency',
+    color: 'text-red-700 dark:text-red-300',
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    borderColor: 'border-red-500',
+    description: 'Seek immediate emergency care - Call 911',
+  },
+  urgent: {
+    label: 'Urgent',
+    color: 'text-orange-700 dark:text-orange-300',
+    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+    borderColor: 'border-orange-500',
+    description: 'See a doctor within 24 hours',
+  },
+  moderate: {
+    label: 'Moderate',
+    color: 'text-yellow-700 dark:text-yellow-300',
+    bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+    borderColor: 'border-yellow-500',
+    description: 'Schedule an appointment soon',
+  },
+  low: {
+    label: 'Low Urgency',
+    color: 'text-green-700 dark:text-green-300',
+    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    borderColor: 'border-green-500',
+    description: 'Monitor symptoms at home',
+  },
+};
+
+export const GUEST_RETENTION_DAYS = 7;

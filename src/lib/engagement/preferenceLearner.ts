@@ -367,6 +367,7 @@ async function learnFocusAreas(
     care_management: 'management',
     agency_management: 'agency',
     settings: 'settings',
+    symptom_checker: 'symptoms',
   };
 
   const focusAreas = topFeatures

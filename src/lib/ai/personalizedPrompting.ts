@@ -71,6 +71,7 @@ const FOCUS_AREA_INSTRUCTIONS: Record<string, string> = {
   cognitive: 'Be attentive to cognitive health indicators and memory-related concerns.',
   care: 'Focus on daily care routines, comfort, and quality of life.',
   scheduling: 'Help with scheduling, reminders, and care coordination.',
+  symptoms: 'Pay close attention to symptom descriptions, provide thorough possible causes, and emphasize when to seek medical care.',
 };
 
 /**

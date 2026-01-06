@@ -35,6 +35,11 @@ import {
   ArrowRight,
   Shield,
   RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
+  Printer,
+  Download,
+  Bot,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -47,10 +52,12 @@ import {
   ACTIVITY_LEVEL_OPTIONS,
   ALCOHOL_USE_OPTIONS,
   RATE_LIMITS,
+  URGENCY_LEVEL_CONFIG,
   Gender,
   DietType,
   AlcoholUse,
   ActivityLevel,
+  FeedbackRating,
 } from '@/types/symptomChecker';
 import { ClipboardHeartIcon } from '@/components/icons/ClipboardHeartIcon';
 
@@ -81,6 +88,10 @@ export default function PublicSymptomCheckerPage() {
   const [queryId, setQueryId] = useState<string | null>(null);
   const [aiResponse, setAiResponse] = useState<SymptomCheckerAIResponse | null>(null);
   const [rateLimit, setRateLimit] = useState<{ used: number; remaining: number; limit: number } | null>(null);
+
+  // Feedback
+  const [feedbackGiven, setFeedbackGiven] = useState<FeedbackRating | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   const handleFormChange = (field: keyof SymptomCheckerFormData, value: string | boolean | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -176,6 +187,32 @@ export default function PublicSymptomCheckerPage() {
     setAiResponse(null);
     setShowRefinement(false);
     setCurrentScreen('form');
+    setFeedbackGiven(null);
+  };
+
+  const handleFeedback = async (rating: FeedbackRating) => {
+    if (!queryId || feedbackGiven) return;
+
+    setFeedbackLoading(true);
+    try {
+      const response = await fetch('/api/symptom-checker/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queryId, rating }),
+      });
+
+      if (response.ok) {
+        setFeedbackGiven(rating);
+      }
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   // Render Disclaimer Screen
@@ -363,20 +400,65 @@ export default function PublicSymptomCheckerPage() {
 
   // Render Results Screen
   if (currentScreen === 'results' && aiResponse) {
+    const urgencyConfig = URGENCY_LEVEL_CONFIG[aiResponse.urgencyLevel || 'moderate'];
+
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6">
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 print:py-4 print:bg-white">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Symptom Assessment</h1>
-            {rateLimit && (
-              <Badge variant="outline" className="mt-2">
-                {rateLimit.used} of {rateLimit.limit} checks used today
-              </Badge>
-            )}
+          {/* Dynamic Emergency Banner */}
+          {aiResponse.isEmergency && (
+            <Alert variant="destructive" className="mb-6 border-2 border-red-500 bg-red-100 dark:bg-red-900/40 print:break-inside-avoid">
+              <Phone className="w-5 h-5" />
+              <AlertTitle className="text-lg font-bold">CALL 911 IMMEDIATELY</AlertTitle>
+              <AlertDescription className="text-red-700 dark:text-red-200">
+                {aiResponse.emergencyReason || 'Based on the symptoms described, this may be a medical emergency. Please call 911 or go to the nearest emergency room immediately.'}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex items-center justify-between mb-6 print:mb-4">
+            <div className="text-center flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Symptom Assessment</h1>
+              {rateLimit && (
+                <Badge variant="outline" className="mt-2 print:hidden">
+                  {rateLimit.used} of {rateLimit.limit} checks used today
+                </Badge>
+              )}
+            </div>
+            {/* Print button - hidden on print */}
+            <Button variant="outline" size="sm" onClick={handlePrint} className="print:hidden" title="Print for doctor visit">
+              <Printer className="w-4 h-4 mr-1" />
+              Print
+            </Button>
           </div>
 
+          {/* Urgency Level Indicator */}
+          <Card className={`shadow-lg mb-6 border-l-4 ${urgencyConfig.borderColor} print:break-inside-avoid`}>
+            <CardContent className={`p-4 ${urgencyConfig.bgColor}`}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${urgencyConfig.bgColor}`}>
+                  {aiResponse.urgencyLevel === 'emergency' ? (
+                    <Phone className={`w-5 h-5 ${urgencyConfig.color}`} />
+                  ) : aiResponse.urgencyLevel === 'urgent' ? (
+                    <AlertTriangle className={`w-5 h-5 ${urgencyConfig.color}`} />
+                  ) : (
+                    <Shield className={`w-5 h-5 ${urgencyConfig.color}`} />
+                  )}
+                </div>
+                <div>
+                  <p className={`font-semibold ${urgencyConfig.color}`}>
+                    {urgencyConfig.label}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {urgencyConfig.description}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Assessment Card */}
-          <Card className="shadow-lg mb-6">
+          <Card className="shadow-lg mb-6 print:break-inside-avoid">
             <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
               <CardTitle className="flex items-center gap-2">
                 <Heart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -621,8 +703,17 @@ export default function PublicSymptomCheckerPage() {
             </Card>
           </Collapsible>
 
+          {/* AI Notice */}
+          <Alert className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 print:break-inside-avoid">
+            <Bot className="w-4 h-4 text-blue-600" />
+            <AlertTitle className="text-blue-700 dark:text-blue-300">AI-Generated Response</AlertTitle>
+            <AlertDescription className="text-blue-600 dark:text-blue-400 text-sm">
+              {aiResponse.aiNotice || 'This response was generated by AI and may contain errors or inaccuracies. AI cannot replace professional medical judgment. Please consult a qualified healthcare provider for medical advice.'}
+            </AlertDescription>
+          </Alert>
+
           {/* Disclaimer */}
-          <Alert className="mb-6 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+          <Alert className="mb-6 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 print:break-inside-avoid">
             <Shield className="w-4 h-4 text-amber-600" />
             <AlertTitle className="text-amber-700 dark:text-amber-300">Important Reminder</AlertTitle>
             <AlertDescription className="text-amber-600 dark:text-amber-400 text-sm">
@@ -630,8 +721,55 @@ export default function PublicSymptomCheckerPage() {
             </AlertDescription>
           </Alert>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          {/* Feedback Section - hidden on print */}
+          <Card className="mb-6 print:hidden">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Was this assessment helpful?
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Your feedback helps us improve
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {feedbackGiven ? (
+                    <Badge variant="outline" className="py-1.5">
+                      <CheckCircle2 className="w-4 h-4 mr-1 text-green-600" />
+                      Thank you!
+                    </Badge>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFeedback('helpful')}
+                        disabled={feedbackLoading}
+                        className="hover:bg-green-50 hover:border-green-300"
+                      >
+                        <ThumbsUp className="w-4 h-4 mr-1" />
+                        Helpful
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFeedback('not_helpful')}
+                        disabled={feedbackLoading}
+                        className="hover:bg-red-50 hover:border-red-300"
+                      >
+                        <ThumbsDown className="w-4 h-4 mr-1" />
+                        Not Helpful
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons - hidden on print */}
+          <div className="flex flex-col sm:flex-row gap-4 print:hidden">
             <Button onClick={handleNewCheck} variant="outline" className="flex-1">
               <RefreshCw className="w-4 h-4 mr-2" />
               Check New Symptoms
@@ -644,7 +782,7 @@ export default function PublicSymptomCheckerPage() {
             </Link>
           </div>
 
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4 print:hidden">
             <Link href="/" className="hover:underline">Back to Home</Link>
           </p>
         </div>

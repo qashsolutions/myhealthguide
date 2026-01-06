@@ -89,7 +89,7 @@ export async function recordSmartResponse(params: {
   groupId: string;
   responseId: string;
   responseText: string;
-  feature: 'health_chat' | 'smart_assistant' | 'weekly_summary' | 'smart_insight';
+  feature: 'health_chat' | 'smart_assistant' | 'weekly_summary' | 'smart_insight' | 'symptom_checker';
 }): Promise<string | null> {
   const { userId, groupId, responseId, responseText, feature } = params;
   const sessionId = getSessionId() || 'unknown';

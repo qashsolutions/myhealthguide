@@ -53,6 +53,7 @@ const TARGET_TYPE_LABELS: Record<FeedbackTargetType, string> = {
   compliance_prediction: 'Compliance Predictions',
   burnout_detection: 'Burnout Detection',
   drug_interaction: 'Drug Interactions',
+  symptom_checker: 'Symptom Checker',
 };
 
 export function FeedbackDashboard({

@@ -35,10 +35,18 @@ import {
   RefreshCw,
   UserCircle,
   History,
+  ThumbsUp,
+  ThumbsDown,
+  Printer,
+  Download,
+  Bot,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
+import { useSmartMetrics } from '@/hooks/useSmartMetrics';
+import { useFeatureTracking } from '@/hooks/useFeatureTracking';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import {
@@ -51,10 +59,13 @@ import {
   ACTIVITY_LEVEL_OPTIONS,
   ALCOHOL_USE_OPTIONS,
   RATE_LIMITS,
+  URGENCY_LEVEL_CONFIG,
   Gender,
   DietType,
   AlcoholUse,
   ActivityLevel,
+  UrgencyLevel,
+  FeedbackRating,
 } from '@/types/symptomChecker';
 import { ClipboardHeartIcon } from '@/components/icons/ClipboardHeartIcon';
 
@@ -62,12 +73,18 @@ interface PastQuery {
   id: string;
   symptomsDescription: string;
   createdAt: Date;
+  urgencyLevel?: UrgencyLevel;
+  initialResponse?: string;
 }
 
 export default function AuthenticatedSymptomCheckerPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedElder, isLoading: elderLoading } = useElder();
+
+  // Smart Learning System hooks
+  const { trackResponse, trackAction } = useSmartMetrics({ feature: 'symptom_checker' });
+  useFeatureTracking('symptom_checker');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +111,10 @@ export default function AuthenticatedSymptomCheckerPage() {
   const [aiResponse, setAiResponse] = useState<SymptomCheckerAIResponse | null>(null);
   const [rateLimit, setRateLimit] = useState<{ used: number; remaining: number; limit: number } | null>(null);
   const [showResults, setShowResults] = useState(false);
+
+  // Feedback
+  const [feedbackGiven, setFeedbackGiven] = useState<FeedbackRating | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   // Auto-populate from elder profile
   useEffect(() => {
@@ -175,7 +196,7 @@ export default function AuthenticatedSymptomCheckerPage() {
         collection(db, 'symptomCheckerQueries'),
         where('elderId', '==', elderId),
         orderBy('createdAt', 'desc'),
-        limit(5)
+        limit(20) // Increased limit for better history
       );
       const snapshot = await getDocs(queriesQuery);
       const queries: PastQuery[] = snapshot.docs.map(doc => {
@@ -186,6 +207,8 @@ export default function AuthenticatedSymptomCheckerPage() {
           createdAt: data.createdAt instanceof Timestamp
             ? data.createdAt.toDate()
             : new Date(data.createdAt),
+          urgencyLevel: data.urgencyLevel as UrgencyLevel | undefined,
+          initialResponse: data.initialResponse,
         };
       });
       setPastQueries(queries);
@@ -246,6 +269,12 @@ export default function AuthenticatedSymptomCheckerPage() {
       setShowResults(true);
       setShowRefinement(false);
 
+      // Track response for Smart Learning System
+      if (result.queryId && result.response) {
+        const responseText = JSON.stringify(result.response);
+        trackResponse(result.queryId, responseText);
+      }
+
       // Refresh past queries
       fetchPastQueries(selectedElder.id);
     } catch (err) {
@@ -290,6 +319,59 @@ export default function AuthenticatedSymptomCheckerPage() {
     setAiResponse(null);
     setShowResults(false);
     setShowRefinement(false);
+    setFeedbackGiven(null);
+  };
+
+  const handleFeedback = async (rating: FeedbackRating) => {
+    if (!queryId || feedbackGiven) return;
+
+    setFeedbackLoading(true);
+    try {
+      const response = await authenticatedFetch('/api/symptom-checker/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queryId, rating }),
+      });
+
+      if (response.ok) {
+        setFeedbackGiven(rating);
+
+        // Track action for Smart Learning System
+        trackAction(queryId, `feedback_${rating}`);
+      }
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportPDF = async () => {
+    // Simple PDF export using print dialog
+    // In production, could use a library like jsPDF for better PDF generation
+    window.print();
+  };
+
+  // Helper to group queries by date
+  const groupQueriesByDate = (queries: PastQuery[]) => {
+    const groups: { [key: string]: PastQuery[] } = {};
+    queries.forEach(query => {
+      const dateKey = query.createdAt.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(query);
+    });
+    return groups;
   };
 
   // Show loading while checking auth/elder
@@ -328,23 +410,76 @@ export default function AuthenticatedSymptomCheckerPage() {
 
   // Show results
   if (showResults && aiResponse) {
+    const urgencyConfig = URGENCY_LEVEL_CONFIG[aiResponse.urgencyLevel || 'moderate'];
+
     return (
-      <div className="max-w-3xl mx-auto py-8 px-4">
-        <div className="flex items-center justify-between mb-8">
+      <div className="max-w-3xl mx-auto py-8 px-4 print:py-4">
+        {/* Dynamic Emergency Banner */}
+        {aiResponse.isEmergency && (
+          <Alert variant="destructive" className="mb-6 border-2 border-red-500 bg-red-100 dark:bg-red-900/40 print:break-inside-avoid">
+            <Phone className="w-5 h-5" />
+            <AlertTitle className="text-lg font-bold">CALL 911 IMMEDIATELY</AlertTitle>
+            <AlertDescription className="text-red-700 dark:text-red-200">
+              {aiResponse.emergencyReason || 'Based on the symptoms described, this may be a medical emergency. Please call 911 or go to the nearest emergency room immediately.'}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex items-center justify-between mb-6 print:mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Symptom Assessment for {selectedElder.name}
             </h1>
-            {rateLimit && (
-              <Badge variant="outline" className="mt-2">
-                {rateLimit.used} of {rateLimit.limit} checks used today
-              </Badge>
-            )}
+            <div className="flex items-center gap-3 mt-2">
+              {rateLimit && (
+                <Badge variant="outline">
+                  {rateLimit.used} of {rateLimit.limit} checks used today
+                </Badge>
+              )}
+            </div>
+          </div>
+          {/* Print/Export buttons - hidden on print */}
+          <div className="flex gap-2 print:hidden">
+            <Button variant="outline" size="sm" onClick={handlePrint} title="Print for doctor visit">
+              <Printer className="w-4 h-4 mr-1" />
+              Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportPDF} title="Export as PDF">
+              <Download className="w-4 h-4 mr-1" />
+              PDF
+            </Button>
           </div>
         </div>
 
+        {/* Urgency Level Indicator */}
+        <Card className={`shadow-lg mb-6 border-l-4 ${urgencyConfig.borderColor} print:break-inside-avoid`}>
+          <CardContent className={`p-4 ${urgencyConfig.bgColor}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${urgencyConfig.bgColor}`}>
+                  {aiResponse.urgencyLevel === 'emergency' ? (
+                    <Phone className={`w-5 h-5 ${urgencyConfig.color}`} />
+                  ) : aiResponse.urgencyLevel === 'urgent' ? (
+                    <AlertTriangle className={`w-5 h-5 ${urgencyConfig.color}`} />
+                  ) : (
+                    <Shield className={`w-5 h-5 ${urgencyConfig.color}`} />
+                  )}
+                </div>
+                <div>
+                  <p className={`font-semibold ${urgencyConfig.color}`}>
+                    {urgencyConfig.label}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {urgencyConfig.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Assessment Card */}
-        <Card className="shadow-lg mb-6">
+        <Card className="shadow-lg mb-6 print:break-inside-avoid">
           <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
             <CardTitle className="flex items-center gap-2">
               <Heart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -548,8 +683,17 @@ export default function AuthenticatedSymptomCheckerPage() {
           </Card>
         </Collapsible>
 
+        {/* AI Notice */}
+        <Alert className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 print:break-inside-avoid">
+          <Bot className="w-4 h-4 text-blue-600" />
+          <AlertTitle className="text-blue-700 dark:text-blue-300">AI-Generated Response</AlertTitle>
+          <AlertDescription className="text-blue-600 dark:text-blue-400 text-sm">
+            {aiResponse.aiNotice || 'This response was generated by AI and may contain errors or inaccuracies. AI cannot replace professional medical judgment. Please consult a qualified healthcare provider for medical advice.'}
+          </AlertDescription>
+        </Alert>
+
         {/* Disclaimer */}
-        <Alert className="mb-6 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+        <Alert className="mb-6 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 print:break-inside-avoid">
           <Shield className="w-4 h-4 text-amber-600" />
           <AlertTitle className="text-amber-700 dark:text-amber-300">Important Reminder</AlertTitle>
           <AlertDescription className="text-amber-600 dark:text-amber-400 text-sm">
@@ -557,16 +701,63 @@ export default function AuthenticatedSymptomCheckerPage() {
           </AlertDescription>
         </Alert>
 
+        {/* Feedback Section - hidden on print */}
+        <Card className="mb-6 print:hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Was this assessment helpful?
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Your feedback helps us improve
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {feedbackGiven ? (
+                  <Badge variant="outline" className="py-1.5">
+                    <CheckCircle2 className="w-4 h-4 mr-1 text-green-600" />
+                    Thank you for your feedback!
+                  </Badge>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFeedback('helpful')}
+                      disabled={feedbackLoading}
+                      className="hover:bg-green-50 hover:border-green-300 dark:hover:bg-green-900/20"
+                    >
+                      <ThumbsUp className="w-4 h-4 mr-1" />
+                      Helpful
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFeedback('not_helpful')}
+                      disabled={feedbackLoading}
+                      className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-900/20"
+                    >
+                      <ThumbsDown className="w-4 h-4 mr-1" />
+                      Not Helpful
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Note about Family Updates */}
-        <Alert className="mb-6">
+        <Alert className="mb-6 print:break-inside-avoid">
           <CheckCircle2 className="w-4 h-4 text-green-600" />
           <AlertDescription className="text-gray-600 dark:text-gray-400 text-sm">
             This symptom check has been saved and will be included in {selectedElder.name}&apos;s Family Updates report.
           </AlertDescription>
         </Alert>
 
-        {/* Action Button */}
-        <Button onClick={handleNewCheck} variant="outline" className="w-full">
+        {/* Action Button - hidden on print */}
+        <Button onClick={handleNewCheck} variant="outline" className="w-full print:hidden">
           <RefreshCw className="w-4 h-4 mr-2" />
           Check New Symptoms
         </Button>
@@ -660,30 +851,50 @@ export default function AuthenticatedSymptomCheckerPage() {
               </p>
             </div>
 
-            {/* Past Queries */}
+            {/* Past Queries - Grouped by date */}
             {pastQueries.length > 0 && (
               <Collapsible open={showHistory} onOpenChange={setShowHistory}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="w-full justify-between">
                     <span className="flex items-center gap-2">
                       <History className="w-4 h-4" />
-                      Recent Symptom Checks ({pastQueries.length})
+                      Symptom Check History ({pastQueries.length})
                     </span>
                     {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2">
-                  <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    {pastQueries.map((query) => (
-                      <div key={query.id} className="text-sm">
-                        <span className="text-gray-500 dark:text-gray-400">
-                          {query.createdAt.toLocaleDateString()}:
-                        </span>{' '}
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {query.symptomsDescription.length > 60
-                            ? query.symptomsDescription.substring(0, 60) + '...'
-                            : query.symptomsDescription}
-                        </span>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg max-h-64 overflow-y-auto">
+                    {Object.entries(groupQueriesByDate(pastQueries)).map(([date, queries]) => (
+                      <div key={date} className="mb-4 last:mb-0">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                          <Calendar className="w-4 h-4" />
+                          {date} ({queries.length})
+                        </div>
+                        <div className="space-y-2 pl-6">
+                          {queries.map((query) => {
+                            const urgency = query.urgencyLevel ? URGENCY_LEVEL_CONFIG[query.urgencyLevel] : null;
+                            return (
+                              <div key={query.id} className="text-sm border-l-2 border-gray-200 dark:border-gray-700 pl-3 py-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-gray-500 dark:text-gray-400 text-xs">
+                                    {query.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                  {urgency && (
+                                    <Badge variant="outline" className={`text-xs ${urgency.color}`}>
+                                      {urgency.label}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-gray-700 dark:text-gray-300">
+                                  {query.symptomsDescription.length > 100
+                                    ? query.symptomsDescription.substring(0, 100) + '...'
+                                    : query.symptomsDescription}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     ))}
                   </div>

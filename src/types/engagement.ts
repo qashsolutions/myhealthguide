@@ -34,7 +34,8 @@ export type TrackableFeature =
   | 'my_notes'
   | 'care_management'
   | 'agency_management'
-  | 'settings';
+  | 'settings'
+  | 'symptom_checker';
 
 /**
  * Feature engagement event
@@ -79,7 +80,7 @@ export interface SmartInteractionEvent {
   groupId: string;
   sessionId: string;
   responseId: string; // ID of the smart response message
-  feature: 'health_chat' | 'smart_assistant' | 'weekly_summary' | 'smart_insight';
+  feature: 'health_chat' | 'smart_assistant' | 'weekly_summary' | 'smart_insight' | 'symptom_checker';
   timestamp: Date;
 
   // Quality metrics

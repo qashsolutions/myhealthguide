@@ -19,7 +19,7 @@ import {
 } from '@/lib/engagement/smartMetricsTracker';
 
 interface UseSmartMetricsOptions {
-  feature: 'health_chat' | 'smart_assistant' | 'weekly_summary' | 'smart_insight';
+  feature: 'health_chat' | 'smart_assistant' | 'weekly_summary' | 'smart_insight' | 'symptom_checker';
 }
 
 interface UseSmartMetricsReturn {
