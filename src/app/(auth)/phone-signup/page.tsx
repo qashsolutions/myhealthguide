@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthService } from '@/lib/firebase/auth';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
+import Link from 'next/link';
 
 function PhoneSignupForm() {
   const router = useRouter();
@@ -267,6 +268,34 @@ function PhoneSignupForm() {
           </form>
         )}
       </CardContent>
+
+      {/* Navigation links */}
+      <div className="px-6 pb-6 space-y-4">
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white dark:bg-gray-950 px-2 text-gray-500 dark:text-gray-400">
+              Or
+            </span>
+          </div>
+        </div>
+
+        <Link href="/signup" className="w-full">
+          <Button variant="outline" className="w-full">
+            <Mail className="mr-2 h-4 w-4" />
+            Sign up with email
+          </Button>
+        </Link>
+
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+          Already have an account?{' '}
+          <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </Card>
   );
 }

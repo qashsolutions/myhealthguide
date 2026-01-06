@@ -314,24 +314,29 @@ export default function TipsPage() {
     return colors[category];
   };
 
+  // Track expanded tip state
+  const [expandedTipId, setExpandedTipId] = useState<string | null>(null);
+
   const TipCard = ({ tip }: { tip: PublishedTip }) => {
     const ranking = getRankingInfo(tip.id!);
     const engagement = tipEngagement.get(tip.id!);
+    const isExpanded = expandedTipId === tip.id;
 
-    // Track view on click
+    // Track view and toggle expansion on click
     const handleClick = () => {
       trackTipView(tip.id!, user?.id);
+      setExpandedTipId(isExpanded ? null : tip.id!);
     };
 
     return (
       <Card
-        className="hover:shadow-lg transition-shadow cursor-pointer"
+        className={`hover:shadow-lg transition-all cursor-pointer ${isExpanded ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
         onClick={handleClick}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
-              <CardTitle className="text-lg line-clamp-2">{tip.title}</CardTitle>
+              <CardTitle className={`text-lg ${isExpanded ? '' : 'line-clamp-2'}`}>{tip.title}</CardTitle>
               {/* Ranking indicators */}
               <div className="flex items-center gap-2 mt-1">
                 {ranking?.isTrending && (
@@ -354,21 +359,33 @@ export default function TipsPage() {
                 )}
               </div>
             </div>
-            <Badge className={getCategoryColor(tip.category)}>
-              {getCategoryLabel(tip.category)}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge className={getCategoryColor(tip.category)}>
+                {getCategoryLabel(tip.category)}
+              </Badge>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Summary */}
-          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+          {/* Summary - show full content when expanded */}
+          <p className={`text-sm text-gray-600 dark:text-gray-400 ${isExpanded ? '' : 'line-clamp-3'}`}>
             {tip.summary}
           </p>
+
+          {/* Full content when expanded */}
+          {isExpanded && tip.content && (
+            <div className="pt-3 border-t dark:border-gray-700">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                {tip.content}
+              </p>
+            </div>
+          )}
 
         {/* Keywords */}
         {tip.keywords && tip.keywords.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {tip.keywords.slice(0, 4).map((keyword, idx) => (
+            {(isExpanded ? tip.keywords : tip.keywords.slice(0, 4)).map((keyword, idx) => (
               <Badge
                 key={idx}
                 variant="outline"
@@ -377,7 +394,7 @@ export default function TipsPage() {
                 {keyword}
               </Badge>
             ))}
-            {tip.keywords.length > 4 && (
+            {!isExpanded && tip.keywords.length > 4 && (
               <Badge variant="outline" className="text-xs">
                 +{tip.keywords.length - 4}
               </Badge>
@@ -389,7 +406,7 @@ export default function TipsPage() {
         {tip.source?.sourceName && (
           <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
             <Book className="w-3 h-3" />
-            <span className="truncate">
+            <span className={isExpanded ? '' : 'truncate'}>
               {tip.source.sourceName}
               {tip.source.authorName && ` by ${tip.source.authorName}`}
             </span>
@@ -411,6 +428,13 @@ export default function TipsPage() {
               <span>{format(new Date(tip.publishedAt), 'MMM d, yyyy')}</span>
             </div>
           </div>
+
+          {/* Click hint when collapsed */}
+          {!isExpanded && (
+            <div className="text-center text-xs text-blue-600 dark:text-blue-400 pt-2">
+              Click to read full tip
+            </div>
+          )}
         </CardContent>
       </Card>
     );
