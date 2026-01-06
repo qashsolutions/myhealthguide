@@ -617,7 +617,7 @@ export default function PublicSymptomCheckerPage() {
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">A Few More Questions</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Help us provide a more accurate assessment
+              Help us provide a better assessment
             </p>
           </div>
 
