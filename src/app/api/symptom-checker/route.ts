@@ -157,10 +157,9 @@ function validateRequest(
     return { valid: false, error: 'Symptoms description must be less than 2000 characters' };
   }
 
-  // Elder ID required for registered users (unless it's guest mode)
-  if (isRegistered && !body.elderId) {
-    return { valid: false, error: 'Please select an elder before checking symptoms' };
-  }
+  // Elder ID is optional - if provided, links query to elder; otherwise just links to user
+  // This allows the public symptom checker to work without elder selection
+  // The dashboard version can still require elder selection in its own validation
 
   return { valid: true };
 }
