@@ -834,3 +834,163 @@ Uses simple `userId` field queries (no composite indexes required):
 - Apply learned preferences with confidence < 0.6
 - Track sensitive data in engagement events (only feature names and timestamps)
 - Use "AI" in user-facing text - always use "Smart" instead
+
+### 14. Testing Guidelines (UPDATED: Jan 6, 2026)
+
+#### Subscription Plans
+
+| Plan | Price | Trial | Elders | Caregivers | Members |
+|------|-------|-------|--------|------------|---------|
+| **Plan A** (Family Plan A) | $8.99/mo | 45 days | 1 | 1 (admin) | 1 (read-only) |
+| **Plan B** (Family Plan B) | $18.99/mo | 45 days | 1 | 1 (admin) | 3 (read-only) |
+| **Plan C** (Multi Agency) | $55/elder/mo | 30 days | 3/caregiver | 10 max | 2/elder (read-only) |
+
+#### Role Hierarchy
+
+**Plan A & B (Family Plans):**
+```
+Caregiver (Admin/Subscriber)
+├── Full write access to elder data
+├── Can invite members
+└── Manages medications, supplements, diet, notes
+
+Member (Invited)
+├── Read-only access
+├── Receives FCM notifications
+└── Cannot add/edit/delete any data
+```
+
+**Plan C (Multi Agency):**
+```
+Superadmin (Subscriber)
+├── Subscribe & manage billing
+├── Add caregivers (max 10)
+├── Add elders & assign to caregivers
+├── View ALL agency data
+└── CANNOT write to elder health data
+
+Caregiver (Added by superadmin)
+├── Full write to ASSIGNED elders only
+├── Cannot access unassigned elders
+├── Can invite members (max 2/elder)
+└── Manages meds, supplements, diet for assigned elders
+
+Member (Invited by caregiver)
+├── Read-only for specific elder
+├── Receives FCM notifications
+└── Cannot write any data
+```
+
+#### Permissions Matrix
+
+| Action | Plan A/B Admin | Plan A/B Member | Plan C Superadmin | Plan C Caregiver | Plan C Member |
+|--------|----------------|-----------------|-------------------|------------------|---------------|
+| Add elder | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Edit elder profile | ✅ | ❌ | ❌ | ✅ (assigned) | ❌ |
+| Add medication | ✅ | ❌ | ❌ | ✅ (assigned) | ❌ |
+| View medications | ✅ | ✅ | ✅ | ✅ (assigned) | ✅ |
+| Add caregiver | N/A | N/A | ✅ | ❌ | ❌ |
+| Invite member | ✅ | ❌ | ❌ | ✅ | ❌ |
+| View reports | ✅ | ✅ | ✅ | ✅ (assigned) | ✅ |
+
+#### Authentication Requirements
+
+**Before Data Entry:**
+- Email verification: **REQUIRED**
+- Phone verification: **REQUIRED**
+- Both must be verified before adding elders or health data
+
+**Verification Flow:**
+1. User signs up (email or phone)
+2. Verification banner shown until both verified
+3. Protected features blocked until verified
+4. After verification: full access based on subscription
+
+#### Public Sections (No Auth Required)
+
+| Page | Path | Description |
+|------|------|-------------|
+| Symptom Checker | `/symptom-checker` | AI-powered symptom assessment |
+| Care Community | `/tips` | Caregiver tips and wisdom |
+| Features | `/features` | Feature discovery |
+| Pricing | `/pricing` | Subscription plans |
+| Home | `/` | Landing page |
+| About | `/about` | About page |
+
+#### Testing Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. FIX CODE                                                │
+│     - Make changes in local environment                     │
+│     - Run `npm run build` to verify                         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  2. PUSH TO GITHUB                                          │
+│     - `git add . && git commit -m "message"`                │
+│     - `git push origin main`                                │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  3. WAIT FOR VERCEL DEPLOYMENT                              │
+│     - Check: `gh run list --limit 1`                        │
+│     - Production: https://myguide.health                    │
+│     - Preview: https://myhealthguide.vercel.app             │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  4. VERIFY WITH CHROME EXTENSION                            │
+│     - Use Claude Chrome extension for UI testing            │
+│     - Test affected pages and flows                         │
+│     - Check console for errors                              │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  5. REPORT & LOOP                                           │
+│     - Document PASS/FAIL for each test                      │
+│     - If FAIL: identify fix → return to step 1              │
+│     - If PASS: move to next test or complete                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Deployment URLs
+
+| Environment | URL |
+|-------------|-----|
+| Production | https://myguide.health |
+| Preview/Staging | https://myhealthguide.vercel.app |
+
+#### Claude Code Testing Commands
+
+Use these slash commands for testing workflows:
+
+| Command | Purpose |
+|---------|---------|
+| `/test-planner` | Generate comprehensive test cases |
+| `/verify-app` | Full deployment verification workflow |
+| `/rbac-tester` | Test role-based access control |
+| `/subscription-tester` | Test plan limits, Stripe, trials |
+| `/input-validator` | Test input validation & security |
+| `/auth-tester` | Test authentication & sessions |
+| `/check-deploy` | Quick deployment status check |
+| `/build` | Run production build |
+| `/test` | Run test suites |
+
+#### Quick Test Checklist
+
+**Before Every Deploy:**
+- [ ] `npm run build` passes
+- [ ] No TypeScript errors
+- [ ] No console errors in browser
+
+**After Deploy:**
+- [ ] Affected pages load correctly
+- [ ] Forms validate properly
+- [ ] Auth flows work
+- [ ] Subscription limits enforced
+- [ ] RBAC permissions correct
