@@ -22,8 +22,11 @@ import {
   SymptomCheckerResponse,
   SymptomCheckerErrorResponse,
   SymptomCheckerAIResponse,
+  SymptomCheckerInitialResponse,
   SymptomCheckerQuery,
   SymptomCheckerRateLimit,
+  FollowUpQuestion,
+  FollowUpAnswer,
   RATE_LIMITS,
   GUEST_RETENTION_DAYS,
   AIModel,
@@ -237,9 +240,143 @@ Format your response as JSON:
 }
 
 /**
- * Call Gemini API for symptom assessment
+ * Build the AI prompt for STEP 1: Initial acknowledgment + follow-up questions
+ * This generates targeted questions based on the initial symptoms
  */
-async function callGeminiAPI(prompt: string): Promise<{ success: boolean; response?: SymptomCheckerAIResponse; error?: string }> {
+function buildInitialPrompt(body: SymptomCheckerRequest, isRegistered: boolean): string {
+  // Build comprehensive patient profile for context builder
+  const patientProfile: PatientProfile = {
+    age: body.age,
+    gender: body.gender,
+    medications: body.medications,
+    knownConditions: body.knownConditions,
+    dietType: body.dietType,
+    smoker: body.smoker,
+    alcoholUse: body.alcoholUse,
+    activityLevel: body.activityLevel,
+    isCaregiverReporting: isRegistered,
+  };
+
+  const symptomContext = buildSymptomContext(patientProfile);
+
+  return `You are a compassionate healthcare triage assistant helping gather information about symptoms. This is STEP 1 of a 2-step assessment.
+
+${symptomContext.fullContext}
+
+INITIAL SYMPTOMS DESCRIBED:
+${body.symptomsDescription}
+
+YOUR TASK:
+1. Briefly acknowledge the symptoms with empathy (1-2 sentences)
+2. Check if this is an EMERGENCY requiring immediate 911 call
+3. Generate 2-4 targeted follow-up questions to better understand the symptoms
+
+QUESTION CATEGORIES (pick the most relevant):
+- location: Where exactly is the symptom? (e.g., "Where exactly do you feel the pain - upper abdomen, lower abdomen, left side, or right side?")
+- duration: How long and pattern (e.g., "How long has this been going on? Is it constant or does it come and go?")
+- severity: How bad is it (e.g., "On a scale of 1-10, how severe is the pain? Has it been getting worse?")
+- associated: Related symptoms (e.g., "Have you noticed any other symptoms like nausea, fever, or changes in appetite?")
+- triggers: What affects it (e.g., "Does anything make it better or worse, like eating, movement, or rest?")
+- other: Any other relevant clarification
+
+EMERGENCY DETECTION:
+Set isEmergency=true ONLY for: chest pain with shortness of breath, stroke signs (face drooping, arm weakness, speech difficulty), severe bleeding, difficulty breathing, loss of consciousness, severe allergic reaction.
+
+Format your response as JSON:
+{
+  "acknowledgment": "Brief empathetic acknowledgment of their symptoms (1-2 sentences)",
+  "preliminaryUrgency": "emergency" | "urgent" | "moderate" | "low",
+  "isEmergency": true/false,
+  "emergencyReason": "Only if isEmergency is true",
+  "followUpQuestions": [
+    {
+      "id": "q1",
+      "question": "Clear, specific question about the symptoms",
+      "category": "location" | "duration" | "severity" | "associated" | "triggers" | "other"
+    },
+    {
+      "id": "q2",
+      "question": "Another relevant question",
+      "category": "..."
+    }
+  ]
+}
+
+Generate 2-4 questions that are:
+- Specific to the symptoms described
+- Easy for a patient or caregiver to answer
+- Would help narrow down possible causes
+- Appropriate for the patient's age and gender`;
+}
+
+/**
+ * Build the AI prompt for STEP 2: Final assessment with follow-up answers
+ */
+function buildFinalPrompt(body: SymptomCheckerRequest, followUpAnswers: FollowUpAnswer[], isRegistered: boolean): string {
+  // Build comprehensive patient profile
+  const patientProfile: PatientProfile = {
+    age: body.age,
+    gender: body.gender,
+    medications: body.medications,
+    knownConditions: body.knownConditions,
+    dietType: body.dietType,
+    smoker: body.smoker,
+    alcoholUse: body.alcoholUse,
+    activityLevel: body.activityLevel,
+    isCaregiverReporting: isRegistered,
+  };
+
+  const symptomContext = buildSymptomContext(patientProfile);
+
+  // Format follow-up Q&A
+  const followUpSection = followUpAnswers.map(qa =>
+    `Q: ${qa.question}\nA: ${qa.answer}`
+  ).join('\n\n');
+
+  return `You are a compassionate healthcare information assistant providing a FINAL assessment. This is STEP 2 after gathering additional information.
+
+${symptomContext.fullContext}
+
+INITIAL SYMPTOMS:
+${body.symptomsDescription}
+
+FOLLOW-UP INFORMATION GATHERED:
+${followUpSection}
+
+IMPORTANT GUIDELINES:
+1. This is NOT a medical diagnosis - you are providing general health information only
+2. NEVER claim to diagnose any condition - use "could be", "may suggest", "a doctor might consider"
+3. NEVER prescribe treatments - say "consult your physician for treatment options"
+4. Use the follow-up answers to provide a MORE TAILORED and SPECIFIC assessment
+5. Be professional, polite, compassionate, and show multiple possibilities
+6. For emergency symptoms, set isEmergency to true
+
+URGENCY LEVEL ASSESSMENT:
+- "emergency": Immediate life-threatening (chest pain, stroke signs, severe bleeding, difficulty breathing)
+- "urgent": Need attention within 24 hours (high fever, moderate pain with concerning features)
+- "moderate": Should be evaluated soon (persistent symptoms, mild-moderate discomfort)
+- "low": Can monitor at home (common cold, minor aches)
+
+Provide a comprehensive response as JSON:
+{
+  "urgencyLevel": "emergency" | "urgent" | "moderate" | "low",
+  "isEmergency": true/false,
+  "emergencyReason": "Only if isEmergency is true",
+  "assessmentHeadline": "Short 10-word max headline for quick reading",
+  "assessment": "Detailed compassionate overview incorporating the follow-up information...",
+  "possibleCauses": ["Cause 1 (most likely based on answers)", "Cause 2", "Cause 3"],
+  "recommendedNextSteps": ["Specific step based on their answers", "Step 2", "Consult your physician"],
+  "redFlagsToWatch": ["Warning 1", "Warning 2"],
+  "questionsForDoctor": ["Question 1", "Question 2", "Question 3"],
+  "disclaimer": "This information is for educational purposes only...",
+  "aiNotice": "This response was generated by AI..."
+}`;
+}
+
+/**
+ * Call Gemini API for symptom assessment (generic - works for both steps)
+ */
+async function callGeminiAPI<T>(prompt: string): Promise<{ success: boolean; response?: T; error?: string }> {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -282,7 +419,7 @@ async function callGeminiAPI(prompt: string): Promise<{ success: boolean; respon
       return { success: false, error: 'Failed to parse Gemini response' };
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as SymptomCheckerAIResponse;
+    const parsed = JSON.parse(jsonMatch[0]) as T;
     return { success: true, response: parsed };
   } catch (error) {
     console.error('[Symptom Checker] Gemini error:', error);
@@ -291,9 +428,9 @@ async function callGeminiAPI(prompt: string): Promise<{ success: boolean; respon
 }
 
 /**
- * Call Claude API as fallback
+ * Call Claude API as fallback (generic - works for both steps)
  */
-async function callClaudeAPI(prompt: string): Promise<{ success: boolean; response?: SymptomCheckerAIResponse; error?: string }> {
+async function callClaudeAPI<T>(prompt: string): Promise<{ success: boolean; response?: T; error?: string }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -335,7 +472,7 @@ async function callClaudeAPI(prompt: string): Promise<{ success: boolean; respon
       return { success: false, error: 'Failed to parse Claude response' };
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as SymptomCheckerAIResponse;
+    const parsed = JSON.parse(jsonMatch[0]) as T;
     return { success: true, response: parsed };
   } catch (error) {
     console.error('[Symptom Checker] Claude error:', error);
@@ -424,7 +561,8 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body: SymptomCheckerRequest = await request.json();
-    console.log('[Symptom Checker API] Body:', { ...body, symptomsDescription: body.symptomsDescription?.substring(0, 50) + '...' });
+    const step = body.step || 'initial';
+    console.log('[Symptom Checker API] Step:', step, 'Body:', { ...body, symptomsDescription: body.symptomsDescription?.substring(0, 50) + '...' });
 
     // Check authentication (optional - guests allowed)
     let userId: string | null = null;
@@ -451,12 +589,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    // Get rate limit identifier
+    // Get rate limit identifier - only count initial step, not follow-up
     const rateLimitId = userId || getClientIP(request);
-    const isRefinement = body.isRefinement && body.previousQueryId;
+    const isFollowUp = step === 'follow_up' && body.previousQueryId;
 
-    // Check rate limit
-    const rateLimit = await checkRateLimit(rateLimitId, userType, !!isRefinement);
+    // Check rate limit (follow-up doesn't count against limit)
+    const rateLimit = await checkRateLimit(rateLimitId, userType, !!isFollowUp);
     if (!rateLimit.allowed) {
       const errorResponse: SymptomCheckerErrorResponse = {
         success: false,
@@ -468,86 +606,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(errorResponse, { status: 429 });
     }
 
-    // Build AI prompt with personalization for registered users
-    let prompt = buildSymptomPrompt(body, userType === 'registered');
-
-    // Apply learned personalization for registered users (verbosity, terminology, focus areas)
-    if (userId) {
-      try {
-        const personalization = await getPersonalizedPromptAdditions(userId);
-        if (personalization) {
-          prompt = `${prompt}\n${personalization}`;
-          console.log('[Symptom Checker API] Applied user personalization');
-        }
-      } catch (personalizationError) {
-        console.warn('[Symptom Checker API] Failed to get personalization:', personalizationError);
-        // Continue without personalization
-      }
-    }
-
-    // Call AI - try Gemini first, then Claude, then fallback
-    let aiResponse: SymptomCheckerAIResponse;
     let modelUsed: AIModel = 'gemini';
 
-    console.log('[Symptom Checker API] Calling Gemini...');
-    const geminiResult = await callGeminiAPI(prompt);
+    // =====================
+    // STEP 1: Initial - Get follow-up questions
+    // =====================
+    if (step === 'initial') {
+      // Build initial prompt to get follow-up questions
+      let prompt = buildInitialPrompt(body, userType === 'registered');
 
-    if (geminiResult.success && geminiResult.response) {
-      aiResponse = geminiResult.response;
-      console.log('[Symptom Checker API] Gemini succeeded');
-    } else {
-      console.log('[Symptom Checker API] Gemini failed, trying Claude...');
-      const claudeResult = await callClaudeAPI(prompt);
-
-      if (claudeResult.success && claudeResult.response) {
-        aiResponse = claudeResult.response;
-        modelUsed = 'claude';
-        console.log('[Symptom Checker API] Claude succeeded');
-      } else {
-        console.log('[Symptom Checker API] Both AI providers failed, using fallback');
-        aiResponse = generateFallbackResponse(body);
-        modelUsed = 'gemini'; // Fallback doesn't really use either
+      // Apply personalization for registered users
+      if (userId) {
+        try {
+          const personalization = await getPersonalizedPromptAdditions(userId);
+          if (personalization) {
+            prompt = `${prompt}\n${personalization}`;
+          }
+        } catch (e) {
+          console.warn('[Symptom Checker API] Personalization failed:', e);
+        }
       }
-    }
 
-    const responseTimeMs = Date.now() - startTime;
+      // Call AI for initial response
+      console.log('[Symptom Checker API] Step 1: Getting follow-up questions...');
+      let initialResponse: SymptomCheckerInitialResponse;
 
-    // HIPAA Audit logging for registered users
-    if (userId && body.elderId) {
-      await logPHIThirdPartyDisclosure({
-        userId,
-        userRole,
-        groupId: '', // Not applicable for symptom checker
-        elderId: body.elderId,
-        serviceName: modelUsed === 'gemini' ? 'Google Gemini AI' : 'Anthropic Claude AI',
-        serviceType: 'symptom_assessment',
-        dataShared: ['age', 'gender', 'symptoms', 'medications', 'conditions', 'lifestyle_info'],
-        purpose: 'AI-powered symptom assessment for caregiving support',
-      });
-    }
+      const geminiResult = await callGeminiAPI<SymptomCheckerInitialResponse>(prompt);
+      if (geminiResult.success && geminiResult.response) {
+        initialResponse = geminiResult.response;
+        console.log('[Symptom Checker API] Gemini succeeded for step 1');
+      } else {
+        const claudeResult = await callClaudeAPI<SymptomCheckerInitialResponse>(prompt);
+        if (claudeResult.success && claudeResult.response) {
+          initialResponse = claudeResult.response;
+          modelUsed = 'claude';
+        } else {
+          // Fallback: generate basic follow-up questions
+          initialResponse = generateInitialFallback(body);
+        }
+      }
 
-    // Save or update query
-    let queryId: string;
-
-    if (isRefinement && body.previousQueryId) {
-      // Update existing query with refined response
-      queryId = body.previousQueryId;
-      await updateQueryWithRefinement(queryId, JSON.stringify(aiResponse), {
-        medications: body.medications,
-        knownConditions: body.knownConditions,
-        dietType: body.dietType,
-        smoker: body.smoker,
-        alcoholUse: body.alcoholUse,
-        activityLevel: body.activityLevel,
-      });
-    } else {
-      // Calculate expiry date for guest queries (7 days)
+      // Calculate expiry date for guest queries
       const expiresAt = userType === 'guest'
         ? new Date(Date.now() + GUEST_RETENTION_DAYS * 24 * 60 * 60 * 1000)
         : null;
 
-      // Save new query
-      queryId = await saveQuery({
+      // Save initial query
+      const queryId = await saveQuery({
         userId,
         userType,
         ipAddress: getClientIP(request),
@@ -562,10 +667,10 @@ export async function POST(request: NextRequest) {
         smoker: body.smoker ?? null,
         alcoholUse: (body.alcoholUse as AlcoholUse) || null,
         activityLevel: (body.activityLevel as ActivityLevel) || null,
-        initialResponse: JSON.stringify(aiResponse),
+        initialResponse: JSON.stringify(initialResponse),
         refinedResponse: null,
-        urgencyLevel: aiResponse.urgencyLevel || 'moderate',
-        isEmergency: aiResponse.isEmergency || false,
+        urgencyLevel: initialResponse.preliminaryUrgency || 'moderate',
+        isEmergency: initialResponse.isEmergency || false,
         feedbackRating: null,
         feedbackComment: null,
         feedbackTimestamp: null,
@@ -573,26 +678,113 @@ export async function POST(request: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
         aiModelUsed: modelUsed,
-        responseTimeMs,
+        responseTimeMs: Date.now() - startTime,
         expiresAt,
       });
+
+      // Return initial response with follow-up questions
+      const response: SymptomCheckerResponse = {
+        success: true,
+        queryId,
+        step: 'initial',
+        initialResponse,
+        rateLimit: {
+          used: rateLimit.used,
+          remaining: rateLimit.remaining,
+          limit: rateLimit.limit,
+        },
+        aiModelUsed: modelUsed,
+      };
+
+      console.log('[Symptom Checker API] Step 1 complete, queryId:', queryId);
+      return NextResponse.json(response);
     }
 
-    // Return success response
-    const successResponse: SymptomCheckerResponse = {
-      success: true,
-      queryId,
-      response: aiResponse,
-      rateLimit: {
-        used: rateLimit.used,
-        remaining: rateLimit.remaining,
-        limit: rateLimit.limit,
-      },
-      aiModelUsed: modelUsed,
-    };
+    // =====================
+    // STEP 2: Follow-up - Get final assessment
+    // =====================
+    if (step === 'follow_up' && body.previousQueryId && body.followUpAnswers) {
+      // Build final prompt with follow-up answers
+      let prompt = buildFinalPrompt(body, body.followUpAnswers, userType === 'registered');
 
-    console.log('[Symptom Checker API] Success, queryId:', queryId, 'responseTime:', responseTimeMs, 'ms');
-    return NextResponse.json(successResponse);
+      // Apply personalization
+      if (userId) {
+        try {
+          const personalization = await getPersonalizedPromptAdditions(userId);
+          if (personalization) {
+            prompt = `${prompt}\n${personalization}`;
+          }
+        } catch (e) {
+          console.warn('[Symptom Checker API] Personalization failed:', e);
+        }
+      }
+
+      // Call AI for final response
+      console.log('[Symptom Checker API] Step 2: Getting final assessment...');
+      let aiResponse: SymptomCheckerAIResponse;
+
+      const geminiResult = await callGeminiAPI<SymptomCheckerAIResponse>(prompt);
+      if (geminiResult.success && geminiResult.response) {
+        aiResponse = geminiResult.response;
+        console.log('[Symptom Checker API] Gemini succeeded for step 2');
+      } else {
+        const claudeResult = await callClaudeAPI<SymptomCheckerAIResponse>(prompt);
+        if (claudeResult.success && claudeResult.response) {
+          aiResponse = claudeResult.response;
+          modelUsed = 'claude';
+        } else {
+          aiResponse = generateFallbackResponse(body);
+        }
+      }
+
+      // HIPAA Audit logging for registered users
+      if (userId && body.elderId) {
+        await logPHIThirdPartyDisclosure({
+          userId,
+          userRole,
+          groupId: '',
+          elderId: body.elderId,
+          serviceName: modelUsed === 'gemini' ? 'Google Gemini AI' : 'Anthropic Claude AI',
+          serviceType: 'symptom_assessment',
+          dataShared: ['age', 'gender', 'symptoms', 'medications', 'conditions', 'lifestyle_info', 'follow_up_answers'],
+          purpose: 'AI-powered symptom assessment for caregiving support',
+        });
+      }
+
+      // Update query with final response
+      await updateQueryWithRefinement(body.previousQueryId, JSON.stringify(aiResponse), {
+        medications: body.medications,
+        knownConditions: body.knownConditions,
+        dietType: body.dietType,
+        smoker: body.smoker,
+        alcoholUse: body.alcoholUse,
+        activityLevel: body.activityLevel,
+      });
+
+      // Return final response
+      const response: SymptomCheckerResponse = {
+        success: true,
+        queryId: body.previousQueryId,
+        step: 'follow_up',
+        response: aiResponse,
+        rateLimit: {
+          used: rateLimit.used,
+          remaining: rateLimit.remaining,
+          limit: rateLimit.limit,
+        },
+        aiModelUsed: modelUsed,
+      };
+
+      console.log('[Symptom Checker API] Step 2 complete, queryId:', body.previousQueryId);
+      return NextResponse.json(response);
+    }
+
+    // Invalid step configuration
+    return NextResponse.json({
+      success: false,
+      error: 'Invalid request: step must be "initial" or "follow_up" with required fields',
+      code: 'VALIDATION_ERROR',
+    } as SymptomCheckerErrorResponse, { status: 400 });
 
   } catch (error) {
     console.error('[Symptom Checker API] Error:', error);
@@ -603,4 +795,37 @@ export async function POST(request: NextRequest) {
     };
     return NextResponse.json(errorResponse, { status: 500 });
   }
+}
+
+/**
+ * Generate fallback initial response with basic follow-up questions
+ */
+function generateInitialFallback(body: SymptomCheckerRequest): SymptomCheckerInitialResponse {
+  const symptomsLower = body.symptomsDescription.toLowerCase();
+  const emergencyKeywords = ['chest pain', 'can\'t breathe', 'difficulty breathing', 'stroke', 'unconscious', 'severe bleeding'];
+  const isEmergency = emergencyKeywords.some(keyword => symptomsLower.includes(keyword));
+
+  return {
+    acknowledgment: `Thank you for sharing these symptoms. ${body.age >= 65 ? 'Given the patient\'s age, we want to gather a bit more information to provide the most helpful guidance.' : 'Let me ask a few questions to better understand the situation.'}`,
+    preliminaryUrgency: isEmergency ? 'emergency' : 'moderate',
+    isEmergency,
+    emergencyReason: isEmergency ? 'The symptoms described may indicate a medical emergency.' : undefined,
+    followUpQuestions: [
+      {
+        id: 'q1',
+        question: 'How long have these symptoms been present?',
+        category: 'duration',
+      },
+      {
+        id: 'q2',
+        question: 'On a scale of 1-10, how severe would you rate the discomfort?',
+        category: 'severity',
+      },
+      {
+        id: 'q3',
+        question: 'Have you noticed any other symptoms along with this?',
+        category: 'associated',
+      },
+    ],
+  };
 }

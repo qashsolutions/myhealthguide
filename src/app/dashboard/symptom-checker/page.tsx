@@ -264,8 +264,37 @@ export default function AuthenticatedSymptomCheckerPage() {
 
       const result = data as SymptomCheckerResponse;
       setQueryId(result.queryId);
-      setAiResponse(result.response);
       setRateLimit(result.rateLimit);
+
+      // Handle two-step flow - if we get initialResponse, we need to proceed to step 2
+      if (result.step === 'initial' && result.initialResponse) {
+        // For dashboard, auto-submit step 2 with empty follow-up answers for now
+        // TODO: Add proper follow-up UI for dashboard
+        const followUpRequest = {
+          ...requestBody,
+          step: 'follow_up' as const,
+          previousQueryId: result.queryId,
+          followUpAnswers: result.initialResponse.followUpQuestions.map((q: { id: string; question: string }) => ({
+            questionId: q.id,
+            question: q.question,
+            answer: 'Not provided',
+          })),
+        };
+
+        const followUpResponse = await fetch('/api/symptom-checker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(followUpRequest),
+        });
+        const followUpData = await followUpResponse.json();
+
+        if (followUpResponse.ok && followUpData.response) {
+          setAiResponse(followUpData.response);
+        }
+      } else if (result.response) {
+        setAiResponse(result.response);
+      }
+
       setShowResults(true);
       setShowRefinement(false);
 

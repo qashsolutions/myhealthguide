@@ -46,7 +46,10 @@ import {
   SymptomCheckerRequest,
   SymptomCheckerResponse,
   SymptomCheckerAIResponse,
+  SymptomCheckerInitialResponse,
   SymptomCheckerFormData,
+  FollowUpQuestion,
+  FollowUpAnswer,
   GENDER_OPTIONS,
   DIET_TYPE_OPTIONS,
   ACTIVITY_LEVEL_OPTIONS,
@@ -62,7 +65,7 @@ import {
 import { ClipboardHeartIcon } from '@/components/icons/ClipboardHeartIcon';
 import { cn } from '@/lib/utils';
 
-type Screen = 'disclaimer' | 'form' | 'results' | 'limit-reached';
+type Screen = 'disclaimer' | 'form' | 'follow-up' | 'results' | 'limit-reached';
 
 export default function PublicSymptomCheckerPage() {
   const router = useRouter();
@@ -108,6 +111,10 @@ export default function PublicSymptomCheckerPage() {
   const [aiResponse, setAiResponse] = useState<SymptomCheckerAIResponse | null>(null);
   const [rateLimit, setRateLimit] = useState<{ used: number; remaining: number; limit: number } | null>(null);
 
+  // Two-step Q&A flow
+  const [initialResponse, setInitialResponse] = useState<SymptomCheckerInitialResponse | null>(null);
+  const [followUpAnswers, setFollowUpAnswers] = useState<Record<string, string>>({});
+
   // Feedback
   const [feedbackGiven, setFeedbackGiven] = useState<FeedbackRating | null>(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
@@ -117,7 +124,8 @@ export default function PublicSymptomCheckerPage() {
     setError(null);
   };
 
-  const submitSymptomCheck = async (isRefinement = false) => {
+  // STEP 1: Submit initial symptoms and get follow-up questions
+  const submitInitialSymptoms = async () => {
     setIsLoading(true);
     setError(null);
 
@@ -126,14 +134,7 @@ export default function PublicSymptomCheckerPage() {
         age: parseInt(formData.age, 10),
         gender: formData.gender as Gender,
         symptomsDescription: formData.symptomsDescription,
-        medications: formData.medications || undefined,
-        knownConditions: formData.knownConditions || undefined,
-        dietType: formData.dietType as DietType || undefined,
-        smoker: formData.smoker ?? undefined,
-        alcoholUse: formData.alcoholUse as AlcoholUse || undefined,
-        activityLevel: formData.activityLevel as ActivityLevel || undefined,
-        isRefinement,
-        previousQueryId: isRefinement ? queryId || undefined : undefined,
+        step: 'initial',
       };
 
       const response = await fetch('/api/symptom-checker', {
@@ -154,10 +155,93 @@ export default function PublicSymptomCheckerPage() {
 
       const result = data as SymptomCheckerResponse;
       setQueryId(result.queryId);
-      setAiResponse(result.response);
       setRateLimit(result.rateLimit);
-      setCurrentScreen('results');
-      setShowRefinement(false);
+
+      if (result.initialResponse) {
+        setInitialResponse(result.initialResponse);
+
+        // If emergency, skip to results with emergency info
+        if (result.initialResponse.isEmergency) {
+          // Create a minimal response for emergency display
+          setAiResponse({
+            assessmentHeadline: 'Seek Emergency Care Immediately',
+            assessment: result.initialResponse.acknowledgment,
+            possibleCauses: [],
+            recommendedNextSteps: ['Call 911 immediately', 'Do not wait for follow-up questions'],
+            redFlagsToWatch: [],
+            questionsForDoctor: [],
+            disclaimer: 'This is an emergency situation. Please seek immediate medical care.',
+            urgencyLevel: 'emergency',
+            isEmergency: true,
+            emergencyReason: result.initialResponse.emergencyReason,
+            aiNotice: 'Emergency detected based on symptoms described.',
+          });
+          setCurrentScreen('results');
+        } else {
+          // Initialize follow-up answers
+          const initialAnswers: Record<string, string> = {};
+          result.initialResponse.followUpQuestions.forEach((q) => {
+            initialAnswers[q.id] = '';
+          });
+          setFollowUpAnswers(initialAnswers);
+          setCurrentScreen('follow-up');
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // STEP 2: Submit follow-up answers and get final assessment
+  const submitFollowUpAnswers = async () => {
+    if (!queryId || !initialResponse) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Convert answers to FollowUpAnswer array
+      const answers: FollowUpAnswer[] = initialResponse.followUpQuestions.map((q) => ({
+        questionId: q.id,
+        question: q.question,
+        answer: followUpAnswers[q.id] || '',
+      }));
+
+      const requestBody: SymptomCheckerRequest = {
+        age: parseInt(formData.age, 10),
+        gender: formData.gender as Gender,
+        symptomsDescription: formData.symptomsDescription,
+        medications: formData.medications || undefined,
+        knownConditions: formData.knownConditions || undefined,
+        dietType: formData.dietType as DietType || undefined,
+        smoker: formData.smoker ?? undefined,
+        alcoholUse: formData.alcoholUse as AlcoholUse || undefined,
+        activityLevel: formData.activityLevel as ActivityLevel || undefined,
+        step: 'follow_up',
+        previousQueryId: queryId,
+        followUpAnswers: answers,
+      };
+
+      const response = await fetch('/api/symptom-checker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get assessment');
+      }
+
+      const result = data as SymptomCheckerResponse;
+      if (result.response) {
+        setAiResponse(result.response);
+        setCurrentScreen('results');
+        setShowRefinement(false);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
@@ -183,11 +267,28 @@ export default function PublicSymptomCheckerPage() {
       return;
     }
 
-    await submitSymptomCheck(false);
+    await submitInitialSymptoms();
+  };
+
+  const handleFollowUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate all questions are answered
+    if (!initialResponse) return;
+    const unanswered = initialResponse.followUpQuestions.filter(
+      (q) => !followUpAnswers[q.id]?.trim()
+    );
+    if (unanswered.length > 0) {
+      setError('Please answer all questions to get your assessment');
+      return;
+    }
+
+    await submitFollowUpAnswers();
   };
 
   const handleRefinement = async () => {
-    await submitSymptomCheck(true);
+    // For refinement, go back to step 1 with existing data
+    await submitInitialSymptoms();
   };
 
   const handleNewCheck = () => {
@@ -204,6 +305,8 @@ export default function PublicSymptomCheckerPage() {
     });
     setQueryId(null);
     setAiResponse(null);
+    setInitialResponse(null);
+    setFollowUpAnswers({});
     setShowRefinement(false);
     setCurrentScreen('form');
     setFeedbackGiven(null);
@@ -436,6 +539,105 @@ export default function PublicSymptomCheckerPage() {
                       Check Symptoms
                     </>
                   )}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Follow-up Questions Screen (Step 2 of Q&A)
+  if (currentScreen === 'follow-up' && initialResponse) {
+    const urgencyConfig = URGENCY_LEVEL_CONFIG[initialResponse.preliminaryUrgency || 'moderate'];
+
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">A Few More Questions</h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Help us provide a more accurate assessment
+            </p>
+          </div>
+
+          {/* Acknowledgment Card */}
+          <Card className={`shadow-lg mb-6 border-l-4 ${urgencyConfig.borderColor}`}>
+            <CardContent className={`p-4 ${urgencyConfig.bgColor}`}>
+              <div className="flex items-start gap-3">
+                <Heart className={`w-5 h-5 mt-0.5 ${urgencyConfig.color}`} />
+                <p className="text-gray-700 dark:text-gray-300">
+                  {initialResponse.acknowledgment}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Follow-up Questions Form */}
+          <Card className="shadow-lg">
+            <form onSubmit={handleFollowUpSubmit}>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  Please answer these questions
+                </CardTitle>
+                <CardDescription>
+                  Your answers help us provide a more tailored assessment
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="w-4 h-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {initialResponse.followUpQuestions.map((question, index) => (
+                  <div key={question.id} className="space-y-2">
+                    <Label htmlFor={question.id} className="text-sm font-medium flex items-start gap-2">
+                      <span className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold shrink-0">
+                        {index + 1}
+                      </span>
+                      <span>{question.question}</span>
+                    </Label>
+                    <Textarea
+                      id={question.id}
+                      value={followUpAnswers[question.id] || ''}
+                      onChange={(e) => setFollowUpAnswers((prev) => ({
+                        ...prev,
+                        [question.id]: e.target.value,
+                      }))}
+                      placeholder="Type your answer here..."
+                      rows={2}
+                      className="mt-1"
+                    />
+                  </div>
+                ))}
+              </CardContent>
+              <CardFooter className="flex flex-col gap-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 p-6">
+                <Button type="submit" disabled={isLoading} className="w-full" size="lg">
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Getting Your Assessment...
+                    </>
+                  ) : (
+                    <>
+                      <Stethoscope className="w-4 h-4 mr-2" />
+                      Get My Assessment
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCurrentScreen('form')}
+                  className="text-gray-500"
+                >
+                  Back to edit symptoms
                 </Button>
               </CardFooter>
             </form>
