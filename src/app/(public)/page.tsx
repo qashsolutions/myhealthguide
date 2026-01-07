@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -19,12 +19,10 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { PricingCards } from '@/components/pricing/PricingCards';
-import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
 import { CaregiverStories } from '@/components/marketing/CaregiverStories';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LandingPage() {
-  const [userType, setUserType] = useState<UserType>(null);
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -37,12 +35,6 @@ export default function LandingPage() {
       }
     }
   }, [user, loading, router]);
-
-  // Get default selected plan based on user type
-  const getDefaultPlan = (type: UserType) => {
-    if (type === 'agency') return 'multi_agency' as const;
-    return 'single_agency' as const;
-  };
 
   return (
     <div className="flex flex-col">
@@ -228,21 +220,11 @@ export default function LandingPage() {
         The old duplicated code has been commented out below for reference.
       */}
 
-      {/* User Type Selector */}
-      <div className="bg-gray-50 dark:bg-gray-900 pt-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <UserTypeSelector
-            selectedType={userType}
-            onSelect={setUserType}
-          />
-        </div>
-      </div>
-
+      {/* Pricing Section - Show all plans immediately */}
       <PricingCards
-        showHeader={false}
+        showHeader={true}
         showTrialInfo={true}
-        defaultSelectedPlan={getDefaultPlan(userType)}
-        userType={userType}
+        defaultSelectedPlan="single_agency"
       />
 
       {/*
