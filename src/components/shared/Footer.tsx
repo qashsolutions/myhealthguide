@@ -11,8 +11,8 @@ export function Footer() {
           <div className="flex flex-col items-start gap-0.5">
             <Link href="/dashboard" className="flex items-center">
               <h2 className="text-xl tracking-tight text-slate-900 dark:text-slate-100">
-                <span className="font-bold">Care</span>
-                <span className="font-light text-blue-600 dark:text-blue-400">guide</span>
+                <span className="font-bold">MyHealth</span>
+                <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
               </h2>
             </Link>
             <p className="text-xs text-gray-500 dark:text-gray-500">
