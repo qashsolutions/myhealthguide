@@ -994,3 +994,88 @@ Use these slash commands for testing workflows:
 - [ ] Auth flows work
 - [ ] Subscription limits enforced
 - [ ] RBAC permissions correct
+
+### 15. UI/UX Terminology Refactoring (COMPLETED: Jan 7, 2026)
+
+**IMPORTANT:** User-facing terminology has been updated for better clarity and empathy.
+
+#### Terminology Changes
+
+| Old Term | New Term | Scope |
+|----------|----------|-------|
+| Elder | Loved One | All user-facing display text |
+| CareGuide | MyHealthGuide | Branding on public pages |
+
+#### Rules for Future Development
+
+**CHANGE (Display Text Only):**
+- JSX text content visible to users
+- Labels, placeholders, error messages
+- Page titles and descriptions
+- Filter dropdown options
+- CSV export headers
+
+**PRESERVE (Do NOT Change):**
+- Variable names (`elderId`, `elderData`, `elderName`)
+- Props and interfaces (`ElderContext`, `ElderCard`)
+- CSS class names
+- API endpoints and routes (`/dashboard/elders`)
+- Firestore collection names
+- TypeScript types and interfaces
+
+#### Files Modified
+
+**Group 1: Core Navigation & Layout**
+| File | Changes |
+|------|---------|
+| `src/components/shared/Sidebar.tsx` | "ELDER'S CARE" → "LOVED ONE'S CARE", section labels |
+| `src/components/dashboard/ElderDropdown.tsx` | "Add New Elder" → "Add Loved One", "Manage All Elders" → "Manage Loved Ones" |
+
+**Group 2: Dashboard Pages**
+| File | Changes |
+|------|---------|
+| `src/app/dashboard/elders/page.tsx` | Page title "Elders" → "Loved Ones" |
+| `src/app/dashboard/elders/new/page.tsx` | "Add New Elder" form labels |
+| `src/app/dashboard/page.tsx` | "ELDERS" stat → "LOVED ONES", "Your Elders" → "Your Loved Ones" |
+
+**Group 3: Agency Components**
+| File | Changes |
+|------|---------|
+| `src/components/agency/AgencyOverview.tsx` | Stats: "Elders" → "Loved Ones", "Max Elders/Caregiver" → "Max Loved Ones/Caregiver" |
+| `src/components/agency/CaregiverAssignmentManager.tsx` | Assignment labels, counts, descriptions |
+| `src/components/agency/PrimaryCaregiverTransferDialog.tsx` | Transfer descriptions |
+| `src/components/agency/scheduling/ShiftSchedulingCalendar.tsx` | CSV header, filter dropdown, print table |
+| `src/components/agency/scheduling/CreateShiftDialog.tsx` | Labels, placeholders, error messages |
+| `src/components/agency/scheduling/BulkCreateShiftDialog.tsx` | Labels, result display |
+| `src/components/agency/scheduling/ShiftDetailsPopover.tsx` | Detail labels, dialogs |
+| `src/components/agency/billing/AgencyBillingDashboard.tsx` | Stats, subscriptions, dialogs |
+
+**Group 4: Public Pages**
+| File | Changes |
+|------|---------|
+| `src/app/(public)/about/page.tsx` | "CareGuide" → "MyHealthGuide", pricing descriptions |
+
+#### Verification Summary (Jan 7, 2026)
+
+All changes verified on production (https://myguide.health):
+
+| Page | Status | Verified Elements |
+|------|--------|-------------------|
+| About | ✅ PASS | "MyHealthGuide" branding, "loved one" pricing text |
+| Dashboard Overview | ✅ PASS | "LOVED ONES" stat card, "Your Loved Ones" section |
+| Elders Page | ✅ PASS | "Loved Ones" page title |
+| Agency Overview | ✅ PASS | "Loved Ones" stats, "Max Loved Ones/Caregiver" |
+| Agency Scheduling | ✅ PASS | "All Loved Ones" filter dropdown |
+| Agency Assignments | ✅ PASS | "Assign caregivers to specific loved ones" |
+| Care Management | ✅ PASS | Hub page displays correctly |
+
+#### Commit History
+
+- `c36abd4` - feat: update terminology - Elder to Loved One, CareGuide to MyHealthGuide (Groups 3-4)
+- Previous commits for Groups 1-2 (see git log)
+
+**DO NOT:**
+- Change variable names, props, or TypeScript interfaces containing "elder"
+- Rename API routes or Firestore collections
+- Use "Elder" in any new user-facing text (always use "Loved One")
+- Use "CareGuide" in branding (always use "MyHealthGuide")
