@@ -1,5 +1,5 @@
 - review the documents. build prod ready files, do not add To-Dos. do not assume-ask me when in doubt.
-- today is Jan 3, 2026.
+- today is Jan 7, 2026.
 
 ## CRITICAL: Authentication & Firestore Best Practices
 
