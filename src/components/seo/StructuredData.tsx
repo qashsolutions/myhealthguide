@@ -26,7 +26,7 @@ export function StructuredData() {
     '@type': 'WebSite',
     name: 'myguide.health',
     url: 'https://www.myguide.health',
-    description: 'Eldercare and caregiver management made simple',
+    description: 'Loved one care and caregiver management made simple',
     potentialAction: {
       '@type': 'SearchAction',
       target: 'https://www.myguide.health/search?q={search_term_string}',

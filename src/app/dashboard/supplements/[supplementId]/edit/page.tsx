@@ -128,7 +128,7 @@ export default function EditSupplementPage() {
 
   // Get elder name for display
   const elderName = supplement
-    ? availableElders.find(e => e.id === supplement.elderId)?.name || 'Unknown Elder'
+    ? availableElders.find(e => e.id === supplement.elderId)?.name || 'Unknown'
     : '';
 
   if (loading) {
@@ -177,11 +177,11 @@ export default function EditSupplementPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Elder</Label>
+                  <Label>Loved One</Label>
                   <div className="flex items-center h-10 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
                     <span className="text-gray-900 dark:text-gray-100">{elderName}</span>
                   </div>
-                  <p className="text-xs text-gray-500">Elder cannot be changed. Create a new supplement for a different elder.</p>
+                  <p className="text-xs text-gray-500">Loved one cannot be changed. Create a new supplement for a different loved one.</p>
                 </div>
 
                 <div className="space-y-2">

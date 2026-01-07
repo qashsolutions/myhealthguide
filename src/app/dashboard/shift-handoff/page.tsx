@@ -540,7 +540,7 @@ export default function ShiftHandoffPage() {
                         {hasSOAPNote && handoff.soapNote ? (
                           <SOAPNoteDisplay
                             soapNote={handoff.soapNote}
-                            elderName={selectedElder?.name || 'Elder'}
+                            elderName={selectedElder?.name || 'Loved One'}
                             shiftStart={handoff.shiftPeriod.start}
                             shiftEnd={handoff.shiftPeriod.end}
                           />

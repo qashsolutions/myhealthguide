@@ -230,7 +230,7 @@ export default function HealthChatPage() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <AlertDescription className="text-amber-800 dark:text-amber-200">
-                <strong>Select an Elder:</strong> Please select an elder from the dropdown above to use the Health Chat.
+                <strong>Select a Loved One:</strong> Please select a loved one from the dropdown above to use the Health Chat.
               </AlertDescription>
             </div>
           </Alert>

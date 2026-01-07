@@ -227,7 +227,7 @@ function CaregiverFamilyInviteContent() {
               <span className="font-medium">{inviteData?.caregiverName}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Elders you can view</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Loved ones you can view</span>
               <Badge variant="secondary">{inviteData?.elderCount}</Badge>
             </div>
             <div className="flex items-center justify-between">

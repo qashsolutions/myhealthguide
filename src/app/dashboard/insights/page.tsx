@@ -282,7 +282,7 @@ export default function InsightsPage() {
       {elders.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Select Elder</CardTitle>
+            <CardTitle className="text-lg">Select Loved One</CardTitle>
           </CardHeader>
           <CardContent>
             <Select

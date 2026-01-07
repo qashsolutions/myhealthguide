@@ -741,13 +741,13 @@ export default function CalendarPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Elder</label>
+                <label className="text-sm font-medium">Loved One</label>
                 <select
                   value={shiftForm.elderId}
                   onChange={(e) => setShiftForm({ ...shiftForm, elderId: e.target.value })}
                   className="w-full mt-1 px-3 py-2 border rounded-lg"
                 >
-                  <option value="">Select elder...</option>
+                  <option value="">Select loved one...</option>
                   {availableElders.map((elder) => (
                     <option key={elder.id} value={elder.id}>{elder.name}</option>
                   ))}

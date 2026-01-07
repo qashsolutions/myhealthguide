@@ -341,7 +341,7 @@ export default function NewDietEntryPage() {
           <CardContent className="space-y-4">
             {/* Elder Selection */}
             <div className="space-y-2">
-              <Label htmlFor={activeElders.length === 1 ? undefined : "elderId"}>Elder</Label>
+              <Label htmlFor={activeElders.length === 1 ? undefined : "elderId"}>Loved One</Label>
               {activeElders.length === 1 ? (
                 // Single elder - show as static text (no htmlFor needed since it's not interactive)
                 <div className="flex items-center h-10 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
@@ -351,7 +351,7 @@ export default function NewDietEntryPage() {
                 // Multiple elders - show dropdown
                 <Select value={elderId} onValueChange={setElderId}>
                   <SelectTrigger id="elderId">
-                    <SelectValue placeholder="Select an elder" />
+                    <SelectValue placeholder="Select a loved one" />
                   </SelectTrigger>
                   <SelectContent>
                     {isMultiAgencyPlan ? (

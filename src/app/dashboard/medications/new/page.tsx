@@ -172,7 +172,7 @@ export default function NewMedicationPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="elderId">Elder</Label>
+                <Label htmlFor="elderId">Loved One</Label>
                 {activeElders.length === 1 ? (
                   // Single elder - show as static text
                   <div className="flex items-center h-10 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
@@ -182,7 +182,7 @@ export default function NewMedicationPage() {
                   // Multiple elders - show dropdown
                   <Select value={formData.elderId} onValueChange={(value) => setFormData({...formData, elderId: value})}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select an elder" />
+                      <SelectValue placeholder="Select a loved one" />
                     </SelectTrigger>
                     <SelectContent>
                       {isMultiAgencyPlan ? (

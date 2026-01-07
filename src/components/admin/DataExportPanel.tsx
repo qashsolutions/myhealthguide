@@ -81,7 +81,7 @@ export function DataExportPanel({ userId, isAdmin, isEmbedded = false }: DataExp
             <ul className="text-sm space-y-1">
               <li>• Your profile and account information</li>
               <li>• All groups where you are admin</li>
-              <li>• Elder profiles, medications, supplements</li>
+              <li>• Loved one profiles, medications, supplements</li>
               <li>• All logs (medication, supplement, diet entries)</li>
               <li>• Activity logs and notification history</li>
               <li>• Invites created and accepted</li>

@@ -124,7 +124,7 @@ export default function EditDietEntryPage() {
 
   // Get elder name for display
   const elderName = entry
-    ? availableElders.find(e => e.id === entry.elderId)?.name || 'Unknown Elder'
+    ? availableElders.find(e => e.id === entry.elderId)?.name || 'Unknown'
     : '';
 
   if (loading) {
@@ -174,11 +174,11 @@ export default function EditDietEntryPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Elder</Label>
+                  <Label>Loved One</Label>
                   <div className="flex items-center h-10 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
                     <span className="text-gray-900 dark:text-gray-100">{elderName}</span>
                   </div>
-                  <p className="text-xs text-gray-500">Elder cannot be changed.</p>
+                  <p className="text-xs text-gray-500">Loved one cannot be changed.</p>
                 </div>
 
                 {entry && (

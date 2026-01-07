@@ -104,7 +104,7 @@ export default function TimesheetPage() {
 
   const exportTimesheet = () => {
     // Create CSV
-    const headers = ['Date', 'Start Time', 'End Time', 'Duration (hours)', 'Elder', 'Caregiver'];
+    const headers = ['Date', 'Start Time', 'End Time', 'Duration (hours)', 'Loved One', 'Caregiver'];
     const rows = shifts.map(shift => [
       format(shift.startTime, 'yyyy-MM-dd'),
       format(shift.startTime, 'HH:mm'),
@@ -252,7 +252,7 @@ export default function TimesheetPage() {
                       <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white">Caregiver</th>
                     )}
                     {viewMode === 'caregiver' && (
-                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white">Elder</th>
+                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white">Loved One</th>
                     )}
                   </tr>
                 </thead>

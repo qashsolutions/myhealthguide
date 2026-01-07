@@ -148,7 +148,7 @@ export function VoiceTranscriptDialog({
 
                 {parsedData.elderName && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Elder:</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Loved One:</span>
                     <span className="text-sm font-medium">{parsedData.elderName}</span>
                   </div>
                 )}

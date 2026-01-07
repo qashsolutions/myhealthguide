@@ -74,7 +74,7 @@ export function DataDeletionPanel({ userId, isAdmin, userEmail, isEmbedded = fal
             <p className="text-lg font-bold">{deletionResult.deletedCounts.groups}</p>
           </div>
           <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">
-            <p className="text-xs text-gray-600 dark:text-gray-400">Elders Deleted</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Loved Ones Deleted</p>
             <p className="text-lg font-bold">{deletionResult.deletedCounts.elders}</p>
           </div>
           <div className="p-2 rounded bg-gray-50 dark:bg-gray-800">

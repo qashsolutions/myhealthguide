@@ -77,10 +77,10 @@ export default function PrivacyPage() {
               <li>Account creation and last login timestamps</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">4.2 Elder and Care Information</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">4.2 Loved One and Care Information</h3>
             <p className="mb-4">If you use our caregiving features, we collect:</p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Elder name, date of birth, and profile image (optional)</li>
+              <li>Loved one name, date of birth, and profile image (optional)</li>
               <li>Care notes and group membership information</li>
             </ul>
 

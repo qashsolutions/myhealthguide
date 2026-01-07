@@ -609,7 +609,7 @@ export default function AvailabilityPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Preferred Elders</label>
+            <label className="text-sm font-medium">Preferred Loved Ones</label>
             <select
               multiple
               value={preferences.preferredElders}
@@ -631,7 +631,7 @@ export default function AvailabilityPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">Unavailable Elders</label>
+            <label className="text-sm font-medium">Unavailable Loved Ones</label>
             <select
               multiple
               value={preferences.unavailableElders}

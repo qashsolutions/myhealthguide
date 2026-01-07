@@ -64,7 +64,7 @@ export default function PHIDisclosuresPage() {
     }
 
     // Create CSV content
-    const headers = ['Date', 'Service Name', 'Service Type', 'Data Shared', 'Purpose', 'Elder', 'Location'];
+    const headers = ['Date', 'Service Name', 'Service Type', 'Data Shared', 'Purpose', 'Loved One', 'Location'];
     const rows = disclosures.map(disclosure => [
       format(disclosure.timestamp, 'yyyy-MM-dd HH:mm:ss'),
       disclosure.thirdPartyDisclosure?.serviceName || '',
@@ -328,7 +328,7 @@ export default function PHIDisclosuresPage() {
                         {/* Metadata */}
                         <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
                           {disclosure.elderId && (
-                            <span>Elder: {disclosure.elderId}</span>
+                            <span>Loved One: {disclosure.elderId}</span>
                           )}
                           {disclosure.location && (
                             <span>

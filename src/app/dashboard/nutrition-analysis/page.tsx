@@ -29,7 +29,7 @@ export default function NutritionAnalysisPage() {
   const { selectedElder } = useElder();
   const groupId = selectedElder?.groupId || user?.groups?.[0]?.groupId;
   const elderId = selectedElder?.id;
-  const elderName = selectedElder?.name || 'Elder';
+  const elderName = selectedElder?.name || 'Loved One';
 
   const [analyzing, setAnalyzing] = useState(false);
 
