@@ -197,7 +197,7 @@ export default function DashboardPage() {
             <Link href="/dashboard/elders/new" className="hidden sm:block">
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Elder
+                Add Loved One
               </Button>
             </Link>
           )}
@@ -249,7 +249,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                Elders
+                Loved Ones
               </h3>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {aggregate.totalElders}
@@ -354,10 +354,10 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Your Elders
+              Your Loved Ones
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Click on an elder to view their care details
+              Click on a loved one to view their care details
             </p>
           </div>
 
@@ -609,19 +609,19 @@ export default function DashboardPage() {
             {canUserAddElders(user) ? (
               <>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Get started by adding your first elder profile. You&apos;ll be able to track medications,
+                  Get started by adding your first loved one. You&apos;ll be able to track medications,
                   diet, and activities - and we&apos;ll help you spot anything that needs attention.
                 </p>
                 <Link href="/dashboard/elders/new">
                   <Button size="lg">
                     <Plus className="w-5 h-5 mr-2" />
-                    Add Your First Elder
+                    Add Your First Loved One
                   </Button>
                 </Link>
               </>
             ) : (
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                No elders have been assigned to you yet. Once your agency admin assigns you to an elder,
+                No loved ones have been assigned to you yet. Once your agency admin assigns you to a loved one,
                 you&apos;ll be able to track their medications, diet, and activities here.
               </p>
             )}

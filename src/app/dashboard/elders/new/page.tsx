@@ -106,18 +106,18 @@ export default function NewElderPage() {
               <div>
                 <CardTitle className="text-red-800 dark:text-red-200">Access Restricted</CardTitle>
                 <CardDescription className="text-red-600 dark:text-red-300">
-                  Caregivers cannot add elders
+                  Caregivers cannot add loved ones
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-red-700 dark:text-red-300">
-              Only agency administrators can add new elders to the system. This ensures proper
+              Only agency administrators can add new loved ones to the system. This ensures proper
               onboarding and billing setup.
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              If you need to care for a new elder, please contact your agency administrator
+              If you need to care for a new loved one, please contact your agency administrator
               to have them added to the system and assigned to you.
             </p>
             <Button
@@ -148,13 +148,13 @@ export default function NewElderPage() {
 
     try {
       if (!user) {
-        throw new Error('You must be signed in to add an elder');
+        throw new Error('You must be signed in to add a loved one');
       }
 
       // Get user's primary group ID
       const groupId = user.groups[0]?.groupId;
       if (!groupId) {
-        throw new Error('You must be part of a group to add an elder');
+        throw new Error('You must be part of a group to add a loved one');
       }
 
       const userId = user.id;
@@ -302,7 +302,7 @@ export default function NewElderPage() {
       router.push('/dashboard/elders');
     } catch (err: any) {
       console.error('Error creating elder:', err);
-      setError(err.message || 'Failed to add elder. Please try again.');
+      setError(err.message || 'Failed to add loved one. Please try again.');
       setLoading(false);
     }
   };
@@ -340,7 +340,7 @@ export default function NewElderPage() {
                   <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <CardTitle>Add New Elder</CardTitle>
+                  <CardTitle>Add New Loved One</CardTitle>
                   <CardDescription>Enter the basic information for the person you&apos;ll be caring for</CardDescription>
                 </div>
               </div>
@@ -729,7 +729,7 @@ export default function NewElderPage() {
 
                 <div className="flex gap-3 pt-4">
                   <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? 'Adding Elder...' : 'Add Elder'}
+                    {loading ? 'Adding Loved One...' : 'Add Loved One'}
                   </Button>
                   <Button type="button" variant="outline" onClick={() => router.back()}>
                     Cancel

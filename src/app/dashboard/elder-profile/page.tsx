@@ -103,10 +103,10 @@ export default function ElderProfilePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            No Elder Selected
+            No Loved One Selected
           </CardTitle>
           <CardDescription>
-            Please select an elder from the dropdown above to view their health profile.
+            Please select a loved one from the dropdown above to view their health profile.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -128,7 +128,7 @@ export default function ElderProfilePage() {
             Access Denied
           </CardTitle>
           <CardDescription>
-            You do not have permission to view this elder&apos;s health profile.
+            You do not have permission to view this loved one&apos;s health profile.
             Only group admins and the primary caregiver can access this information.
           </CardDescription>
         </CardHeader>
@@ -146,9 +146,9 @@ export default function ElderProfilePage() {
     return (
       <Card className="max-w-lg mx-auto mt-8">
         <CardHeader>
-          <CardTitle>Elder Not Found</CardTitle>
+          <CardTitle>Loved One Not Found</CardTitle>
           <CardDescription>
-            The requested elder could not be found.
+            The requested loved one could not be found.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -176,7 +176,7 @@ export default function ElderProfilePage() {
         </div>
         <Button variant="outline" onClick={() => router.push('/dashboard/elders')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Elders
+          Back to Loved Ones
         </Button>
       </div>
 

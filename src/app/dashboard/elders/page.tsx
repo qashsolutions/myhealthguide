@@ -103,7 +103,7 @@ export default function EldersPage() {
       }
     } catch (err) {
       console.error('Error fetching elders:', err);
-      setError('Failed to load elders');
+      setError('Failed to load loved ones');
     } finally {
       setLoading(false);
     }
@@ -156,7 +156,7 @@ export default function EldersPage() {
       closeDialog();
     } catch (err) {
       console.error('Error archiving elder:', err);
-      setError('Failed to archive elder. Please try again.');
+      setError('Failed to archive loved one. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -179,7 +179,7 @@ export default function EldersPage() {
       closeDialog();
     } catch (err) {
       console.error('Error deleting elder:', err);
-      setError('Failed to delete elder. Please try again.');
+      setError('Failed to delete loved one. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -206,7 +206,7 @@ export default function EldersPage() {
       await refreshElders();
     } catch (err) {
       console.error('Error reactivating elder:', err);
-      setError('Failed to reactivate elder. Please try again.');
+      setError('Failed to reactivate loved one. Please try again.');
     }
   };
 
@@ -237,12 +237,12 @@ export default function EldersPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {isCaregiver ? 'Your Assigned Elders' : 'Elders'}
+              {isCaregiver ? 'Your Assigned Loved Ones' : 'Loved Ones'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               {isCaregiver
-                ? 'View elder profiles assigned to you'
-                : 'Manage elder profiles in your care'}
+                ? 'View profiles assigned to you'
+                : 'Manage profiles in your care'}
               {canManageElders && elderLimitCheck?.limit && elderLimitCheck.limit > 1 && (
                 <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
                   ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
@@ -277,7 +277,7 @@ export default function EldersPage() {
                 <Link href="/dashboard/elders/new">
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Elder
+                    Add Loved One
                   </Button>
                 </Link>
               ) : (
@@ -285,7 +285,7 @@ export default function EldersPage() {
                   <TooltipTrigger asChild>
                     <Button disabled className="cursor-not-allowed opacity-60">
                       <Lock className="w-4 h-4 mr-2" />
-                      Add Elder
+                      Add Loved One
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs">
@@ -308,10 +308,10 @@ export default function EldersPage() {
               </div>
               <div>
                 <p className="font-medium text-amber-900 dark:text-amber-100">
-                  Elder Limit Reached ({elderLimitCheck.current}/{elderLimitCheck.limit})
+                  Loved One Limit Reached ({elderLimitCheck.current}/{elderLimitCheck.limit})
                 </p>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Upgrade your plan to add more elders, or archive an existing elder to free up a slot.
+                  Upgrade your plan to add more loved ones, or archive an existing one to free up a slot.
                 </p>
               </div>
             </div>
@@ -334,10 +334,10 @@ export default function EldersPage() {
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             {isCaregiver
-              ? 'No elders have been assigned to you yet. Please contact your agency administrator.'
+              ? 'No loved ones have been assigned to you yet. Please contact your agency administrator.'
               : archivedElders.length > 0
-                ? 'No active elders. You have archived elders that can be reactivated.'
-                : 'No elders added yet'}
+                ? 'No active loved ones. You have archived loved ones that can be reactivated.'
+                : 'No loved ones added yet'}
           </p>
           <div className="flex justify-center gap-2">
             {/* Only show archived button for admins/super admins */}
@@ -351,7 +351,7 @@ export default function EldersPage() {
               canAddElder ? (
                 <Link href="/dashboard/elders/new">
                   <Button>
-                    Add an Elder
+                    Add a Loved One
                     {elderLimitCheck?.limit && (
                       <span className="ml-2 text-xs opacity-75">
                         ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
@@ -364,7 +364,7 @@ export default function EldersPage() {
                   <TooltipTrigger asChild>
                     <Button disabled className="cursor-not-allowed opacity-60">
                       <Lock className="w-4 h-4 mr-2" />
-                      Add an Elder
+                      Add a Loved One
                       {elderLimitCheck?.limit && (
                         <span className="ml-2 text-xs opacity-75">
                           ({elderLimitCheck.current || 0} of {elderLimitCheck.limit})
@@ -482,7 +482,7 @@ export default function EldersPage() {
             <div className="mt-8">
               <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
                 <Archive className="h-5 w-5" />
-                Archived Elders
+                Archived Loved Ones
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {archivedElders.map((elder) => (
@@ -562,17 +562,17 @@ export default function EldersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-600">
               <Archive className="h-5 w-5" />
-              Archive Elder Profile
+              Archive Loved One Profile
             </DialogTitle>
             <DialogDescription className="pt-2">
               Are you sure you want to archive <strong>{selectedElder?.name}</strong>?
               <br /><br />
               <span className="text-gray-600">
-                Archiving will hide this elder from your active list, but all data will be preserved. You can reactivate this elder at any time.
+                Archiving will hide this loved one from your active list, but all data will be preserved. You can reactivate at any time.
               </span>
               <br /><br />
               <span className="text-green-600 font-medium">
-                This will free up your elder slot, allowing you to add a new elder.
+                This will free up your slot, allowing you to add a new loved one.
               </span>
             </DialogDescription>
           </DialogHeader>
@@ -598,7 +598,7 @@ export default function EldersPage() {
               ) : (
                 <>
                   <Archive className="h-4 w-4 mr-2" />
-                  Archive Elder
+                  Archive Loved One
                 </>
               )}
             </Button>
@@ -612,7 +612,7 @@ export default function EldersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
-              Permanently Delete Elder
+              Permanently Delete Loved One
             </DialogTitle>
             <DialogDescription className="pt-2">
               Are you sure you want to permanently delete <strong>{selectedElder?.name}</strong>?
