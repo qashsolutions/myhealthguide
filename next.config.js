@@ -15,13 +15,13 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  // Redirects - Help merged into Features
+  // Redirects
   async redirects() {
     return [
       {
-        source: '/help',
-        destination: '/features',
-        permanent: true,
+        source: '/tips',
+        destination: '/community',
+        permanent: false,
       },
     ];
   },
