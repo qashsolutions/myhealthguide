@@ -222,8 +222,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         <div className="pt-6 pr-6 pb-4 pl-4 flex items-center justify-between lg:hidden">
           <Link href="/dashboard" className="flex items-center">
             <h1 className="text-2xl tracking-tight text-slate-900 dark:text-slate-100">
-              <span className="font-bold">Care</span>
-              <span className="font-light text-blue-600 dark:text-blue-400">guide</span>
+              <span className="font-bold">MyHealth</span>
+              <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
             </h1>
           </Link>
           {/* Close button - Mobile only */}
@@ -265,7 +265,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <div className="px-3 py-4 mt-4">
               <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-                  Select an elder from the header to access care features
+                  Select a loved one from the header to access care features
                 </p>
               </div>
             </div>
