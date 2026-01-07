@@ -29,21 +29,11 @@
 
 'use client';
 
-import { useState } from 'react';
 import { PricingCards } from '@/components/pricing/PricingCards';
-import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
 
 export default function PricingPage() {
-  const [userType, setUserType] = useState<UserType>(null);
-
   // Note: We allow logged-in users to view pricing page so they can compare plans
   // and potentially upgrade their subscription
-
-  // Get default selected plan based on user type
-  const getDefaultPlan = (type: UserType) => {
-    if (type === 'agency') return 'multi_agency' as const;
-    return 'single_agency' as const;
-  };
 
   return (
     <div>
@@ -59,22 +49,11 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* User Type Selector */}
-      <div className="bg-gray-50 dark:bg-gray-900 pt-8">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <UserTypeSelector
-            selectedType={userType}
-            onSelect={setUserType}
-          />
-        </div>
-      </div>
-
-      {/* Shared Pricing Component */}
+      {/* All Plans - No pre-selection required */}
       <PricingCards
         showHeader={false}
         showTrialInfo={true}
-        defaultSelectedPlan={getDefaultPlan(userType)}
-        userType={userType}
+        defaultSelectedPlan="single_agency"
       />
     </div>
   );

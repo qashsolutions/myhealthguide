@@ -166,11 +166,6 @@ export function PricingCards({
     },
   ];
 
-  // Don't show cards until user makes a selection
-  if (!userType) {
-    return null;
-  }
-
   return (
     <div className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
