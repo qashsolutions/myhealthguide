@@ -298,7 +298,7 @@ export function BulkCreateShiftDialog({
                   <div className="text-gray-600 dark:text-gray-400">Caregiver:</div>
                   <div className="font-medium">{createdShiftDetails.caregiverName}</div>
 
-                  <div className="text-gray-600 dark:text-gray-400">Elder:</div>
+                  <div className="text-gray-600 dark:text-gray-400">Loved One:</div>
                   <div className="font-medium">{createdShiftDetails.elderName}</div>
 
                   <div className="text-gray-600 dark:text-gray-400">Time:</div>
@@ -373,10 +373,10 @@ export function BulkCreateShiftDialog({
 
             {/* Elder Selection */}
             <div className="space-y-2">
-              <Label>Elder *</Label>
+              <Label>Loved One *</Label>
               <Select value={selectedElder} onValueChange={setSelectedElder} disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select elder" />
+                  <SelectValue placeholder="Select loved one" />
                 </SelectTrigger>
                 <SelectContent>
                   {elders.map(e => (

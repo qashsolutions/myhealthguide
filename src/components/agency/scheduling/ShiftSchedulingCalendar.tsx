@@ -317,7 +317,7 @@ export function ShiftSchedulingCalendar({
 
   // Export to CSV
   const handleExportCSV = () => {
-    const headers = ['Date', 'Day', 'Start Time', 'End Time', 'Duration (hrs)', 'Caregiver', 'Elder', 'Status', 'Notes'];
+    const headers = ['Date', 'Day', 'Start Time', 'End Time', 'Duration (hrs)', 'Caregiver', 'Loved One', 'Status', 'Notes'];
     const sortedShifts = [...filteredShifts].sort((a, b) =>
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
@@ -390,7 +390,7 @@ export function ShiftSchedulingCalendar({
               <th>Date</th>
               <th>Time</th>
               <th>Caregiver</th>
-              <th>Elder</th>
+              <th>Loved One</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -587,10 +587,10 @@ export function ShiftSchedulingCalendar({
 
         <Select value={selectedElder} onValueChange={setSelectedElder}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Elders" />
+            <SelectValue placeholder="All Loved Ones" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Elders</SelectItem>
+            <SelectItem value="all">All Loved Ones</SelectItem>
             {elders.map(e => (
               <SelectItem key={e.id} value={e.id!}>{e.name}</SelectItem>
             ))}

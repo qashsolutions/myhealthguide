@@ -72,7 +72,7 @@ export function PrimaryCaregiverTransferDialog({
             Primary Caregiver Transfer Required
           </DialogTitle>
           <DialogDescription>
-            The following elder(s) already have a primary caregiver assigned.
+            The following loved one(s) already have a primary caregiver assigned.
             Would you like to transfer the primary caregiver role to{' '}
             <strong>{newCaregiverName}</strong>?
           </DialogDescription>
@@ -82,7 +82,7 @@ export function PrimaryCaregiverTransferDialog({
           <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
             <UserCog className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm">
-              <strong>Primary Caregiver</strong> has admin rights for the elder:
+              <strong>Primary Caregiver</strong> has admin rights for the loved one:
               can edit medications, manage schedules, and invite family members.
             </AlertDescription>
           </Alert>
@@ -91,7 +91,7 @@ export function PrimaryCaregiverTransferDialog({
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600 dark:text-gray-400">
-                Select elders to transfer:
+                Select loved ones to transfer:
               </span>
               <div className="space-x-2">
                 <Button
@@ -149,7 +149,7 @@ export function PrimaryCaregiverTransferDialog({
           {/* Summary */}
           {selectedElderIds.size > 0 && (
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              <strong>{selectedElderIds.size}</strong> of {conflicts.length} elder(s)
+              <strong>{selectedElderIds.size}</strong> of {conflicts.length} loved one(s)
               will have their primary caregiver changed to{' '}
               <strong>{newCaregiverName}</strong>.
             </p>

@@ -105,7 +105,7 @@ export function CreateShiftDialog({
       const elder = elders.find(e => e.id === selectedElder);
 
       if (!caregiver || !elder) {
-        setError('Invalid caregiver or elder selection');
+        setError('Invalid caregiver or loved one selection');
         return;
       }
 
@@ -162,7 +162,7 @@ export function CreateShiftDialog({
         <DialogHeader>
           <DialogTitle>Create New Shift</DialogTitle>
           <DialogDescription>
-            Schedule a caregiver to work with an elder
+            Schedule a caregiver to work with a loved one
           </DialogDescription>
         </DialogHeader>
 
@@ -208,10 +208,10 @@ export function CreateShiftDialog({
 
           {/* Elder Selection */}
           <div className="space-y-2">
-            <Label>Elder *</Label>
+            <Label>Loved One *</Label>
             <Select value={selectedElder} onValueChange={setSelectedElder}>
               <SelectTrigger>
-                <SelectValue placeholder="Select elder" />
+                <SelectValue placeholder="Select loved one" />
               </SelectTrigger>
               <SelectContent>
                 {elders.map(e => (

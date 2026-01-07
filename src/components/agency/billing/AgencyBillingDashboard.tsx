@@ -153,7 +153,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
             Billing Dashboard
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage your elder subscriptions and billing
+            Manage your loved one subscriptions and billing
           </p>
         </div>
         <Button onClick={loadBillingData} variant="outline" size="sm">
@@ -167,7 +167,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
         <CardHeader>
           <CardTitle className="text-lg">Multi-Agency Pricing</CardTitle>
           <CardDescription>
-            ${PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE} per elder per {PRICING.BILLING_CYCLE_DAYS} days • {PRICING.REFUND_WINDOW_DAYS}-day full refund window
+            ${PRICING.MULTI_AGENCY.ELDER_MONTHLY_RATE} per loved one per {PRICING.BILLING_CYCLE_DAYS} days • {PRICING.REFUND_WINDOW_DAYS}-day full refund window
           </CardDescription>
         </CardHeader>
       </Card>
@@ -178,7 +178,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active Elders</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Active Loved Ones</p>
                 <p className="text-3xl font-bold mt-1">{activeSubscriptions.length}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   of {PRICING.MULTI_AGENCY.MAX_ELDERS} max
@@ -231,13 +231,13 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
       {/* Subscriptions List */}
       <Card>
         <CardHeader>
-          <CardTitle>Elder Subscriptions</CardTitle>
-          <CardDescription>All elder subscriptions under this agency</CardDescription>
+          <CardTitle>Loved One Subscriptions</CardTitle>
+          <CardDescription>All loved one subscriptions under this agency</CardDescription>
         </CardHeader>
         <CardContent>
           {subscriptions.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No elder subscriptions yet
+              No loved one subscriptions yet
             </div>
           ) : (
             <div className="space-y-4">
@@ -323,7 +323,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Cancel Elder Subscription</DialogTitle>
+                              <DialogTitle>Cancel Loved One Subscription</DialogTitle>
                               <DialogDescription>
                                 Are you sure you want to cancel the subscription for{' '}
                                 <strong>{subscription.elderName}</strong>?

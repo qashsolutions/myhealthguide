@@ -257,7 +257,7 @@ export function CaregiverAssignmentManager({
 
   const getElderName = (elderId: string): string => {
     const elder = elders.find(e => e.id === elderId);
-    return elder ? elder.name : 'Unknown Elder';
+    return elder ? elder.name : 'Unknown Loved One';
   };
 
   if (loading) {
@@ -289,7 +289,7 @@ export function CaregiverAssignmentManager({
                 Caregiver Assignments
               </CardTitle>
               <CardDescription>
-                Assign caregivers to specific elders
+                Assign caregivers to specific loved ones
               </CardDescription>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -301,9 +301,9 @@ export function CaregiverAssignmentManager({
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Assign Caregiver to Elders</DialogTitle>
+                  <DialogTitle>Assign Caregiver to Loved Ones</DialogTitle>
                   <DialogDescription>
-                    Select a caregiver and the elders they will manage
+                    Select a caregiver and the loved ones they will manage
                   </DialogDescription>
                 </DialogHeader>
 
@@ -323,7 +323,7 @@ export function CaregiverAssignmentManager({
                           const assignedCount = getAssignedEldersCount(member.userId);
                           return (
                             <SelectItem key={member.userId} value={member.userId}>
-                              {getCaregiverName(member.userId)} ({assignedCount} elders assigned)
+                              {getCaregiverName(member.userId)} ({assignedCount} loved ones assigned)
                             </SelectItem>
                           );
                         })}
@@ -347,7 +347,7 @@ export function CaregiverAssignmentManager({
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-gray-500">
-                      Caregiver Admin can edit medications and schedules for assigned elders
+                      Caregiver Admin can edit medications and schedules for assigned loved ones
                     </p>
                   </div>
 
@@ -359,7 +359,7 @@ export function CaregiverAssignmentManager({
                         Assign as Primary Caregiver
                       </Label>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Primary caregiver has full admin rights for the elder (manage medications, schedules, invite family)
+                        Primary caregiver has full admin rights for the loved one (manage medications, schedules, invite family)
                       </p>
                     </div>
                     <Switch
@@ -371,10 +371,10 @@ export function CaregiverAssignmentManager({
 
                   {/* Elder Selection */}
                   <div className="space-y-2">
-                    <Label>Select Elders</Label>
+                    <Label>Select Loved Ones</Label>
                     <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
                       {elders.length === 0 ? (
-                        <p className="text-sm text-gray-500">No elders available</p>
+                        <p className="text-sm text-gray-500">No loved ones available</p>
                       ) : (
                         elders.map(elder => (
                           <div key={elder.id} className="flex items-center justify-between py-2">
@@ -402,12 +402,12 @@ export function CaregiverAssignmentManager({
                       )}
                     </div>
                     <p className="text-xs text-gray-500">
-                      Selected: {selectedElders.length} elder(s)
+                      Selected: {selectedElders.length} loved one(s)
                       {assignAsPrimary && selectedElders.some(id =>
                         elders.find(e => e.id === id)?.primaryCaregiverId
                       ) && (
                         <span className="text-amber-600 ml-2">
-                          (some elders have existing primary caregivers)
+                          (some loved ones have existing primary caregivers)
                         </span>
                       )}
                     </p>

@@ -6,8 +6,8 @@ import HeroCTAButtons from '@/components/about/HeroCTAButtons';
 import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
-  title: 'About Us | CareGuide',
-  description: 'Learn about CareGuide - built by caregivers, for caregivers. Smart, data-driven tools to simplify caregiving.',
+  title: 'About Us | MyHealthGuide',
+  description: 'Learn about MyHealthGuide - built by caregivers, for caregivers. Smart, data-driven tools to simplify caregiving.',
 };
 
 // SVG Icon Components
@@ -123,7 +123,7 @@ export default function AboutPage() {
               <span className="text-blue-600 dark:text-blue-400">for Caregivers</span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              We know caregiving is hard. We&apos;ve been there. That&apos;s why we built CareGuide &mdash;
+              We know caregiving is hard. We&apos;ve been there. That&apos;s why we built MyHealthGuide &mdash;
               to give you the tools you need to care for your loved ones without the stress of
               juggling medications, appointments, and paperwork.
             </p>
@@ -143,7 +143,7 @@ export default function AboutPage() {
               </h2>
               <div className="mt-6 space-y-4 text-gray-600 dark:text-gray-300">
                 <p>
-                  We built CareGuide because we experienced firsthand how overwhelming caregiving can be.
+                  We built MyHealthGuide because we experienced firsthand how overwhelming caregiving can be.
                   Keeping track of medications, coordinating with family members, managing appointments &mdash;
                   it felt like a full-time job on top of everything else.
                 </p>
@@ -350,7 +350,7 @@ export default function AboutPage() {
               <ul className="mt-6 space-y-3">
                 <li className="flex items-center gap-3">
                   <CheckIcon />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">1 elder</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">1 loved one</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckIcon />
@@ -393,7 +393,7 @@ export default function AboutPage() {
                     <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
                     <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="text-sm text-white">1 elder</span>
+                  <span className="text-sm text-white">1 loved one</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-green-300 flex-shrink-0">
@@ -430,12 +430,12 @@ export default function AboutPage() {
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">For professional caregivers</p>
               <div className="mt-4">
                 <span className="text-4xl font-bold text-gray-900 dark:text-white">$55</span>
-                <span className="text-gray-600 dark:text-gray-400">/elder/month</span>
+                <span className="text-gray-600 dark:text-gray-400">/loved one/month</span>
               </div>
               <ul className="mt-6 space-y-3">
                 <li className="flex items-center gap-3">
                   <CheckIcon />
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Up to 30 elders</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Up to 30 loved ones</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <CheckIcon />
@@ -470,10 +470,10 @@ export default function AboutPage() {
             <div>
               <MobileAppIcon />
               <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
-                CareGuide on the Go
+                MyHealthGuide on the Go
               </h2>
               <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-                Download our iOS app and take CareGuide with you wherever you go.
+                Download our iOS app and take MyHealthGuide with you wherever you go.
                 Log medications, track meals, and access all your documents &mdash; right from your pocket.
               </p>
               <ul className="mt-6 space-y-3">
@@ -519,7 +519,7 @@ export default function AboutPage() {
                   <div className="w-full h-full rounded-[2.5rem] overflow-hidden">
                     <Image
                       src="/images/ios-app-screenshot.png"
-                      alt="CareGuide iOS App - Settings screen showing account, subscription, and group information"
+                      alt="MyHealthGuide iOS App - Settings screen showing account, subscription, and group information"
                       width={288}
                       height={564}
                       className="w-full h-full object-cover object-top"
@@ -540,7 +540,7 @@ export default function AboutPage() {
               Ready to simplify caregiving?
             </h2>
             <p className="mt-4 text-lg text-blue-100">
-              Join thousands of caregivers who are already using CareGuide.
+              Join thousands of caregivers who are already using MyHealthGuide.
               Start your free trial today.
             </p>
             <div className="mt-8">

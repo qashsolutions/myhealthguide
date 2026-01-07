@@ -226,7 +226,7 @@ export function ShiftDetailsPopover({
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500 flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                Elder
+                Loved One
               </span>
               <span className="font-medium">{shift.elderName}</span>
             </div>
@@ -315,7 +315,7 @@ export function ShiftDetailsPopover({
               <div><strong>Date:</strong> {format(new Date(shift.date), 'EEEE, MMM d')}</div>
               <div><strong>Time:</strong> {shift.startTime} - {shift.endTime}</div>
               <div><strong>Caregiver:</strong> {shift.caregiverName}</div>
-              <div><strong>Elder:</strong> {shift.elderName}</div>
+              <div><strong>Loved One:</strong> {shift.elderName}</div>
             </div>
           </div>
           <DialogFooter>
@@ -355,7 +355,7 @@ export function ShiftDetailsPopover({
               <div><strong>Original:</strong> {format(new Date(shift.date), 'EEEE, MMM d')}</div>
               <div><strong>Time:</strong> {shift.startTime} - {shift.endTime}</div>
               <div><strong>Caregiver:</strong> {shift.caregiverName}</div>
-              <div><strong>Elder:</strong> {shift.elderName}</div>
+              <div><strong>Loved One:</strong> {shift.elderName}</div>
             </div>
 
             {/* Date Picker */}
