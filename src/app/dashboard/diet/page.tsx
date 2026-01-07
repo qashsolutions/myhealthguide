@@ -3,6 +3,16 @@
 import { useState, useMemo } from 'react';
 import { Plus, Mic, Utensils, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
@@ -19,8 +29,11 @@ export default function DietPage() {
   const { selectedElder } = useElder();
   const [reanalyzingId, setReanalyzingId] = useState<string | null>(null);
   const [reanalyzeError, setReanalyzeError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<DietEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const { data: entries, loading, error, setData: setEntries } = useElderDataLoader<DietEntry[]>({
+  const { data: entries, loading, error, setData: setEntries, reload } = useElderDataLoader<DietEntry[]>({
     fetcher: (elder, user, role) =>
       DietService.getEntriesByElder(elder.id, elder.groupId, user.id, role),
     elder: selectedElder,
@@ -113,6 +126,28 @@ export default function DietPage() {
     }
   };
 
+  const handleDeleteClick = (entry: DietEntry) => {
+    setEntryToDelete(entry);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!entryToDelete || !user) return;
+
+    setDeleting(true);
+    try {
+      const userRole = getUserRole();
+      await DietService.deleteEntry(entryToDelete.id, user.id, userRole);
+      setDeleteDialogOpen(false);
+      setEntryToDelete(null);
+      reload();
+    } catch (err: any) {
+      console.error('Error deleting diet entry:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -194,11 +229,40 @@ export default function DietPage() {
                 defaultOpen={isToday(date)}
                 onReanalyze={handleReanalyze}
                 reanalyzingId={reanalyzingId}
+                onDelete={handleDeleteClick}
               />
             ))}
           </div>
         </>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Meal Entry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {entryToDelete?.meal} entry ({entryToDelete?.items.slice(0, 2).join(', ')}{entryToDelete && entryToDelete.items.length > 2 ? '...' : ''})? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

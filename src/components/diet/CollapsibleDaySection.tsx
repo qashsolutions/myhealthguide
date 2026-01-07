@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Utensils, Clock, TrendingUp, AlertTriangle, CheckCircle2, Info, Flame, RefreshCw, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Utensils, Clock, TrendingUp, AlertTriangle, CheckCircle2, Info, Flame, RefreshCw, Loader2, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { DietEntry } from '@/types';
 import { format, isToday, isYesterday } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 interface CollapsibleDaySectionProps {
   date: Date;
@@ -14,6 +15,7 @@ interface CollapsibleDaySectionProps {
   defaultOpen?: boolean;
   onReanalyze?: (entry: DietEntry) => void;
   reanalyzingId?: string | null;
+  onDelete?: (entry: DietEntry) => void;
 }
 
 const getMealBadgeColor = (meal: string) => {
@@ -52,8 +54,10 @@ export function CollapsibleDaySection({
   defaultOpen = false,
   onReanalyze,
   reanalyzingId,
+  onDelete,
 }: CollapsibleDaySectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const router = useRouter();
 
   // Calculate daily totals
   const totalCalories = entries.reduce((sum, e) => sum + (e.aiAnalysis?.estimatedCalories || 0), 0);
@@ -231,6 +235,30 @@ export function CollapsibleDaySection({
                     {entry.notes}
                   </div>
                 )}
+
+                {/* Edit/Delete Buttons */}
+                <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/dashboard/diet/${entry.id}/edit`)}
+                    className="flex-1"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                  {onDelete && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDelete(entry)}
+                      className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
