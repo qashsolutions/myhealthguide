@@ -1023,22 +1023,23 @@ Use these slash commands for testing workflows:
 - Firestore collection names
 - TypeScript types and interfaces
 
-#### Files Modified
+#### Files Modified (27 Total)
 
-**Group 1: Core Navigation & Layout**
+**Group 1: Core Navigation & Layout (3 files)**
 | File | Changes |
 |------|---------|
 | `src/components/shared/Sidebar.tsx` | "ELDER'S CARE" → "LOVED ONE'S CARE", section labels |
+| `src/components/shared/Footer.tsx` | "CareGuide" → "MyHealthGuide" branding |
 | `src/components/dashboard/ElderDropdown.tsx` | "Add New Elder" → "Add Loved One", "Manage All Elders" → "Manage Loved Ones" |
 
-**Group 2: Dashboard Pages**
+**Group 2: Dashboard Pages (3 files)**
 | File | Changes |
 |------|---------|
 | `src/app/dashboard/elders/page.tsx` | Page title "Elders" → "Loved Ones" |
 | `src/app/dashboard/elders/new/page.tsx` | "Add New Elder" form labels |
 | `src/app/dashboard/page.tsx` | "ELDERS" stat → "LOVED ONES", "Your Elders" → "Your Loved Ones" |
 
-**Group 3: Agency Components**
+**Group 3: Agency Components (8 files)**
 | File | Changes |
 |------|---------|
 | `src/components/agency/AgencyOverview.tsx` | Stats: "Elders" → "Loved Ones", "Max Elders/Caregiver" → "Max Loved Ones/Caregiver" |
@@ -1050,10 +1051,52 @@ Use these slash commands for testing workflows:
 | `src/components/agency/scheduling/ShiftDetailsPopover.tsx` | Detail labels, dialogs |
 | `src/components/agency/billing/AgencyBillingDashboard.tsx` | Stats, subscriptions, dialogs |
 
-**Group 4: Public Pages**
+**Group 4: Public Pages (2 files)**
 | File | Changes |
 |------|---------|
 | `src/app/(public)/about/page.tsx` | "CareGuide" → "MyHealthGuide", pricing descriptions |
+| `src/app/(public)/privacy/page.tsx` | "Elder and Care Information" → "Loved One and Care Information" |
+
+**Group 5: Form Pages - New (3 files)**
+| File | Changes |
+|------|---------|
+| `src/app/dashboard/medications/new/page.tsx` | Label: "Elder" → "Loved One", placeholder: "Select an elder" → "Select a loved one" |
+| `src/app/dashboard/supplements/new/page.tsx` | Label: "Elder" → "Loved One", placeholder: "Select an elder" → "Select a loved one" |
+| `src/app/dashboard/diet/new/page.tsx` | Label: "Elder" → "Loved One", placeholder: "Select an elder" → "Select a loved one" |
+
+**Group 6: Form Pages - Edit (3 files)**
+| File | Changes |
+|------|---------|
+| `src/app/dashboard/medications/[medicationId]/edit/page.tsx` | Label, "Unknown Elder" → "Unknown", help text |
+| `src/app/dashboard/supplements/[supplementId]/edit/page.tsx` | Label, "Unknown Elder" → "Unknown", help text |
+| `src/app/dashboard/diet/[mealId]/edit/page.tsx` | Label, "Unknown Elder" → "Unknown", help text |
+
+**Group 7: Dashboard Feature Pages (10 files)**
+| File | Changes |
+|------|---------|
+| `src/app/dashboard/health-chat/page.tsx` | "Select an Elder" → "Select a Loved One" |
+| `src/app/dashboard/insights/page.tsx` | "Select Elder" → "Select Loved One" |
+| `src/app/dashboard/timesheet/page.tsx` | CSV header, table column: "Elder" → "Loved One" |
+| `src/app/dashboard/calendar/page.tsx` | Label: "Elder" → "Loved One", placeholder |
+| `src/app/dashboard/availability/page.tsx` | "Preferred Elders" → "Preferred Loved Ones", "Unavailable Elders" → "Unavailable Loved Ones" |
+| `src/app/dashboard/phi-disclosures/page.tsx` | CSV header, metadata label: "Elder" → "Loved One" |
+| `src/app/dashboard/dementia-screening/page.tsx` | Fallback text: "Elder" → "Loved One" |
+| `src/app/dashboard/family-updates/page.tsx` | Fallback text: "Elder" → "Loved One" |
+| `src/app/dashboard/nutrition-analysis/page.tsx` | Fallback text: "Elder" → "Loved One" |
+| `src/app/dashboard/shift-handoff/page.tsx` | Fallback text: "Elder" → "Loved One" |
+
+**Group 8: Components (4 files)**
+| File | Changes |
+|------|---------|
+| `src/components/admin/DataExportPanel.tsx` | "Elder profiles" → "Loved one profiles" |
+| `src/components/admin/DataDeletionPanel.tsx` | "Elders Deleted" → "Loved Ones Deleted" |
+| `src/components/voice/VoiceTranscriptDialog.tsx` | Label: "Elder:" → "Loved One:" |
+| `src/components/seo/StructuredData.tsx` | "Eldercare" → "Loved one care" in description |
+
+**Group 9: Auth Pages (1 file)**
+| File | Changes |
+|------|---------|
+| `src/app/(auth)/caregiver-family-invite/page.tsx` | "Elders you can view" → "Loved ones you can view" |
 
 #### Verification Summary (Jan 7, 2026)
 
@@ -1068,11 +1111,15 @@ All changes verified on production (https://myguide.health):
 | Agency Scheduling | ✅ PASS | "All Loved Ones" filter dropdown |
 | Agency Assignments | ✅ PASS | "Assign caregivers to specific loved ones" |
 | Care Management | ✅ PASS | Hub page displays correctly |
+| Footer | ✅ PASS | "MyHealthGuide" branding |
+| Medications Form | ✅ PASS | "Loved One" label |
 
 #### Commit History
 
+- `a392567` - fix: update footer branding from CareGuide to MyHealthGuide
+- `7184a1a` - feat: complete terminology update - Elder to Loved One (23 files)
+- `bf14898` - docs: add terminology refactoring documentation to CLAUDE.md
 - `c36abd4` - feat: update terminology - Elder to Loved One, CareGuide to MyHealthGuide (Groups 3-4)
-- Previous commits for Groups 1-2 (see git log)
 
 **DO NOT:**
 - Change variable names, props, or TypeScript interfaces containing "elder"
