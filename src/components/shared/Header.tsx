@@ -48,8 +48,8 @@ export function Header() {
         <div className="flex lg:flex-1">
           <Link href="/" className="flex items-center">
             <h1 className="text-2xl tracking-tight text-slate-900 dark:text-slate-100">
-              <span className="font-bold">Care</span>
-              <span className="font-light text-blue-600 dark:text-blue-400">guide</span>
+              <span className="font-bold">MyHealth</span>
+              <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
             </h1>
           </Link>
         </div>
