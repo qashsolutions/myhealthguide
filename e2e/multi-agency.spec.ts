@@ -239,8 +239,12 @@ test.describe('Multi-Agency - Mobile Access', () => {
     await waitForPageLoad(page);
     await dismissCookieConsent(page);
 
-    // Agency option should still be visible on mobile
-    const agencyOption = page.locator('text=/care agency/i').first();
+    // Scroll down to see agency plan on mobile (cards are stacked)
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(500);
+
+    // Agency option should still be visible on mobile - look for Multi Agency Plan
+    const agencyOption = page.locator('text=/Multi Agency/i').first();
     await expect(agencyOption).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 
