@@ -12,6 +12,11 @@ import {
   Bell,
   Users,
   Shield,
+  Building2,
+  Stethoscope,
+  MessageCircle,
+  ArrowRight,
+  CheckCircle,
 } from 'lucide-react';
 import { PricingCards } from '@/components/pricing/PricingCards';
 import { UserTypeSelector, type UserType } from '@/components/pricing/UserTypeSelector';
@@ -46,19 +51,147 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-              Caregiving Without the Guesswork
+              Care for Your Loved Ones, Simplified
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
               Track medications by voice. Get daily summaries. Never wonder if a dose was missed.
               Built for families and caregiving agencies.
             </p>
-            <div className="mt-10 flex items-center justify-center">
+            <div className="mt-10 flex items-center justify-center gap-4">
+              <Link href="/signup">
+                <Button size="lg" className="text-lg px-8">
+                  Get Started Free
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
               <Link href="/features">
                 <Button variant="outline" size="lg" className="text-lg px-8">
                   Learn More
                 </Button>
               </Link>
             </div>
+            <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
+              Free 45-day trial &bull; No credit card required &bull; HIPAA Compliant
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Audience Paths Section */}
+      <section className="py-16 sm:py-20 bg-white dark:bg-gray-800">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+              Built for Your Caregiving Journey
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
+              Whether you&apos;re caring for a parent or managing a care agency, we have you covered.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* For Families Card */}
+            <Link href="/family" className="group">
+              <Card className="h-full border-2 border-transparent hover:border-blue-500 transition-all duration-200 hover:shadow-lg">
+                <CardContent className="pt-8 pb-6 px-6">
+                  <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-6">
+                    <Heart className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                    For Families
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Simple tools for family caregivers. Track medications, coordinate care, and keep everyone informed.
+                  </p>
+                  <div className="flex items-center text-blue-600 dark:text-blue-400 font-semibold group-hover:gap-2 transition-all">
+                    Learn about family plans
+                    <ArrowRight className="w-5 h-5 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* For Care Agencies Card */}
+            <Link href="/agency" className="group">
+              <Card className="h-full border-2 border-transparent hover:border-purple-500 transition-all duration-200 hover:shadow-lg">
+                <CardContent className="pt-8 pb-6 px-6">
+                  <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-6">
+                    <Building2 className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                    For Care Agencies
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Professional tools for agencies. Manage multiple clients, coordinate caregivers, and ensure compliance.
+                  </p>
+                  <div className="flex items-center text-purple-600 dark:text-purple-400 font-semibold group-hover:gap-2 transition-all">
+                    Learn about agency plans
+                    <ArrowRight className="w-5 h-5 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Free Tools Section */}
+      <section className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center mb-12">
+            <span className="inline-block px-4 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm font-semibold rounded-full mb-4">
+              No Login Required
+            </span>
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+              Free Tools for Caregivers
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
+              Start using these helpful resources right away - no account needed.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Symptom Checker */}
+            <Link href="/symptom-checker" className="group">
+              <Card className="h-full hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6 pb-4 px-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Stethoscope className="w-6 h-6 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        Symptom Checker
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">
+                        AI-powered assessment to help understand symptoms and get guidance on next steps.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Care Community */}
+            <Link href="/community" className="group">
+              <Card className="h-full hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6 pb-4 px-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <MessageCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        Care Community
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">
+                        Tips, insights, and shared wisdom from experienced caregivers in our community.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>
@@ -266,6 +399,65 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
             </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Section */}
+      <section className="py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
+              Trusted by Families & Agencies
+            </h2>
+            <div className="flex flex-wrap items-center justify-center gap-8">
+              <div className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                <Shield className="w-8 h-8 text-green-600" />
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 dark:text-white">HIPAA Compliant</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Enterprise-grade security</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                <CheckCircle className="w-8 h-8 text-blue-600" />
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 dark:text-white">256-bit Encryption</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Your data is protected</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                <Users className="w-8 h-8 text-purple-600" />
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 dark:text-white">Family Trusted</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Built by caregivers</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-16 sm:py-24 bg-blue-600 dark:bg-blue-700">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Ready to Simplify Caregiving?
+            </h2>
+            <p className="mt-4 text-xl text-blue-100">
+              Join families and agencies who trust MyHealthGuide for their care needs.
+            </p>
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <Link href="/signup">
+                <Button size="lg" variant="secondary" className="text-lg px-8">
+                  Start Your Free Trial
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Link>
+            </div>
+            <p className="mt-4 text-sm text-blue-200">
+              45 days free &bull; No credit card required
+            </p>
           </div>
         </div>
       </section>
