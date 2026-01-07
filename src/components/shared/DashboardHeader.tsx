@@ -73,8 +73,8 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         {/* Logo - Hidden on mobile (shown in sidebar) */}
         <div className="hidden lg:flex items-center">
           <span className="text-xl tracking-tight text-slate-900 dark:text-slate-100">
-            <span className="font-bold">Care</span>
-            <span className="font-light text-blue-600 dark:text-blue-400">guide</span>
+            <span className="font-bold">MyHealth</span>
+            <span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
           </span>
         </div>
 
