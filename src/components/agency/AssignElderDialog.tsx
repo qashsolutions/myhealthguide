@@ -74,7 +74,7 @@ export function AssignElderDialog({
   const handleAssign = async () => {
     // Validate elder selection when not pre-selected
     if (!elderId && !selectedElder) {
-      setError('Please select an elder to assign');
+      setError('Please select a loved one to assign');
       return;
     }
 
@@ -107,17 +107,17 @@ export function AssignElderDialog({
 
       if (!response.ok) {
         if (result.conflicts && result.conflicts.length > 0) {
-          setError('This elder already has a primary caregiver assigned');
+          setError('This loved one already has a primary caregiver assigned');
           return;
         }
-        throw new Error(result.error || 'Failed to assign elder');
+        throw new Error(result.error || 'Failed to assign loved one');
       }
 
       onSuccess();
       handleClose();
     } catch (err: any) {
       console.error('Error assigning elder:', err);
-      setError(err.message || 'Failed to assign elder');
+      setError(err.message || 'Failed to assign loved one');
     } finally {
       setSaving(false);
     }
@@ -149,7 +149,7 @@ export function AssignElderDialog({
             {effectiveElderName ? (
               <>Assign <span className="font-medium">{effectiveElderName}</span> to a caregiver</>
             ) : (
-              <>Select an elder and assign them to a caregiver</>
+              <>Select a loved one and assign them to a caregiver</>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -165,24 +165,24 @@ export function AssignElderDialog({
           {noEldersAvailable ? (
             <div className="text-center py-6 text-gray-500 dark:text-gray-400">
               <User className="w-10 h-10 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No unassigned elders</p>
-              <p className="text-sm mt-1">All elders have been assigned to caregivers</p>
+              <p className="font-medium">No unassigned loved ones</p>
+              <p className="text-sm mt-1">All loved ones have been assigned to caregivers</p>
             </div>
           ) : availableCaregivers.length === 0 ? (
             <div className="text-center py-6 text-gray-500 dark:text-gray-400">
               <User className="w-10 h-10 mx-auto mb-3 opacity-50" />
               <p className="font-medium">No caregivers available</p>
-              <p className="text-sm mt-1">All caregivers have reached their elder limit (3 max)</p>
+              <p className="text-sm mt-1">All caregivers have reached their loved one limit (3 max)</p>
             </div>
           ) : (
             <>
               {/* Elder Selection - only shown when no elder pre-selected */}
               {needsElderSelection && (
                 <div className="space-y-2">
-                  <Label htmlFor="elder">Select Elder</Label>
+                  <Label htmlFor="elder">Select Loved One</Label>
                   <Select value={selectedElder} onValueChange={setSelectedElder}>
                     <SelectTrigger id="elder">
-                      <SelectValue placeholder="Choose an elder to assign..." />
+                      <SelectValue placeholder="Choose a loved one to assign..." />
                     </SelectTrigger>
                     <SelectContent>
                       {availableElders.map((elder) => (
@@ -207,7 +207,7 @@ export function AssignElderDialog({
                         <div className="flex items-center justify-between w-full">
                           <span>{caregiver.name}</span>
                           <span className="text-xs text-gray-500 ml-2">
-                            ({caregiver.elderCount}/{caregiver.maxElders} elders)
+                            ({caregiver.elderCount}/{caregiver.maxElders} loved ones)
                           </span>
                         </div>
                       </SelectItem>
@@ -227,7 +227,7 @@ export function AssignElderDialog({
                     Assign as Primary Caregiver
                   </Label>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Primary caregiver has full management rights for this elder
+                    Primary caregiver has full management rights for this loved one
                   </p>
                 </div>
               </div>

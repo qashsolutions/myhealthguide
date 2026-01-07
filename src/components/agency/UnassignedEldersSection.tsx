@@ -39,11 +39,11 @@ export function UnassignedEldersSection({
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           <CardTitle className="text-lg text-amber-800 dark:text-amber-200">
-            Unassigned Elders ({elders.length})
+            Unassigned Loved Ones ({elders.length})
           </CardTitle>
         </div>
         <CardDescription className="text-amber-700 dark:text-amber-300">
-          These elders need to be assigned to a caregiver
+          These loved ones need to be assigned to a caregiver
         </CardDescription>
       </CardHeader>
       <CardContent>

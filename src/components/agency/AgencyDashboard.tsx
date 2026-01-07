@@ -296,7 +296,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
                 <UserPlus className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Elders</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Loved Ones</p>
                 <p className="text-2xl font-bold">{totalElders}</p>
               </div>
             </div>
@@ -316,7 +316,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
                 <Settings className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Max Elders/Caregiver</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Max Loved Ones/Caregiver</p>
                 <p className="text-2xl font-bold">{agency.maxEldersPerCaregiver}</p>
               </div>
             </div>
@@ -469,7 +469,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
                         )}
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {groupElderCount} {groupElderCount === 1 ? 'elder' : 'elders'} • {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
+                        {groupElderCount} {groupElderCount === 1 ? 'loved one' : 'loved ones'} • {group.members.length} {group.members.length === 1 ? 'member' : 'members'}
                       </p>
                     </div>
                     <Badge variant="outline">
@@ -610,7 +610,7 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
                 Caregiver Access
               </CardTitle>
               <CardDescription className="text-blue-600 dark:text-blue-300">
-                You have caregiver access to your assigned elders. Contact your agency owner for additional features.
+                You have caregiver access to your assigned loved ones. Contact your agency owner for additional features.
               </CardDescription>
             </CardHeader>
           </Card>

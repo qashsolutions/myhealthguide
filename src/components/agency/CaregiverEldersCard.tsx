@@ -103,7 +103,7 @@ export function CaregiverEldersCard({
         ) : (
           <div className="text-center py-4 text-gray-500 dark:text-gray-400">
             <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No elders assigned yet</p>
+            <p className="text-sm">No loved ones assigned yet</p>
           </div>
         )}
 
@@ -115,7 +115,7 @@ export function CaregiverEldersCard({
             onClick={onAssignMore}
           >
             <UserPlus className="w-4 h-4 mr-2" />
-            Assign Elder ({maxElders - elderCount} remaining)
+            Assign Loved One ({maxElders - elderCount} remaining)
           </Button>
         )}
       </CardContent>
