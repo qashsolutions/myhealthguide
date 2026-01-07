@@ -15,26 +15,8 @@ import { test, expect } from '@playwright/test';
 import { TEST_CONFIG } from './fixtures/test-config';
 import { dismissCookieConsent, waitForPageLoad, loginWithEmail } from './fixtures/auth-helpers';
 
-/**
- * Helper to select pricing category (family or agency)
- */
-async function selectPricingCategory(page: any, category: 'family' | 'agency'): Promise<void> {
-  await dismissCookieConsent(page);
-
-  if (category === 'family') {
-    const familyCard = page.locator('text=/family member|loved ones/i').first();
-    if (await familyCard.isVisible().catch(() => false)) {
-      await familyCard.click();
-      await page.waitForTimeout(1000);
-    }
-  } else {
-    const agencyCard = page.locator('text=/care agency|multiple clients/i').first();
-    if (await agencyCard.isVisible().catch(() => false)) {
-      await agencyCard.click();
-      await page.waitForTimeout(1000);
-    }
-  }
-}
+// Note: UserTypeSelector was removed in Phase 5 refactor
+// All plans are now visible immediately without category selection
 
 test.describe('Subscription - Pricing Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -43,35 +25,34 @@ test.describe('Subscription - Pricing Page', () => {
     await dismissCookieConsent(page);
   });
 
-  test('should display pricing page with situation selection', async ({ page }) => {
+  test('should display pricing page with all plans visible', async ({ page }) => {
     // Check page title/heading
     const heading = page.locator('h1, h2').filter({ hasText: /pricing|plans/i }).first();
     await expect(heading).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
 
-    // Should show situation selection cards
-    const familyOption = page.locator('text=/family member/i').first();
-    const agencyOption = page.locator('text=/care agency/i').first();
+    // All three plans should be visible immediately (no selection required)
+    const familyPlanA = page.locator('text=/Family Plan A/i').first();
+    const familyPlanB = page.locator('text=/Family Plan B/i').first();
+    const multiAgency = page.locator('text=/Multi Agency/i').first();
 
-    await expect(familyOption).toBeVisible();
-    await expect(agencyOption).toBeVisible();
+    await expect(familyPlanA).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    await expect(familyPlanB).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    await expect(multiAgency).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 
-  test('should display Family Plans after selecting family option', async ({ page }) => {
-    // Click on family member option
-    await selectPricingCategory(page, 'family');
+  test('should display Family Plan prices', async ({ page }) => {
+    // Family Plan A and B should show pricing
+    const familyPriceA = page.locator('text=/\\$8\\.99/').first();
+    const familyPriceB = page.locator('text=/\\$18\\.99/').first();
 
-    // Now should see family pricing - look for any price indicator
-    const priceText = page.locator('text=/\\$/').first();
-    await expect(priceText).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    await expect(familyPriceA).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    await expect(familyPriceB).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 
-  test('should display Agency Plans after selecting agency option', async ({ page }) => {
-    // Click on agency option
-    await selectPricingCategory(page, 'agency');
-
-    // Now should see agency pricing
-    const priceText = page.locator('text=/\\$/').first();
-    await expect(priceText).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+  test('should display Multi Agency Plan price', async ({ page }) => {
+    // Multi Agency Plan should show pricing
+    const agencyPrice = page.locator('text=/\\$55/').first();
+    await expect(agencyPrice).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 
   test('should display trial period information', async ({ page }) => {
@@ -86,13 +67,15 @@ test.describe('Subscription - Pricing Page', () => {
     await expect(ctaButton).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 
-  test('should display feature descriptions for each option', async ({ page }) => {
-    // Each card should have a description
-    const familyDesc = page.locator('text=/Personal care management/i').first();
-    const agencyDesc = page.locator('text=/Professional care coordination/i').first();
+  test('should display feature descriptions for each plan', async ({ page }) => {
+    // Each plan card should have a description/subtitle
+    const familyADesc = page.locator('text=/individual caregivers/i').first();
+    const familyBDesc = page.locator('text=/family members or friends/i').first();
+    const multiAgencyDesc = page.locator('text=/professional caregivers/i').first();
 
-    await expect(familyDesc).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
-    await expect(agencyDesc).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    await expect(familyADesc).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    await expect(familyBDesc).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    await expect(multiAgencyDesc).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 });
 
@@ -126,15 +109,18 @@ test.describe('Subscription - Checkout Flow', () => {
     await waitForPageLoad(page);
     await dismissCookieConsent(page);
 
-    // Find clickable plan cards
-    const familyCard = page.locator('text=/family member/i').first();
-    await expect(familyCard).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    // Find clickable plan cards - all plans are visible immediately
+    const familyPlanA = page.locator('text=/Family Plan A/i').first();
+    await expect(familyPlanA).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
 
-    // Click should work
-    await familyCard.click();
-    await page.waitForTimeout(1000);
+    // Plan cards are clickable to select them
+    const planCard = page.locator('[class*="cursor-pointer"]').first();
+    if (await planCard.isVisible().catch(() => false)) {
+      await planCard.click();
+      await page.waitForTimeout(500);
+    }
 
-    // Should show plans or navigate
+    // Page should remain functional
     const bodyVisible = await page.locator('body').isVisible();
     expect(bodyVisible).toBeTruthy();
   });
@@ -242,9 +228,9 @@ test.describe('Subscription - Mobile Responsiveness', () => {
     const heading = page.locator('h1, h2').filter({ hasText: /pricing/i }).first();
     await expect(heading).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
 
-    // Selection cards should still be visible
-    const familyOption = page.locator('text=/family member/i').first();
-    await expect(familyOption).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    // First plan card should be visible on mobile (cards stack vertically)
+    const familyPlanA = page.locator('text=/Family Plan A/i').first();
+    await expect(familyPlanA).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 });
 
