@@ -138,7 +138,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
     // Caregiver = has elder assignments
     if (member.isCaregiver) {
       const elderText = member.assignedElderCount
-        ? `${member.assignedElderCount} elder${member.assignedElderCount > 1 ? 's' : ''}`
+        ? `${member.assignedElderCount} loved one${member.assignedElderCount > 1 ? 's' : ''}`
         : '';
       return (
         <Badge className="bg-blue-600">
@@ -338,8 +338,8 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
             </button>
             {isPermissionLevelsExpanded && (
               <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-2">
-                <li><strong>Owner:</strong> Full control over all elder care data and group settings</li>
-                <li><strong>Caregiver:</strong> Can manage care for assigned elders only (Multi-Agency)</li>
+                <li><strong>Owner:</strong> Full control over all loved one care data and group settings</li>
+                <li><strong>Caregiver:</strong> Can manage care for assigned loved ones only (Multi-Agency)</li>
                 <li><strong>Viewer:</strong> Can view care data but cannot make changes</li>
               </ul>
             )}

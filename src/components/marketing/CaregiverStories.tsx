@@ -40,7 +40,7 @@ const CURATED_STORIES: Story[] = [
   },
   // Agency stories
   {
-    text: "Eight elders, three caregivers, one dashboard. Shift handoffs finally make sense.",
+    text: "Eight loved ones, three caregivers, one dashboard. Shift handoffs finally make sense.",
     author: "Maria, agency owner",
     type: 'agency',
     source: 'curated',

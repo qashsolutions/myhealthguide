@@ -12,7 +12,7 @@ interface CaregiverApprovalBlockerProps {
 
 export function CaregiverApprovalBlocker({
   agencyName = 'the agency',
-  featureName = 'elder care features',
+  featureName = 'loved one care features',
   onRefresh
 }: CaregiverApprovalBlockerProps) {
   return (

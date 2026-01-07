@@ -74,10 +74,10 @@ export type OverrideReason =
   | 'training_shift';
 
 export const OVERRIDE_REASON_LABELS: Record<OverrideReason, string> = {
-  elder_at_hospital: 'Elder at hospital/medical facility',
-  elder_at_doctor: "Elder at doctor's appointment",
-  elder_at_family: "Elder at family member's home",
-  elder_traveling: 'Elder traveling/vacation',
+  elder_at_hospital: 'Loved one at hospital/medical facility',
+  elder_at_doctor: "Loved one at doctor's appointment",
+  elder_at_family: "Loved one at family member's home",
+  elder_traveling: 'Loved one traveling/vacation',
   gps_unavailable: 'GPS/location service unavailable',
   emergency: 'Emergency situation',
   training_shift: 'Training/orientation shift',

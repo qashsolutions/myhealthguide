@@ -311,7 +311,7 @@ export default function ShiftHandoffPage() {
         <Card className="p-8">
           <CardContent>
             <p className="text-center text-gray-600 dark:text-gray-400">
-              Please select an elder to manage shift handoffs
+              Please select a loved one to manage shift handoffs
             </p>
           </CardContent>
         </Card>

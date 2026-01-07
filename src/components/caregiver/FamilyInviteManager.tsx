@@ -226,7 +226,7 @@ export function FamilyInviteManager({ groupId, caregiverId, elderCount }: Family
               </Badge>
             </CardTitle>
             <CardDescription>
-              Invite family members to view care updates for your {elderCount} assigned elder{elderCount > 1 ? 's' : ''}
+              Invite family members to view care updates for your {elderCount} assigned loved one{elderCount > 1 ? 's' : ''}
             </CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -241,7 +241,7 @@ export function FamilyInviteManager({ groupId, caregiverId, elderCount }: Family
                 <DialogTitle>Invite Family Member</DialogTitle>
                 <DialogDescription>
                   Create an invite link for a family member to view care updates.
-                  They will have read-only access to your {elderCount} assigned elder{elderCount > 1 ? 's' : ''}.
+                  They will have read-only access to your {elderCount} assigned loved one{elderCount > 1 ? 's' : ''}.
                 </DialogDescription>
               </DialogHeader>
 

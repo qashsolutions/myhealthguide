@@ -71,9 +71,9 @@ export default function TermsPage() {
             <h3 className="text-xl font-semibold mt-6 mb-3">4.1 Available Plans</h3>
             <p className="mb-4">We offer three subscription tiers:</p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li><strong>Family Plan A ($8.99/elder/month):</strong> 1 admin + 1 member, 1 elder, 25MB storage</li>
-              <li><strong>Family Plan B ($18.99/month):</strong> 1 admin + 3 members, 1 elder, 50MB storage</li>
-              <li><strong>Multi Agency Plan ($55/elder/month):</strong> Up to 30 elders, 10 caregivers, 500MB storage</li>
+              <li><strong>Family Plan A ($8.99/loved one/month):</strong> 1 admin + 1 member, 1 loved one, 25MB storage</li>
+              <li><strong>Family Plan B ($18.99/month):</strong> 1 admin + 3 members, 1 loved one, 50MB storage</li>
+              <li><strong>Multi Agency Plan ($55/loved one/month):</strong> Up to 30 loved ones, 10 caregivers, 500MB storage</li>
             </ul>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4.2 Billing</h3>
@@ -86,7 +86,7 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4.3 Plan Limits</h3>
             <p className="mb-4">
-              Plan limits are strictly enforced. If you exceed your plan&apos;s limits for elders, caregivers, groups, or storage, you must upgrade to a higher-tier plan. We reserve the right to restrict access to features if you exceed plan limits.
+              Plan limits are strictly enforced. If you exceed your plan&apos;s limits for loved ones, caregivers, groups, or storage, you must upgrade to a higher-tier plan. We reserve the right to restrict access to features if you exceed plan limits.
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4.4 Cancellation and Refunds</h3>
@@ -106,7 +106,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Track medication schedules and logs</li>
               <li>Record diet and nutrition information</li>
-              <li>Manage elder care activities</li>
+              <li>Manage loved one care activities</li>
               <li>Generate AI-powered health summaries and insights</li>
               <li>Collaborate with family members or caregivers</li>
             </ul>

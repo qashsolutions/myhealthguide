@@ -99,7 +99,7 @@ export function EmailVerificationGate({ children, featureName }: EmailVerificati
                 <p className="mb-2">After verifying your email, you&apos;ll be able to:</p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
                   <li>Add and manage medications</li>
-                  <li>Track elders and their health data</li>
+                  <li>Track loved ones and their health data</li>
                   <li>Use smart health insights</li>
                   <li>Generate clinical notes for doctors</li>
                   <li>Export your health data</li>

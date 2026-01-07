@@ -298,7 +298,7 @@ export class DataExportService {
   }[] {
     return [
       { label: 'Groups', count: data.groups.length },
-      { label: 'Elders', count: data.elders.length },
+      { label: 'Loved Ones', count: data.elders.length },
       { label: 'Medications', count: data.medications.length },
       { label: 'Medication Logs', count: data.medicationLogs.length },
       { label: 'Supplements', count: data.supplements.length },

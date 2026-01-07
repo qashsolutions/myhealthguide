@@ -56,7 +56,7 @@ const PLANS: Record<string, Plan> = {
     price: PLAN_CONFIG.family.price,
     priceId: getStripePriceId('family'),
     limits: [
-      `${PLAN_CONFIG.family.limits.maxElders} elder`,
+      `${PLAN_CONFIG.family.limits.maxElders} loved one`,
       `1 admin + 1 member`,
       `${PLAN_CONFIG.family.limits.storageMB} MB storage`,
     ],
@@ -67,7 +67,7 @@ const PLANS: Record<string, Plan> = {
     price: PLAN_CONFIG.single_agency.price,
     priceId: getStripePriceId('single_agency'),
     limits: [
-      `${PLAN_CONFIG.single_agency.limits.maxElders} elder`,
+      `${PLAN_CONFIG.single_agency.limits.maxElders} loved one`,
       `1 admin + ${PLAN_CONFIG.single_agency.limits.maxMembers - 1} members`,
       `${PLAN_CONFIG.single_agency.limits.storageMB} MB storage`,
     ],
@@ -78,7 +78,7 @@ const PLANS: Record<string, Plan> = {
     price: PLAN_CONFIG.multi_agency.price,
     priceId: getStripePriceId('multi_agency'),
     limits: [
-      `Up to ${PLAN_CONFIG.multi_agency.limits.maxElders} elders`,
+      `Up to ${PLAN_CONFIG.multi_agency.limits.maxElders} loved ones`,
       `Up to ${PLAN_CONFIG.multi_agency.limits.maxCaregivers} caregivers`,
       `${PLAN_CONFIG.multi_agency.limits.storageMB} MB storage`,
     ],
@@ -440,7 +440,7 @@ export function SubscriptionSettings() {
                 </span>
               </div>
               <p className={cancelAtPeriodEnd ? 'text-yellow-700' : 'text-green-700'}>
-                ${PLANS[user.subscriptionTier as keyof typeof PLANS]?.price}/elder/month
+                ${PLANS[user.subscriptionTier as keyof typeof PLANS]?.price}/loved one/month
               </p>
               {currentPeriodEnd && (
                 <p className="text-sm text-gray-600 mt-1">
@@ -555,7 +555,7 @@ export function SubscriptionSettings() {
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
                     <div className="mt-2">
                       <span className="text-3xl font-bold">${plan.price}</span>
-                      <span className="text-gray-500">/elder/month</span>
+                      <span className="text-gray-500">/loved one/month</span>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -654,7 +654,7 @@ export function SubscriptionSettings() {
                     </div>
                     <div className="mt-2">
                       <span className="text-3xl font-bold">${plan.price}</span>
-                      <span className="text-gray-500">/elder/month</span>
+                      <span className="text-gray-500">/loved one/month</span>
                     </div>
                   </CardHeader>
                   <CardContent>

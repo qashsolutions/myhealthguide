@@ -109,7 +109,7 @@ export default function PrivacyPage() {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4.6 Files and Documents</h3>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Uploaded files (profile images, elder photos, documents)</li>
+              <li>Uploaded files (profile images, loved one photos, documents)</li>
               <li>File metadata (path, name, type, size, category, upload timestamps)</li>
             </ul>
 
@@ -186,7 +186,7 @@ export default function PrivacyPage() {
               We use Google Gemini AI to generate daily health summaries, analyze diet entries, detect medication compliance patterns, and provide an AI chat assistant for caregivers.
             </p>
             <p className="mb-4">
-              <strong>Data Sent to Gemini:</strong> Medication logs and schedules, supplement logs, diet entries, elder names and ages, health conditions (if provided), user chat messages, and voice transcripts.
+              <strong>Data Sent to Gemini:</strong> Medication logs and schedules, supplement logs, diet entries, loved one names and ages, health conditions (if provided), user chat messages, and voice transcripts.
             </p>
             <p className="mb-4">
               API Endpoint: https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent
@@ -285,14 +285,14 @@ export default function PrivacyPage() {
             <h3 className="text-xl font-semibold mt-6 mb-3">8.1 Within the Application</h3>
             <p className="mb-4"><strong>Group Members:</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Family members in the same group can view shared elders&apos; data</li>
+              <li>Family members in the same group can view shared loved ones&apos; data</li>
               <li>Permission levels control who can view vs. edit</li>
               <li>Group admins have full access to group data</li>
             </ul>
 
             <p className="mb-4"><strong>Caregivers (Agency Model):</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Professional caregivers can only access elders they are specifically assigned to</li>
+              <li>Professional caregivers can only access loved ones they are specifically assigned to</li>
               <li>Agency super admins manage caregiver assignments and have access to all groups within their agency</li>
               <li>Strict isolation is enforced between different agencies</li>
             </ul>
@@ -305,7 +305,7 @@ export default function PrivacyPage() {
 
             <p className="mb-4"><strong>Shift Handoff Notes:</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Shared between caregivers working with the same elder</li>
+              <li>Shared between caregivers working with the same loved one</li>
               <li>Includes medication administration, meals, and notable events</li>
             </ul>
 
@@ -334,7 +334,7 @@ export default function PrivacyPage() {
               <li>Authentication required for all operations (no anonymous access)</li>
               <li>Role-based permissions (admin, caregiver, family member)</li>
               <li>Ownership-based access control (users can only access their own data)</li>
-              <li>Caregiver assignment validation (caregivers can only access assigned elders)</li>
+              <li>Caregiver assignment validation (caregivers can only access assigned loved ones)</li>
               <li>Group membership validation</li>
             </ul>
 
@@ -393,7 +393,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>User profile and account information</li>
               <li>All groups (if you are the admin)</li>
-              <li>All elders and their data</li>
+              <li>All loved ones and their data</li>
               <li>All medications, supplements, and logs</li>
               <li>All diet entries</li>
               <li>All activity logs and session data</li>

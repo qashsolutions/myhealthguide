@@ -216,7 +216,7 @@ export function CaregiverMatchRecommendations({
                     </div>
                     <p className="text-xs text-gray-500">
                       {match.profile.yearsExperience}+ years experience •{' '}
-                      {match.currentElderCount}/3 elders
+                      {match.currentElderCount}/3 loved ones
                     </p>
                   </div>
                 </div>

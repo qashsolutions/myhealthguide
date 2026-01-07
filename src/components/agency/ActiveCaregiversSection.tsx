@@ -349,7 +349,7 @@ function CaregiverRow({ caregiver, onManage, getStatusBadge }: CaregiverRowProps
             {caregiver.elderCount > 0 && (
               <span className="flex items-center gap-1">
                 <Users className="w-3 h-3" />
-                {caregiver.elderCount} elder{caregiver.elderCount !== 1 ? 's' : ''}
+                {caregiver.elderCount} loved one{caregiver.elderCount !== 1 ? 's' : ''}
               </span>
             )}
           </div>

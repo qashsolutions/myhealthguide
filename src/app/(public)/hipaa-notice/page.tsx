@@ -243,8 +243,8 @@ export default function HipaaNoticePage() {
               When using or disclosing PHI, we make reasonable efforts to limit the information to the minimum necessary to accomplish the intended purpose. For example:
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Caregivers can only access PHI for elders specifically assigned to them</li>
-              <li>Family members can only access PHI for elders in their care group</li>
+              <li>Caregivers can only access PHI for loved ones specifically assigned to them</li>
+              <li>Family members can only access PHI for loved ones in their care group</li>
               <li>AI analysis receives only the minimum data needed for the specific analysis requested</li>
               <li>Drug interaction checks send only medication names, not patient identities</li>
             </ul>

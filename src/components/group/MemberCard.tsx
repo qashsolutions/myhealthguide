@@ -134,7 +134,7 @@ export function MemberCard({
                   Caregiver
                   {member.assignedElderCount ? (
                     <span className="ml-1 opacity-80">
-                      ({member.assignedElderCount} elder{member.assignedElderCount > 1 ? 's' : ''})
+                      ({member.assignedElderCount} loved one{member.assignedElderCount > 1 ? 's' : ''})
                     </span>
                   ) : null}
                 </Badge>
