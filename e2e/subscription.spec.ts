@@ -214,14 +214,14 @@ test.describe('Subscription - FAQ Section', () => {
 });
 
 test.describe('Subscription - Contact/Support', () => {
-  test('should have Help link in navigation', async ({ page }) => {
+  test('should have support navigation available', async ({ page }) => {
     await page.goto('/pricing');
     await waitForPageLoad(page);
     await dismissCookieConsent(page);
 
-    // Look for Help link in header (visible in screenshot)
-    const helpLink = page.locator('a:has-text("Help"), nav a:has-text("Help")').first();
-    await expect(helpLink).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    // Look for Care Community link (tips/help content) or About dropdown
+    const supportLink = page.locator('a:has-text("Care Community"), a:has-text("Tips"), button:has-text("About")').first();
+    await expect(supportLink).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 });
 

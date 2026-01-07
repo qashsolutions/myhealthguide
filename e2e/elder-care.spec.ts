@@ -114,32 +114,29 @@ test.describe('Elder Care - About Page', () => {
 });
 
 test.describe('Elder Care - Help/Support', () => {
-  test('should have help link in navigation', async ({ page }) => {
+  test('should have support resources accessible', async ({ page }) => {
     await page.goto('/');
     await waitForPageLoad(page);
     await dismissCookieConsent(page);
 
-    // Look for help link
-    const helpLink = page.locator('a:has-text("Help"), nav a:has-text("Help")').first();
-    await expect(helpLink).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    // Look for Care Community link (tips/help content) or About section
+    const supportLink = page.locator('a:has-text("Care Community"), a:has-text("Tips"), a:has-text("About")').first();
+    await expect(supportLink).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 
   test('should be able to access help page', async ({ page }) => {
-    await page.goto('/');
+    // Access help/tips page directly
+    await page.goto('/tips');
     await waitForPageLoad(page);
     await dismissCookieConsent(page);
 
-    // Click help link
-    const helpLink = page.locator('a:has-text("Help"), nav a:has-text("Help")').first();
+    // Should show tips/help content
+    const body = await page.locator('body').isVisible();
+    expect(body).toBeTruthy();
 
-    if (await helpLink.isVisible().catch(() => false)) {
-      await helpLink.click();
-      await page.waitForTimeout(2000);
-
-      // Should navigate to help or show help content
-      const body = await page.locator('body').isVisible();
-      expect(body).toBeTruthy();
-    }
+    // Check for helpful content
+    const helpContent = page.locator('h1, h2, main').first();
+    await expect(helpContent).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 });
 
@@ -203,12 +200,12 @@ test.describe('Elder Care - Homepage', () => {
     await waitForPageLoad(page);
     await dismissCookieConsent(page);
 
-    // Check for navigation items
+    // Check for navigation items - Features is a direct link, About is a dropdown
     const featuresLink = page.locator('a:has-text("Features")').first();
-    const pricingLink = page.locator('a:has-text("Pricing")').first();
+    const aboutDropdown = page.locator('button:has-text("About"), [role="button"]:has-text("About")').first();
 
     await expect(featuresLink).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
-    await expect(pricingLink).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
+    await expect(aboutDropdown).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
   });
 
   test('should have sign in link', async ({ page }) => {
