@@ -141,12 +141,18 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           <Link
             href={href}
             className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+              'hover:bg-gray-100 dark:hover:bg-gray-700',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
               active
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'text-gray-900 dark:text-white'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             )}
           >
+            {/* Left accent bar for active state */}
+            {active && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+            )}
             <Icon className={cn('w-5 h-5', active && 'text-blue-600 dark:text-blue-400')} />
             <span className="flex-1">{label}</span>
             {badge !== undefined && (

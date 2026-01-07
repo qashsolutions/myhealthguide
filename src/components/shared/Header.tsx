@@ -21,7 +21,7 @@ import {
 const navigation = [
   { name: 'Features', href: '/features' },
   { name: 'Symptom Checker', href: '/symptom-checker' },
-  { name: 'Care Community', href: '/tips' },
+  { name: 'Care Community', href: '/community' },
 ];
 
 // About dropdown items
@@ -71,20 +71,26 @@ export function Header() {
           </button>
         </div>
 
-        {/* Desktop navigation */}
-        <div className="hidden lg:flex lg:gap-x-8 lg:items-center">
+        {/* Desktop navigation - Vercel-style */}
+        <div className="hidden lg:flex lg:gap-x-2 lg:items-center">
           {navigation.map((item) => (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
-                'text-sm font-semibold leading-6 transition-colors',
+                'relative px-3 py-2 text-sm font-semibold leading-6 rounded-md transition-all duration-150',
+                'hover:bg-gray-100 dark:hover:bg-gray-800',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
                 pathname === item.href
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-900 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                  ? 'text-gray-900 dark:text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               )}
             >
               {item.name}
+              {/* Underline indicator for current page */}
+              {pathname === item.href && (
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+              )}
             </Link>
           ))}
 
@@ -92,14 +98,20 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
-                'flex items-center gap-1 text-sm font-semibold leading-6 transition-colors outline-none',
+                'relative flex items-center gap-1 px-3 py-2 text-sm font-semibold leading-6 rounded-md transition-all duration-150 outline-none',
+                'hover:bg-gray-100 dark:hover:bg-gray-800',
+                'focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
                 pathname === '/about' || pathname === '/pricing'
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-900 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                  ? 'text-gray-900 dark:text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               )}
             >
               About
               <ChevronDown className="w-4 h-4" />
+              {/* Underline indicator for About section */}
+              {(pathname === '/about' || pathname === '/pricing') && (
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+              )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
               {aboutDropdownItems.map((item) => (
@@ -108,7 +120,7 @@ export function Header() {
                     href={item.href}
                     className={cn(
                       'w-full',
-                      pathname === item.href && 'text-blue-600 dark:text-blue-400'
+                      pathname === item.href && 'text-blue-600 dark:text-blue-400 font-semibold'
                     )}
                   >
                     {item.name}
@@ -192,20 +204,27 @@ export function Header() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  'block rounded-lg px-3 py-2 text-base font-semibold leading-7 transition-colors',
+                  'relative block rounded-lg px-3 py-3 text-base font-semibold leading-7 transition-all duration-150',
+                  'hover:bg-gray-100 dark:hover:bg-gray-800',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
                   pathname === item.href
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    ? 'text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800/50'
+                    : 'text-gray-600 dark:text-gray-400'
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {item.name}
+                <span className="flex items-center gap-3">
+                  {pathname === item.href && (
+                    <span className="w-1 h-5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                  )}
+                  {item.name}
+                </span>
               </Link>
             ))}
 
             {/* About Section */}
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
-              <p className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <div className="pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+              <p className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 About
               </p>
               {aboutDropdownItems.map((item) => (
@@ -213,14 +232,21 @@ export function Header() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    'block rounded-lg px-3 py-2 text-base font-semibold leading-7 transition-colors',
+                    'relative block rounded-lg px-3 py-3 text-base font-semibold leading-7 transition-all duration-150',
+                    'hover:bg-gray-100 dark:hover:bg-gray-800',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
                     pathname === item.href
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      ? 'text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800/50'
+                      : 'text-gray-600 dark:text-gray-400'
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {item.name}
+                  <span className="flex items-center gap-3">
+                    {pathname === item.href && (
+                      <span className="w-1 h-5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                    )}
+                    {item.name}
+                  </span>
                 </Link>
               ))}
             </div>
