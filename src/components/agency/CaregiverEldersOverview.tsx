@@ -192,7 +192,7 @@ export function CaregiverEldersOverview({
                 Caregiver Assignments
               </CardTitle>
               <CardDescription>
-                View elders assigned to each caregiver ({maxEldersPerCaregiver} max per caregiver)
+                View loved ones assigned to each caregiver ({maxEldersPerCaregiver} max per caregiver)
               </CardDescription>
             </div>
             <Button

@@ -138,7 +138,7 @@ export function CaregiverAccordion({
                 </div>
               </div>
               <Badge variant="secondary" className="text-sm">
-                {caregiver.elderCount}/{maxEldersPerCaregiver} elders
+                {caregiver.elderCount}/{maxEldersPerCaregiver} loved ones
               </Badge>
             </button>
 
@@ -150,7 +150,7 @@ export function CaregiverAccordion({
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-                          <th className="pb-2 font-medium">Elder Name</th>
+                          <th className="pb-2 font-medium">Loved One</th>
                           <th className="pb-2 font-medium">Date Assigned</th>
                           <th className="pb-2 font-medium">Phone</th>
                           <th className="pb-2 font-medium">Email</th>
@@ -246,7 +246,7 @@ export function CaregiverAccordion({
                 ) : (
                   <div className="text-center py-6 text-gray-500 dark:text-gray-400">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No elders assigned to this caregiver</p>
+                    <p className="text-sm">No loved ones assigned to this caregiver</p>
                   </div>
                 )}
 
@@ -259,7 +259,7 @@ export function CaregiverAccordion({
                       onClick={() => onAssignElder('', '')}
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
-                      Assign Elder ({maxEldersPerCaregiver - caregiver.elderCount} remaining)
+                      Assign Loved One ({maxEldersPerCaregiver - caregiver.elderCount} remaining)
                     </Button>
                   </div>
                 )}

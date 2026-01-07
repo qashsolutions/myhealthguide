@@ -236,7 +236,7 @@ export function CaregiverEldersCardGrid({
               </div>
 
               <Badge variant="secondary" className="text-sm">
-                {section.elderCount}/{maxEldersPerCaregiver} elders
+                {section.elderCount}/{maxEldersPerCaregiver} loved ones
               </Badge>
             </button>
 
@@ -266,10 +266,10 @@ export function CaregiverEldersCardGrid({
               </div>
               <div>
                 <p className="font-semibold text-amber-700 dark:text-amber-400">
-                  Unassigned Elders
+                  Unassigned Loved Ones
                 </p>
                 <p className="text-sm text-amber-600 dark:text-amber-500">
-                  {unassignedElders.length} elder{unassignedElders.length !== 1 ? 's' : ''} need caregiver assignment
+                  {unassignedElders.length} loved one{unassignedElders.length !== 1 ? 's' : ''} need caregiver assignment
                 </p>
               </div>
             </div>
