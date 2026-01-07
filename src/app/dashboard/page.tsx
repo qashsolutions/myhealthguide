@@ -604,7 +604,7 @@ export default function DashboardPage() {
               <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Welcome to Careguide!
+              Welcome to MyHealthGuide!
             </h3>
             {canUserAddElders(user) ? (
               <>

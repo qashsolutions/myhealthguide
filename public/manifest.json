@@ -1,6 +1,6 @@
 {
-  "name": "Careguide - Caregiving Made Simple",
-  "short_name": "Careguide",
+  "name": "MyHealthGuide - Care for Your Loved Ones, Simplified",
+  "short_name": "MyHealthGuide",
   "description": "Smart caregiving platform with offline support. Track medications by voice, get daily summaries, and never wonder if a dose was missed. Works offline for rural areas.",
   "start_url": "/dashboard",
   "scope": "/",

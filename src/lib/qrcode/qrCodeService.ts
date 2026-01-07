@@ -253,7 +253,7 @@ export async function validateQRCode(qrString: string): Promise<QRValidationResu
   if (!qrData) {
     return {
       valid: false,
-      error: 'Invalid QR code format. Please scan a valid Careguide QR code.',
+      error: 'Invalid QR code format. Please scan a valid MyHealthGuide QR code.',
     };
   }
 
