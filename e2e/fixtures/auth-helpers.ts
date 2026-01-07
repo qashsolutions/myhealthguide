@@ -11,17 +11,29 @@ import { TEST_CONFIG, TestUserData } from './test-config';
  */
 export async function dismissCookieConsent(page: Page): Promise<void> {
   try {
-    // Look for common cookie consent buttons
-    const acceptButton = page.locator(
-      'button:has-text("Accept"), button:has-text("Got it"), button:has-text("I understand"), button:has-text("OK"), button:has-text("Agree"), button:has-text("Allow")'
-    ).first();
-
     // Wait briefly for cookie banner to appear
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
-    if (await acceptButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await acceptButton.click();
-      await page.waitForTimeout(500);
+    // Look for cookie consent buttons - check multiple patterns
+    const buttonPatterns = [
+      'button:has-text("Accept All Cookies")',
+      'button:has-text("Accept All")',
+      'button:has-text("Essential Only")',
+      'button:has-text("Accept")',
+      'button:has-text("Got it")',
+      'button:has-text("I understand")',
+      'button:has-text("OK")',
+      'button:has-text("Agree")',
+      'button:has-text("Allow")',
+    ];
+
+    for (const pattern of buttonPatterns) {
+      const button = page.locator(pattern).first();
+      if (await button.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await button.click({ force: true });
+        await page.waitForTimeout(500);
+        return;
+      }
     }
   } catch {
     // Cookie banner might not be present, that's fine
