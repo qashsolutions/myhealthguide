@@ -125,7 +125,7 @@ export function CookieConsent() {
   if (!showBanner) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4">
       <Card className="w-full max-w-4xl pointer-events-auto shadow-2xl border-2 border-blue-500 bg-white dark:bg-gray-900">
         {/* Header */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 p-4">
