@@ -91,7 +91,7 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
           "flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700",
           className
         )}>
-          <span className="text-sm text-gray-500 dark:text-gray-400">No elders assigned</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">No loved ones assigned</span>
         </div>
       );
     }
@@ -105,7 +105,7 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
         )}
       >
         <Plus className="h-4 w-4 text-gray-500" />
-        <span className="text-sm text-gray-600 dark:text-gray-400">Add Elder</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">Add Loved One</span>
       </button>
     );
   }
@@ -150,7 +150,7 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
           {/* Section Label */}
           <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Your Elders
+              Your Loved Ones
             </span>
           </div>
 
@@ -231,7 +231,7 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
                 className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 <Plus className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Add New Elder</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Add New Loved One</span>
               </button>
 
               <button
@@ -242,7 +242,7 @@ export function ElderDropdown({ className }: ElderDropdownProps) {
                 className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
               >
                 <Settings className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Manage All Elders</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Manage All Loved Ones</span>
               </button>
             </div>
           )}
