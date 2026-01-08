@@ -48,7 +48,7 @@ export function DataExportPanel({ userId, isAdmin, isEmbedded = false }: DataExp
       console.error('Export error:', err);
       // Check for permission errors (user has no groups/data yet)
       if (err?.code === 'permission-denied' || err?.message?.includes('permission')) {
-        setError('No data to export yet. Start by creating a group and adding elders to track their care.');
+        setError('No data to export yet. Start by creating a group and adding loved ones to track their care.');
       } else {
         setError('Failed to export data. Please try again.');
       }
