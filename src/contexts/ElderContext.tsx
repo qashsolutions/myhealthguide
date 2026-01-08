@@ -67,9 +67,15 @@ export function ElderProvider({ children }: { children: ReactNode }) {
           // This ensures caregivers see assignments immediately after admin assigns
           elders = await loadCaregiverAssignedElders(user.id, agencyMembership.agencyId);
         } else if (role === 'family_member') {
-          // Family member through agency: Load from assigned groups
-          const assignedGroupIds = agencyMembership.assignedElderIds || agencyMembership.assignedGroupIds || [];
-          elders = await loadEldersFromGroups(assignedGroupIds);
+          // Family member through agency: Load assigned elders directly by ID
+          const assignedElderIds = agencyMembership.assignedElderIds || [];
+          if (assignedElderIds.length > 0) {
+            elders = await loadEldersByIds(assignedElderIds);
+          } else {
+            // Fallback to group-based access if no specific elders assigned
+            const assignedGroupIds = agencyMembership.assignedGroupIds || [];
+            elders = await loadEldersFromGroups(assignedGroupIds);
+          }
         }
       } else {
         // Regular family member: Load from their groups
