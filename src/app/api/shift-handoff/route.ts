@@ -172,15 +172,30 @@ export async function GET(request: NextRequest) {
       const scheduledShifts = shiftsSnap.docs
         .map(doc => {
           const data = doc.data();
-          // Parse time string to today's date
+          // Parse time string to today's date (UTC)
           const [hours, minutes] = (data.startTime || '09:00').split(':').map(Number);
           const shiftStartTime = new Date();
-          shiftStartTime.setHours(hours, minutes, 0, 0);
+          shiftStartTime.setUTCHours(hours, minutes, 0, 0);
+
+          // Convert Firestore Timestamp to Date for the date field
+          let shiftDate: Date | null = null;
+          if (data.date) {
+            if (typeof data.date === 'object' && 'seconds' in data.date) {
+              shiftDate = new Date(data.date.seconds * 1000);
+            } else if (data.date instanceof Date) {
+              shiftDate = data.date;
+            } else if (data.date.toDate) {
+              shiftDate = data.date.toDate();
+            }
+          }
 
           return {
             id: doc.id,
             ...data,
-            parsedStartTime: shiftStartTime
+            date: shiftDate, // Return as Date, not Timestamp
+            parsedStartTime: shiftStartTime,
+            createdAt: data.createdAt?.toDate?.() || null,
+            updatedAt: data.updatedAt?.toDate?.() || null,
           };
         })
         .filter(shift => {
