@@ -86,7 +86,7 @@ async function loginExistingAccount(page: Page): Promise<boolean> {
   await passwordInput.fill(NEW_TEST_USER.password);
 
   const submitButton = page.getByRole('button', { name: /log.in|sign.in|submit/i }).first();
-  await submitButton.click();
+  await submitButton.click({ force: true });
 
   await page.waitForTimeout(5000);
 

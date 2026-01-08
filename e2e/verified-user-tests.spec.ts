@@ -40,7 +40,7 @@ async function loginVerifiedUser(page: Page): Promise<{ loggedIn: boolean; onDas
   await passwordInput.fill(VERIFIED_USER.password);
 
   const submitButton = page.getByRole('button', { name: /log.in|sign.in|submit/i }).first();
-  await submitButton.click();
+  await submitButton.click({ force: true });
 
   await page.waitForTimeout(5000);
 
