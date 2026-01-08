@@ -79,7 +79,7 @@ export default function AgencyPage() {
             clients, coordinate caregivers, and deliver exceptional care at scale.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/signup">
+            <Link href="/agency/signup">
               <Button size="lg" className="text-lg px-8 py-6 bg-purple-600 hover:bg-purple-700">
                 Start Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -146,7 +146,7 @@ export default function AgencyPage() {
                     <span className="text-4xl font-bold text-gray-900 dark:text-white">$55</span>
                     <span className="text-gray-500">/client/month</span>
                   </div>
-                  <Link href="/signup">
+                  <Link href="/agency/signup">
                     <Button size="lg" className="w-full bg-purple-600 hover:bg-purple-700">
                       Start 30-Day Free Trial
                       <ArrowRight className="w-5 h-5 ml-2" />
@@ -189,7 +189,7 @@ export default function AgencyPage() {
             custom onboarding, and ongoing training for your staff.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/signup">
+            <Link href="/agency/signup">
               <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
                 Get Started
               </Button>
@@ -212,7 +212,7 @@ export default function AgencyPage() {
           <p className="text-xl text-purple-100 mb-8">
             Join leading care agencies who trust MyHealthGuide for professional care coordination
           </p>
-          <Link href="/signup">
+          <Link href="/agency/signup">
             <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
               Start Your Free 30-Day Trial
               <ArrowRight className="w-5 h-5 ml-2" />

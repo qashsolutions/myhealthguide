@@ -102,7 +102,7 @@ export default function FamilyPage() {
             with confidence and peace of mind.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/signup">
+            <Link href="/family/signup">
               <Button size="lg" className="text-lg px-8 py-6">
                 Start Free Trial
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -192,7 +192,7 @@ export default function FamilyPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/signup">
+                  <Link href="/family/signup">
                     <Button
                       className="w-full"
                       size="lg"
@@ -217,7 +217,7 @@ export default function FamilyPage() {
           <p className="text-xl text-blue-100 mb-8">
             Join thousands of families who trust MyHealthGuide for their care needs
           </p>
-          <Link href="/signup">
+          <Link href="/family/signup">
             <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
               Start Your Free 45-Day Trial
               <ArrowRight className="w-5 h-5 ml-2" />

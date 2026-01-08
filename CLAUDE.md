@@ -47,6 +47,66 @@
 
 ---
 
+## SILO SEPARATION REFACTOR (Jan 2026)
+
+**Reference Document:** `/healthguide_refactor_2.md`
+**Branch:** `refactor/silo-separation`
+
+| Phase | Description | Status | Date |
+|-------|-------------|--------|------|
+| A | URL & Routing Structure | ✅ COMPLETE | Jan 8, 2026 |
+| B | Signup Flow Separation | 🔄 IN PROGRESS | Jan 8, 2026 |
+| C | Dashboard Role Visibility | ⏳ PENDING | - |
+| D | Invite Code System (frontend) | ⏳ PENDING | - |
+| E | Notifications (frontend) | ⏳ PENDING | - |
+
+### Phase A Completion Summary
+- Main landing (/) has two clear paths to /family and /agency ✅
+- /family shows only Family Plans (no agency mentions) ✅
+- /agency shows only Agency Plan (no family mentions) ✅
+- Universal header on all public pages ✅
+- No cross-visibility between silos verified ✅
+
+Status Key: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs Approval
+
+### Role Matrix (Reference)
+
+| Plan | Role | Sees Agency Section | Loved Ones Visible | Edit Access |
+|------|------|--------------------|--------------------|-------------|
+| Family A ($8.99) | Admin | ❌ | 1 | ✅ Full |
+| Family A ($8.99) | Member | ❌ | 1 | ❌ Read Only |
+| Family B ($18.99) | Admin | ❌ | 1 | ✅ Full |
+| Family B ($18.99) | Member (x3) | ❌ | 1 | ❌ Read Only |
+| Multi-Agency ($55) | Agency Owner | ✅ | All (30 max) | ✅ Full |
+| Multi-Agency ($55) | Caregiver (x10) | ❌ | Assigned (3 max) | ✅ Assigned Only |
+| Multi-Agency ($55) | Member (2/elder) | ❌ | 1 | ❌ Read Only |
+
+### URL Structure (Target)
+
+**PUBLIC:**
+- `/` → Main landing (two paths: Family or Agency)
+- `/family` → Family plans landing (Plan A & B only)
+- `/agency` → Agency plan landing (Multi-Agency only)
+- `/pricing` → All plans comparison
+
+**AUTH:**
+- `/family/signup` → Family plan signup
+- `/family/login` → Family plan login
+- `/agency/signup` → Agency plan signup
+- `/agency/login` → Agency plan login
+- `/invite/:code` → Accept invite
+
+**DASHBOARD:**
+- `/dashboard` → Role-aware dashboard
+
+### Backend Changes Pending Approval
+- [ ] None currently
+
+### Known Issues
+- [ ] None currently
+
+---
+
 ## CRITICAL: Authentication & Firestore Best Practices
 
 ### 1. Firestore Timestamp Conversion (CRITICAL BUG FIXED: Nov 25, 2025)
