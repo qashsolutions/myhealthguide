@@ -154,8 +154,6 @@ export async function GET(request: NextRequest) {
       // Find scheduled shift for clock-in
       // Caregivers: only their own | Super admins: all or filtered
       const now = new Date();
-      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-      const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
       let query = db.collection('scheduledShifts')
         .where('elderId', '==', elderId)
@@ -168,14 +166,13 @@ export async function GET(request: NextRequest) {
 
       const shiftsSnap = await query.get();
 
-      // Filter by time window in memory
+      // Map shifts and convert Timestamps, filter for today's shifts only
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
       const scheduledShifts = shiftsSnap.docs
         .map(doc => {
           const data = doc.data();
-          // Parse time string to today's date (UTC)
-          const [hours, minutes] = (data.startTime || '09:00').split(':').map(Number);
-          const shiftStartTime = new Date();
-          shiftStartTime.setUTCHours(hours, minutes, 0, 0);
 
           // Convert Firestore Timestamp to Date for the date field
           let shiftDate: Date | null = null;
@@ -193,16 +190,19 @@ export async function GET(request: NextRequest) {
             id: doc.id,
             ...data,
             date: shiftDate, // Return as Date, not Timestamp
-            parsedStartTime: shiftStartTime,
             createdAt: data.createdAt?.toDate?.() || null,
             updatedAt: data.updatedAt?.toDate?.() || null,
           };
         })
         .filter(shift => {
-          return shift.parsedStartTime >= twoHoursAgo && shift.parsedStartTime <= twoHoursFromNow;
+          // Filter for today's shifts only (date-based, not time-based)
+          // The client-side canClockIn() handles the actual clock-in time window
+          if (!shift.date) return true; // Include shifts without date (legacy)
+          const shiftDay = new Date(shift.date.getFullYear(), shift.date.getMonth(), shift.date.getDate());
+          return shiftDay.getTime() === todayStart.getTime();
         });
 
-      // For super_admins, return all scheduled shifts in window
+      // For super_admins, return all scheduled shifts for today
       if (isSuperAdmin && !targetCaregiverId) {
         return NextResponse.json({ success: true, scheduledShifts });
       }
