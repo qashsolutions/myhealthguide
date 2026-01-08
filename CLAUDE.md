@@ -1,6 +1,36 @@
 - review the documents. build prod ready files, do not add To-Dos. do not assume-ask me when in doubt.
 - today is Jan 7, 2026.
 
+## UI/UX REORGANIZATION STATUS (Jan 2026)
+
+**Reference Document:** `/healthguide_refactor_jan07.md`
+
+| Phase | Name | Status | Date |
+|-------|------|--------|------|
+| 1 | Setup & Terminology | ✅ COMPLETE | Jan 7, 2026 |
+| 2 | Routes & Redirects | 🔄 PENDING | - |
+| 3 | Navigation Components | ⏳ PENDING | - |
+| 4 | Landing Pages | ⏳ PENDING | - |
+| 5 | Pricing & Footer | ⏳ PENDING | - |
+| 6 | Polish & Final Verification | ⏳ PENDING | - |
+
+### Phase 1 Completion Summary
+- All display text changed: "Elder" → "Loved One"
+- Variable names, props, CSS classes, API endpoints preserved
+- Chrome verified: Dashboard, Pricing, Terms, Privacy pages
+- All 278 E2E tests passing
+- Commits: dc5ab82, 0060d79, 22f2b51
+
+### Key Constraints (DO NOT MODIFY)
+- Authentication logic
+- API calls or data fetching
+- Payment/subscription flows
+- Database queries
+- Service worker / PWA config
+- Variable names (elderId, elderData, etc.)
+
+---
+
 ## CRITICAL: Authentication & Firestore Best Practices
 
 ### 1. Firestore Timestamp Conversion (CRITICAL BUG FIXED: Nov 25, 2025)
