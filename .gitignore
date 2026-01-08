@@ -80,3 +80,5 @@ extensions/*.env
 
 # Firebase Functions Environment Variables
 functions/.env
+
+# Firebase Admin SDK - NEVER COMMIT

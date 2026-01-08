@@ -25,18 +25,26 @@ import Link from 'next/link';
 import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCardGrid';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 
-// Check if user can add elders (must be super_admin or admin with active status)
+// Check if user can add elders based on their role
 function canUserAddElders(user: any): boolean {
-  // If user has no agencies, they can add elders (single family plan)
-  if (!user?.agencies || user.agencies.length === 0) return true;
+  if (!user) return false;
 
-  // User can add elders only if they have:
-  // 1. super_admin or admin role in any agency
-  // 2. AND that agency membership is active (not pending_approval or rejected)
-  return user.agencies.some((agency: any) =>
-    (agency.role === 'super_admin' || agency.role === 'admin') &&
-    agency.status === 'active'
-  );
+  // Check group membership first (Family Plans)
+  // Only 'admin' role in groups can add elders, 'member' role is read-only
+  if (user.groups && user.groups.length > 0) {
+    return user.groups.some((group: any) => group.role === 'admin');
+  }
+
+  // Check agency membership (Agency Plans)
+  // Only super_admin can add elders, caregivers manage assigned elders only
+  if (user.agencies && user.agencies.length > 0) {
+    return user.agencies.some((agency: any) =>
+      agency.role === 'super_admin' && agency.status === 'active'
+    );
+  }
+
+  // No membership - new user without subscription, allow to add first elder
+  return true;
 }
 import { format } from 'date-fns';
 import {
