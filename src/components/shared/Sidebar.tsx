@@ -20,6 +20,7 @@ import {
   X,
   Building2,
   Users,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -41,6 +42,7 @@ const featureTooltips: Record<string, string> = {
   '/dashboard/care-management': 'Manage shifts, documents, and family updates',
   '/dashboard/agency': 'Agency overview and management',
   '/dashboard/settings': 'Configure your preferences',
+  '/help': 'Get help and learn how to use MyHealthGuide',
 };
 
 interface SidebarProps {
@@ -335,9 +337,10 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           )}
         </nav>
 
-        {/* Settings - Always at bottom */}
-        <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+        {/* Footer - Always at bottom */}
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
           <NavItem href="/dashboard/settings" icon={Settings} label="Settings" />
+          <NavItem href="/help" icon={HelpCircle} label="Help" />
         </div>
       </aside>
     </TooltipProvider>
