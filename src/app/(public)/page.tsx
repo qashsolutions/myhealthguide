@@ -49,16 +49,17 @@ export default function LandingPage() {
               Track medications by voice. Get daily summaries. Never wonder if a dose was missed.
               Built for families and caregiving agencies.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-4">
-              <Link href="/signup">
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/family">
                 <Button size="lg" className="text-lg px-8">
-                  Get Started Free
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <Heart className="w-5 h-5 mr-2" />
+                  For Families
                 </Button>
               </Link>
-              <Link href="/features">
-                <Button variant="outline" size="lg" className="text-lg px-8">
-                  Learn More
+              <Link href="/agency">
+                <Button size="lg" variant="outline" className="text-lg px-8 border-purple-500 text-purple-600 hover:bg-purple-50 dark:border-purple-400 dark:text-purple-400 dark:hover:bg-purple-950">
+                  <Building2 className="w-5 h-5 mr-2" />
+                  For Agencies
                 </Button>
               </Link>
             </div>
@@ -429,16 +430,22 @@ export default function LandingPage() {
             <p className="mt-4 text-xl text-blue-100">
               Join families and agencies who trust MyHealthGuide for their care needs.
             </p>
-            <div className="mt-8 flex items-center justify-center gap-4">
-              <Link href="/signup">
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/family">
                 <Button size="lg" variant="secondary" className="text-lg px-8">
-                  Start Your Free Trial
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <Heart className="w-5 h-5 mr-2" />
+                  For Families
+                </Button>
+              </Link>
+              <Link href="/agency">
+                <Button size="lg" variant="outline" className="text-lg px-8 border-white text-white hover:bg-white/10">
+                  <Building2 className="w-5 h-5 mr-2" />
+                  For Agencies
                 </Button>
               </Link>
             </div>
             <p className="mt-4 text-sm text-blue-200">
-              45 days free &bull; No credit card required
+              Free trial &bull; No credit card required
             </p>
           </div>
         </div>

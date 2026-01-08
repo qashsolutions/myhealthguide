@@ -1,5 +1,5 @@
 - review the documents. build prod ready files, do not add To-Dos. do not assume-ask me when in doubt.
-- today is Jan 7, 2026.
+- today is Jan 8, 2026.
 
 ## UI/UX REORGANIZATION STATUS (Jan 2026)
 
@@ -114,7 +114,40 @@ All 5 phases of the silo separation refactor have been completed:
 - Phase D: Invite Code System (frontend) ✅
 - Phase E: Notifications (frontend) ✅
 
-Branch: `refactor/silo-separation` ready for review.
+Branch: `refactor/silo-separation` merged to main.
+
+---
+
+## REFACTOR 3: COMPLETE UI/UX REORGANIZATION (Jan 8, 2026)
+
+**Reference Document:** `/healthguide_refactor_3.md`
+**Branch:** `main`
+
+| Phase | Description | Status | Notes |
+|-------|-------------|--------|-------|
+| A | URL & Routing Structure | ✅ COMPLETE | Main landing has two-silo CTAs |
+| B | Signup Flow Separation | ✅ COMPLETE | All silo-specific auth pages created |
+| C | Dashboard Role Visibility | ✅ COMPLETE | Role-based sidebar implemented |
+| D | Invite Code System | ✅ COMPLETE | All UI + backend already exists |
+| E | Notifications | ✅ COMPLETE | All UI + backend already exists |
+
+### Phase A Update (Jan 8, 2026)
+- Updated main landing page (/) hero section with two-silo buttons:
+  - "For Families" → /family (blue, Heart icon)
+  - "For Agencies" → /agency (purple outline, Building2 icon)
+- Updated final CTA section with same two-silo buttons
+- Removed generic `/signup` links from home page
+
+### Remaining Items
+- [x] Main landing page (/) - two clear "For Families" / "For Agencies" CTAs ✅ Jan 8, 2026
+- [ ] Firebase Seeding - 77 test accounts (needs approval for backend work)
+
+### Test Accounts Available
+See `/healthguide_refactor_3.md` Section 9 for complete seeding data:
+- Family Plan A: ramanac+a1@gmail.com (admin), ramanac+a2@gmail.com (member)
+- Family Plan B: ramanac+b1@gmail.com (admin), ramanac+b2-b4@gmail.com (members)
+- Multi-Agency: ramanac+owner@gmail.com (owner), ramanac+c1-c10@gmail.com (caregivers)
+- Password for all: `AbcD1234`
 
 Status Key: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs Approval
 
