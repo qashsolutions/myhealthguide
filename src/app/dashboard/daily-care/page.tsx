@@ -55,7 +55,7 @@ function DailyCareContent() {
   // Dialog state
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
 
-  // Determine user's role (needed for ReminderDialog)
+  // Determine user's role (needed for ReminderDialog and write access)
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
     const agencyRole = user?.agencies?.[0]?.role;
     if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') return 'admin';
@@ -64,6 +64,10 @@ function DailyCareContent() {
     if (groupRole === 'admin') return 'admin';
     return 'member';
   };
+
+  // Check if user has write access (not a read-only member)
+  const userRole = getUserRole();
+  const canWrite = userRole !== 'member';
 
   // Load medications
   const { data: medications, loading: medsLoading } = useElderDataLoader<Medication[]>({
@@ -145,15 +149,17 @@ function DailyCareContent() {
             Track {selectedElder.name}&apos;s medications, supplements, diet & activity
           </p>
         </div>
-        <Button onClick={() => {
-          if (activeTab === 'medications') router.push('/dashboard/medications/new');
-          else if (activeTab === 'supplements') router.push('/dashboard/supplements/new');
-          else if (activeTab === 'diet') router.push('/dashboard/diet/new');
-          else router.push('/dashboard/activity');
-        }}>
-          <Plus className="w-4 h-4 mr-2" />
-          Log Entry
-        </Button>
+        {canWrite && (
+          <Button onClick={() => {
+            if (activeTab === 'medications') router.push('/dashboard/medications/new');
+            else if (activeTab === 'supplements') router.push('/dashboard/supplements/new');
+            else if (activeTab === 'diet') router.push('/dashboard/diet/new');
+            else router.push('/dashboard/activity');
+          }}>
+            <Plus className="w-4 h-4 mr-2" />
+            Log Entry
+          </Button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -211,13 +217,13 @@ function DailyCareContent() {
       ) : (
         <>
           {activeTab === 'medications' && (
-            <MedicationsTab medications={medications} elderId={selectedElder.id} />
+            <MedicationsTab medications={medications} elderId={selectedElder.id} canWrite={canWrite} />
           )}
           {activeTab === 'supplements' && (
-            <SupplementsTab supplements={supplements} elderId={selectedElder.id} />
+            <SupplementsTab supplements={supplements} elderId={selectedElder.id} canWrite={canWrite} />
           )}
           {activeTab === 'diet' && (
-            <DietTab dietEntries={dietEntries} elderId={selectedElder.id} />
+            <DietTab dietEntries={dietEntries} elderId={selectedElder.id} canWrite={canWrite} />
           )}
           {activeTab === 'activity' && (
             <ActivityTab elderId={selectedElder.id} />
@@ -234,7 +240,7 @@ function DailyCareContent() {
         groupId={selectedElder.groupId}
         elderId={selectedElder.id}
         userId={user?.id || ''}
-        userRole={getUserRole()}
+        userRole={userRole}
         isFullyVerified={!!(user?.emailVerified && user?.phoneVerified)}
       />
     </div>
@@ -242,7 +248,7 @@ function DailyCareContent() {
 }
 
 // Medications Tab Content
-function MedicationsTab({ medications, elderId }: { medications: Medication[]; elderId: string }) {
+function MedicationsTab({ medications, elderId, canWrite }: { medications: Medication[]; elderId: string; canWrite: boolean }) {
   if (medications.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -251,14 +257,16 @@ function MedicationsTab({ medications, elderId }: { medications: Medication[]; e
           No Medications
         </h3>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Add medications to start tracking
+          {canWrite ? 'Add medications to start tracking' : 'No medications have been added yet'}
         </p>
-        <Link href="/dashboard/medications/new">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Medication
-          </Button>
-        </Link>
+        {canWrite && (
+          <Link href="/dashboard/medications/new">
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Medication
+            </Button>
+          </Link>
+        )}
       </Card>
     );
   }
@@ -296,7 +304,7 @@ function MedicationsTab({ medications, elderId }: { medications: Medication[]; e
 }
 
 // Supplements Tab Content
-function SupplementsTab({ supplements, elderId }: { supplements: Supplement[]; elderId: string }) {
+function SupplementsTab({ supplements, elderId, canWrite }: { supplements: Supplement[]; elderId: string; canWrite: boolean }) {
   if (supplements.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -305,14 +313,16 @@ function SupplementsTab({ supplements, elderId }: { supplements: Supplement[]; e
           No Supplements
         </h3>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Add supplements to start tracking
+          {canWrite ? 'Add supplements to start tracking' : 'No supplements have been added yet'}
         </p>
-        <Link href="/dashboard/supplements/new">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Supplement
-          </Button>
-        </Link>
+        {canWrite && (
+          <Link href="/dashboard/supplements/new">
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Supplement
+            </Button>
+          </Link>
+        )}
       </Card>
     );
   }
@@ -350,7 +360,7 @@ function SupplementsTab({ supplements, elderId }: { supplements: Supplement[]; e
 }
 
 // Diet Tab Content
-function DietTab({ dietEntries, elderId }: { dietEntries: DietEntry[]; elderId: string }) {
+function DietTab({ dietEntries, elderId, canWrite }: { dietEntries: DietEntry[]; elderId: string; canWrite: boolean }) {
   const mealTypes: ('breakfast' | 'lunch' | 'dinner' | 'snack')[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
   return (
@@ -391,13 +401,18 @@ function DietTab({ dietEntries, elderId }: { dietEntries: DietEntry[]; elderId: 
                     <Check className="w-3 h-3 mr-1" />
                     Logged
                   </Badge>
-                ) : (
+                ) : canWrite ? (
                   <Link href="/dashboard/diet/new">
                     <Button variant="outline" size="sm">
                       <Plus className="w-4 h-4 mr-1" />
                       Log
                     </Button>
                   </Link>
+                ) : (
+                  <Badge variant="outline" className="text-gray-500 border-gray-200">
+                    <X className="w-3 h-3 mr-1" />
+                    Not logged
+                  </Badge>
                 )}
               </div>
             </div>
