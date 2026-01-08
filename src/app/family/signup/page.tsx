@@ -41,8 +41,14 @@ export default function FamilySignupPage() {
       return false;
     }
 
-    if (!/^[a-zA-Z0-9]+$/.test(password)) {
-      setPasswordError('Password must contain only letters and numbers');
+    const specialChars = password.match(/[!@#$%]/g) || [];
+    if (specialChars.length < 2) {
+      setPasswordError('Password must contain at least 2 special characters (!@#$%)');
+      return false;
+    }
+
+    if (!/^[a-zA-Z0-9!@#$%]+$/.test(password)) {
+      setPasswordError('Password can only contain letters, numbers, and !@#$%');
       return false;
     }
 
@@ -170,8 +176,8 @@ export default function FamilySignupPage() {
                   <li className={/[0-9]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
                     At least one number (0-9)
                   </li>
-                  <li className={formData.password.length > 0 && /^[a-zA-Z0-9]+$/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
-                    Only letters and numbers (no special characters)
+                  <li className={(formData.password.match(/[!@#$%]/g) || []).length >= 2 ? 'text-green-600 dark:text-green-400' : ''}>
+                    At least 2 special characters (!@#$%)
                   </li>
                 </ul>
               </div>

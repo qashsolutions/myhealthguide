@@ -13,6 +13,8 @@ import {
   CheckCircle,
   Loader2,
 } from 'lucide-react';
+import { useCameraPermission } from '@/hooks/useCameraPermission';
+import { CameraPermissionDialog } from './CameraPermissionDialog';
 
 interface QRScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -34,6 +36,16 @@ export function QRScanner({
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerId = 'qr-scanner-container';
 
+  // GDPR-compliant camera permission
+  const {
+    permissionStatus,
+    consentStatus,
+    showConsentDialog,
+    requestPermission,
+    handleConsent,
+    handleDeny,
+  } = useCameraPermission();
+
   // Cleanup scanner on unmount
   useEffect(() => {
     return () => {
@@ -41,7 +53,17 @@ export function QRScanner({
     };
   }, []);
 
-  const startScanning = async () => {
+  // Handle starting camera after consent is granted
+  const handleStartCamera = () => {
+    if (consentStatus === 'consented' && permissionStatus === 'granted') {
+      startScanningInternal();
+    } else {
+      requestPermission();
+    }
+  };
+
+  // Internal function to actually start scanning (after consent)
+  const startScanningInternal = async () => {
     setError(null);
 
     try {
@@ -102,7 +124,7 @@ export function QRScanner({
       console.error('Failed to start scanner:', err);
 
       if (err.name === 'NotAllowedError') {
-        setError('Camera permission denied. Please allow camera access to scan QR codes.');
+        setError('Camera permission denied. Please allow camera access in your browser settings, then try again.');
         setHasPermission(false);
       } else if (err.name === 'NotFoundError') {
         setError('No camera found on this device.');
@@ -114,6 +136,18 @@ export function QRScanner({
       onScanError?.(err.message || 'Scanner error');
     }
   };
+
+  // Handle consent granted - start scanning
+  const handleConsentGranted = async () => {
+    await handleConsent();
+    // Wait a bit for permission to be granted, then start
+    setTimeout(() => {
+      startScanningInternal();
+    }, 300);
+  };
+
+  // Wrapper for backward compatibility
+  const startScanning = handleStartCamera;
 
   const stopScanning = async () => {
     try {
@@ -135,9 +169,17 @@ export function QRScanner({
   };
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-0">
-        {/* Scanner Container */}
+    <>
+      {/* GDPR Camera Consent Dialog */}
+      <CameraPermissionDialog
+        open={showConsentDialog}
+        onAllow={handleConsentGranted}
+        onDeny={handleDeny}
+      />
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {/* Scanner Container */}
         <div className="relative">
           {/* Scanner View */}
           <div
@@ -231,6 +273,7 @@ export function QRScanner({
         )}
       </CardContent>
     </Card>
+    </>
   );
 }
 

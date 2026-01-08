@@ -7,13 +7,18 @@ import { useSubscription } from '@/lib/subscription';
 import { FeatureGate } from '@/components/shared/FeatureGate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, PlayCircle, StopCircle, FileText, AlertCircle, Calendar, Lock, ChevronDown, ChevronUp, QrCode, MapPin } from 'lucide-react';
 import { startShiftSession, endShiftSession } from '@/lib/ai/shiftHandoffGeneration';
 import { linkShiftToSession } from '@/lib/firebase/scheduleShifts';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ShiftSession, ShiftHandoffNote, ScheduledShift } from '@/types';
 import { format } from 'date-fns';
 import { SOAPNoteDisplay } from '@/components/shift-handoff/SOAPNoteDisplay';
+import { QRScanner, LocationOverrideDialog, GPSStatus } from '@/components/shift-handoff/QRScanner';
+import { validateQRCode } from '@/lib/qrcode/qrCodeService';
+import { captureGPS, verifyLocation } from '@/lib/location/gpsService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { OverrideReason } from '@/types/timesheet';
 
 export default function ShiftHandoffPage() {
   const { user } = useAuth();
@@ -36,6 +41,20 @@ export default function ShiftHandoffPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedHandoffId, setExpandedHandoffId] = useState<string | null>(null);
+
+  // QR Code scanning state
+  const [clockInMethod, setClockInMethod] = useState<'schedule' | 'qr'>('schedule');
+  const [qrProcessing, setQrProcessing] = useState(false);
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'capturing' | 'verified' | 'override' | 'error'>('idle');
+  const [gpsDistance, setGpsDistance] = useState<number | undefined>();
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | undefined>();
+  const [gpsError, setGpsError] = useState<string | undefined>();
+  const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [pendingQrData, setPendingQrData] = useState<string | null>(null);
+  const [overrideReason, setOverrideReason] = useState<OverrideReason | undefined>();
+
+  // Check if elder has address for QR verification
+  const elderHasAddress = selectedElder?.address?.coordinates?.latitude && selectedElder?.address?.coordinates?.longitude;
 
   // Load active shift, scheduled shift, and recent handoffs
   useEffect(() => {
@@ -267,6 +286,146 @@ export default function ShiftHandoffPage() {
     }
   };
 
+  // Handle QR code scan success
+  const handleQRScanSuccess = async (decodedText: string) => {
+    if (!user || !selectedElder) return;
+
+    setQrProcessing(true);
+    setError(null);
+    setPendingQrData(decodedText);
+
+    try {
+      // Validate QR code
+      const validation = await validateQRCode(decodedText);
+
+      if (!validation.valid) {
+        setError(validation.error || 'Invalid QR code');
+        setQrProcessing(false);
+        return;
+      }
+
+      // Verify QR code is for the selected elder
+      if (validation.qrCode?.elderId !== selectedElder.id) {
+        setError('QR code does not match the selected loved one');
+        setQrProcessing(false);
+        return;
+      }
+
+      // Capture GPS location
+      setGpsStatus('capturing');
+      const gpsResult = await captureGPS();
+
+      if (!gpsResult.success || !gpsResult.gps) {
+        setGpsError(gpsResult.error || 'Unable to capture location');
+        setGpsStatus('error');
+        setQrProcessing(false);
+        return;
+      }
+
+      const gps = gpsResult.gps;
+      setGpsAccuracy(gps.accuracy);
+
+      // Verify location if elder has coordinates
+      if (elderHasAddress && selectedElder.address?.coordinates) {
+        const verification = verifyLocation(
+          gps,
+          {
+            latitude: selectedElder.address.coordinates.latitude,
+            longitude: selectedElder.address.coordinates.longitude,
+          },
+          100 // 100 meter radius
+        );
+
+        setGpsDistance(verification.distanceMeters);
+
+        if (verification.verified) {
+          setGpsStatus('verified');
+          // Proceed with clock-in
+          await handleQRClockIn({ latitude: gps.latitude, longitude: gps.longitude, accuracy: gps.accuracy }, undefined);
+        } else {
+          // Show override dialog
+          setShowOverrideDialog(true);
+        }
+      } else {
+        // No coordinates to verify against, proceed with clock-in
+        setGpsStatus('verified');
+        await handleQRClockIn({ latitude: gps.latitude, longitude: gps.longitude, accuracy: gps.accuracy }, undefined);
+      }
+    } catch (err: any) {
+      console.error('QR scan error:', err);
+      setError('QR verification failed: ' + err.message);
+      setGpsStatus('error');
+    } finally {
+      setQrProcessing(false);
+    }
+  };
+
+  // Handle location override confirmation
+  const handleLocationOverride = async (reason: OverrideReason) => {
+    setShowOverrideDialog(false);
+    setOverrideReason(reason);
+    setGpsStatus('override');
+
+    try {
+      const gpsResult = await captureGPS();
+      if (gpsResult.success && gpsResult.gps) {
+        const gps = gpsResult.gps;
+        await handleQRClockIn({ latitude: gps.latitude, longitude: gps.longitude, accuracy: gps.accuracy }, reason);
+      } else {
+        setError(gpsResult.error || 'Failed to capture location');
+      }
+    } catch (err: any) {
+      setError('Failed to clock in with override: ' + err.message);
+    }
+  };
+
+  // Clock in via QR code
+  const handleQRClockIn = async (
+    location: { latitude: number; longitude: number; accuracy: number },
+    overrideReason?: OverrideReason
+  ) => {
+    if (!user || !selectedElder) return;
+
+    setLoading(true);
+
+    try {
+      const groupId = selectedElder.groupId;
+      if (!groupId) {
+        throw new Error('Elder does not have a group assigned');
+      }
+
+      // Start shift session with QR verification data
+      const shiftSessionId = await startShiftSession(
+        groupId,
+        selectedElder.id,
+        user.id,
+        user.agencies?.[0]?.agencyId,
+        undefined, // No planned duration for QR clock-in
+        scheduledShift?.id, // Link to scheduled shift if exists
+        scheduledShift?.startTime,
+        scheduledShift?.endTime
+      );
+
+      // If there's a scheduled shift, link to it
+      if (scheduledShift) {
+        await linkShiftToSession(scheduledShift.id, shiftSessionId);
+      }
+
+      await loadActiveShift();
+      await loadScheduledShift();
+
+      // Reset QR state
+      setPendingQrData(null);
+      setGpsStatus('idle');
+      setGpsDistance(undefined);
+      setOverrideReason(undefined);
+    } catch (err: any) {
+      setError('Failed to clock in via QR: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Gate: Multi-agency plan required
   if (!isMultiAgency) {
     return (
@@ -442,15 +601,74 @@ export default function ShiftHandoffPage() {
                 </div>
               )}
 
-              <Button
-                onClick={handleClockIn}
-                disabled={loading || !canClockIn().allowed}
-                className="w-full"
-                size="lg"
-              >
-                <PlayCircle className="w-5 h-5 mr-2" />
-                {canClockIn().allowed ? 'Clock In' : 'Clock In (Not Available)'}
-              </Button>
+              {/* Clock-in Methods */}
+              <Tabs value={clockInMethod} onValueChange={(v) => setClockInMethod(v as 'schedule' | 'qr')}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="schedule" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Schedule
+                  </TabsTrigger>
+                  <TabsTrigger value="qr" className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4" />
+                    QR Code
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Schedule-based Clock-in */}
+                <TabsContent value="schedule" className="space-y-4">
+                  <Button
+                    onClick={handleClockIn}
+                    disabled={loading || !canClockIn().allowed}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <PlayCircle className="w-5 h-5 mr-2" />
+                    {canClockIn().allowed ? 'Clock In' : 'Clock In (Not Available)'}
+                  </Button>
+                </TabsContent>
+
+                {/* QR Code Clock-in */}
+                <TabsContent value="qr" className="space-y-4">
+                  {!elderHasAddress && (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                            Address Not Set
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            Location verification requires an address. Ask your admin to add the address in the loved one&apos;s profile.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <QRScanner
+                    onScanSuccess={handleQRScanSuccess}
+                    onScanError={(err) => setError(err)}
+                    isProcessing={qrProcessing}
+                  />
+
+                  <GPSStatus
+                    status={gpsStatus}
+                    distanceMeters={gpsDistance}
+                    accuracy={gpsAccuracy}
+                    errorMessage={gpsError}
+                    overrideReason={overrideReason}
+                  />
+                </TabsContent>
+              </Tabs>
+
+              {/* Location Override Dialog */}
+              <LocationOverrideDialog
+                open={showOverrideDialog}
+                onClose={() => setShowOverrideDialog(false)}
+                onConfirm={handleLocationOverride}
+                distanceMeters={gpsDistance || 0}
+                elderName={selectedElder?.name || 'Loved One'}
+              />
             </>
           )}
         </CardContent>

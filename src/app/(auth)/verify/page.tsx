@@ -510,7 +510,7 @@ export default function VerifyPage() {
                       <Input
                         id="password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="8+ alphanumeric characters"
+                        placeholder="8+ chars with letters, numbers, !@#$%"
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         className="h-12 pr-10"
@@ -525,7 +525,7 @@ export default function VerifyPage() {
                       </button>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Minimum 8 characters using only letters and numbers
+                      Minimum 8 characters with letters, numbers, and at least 2 special characters (!@#$%)
                     </p>
                   </div>
 

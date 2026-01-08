@@ -31,8 +31,8 @@ export const TEST_CONFIG = {
     },
   },
 
-  // Default test password (alphanumeric only - no special chars per app requirements)
-  defaultPassword: 'TestPassword123',
+  // Default test password (requires letters, numbers, and at least 2 special chars from !@#$%)
+  defaultPassword: 'TestPass123!@',
 
   // Firebase emulator configuration
   emulators: {

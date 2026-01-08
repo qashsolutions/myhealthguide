@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, Download, Calendar, Filter } from 'lucide-react';
+import { Clock, Download, Calendar, Send, CheckCircle, XCircle, Clock3, AlertCircle } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ShiftSession } from '@/types';
+import type { TimesheetSubmission } from '@/types/timesheet';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInMinutes } from 'date-fns';
 
 type TimeRange = 'week' | 'month' | 'all';
@@ -19,9 +20,20 @@ export default function TimesheetPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('week');
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'caregiver' | 'elder'>('caregiver');
+  const [submissions, setSubmissions] = useState<TimesheetSubmission[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+
+  // Check if user is agency caregiver
+  const isAgencyCaregiver = user?.agencies && user.agencies.length > 0;
+  const agencyId = user?.agencies?.[0]?.agencyId;
 
   useEffect(() => {
     loadShifts();
+    if (isAgencyCaregiver) {
+      loadSubmissions();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, selectedElder, timeRange, viewMode]);
 
@@ -65,6 +77,79 @@ export default function TimesheetPage() {
       setLoading(false);
     }
   };
+
+  const loadSubmissions = async () => {
+    if (!user || !isAgencyCaregiver) return;
+
+    try {
+      const response = await authenticatedFetch('/api/timesheet', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getSubmissions' })
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const subs = data.submissions.map((s: any) => ({
+          ...s,
+          weekStartDate: s.weekStartDate ? new Date(s.weekStartDate) : null,
+          weekEndDate: s.weekEndDate ? new Date(s.weekEndDate) : null,
+          submittedAt: s.submittedAt ? new Date(s.submittedAt) : null,
+          reviewedAt: s.reviewedAt ? new Date(s.reviewedAt) : null,
+        })) as TimesheetSubmission[];
+        setSubmissions(subs);
+      }
+    } catch (err: any) {
+      console.error('Error loading submissions:', err);
+    }
+  };
+
+  const handleSubmitTimesheet = async () => {
+    if (!user || !agencyId) return;
+
+    const { startDate } = getDateRange('week');
+    const weekStart = startOfWeek(startDate, { weekStartsOn: 1 }); // Monday
+
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(null);
+
+    try {
+      const response = await authenticatedFetch('/api/timesheet', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'submit',
+          weekStartDate: weekStart.toISOString(),
+          agencyId,
+          caregiverName: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email
+        })
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitSuccess('Timesheet submitted successfully!');
+        loadSubmissions();
+      } else {
+        setSubmitError(data.error || 'Failed to submit timesheet');
+      }
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to submit timesheet');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Check if current week has been submitted
+  const getCurrentWeekSubmission = () => {
+    if (!submissions.length) return null;
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    return submissions.find(s => {
+      if (!s.weekStartDate) return false;
+      const subStart = new Date(s.weekStartDate);
+      return subStart.getTime() === weekStart.getTime();
+    });
+  };
+
+  const currentWeekSubmission = getCurrentWeekSubmission();
 
   const getDateRange = (range: TimeRange) => {
     const now = new Date();
@@ -221,6 +306,120 @@ export default function TimesheetPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Submit Timesheet Card - Agency Caregivers Only */}
+      {isAgencyCaregiver && timeRange === 'week' && viewMode === 'caregiver' && (
+        <Card className={currentWeekSubmission ? 'border-green-200 dark:border-green-800' : ''}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5" />
+              Submit Weekly Timesheet
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Submit messages */}
+            {submitError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                  <AlertCircle className="w-4 h-4" />
+                  <p className="text-sm">{submitError}</p>
+                </div>
+              </div>
+            )}
+            {submitSuccess && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                  <CheckCircle className="w-4 h-4" />
+                  <p className="text-sm">{submitSuccess}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Current submission status */}
+            {currentWeekSubmission ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  {currentWeekSubmission.status === 'submitted' && (
+                    <>
+                      <Clock3 className="w-5 h-5 text-amber-600" />
+                      <div>
+                        <p className="font-medium text-amber-900 dark:text-amber-100">Pending Review</p>
+                        <p className="text-sm text-amber-600 dark:text-amber-400">
+                          Submitted {currentWeekSubmission.submittedAt ? format(currentWeekSubmission.submittedAt, 'MMM d, h:mm a') : ''}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  {currentWeekSubmission.status === 'approved' && (
+                    <>
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-900 dark:text-green-100">Approved</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          {currentWeekSubmission.reviewerName && `By ${currentWeekSubmission.reviewerName}`}
+                          {currentWeekSubmission.reviewedAt && ` on ${format(currentWeekSubmission.reviewedAt, 'MMM d')}`}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  {currentWeekSubmission.status === 'rejected' && (
+                    <>
+                      <XCircle className="w-5 h-5 text-red-600" />
+                      <div>
+                        <p className="font-medium text-red-900 dark:text-red-100">Rejected</p>
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {currentWeekSubmission.reviewNotes || 'Please contact your supervisor'}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 text-sm">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Total Hours:</span>
+                      <span className="ml-2 font-medium">{currentWeekSubmission.totalHours}h</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Shifts:</span>
+                      <span className="ml-2 font-medium">{currentWeekSubmission.totalShifts}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Submit your timesheet for this week ({format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'MMM d')} - {format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'MMM d')}) for supervisor approval.
+                </p>
+                {shifts.length === 0 ? (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    No completed shifts to submit for this week.
+                  </p>
+                ) : (
+                  <Button
+                    onClick={handleSubmitTimesheet}
+                    disabled={submitting || shifts.length === 0}
+                    className="w-full sm:w-auto"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Submit {shifts.length} Shift{shifts.length !== 1 ? 's' : ''} ({totalHours}h {remainingMinutes}m)
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Shifts Table */}
       <Card>

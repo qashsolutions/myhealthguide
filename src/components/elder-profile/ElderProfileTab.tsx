@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, Calendar, Ruler, Scale, Droplet, Save, Edit2, X } from 'lucide-react';
+import { User, Calendar, Ruler, Scale, Droplet, Save, Edit2, X, MapPin, Loader2 } from 'lucide-react';
 import { updateElderProfile } from '@/lib/firebase/elderHealthProfile';
 import type { Elder } from '@/types';
 import { format } from 'date-fns';
@@ -29,6 +29,8 @@ interface ElderProfileTabProps {
 export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfileTabProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState('');
   const [formData, setFormData] = useState({
     approximateAge: elder.approximateAge?.toString() || '',
     dateOfBirth: elder.dateOfBirth ? format(elder.dateOfBirth, 'yyyy-MM-dd') : '',
@@ -38,6 +40,13 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
     biologicalSex: elder.biologicalSex || '',
     languages: elder.languages?.join(', ') || '',
     ethnicity: elder.ethnicity || '',
+    // Address fields
+    street: elder.address?.street || '',
+    city: elder.address?.city || '',
+    state: elder.address?.state || '',
+    zipCode: elder.address?.zipCode || '',
+    country: elder.address?.country || 'USA',
+    // Physical attributes
     heightValue: elder.height?.value?.toString() || '',
     heightUnit: elder.height?.unit || 'in',
     weightValue: elder.weight?.value?.toString() || '',
@@ -55,6 +64,7 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
 
   const handleSave = async () => {
     setSaving(true);
+    setGeocodeError('');
     try {
       // Handle age/DOB
       let dateOfBirth: Date | undefined = undefined;
@@ -69,6 +79,49 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
         }
       }
 
+      // Handle address with geocoding
+      let address: Elder['address'] = undefined;
+      if (formData.street && formData.city && formData.state && formData.zipCode) {
+        address = {
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          country: formData.country || 'USA',
+        };
+
+        // Try to geocode the address
+        setGeocoding(true);
+        try {
+          const geocodeResponse = await fetch('/api/geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              street: formData.street,
+              city: formData.city,
+              state: formData.state,
+              zipCode: formData.zipCode,
+              country: formData.country || 'USA',
+            }),
+          });
+
+          if (geocodeResponse.ok) {
+            const geocodeData = await geocodeResponse.json();
+            if (geocodeData.latitude && geocodeData.longitude) {
+              address.coordinates = {
+                latitude: geocodeData.latitude,
+                longitude: geocodeData.longitude,
+              };
+            }
+          }
+        } catch (geocodeErr) {
+          console.warn('Geocoding failed, saving address without coordinates:', geocodeErr);
+          // Continue without coordinates - address is still useful
+        } finally {
+          setGeocoding(false);
+        }
+      }
+
       const updates: Partial<Elder> = {
         dateOfBirth,
         approximateAge,
@@ -77,6 +130,7 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
         biologicalSex: formData.biologicalSex as Elder['biologicalSex'] || undefined,
         languages: formData.languages ? formData.languages.split(',').map(l => l.trim()).filter(Boolean) : undefined,
         ethnicity: formData.ethnicity || undefined,
+        address,
         height: formData.heightValue ? {
           value: parseFloat(formData.heightValue),
           unit: formData.heightUnit as 'in' | 'cm',
@@ -265,6 +319,69 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
                 />
               </div>
             </div>
+          </div>
+
+          {/* Address */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Residence Address
+            </h3>
+            <p className="text-sm text-gray-500">
+              Used for caregiver clock-in/out verification via QR code scanning
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label>Street Address</Label>
+                <Input
+                  value={formData.street}
+                  onChange={e => setFormData({ ...formData, street: e.target.value })}
+                  placeholder="123 Main Street"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>City</Label>
+                <Input
+                  value={formData.city}
+                  onChange={e => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Dallas"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>State</Label>
+                <Input
+                  value={formData.state}
+                  onChange={e => setFormData({ ...formData, state: e.target.value })}
+                  placeholder="TX"
+                  maxLength={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>ZIP Code</Label>
+                <Input
+                  value={formData.zipCode}
+                  onChange={e => setFormData({ ...formData, zipCode: e.target.value })}
+                  placeholder="75001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Country</Label>
+                <Input
+                  value={formData.country}
+                  onChange={e => setFormData({ ...formData, country: e.target.value })}
+                  placeholder="USA"
+                />
+              </div>
+            </div>
+            {geocoding && (
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Verifying address location...
+              </div>
+            )}
+            {geocodeError && (
+              <p className="text-sm text-amber-600">{geocodeError}</p>
+            )}
           </div>
 
           {/* Physical Attributes */}
@@ -488,6 +605,30 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
             </div>
           )}
         </div>
+
+        {/* Address */}
+        {elder.address && elder.address.street && (
+          <div className="border-t pt-4">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Residence Address
+            </h3>
+            <div className="space-y-1">
+              <p className="font-medium">{elder.address.street}</p>
+              <p className="text-gray-600 dark:text-gray-400">
+                {elder.address.city}, {elder.address.state} {elder.address.zipCode}
+              </p>
+              {elder.address.country && elder.address.country !== 'USA' && (
+                <p className="text-gray-600 dark:text-gray-400">{elder.address.country}</p>
+              )}
+              {elder.address.coordinates && (
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  Location verified for QR clock-in
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Physical Attributes */}
         {(elder.height || elder.weight || elder.bloodType) && (

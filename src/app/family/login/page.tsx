@@ -99,7 +99,7 @@ export default function FamilyLoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="8+ alphanumeric characters"
+                placeholder="8+ chars with letters, numbers, !@#$%"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
