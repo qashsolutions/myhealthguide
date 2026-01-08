@@ -136,3 +136,38 @@ export function isFamilyAdmin(user: User | null): boolean {
   const role = getUserRole(user);
   return role === 'admin';
 }
+
+/**
+ * Check if user is a family plan member (read-only access)
+ * Family members have 'member' role in their group membership
+ */
+export function isFamilyMember(user: User | null): boolean {
+  if (!user) return false;
+  // Check if user has no agency membership and has 'member' role in groups
+  if (user.agencies && user.agencies.length > 0) return false;
+  return user.groups?.some((g) => g.role === 'member') ?? false;
+}
+
+/**
+ * Check if user is an agency family member (read-only access)
+ * These are family/friends invited by caregivers to view elder data
+ */
+export function isAgencyFamilyMember(user: User | null): boolean {
+  if (!user) return false;
+  return user.agencies?.some((a) => a.role === 'family_member') ?? false;
+}
+
+/**
+ * Check if user is an agency caregiver (not super admin, not family member)
+ */
+export function isAgencyCaregiver(user: User | null): boolean {
+  if (!user) return false;
+  return user.agencies?.some((a) => a.role === 'caregiver' || a.role === 'caregiver_admin') ?? false;
+}
+
+/**
+ * Check if user is read-only (member in family plan or family_member in agency)
+ */
+export function isReadOnlyUser(user: User | null): boolean {
+  return isFamilyMember(user) || isAgencyFamilyMember(user);
+}

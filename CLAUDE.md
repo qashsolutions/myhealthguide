@@ -55,8 +55,8 @@
 | Phase | Description | Status | Date |
 |-------|-------------|--------|------|
 | A | URL & Routing Structure | ✅ COMPLETE | Jan 8, 2026 |
-| B | Signup Flow Separation | 🔄 IN PROGRESS | Jan 8, 2026 |
-| C | Dashboard Role Visibility | ⏳ PENDING | - |
+| B | Signup Flow Separation | ✅ COMPLETE | Jan 8, 2026 |
+| C | Dashboard Role Visibility | ✅ COMPLETE | Jan 8, 2026 |
 | D | Invite Code System (frontend) | ⏳ PENDING | - |
 | E | Notifications (frontend) | ⏳ PENDING | - |
 
@@ -66,6 +66,27 @@
 - /agency shows only Agency Plan (no family mentions) ✅
 - Universal header on all public pages ✅
 - No cross-visibility between silos verified ✅
+
+### Phase B Completion Summary
+- Created /family/signup with blue theme, Heart icon, 45-day trial messaging
+- Created /family/login with family-focused messaging
+- Created /agency/signup with purple theme, Building2 icon, 30-day trial, Agency Name field
+- Created /agency/login with agency-focused messaging
+- Created silo-specific layouts with branded headers (For Families / For Agencies badges)
+- Updated /family landing page links to /family/signup
+- Updated /agency landing page links to /agency/signup
+- Commit: a487c33
+
+### Phase C Completion Summary
+- Added role detection helpers: isFamilyMember, isAgencyFamilyMember, isAgencyCaregiver, isReadOnlyUser
+- Updated Sidebar.tsx with role-based visibility:
+  - Family Admin: Overview, Elder's Care, Smart Insights (full), Personal (My Notes), Settings ✅
+  - Family Member: Overview, Elder's Care, Smart Insights (no Analytics), Settings ✅
+  - Agency Owner: Overview, Elder's Care, Smart Insights (full), Agency section, Settings ✅
+  - Agency Caregiver: Overview, Elder's Care, Smart Insights (full), Care Tools section, Personal, Settings ✅
+  - Agency Member: Overview, Elder's Care, Smart Insights (no Analytics), Settings ✅
+- Added Care Tools section for Agency Caregivers: Shift Handoff, Timesheet, Documents, Family Updates
+- Analytics and My Notes hidden for read-only users (family members, agency family members)
 
 Status Key: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs Approval
 

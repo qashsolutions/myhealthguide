@@ -7,7 +7,11 @@ import { useElder } from '@/contexts/ElderContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 import { useSubscription } from '@/lib/subscription';
-import { isSuperAdmin } from '@/lib/utils/getUserRole';
+import {
+  isSuperAdmin,
+  isAgencyCaregiver,
+  isReadOnlyUser,
+} from '@/lib/utils/getUserRole';
 import {
   Home,
   Heart,
@@ -21,6 +25,10 @@ import {
   Building2,
   Users,
   HelpCircle,
+  Clock,
+  FileCheck,
+  FolderOpen,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -43,6 +51,11 @@ const featureTooltips: Record<string, string> = {
   '/dashboard/agency': 'Agency overview and management',
   '/dashboard/settings': 'Configure your preferences',
   '/help': 'Get help and learn how to use MyHealthGuide',
+  // Care Tools (Agency Caregivers)
+  '/dashboard/shift-handoff': 'Complete shift handoff reports',
+  '/dashboard/timesheet': 'Track your work hours',
+  '/dashboard/documents': 'View and manage care documents',
+  '/dashboard/family-updates': 'Send updates to family members',
 };
 
 interface SidebarProps {
@@ -59,9 +72,25 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   // Check if user is a super admin (has full access to agency features)
   const userIsSuperAdmin = isSuperAdmin(user);
 
-  // Caregivers only see limited sidebar items
-  // Super admins and family plan admins see everything
-  const showFullInsights = userIsSuperAdmin || !isMultiAgency;
+  // Check if user is an agency caregiver (sees Care Tools section)
+  const userIsAgencyCaregiver = isAgencyCaregiver(user);
+
+  // Check if user is read-only (family member or agency family member)
+  const userIsReadOnly = isReadOnlyUser(user);
+
+  // Show Analytics: Only for admins and caregivers (NOT for read-only members)
+  // Family Admin: yes, Family Member: no
+  // Agency Owner: yes, Agency Caregiver: yes, Agency Member: no
+  const showAnalytics = !userIsReadOnly;
+
+  // Show My Notes: Only for admins and caregivers (NOT for read-only members)
+  const showMyNotes = !userIsReadOnly;
+
+  // Show Safety Alerts: Everyone can see
+  const showSafetyAlerts = true;
+
+  // Show Care Tools: Only for Agency Caregivers (not super admin, not family member)
+  const showCareTools = isMultiAgency && userIsAgencyCaregiver;
 
   // Get a unique display name for the selected elder
   // Priority: preferredName > unique first name > full name (for duplicates)
@@ -287,32 +316,66 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               icon={MessageSquare}
               label="Insights"
             />
-            {/* Safety Alerts and Analytics: Only for super admins and family plan users */}
-            {showFullInsights && (
-              <>
-                <NavItem
-                  href="/dashboard/safety-alerts"
-                  icon={AlertTriangle}
-                  label="Safety Alerts"
-                />
-                <NavItem
-                  href="/dashboard/analytics"
-                  icon={BarChart3}
-                  label="Analytics"
-                />
-              </>
+            {/* Safety Alerts: Everyone can see */}
+            {showSafetyAlerts && (
+              <NavItem
+                href="/dashboard/safety-alerts"
+                icon={AlertTriangle}
+                label="Safety Alerts"
+              />
+            )}
+            {/* Analytics: Only for admins and caregivers (NOT members) */}
+            {showAnalytics && (
+              <NavItem
+                href="/dashboard/analytics"
+                icon={BarChart3}
+                label="Analytics"
+              />
             )}
           </div>
 
-          {/* Personal Section */}
-          <GraySectionLabel>Personal</GraySectionLabel>
-          <div className="space-y-1">
-            <NavItem
-              href="/dashboard/notes"
-              icon={FileText}
-              label="My Notes"
-            />
-          </div>
+          {/* Care Tools Section - Agency Caregivers only */}
+          {showCareTools && (
+            <>
+              <GraySectionLabel>Care Tools</GraySectionLabel>
+              <div className="space-y-1">
+                <NavItem
+                  href="/dashboard/shift-handoff"
+                  icon={Clock}
+                  label="Shift Handoff"
+                />
+                <NavItem
+                  href="/dashboard/timesheet"
+                  icon={FileCheck}
+                  label="Timesheet"
+                />
+                <NavItem
+                  href="/dashboard/documents"
+                  icon={FolderOpen}
+                  label="Documents"
+                />
+                <NavItem
+                  href="/dashboard/family-updates"
+                  icon={Bell}
+                  label="Family Updates"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Personal Section - Only for admins and caregivers (NOT members) */}
+          {showMyNotes && (
+            <>
+              <GraySectionLabel>Personal</GraySectionLabel>
+              <div className="space-y-1">
+                <NavItem
+                  href="/dashboard/notes"
+                  icon={FileText}
+                  label="My Notes"
+                />
+              </div>
+            </>
+          )}
 
           {/* Agency Section - Only for multi-agency tier */}
           {isMultiAgency && (
