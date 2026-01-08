@@ -1211,7 +1211,7 @@ Use these slash commands for testing workflows:
 - Firestore collection names
 - TypeScript types and interfaces
 
-#### Files Modified (27 Total)
+#### Files Modified (28 Total)
 
 **Group 1: Core Navigation & Layout (3 files)**
 | File | Changes |
@@ -1273,13 +1273,14 @@ Use these slash commands for testing workflows:
 | `src/app/dashboard/nutrition-analysis/page.tsx` | Fallback text: "Elder" → "Loved One" |
 | `src/app/dashboard/shift-handoff/page.tsx` | Fallback text: "Elder" → "Loved One" |
 
-**Group 8: Components (4 files)**
+**Group 8: Components (5 files)**
 | File | Changes |
 |------|---------|
-| `src/components/admin/DataExportPanel.tsx` | "Elder profiles" → "Loved one profiles" |
+| `src/components/admin/DataExportPanel.tsx` | "Elder profiles" → "Loved one profiles", error message |
 | `src/components/admin/DataDeletionPanel.tsx` | "Elders Deleted" → "Loved Ones Deleted" |
 | `src/components/voice/VoiceTranscriptDialog.tsx` | Label: "Elder:" → "Loved One:" |
 | `src/components/seo/StructuredData.tsx` | "Eldercare" → "Loved one care" in description |
+| `src/components/shared/UnifiedSearch.tsx` | Search suggestion: "how to add elder" → "how to add loved one" |
 
 **Group 9: Auth Pages (1 file)**
 | File | Changes |
@@ -1304,6 +1305,8 @@ All changes verified on production (https://myguide.health):
 
 #### Commit History
 
+- `43da691` - chore: update terminology in DataExportPanel
+- `8dee957` - chore: update terminology 'elder' to 'loved one' in error messages (6 files)
 - `a392567` - fix: update footer branding from CareGuide to MyHealthGuide
 - `7184a1a` - feat: complete terminology update - Elder to Loved One (23 files)
 - `bf14898` - docs: add terminology refactoring documentation to CLAUDE.md
