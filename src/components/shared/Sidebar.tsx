@@ -78,6 +78,10 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   // Check if user is read-only (family member or agency family member)
   const userIsReadOnly = isReadOnlyUser(user);
 
+  // Show Health Profile: Only for admins and caregivers (NOT for read-only members)
+  // Members can see Daily Care but not detailed Health Profile (contains sensitive PII)
+  const showHealthProfile = !userIsReadOnly;
+
   // Show Analytics: Only for admins and caregivers (NOT for read-only members)
   // Family Admin: yes, Family Member: no
   // Agency Owner: yes, Agency Caregiver: yes, Agency Member: no
@@ -286,11 +290,13 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               </SectionLabel>
 
               <div className="space-y-1">
-                <NavItem
-                  href={`/dashboard/elder-profile?elderId=${selectedElder.id}`}
-                  icon={Heart}
-                  label="Health Profile"
-                />
+                {showHealthProfile && (
+                  <NavItem
+                    href={`/dashboard/elder-profile?elderId=${selectedElder.id}`}
+                    icon={Heart}
+                    label="Health Profile"
+                  />
+                )}
                 <NavItem
                   href="/dashboard/daily-care"
                   icon={Clipboard}
