@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { User, Calendar, Ruler, Scale, Droplet, Save, Edit2, X, MapPin, Loader2 } from 'lucide-react';
 import { updateElderProfile } from '@/lib/firebase/elderHealthProfile';
+import { useElder } from '@/contexts/ElderContext';
 import type { Elder } from '@/types';
 import { format } from 'date-fns';
 
@@ -27,6 +28,7 @@ interface ElderProfileTabProps {
 }
 
 export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfileTabProps) {
+  const { refreshElders } = useElder();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
@@ -156,6 +158,8 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
       if (result.success) {
         setEditing(false);
         onUpdate();
+        // Also refresh ElderContext so other pages see the updated data (e.g., shift-handoff GPS verification)
+        await refreshElders();
       }
     } catch (error) {
       console.error('Error saving profile:', error);
