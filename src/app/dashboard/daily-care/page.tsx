@@ -25,6 +25,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import Link from 'next/link';
 import { MedicationService } from '@/lib/firebase/medications';
 import { SupplementService } from '@/lib/firebase/supplements';
@@ -65,9 +66,12 @@ function DailyCareContent() {
     return 'member';
   };
 
-  // Check if user has write access (not a read-only member)
+  // Check if user has write access to health data
+  // - Family members (read-only) cannot write
+  // - Super admins can view all data but CANNOT write to health data (they manage agency, not health records)
+  // - Only caregivers and family admins can write
   const userRole = getUserRole();
-  const canWrite = userRole !== 'member';
+  const canWrite = userRole !== 'member' && !isSuperAdmin(user);
 
   // Load medications
   const { data: medications, loading: medsLoading } = useElderDataLoader<Medication[]>({
