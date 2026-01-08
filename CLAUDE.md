@@ -1317,3 +1317,224 @@ All changes verified on production (https://myguide.health):
 - Rename API routes or Firestore collections
 - Use "Elder" in any new user-facing text (always use "Loved One")
 - Use "CareGuide" in branding (always use "MyHealthGuide")
+
+---
+
+## Phase 2: Feature Verification & Fixes (Jan 8, 2026)
+
+**Reference Document:** `/healthguide_refactor_4.md`
+
+| Task | Description | Status | Date | Notes |
+|------|-------------|--------|------|-------|
+| 1.1 | Shift Handoff - QR/GPS | ❌ | Jan 8 | Services exist, NOT integrated into UI |
+| 1.2 | Elder Profile Address | ❌ | Jan 8 | Type exists, NO address form in UI |
+| 1.3 | Timesheet Service | ❌ | Jan 8 | View exists, NO submit workflow |
+| 1.4 | Admin Approval UI | ❌ | Jan 8 | Types exist, NO approval UI |
+| 1.5 | Firestore Rules | 🔒 | | Needs approval |
+| 1.6 | Geocoding API | 🔒 | | API route missing, needs approval |
+| 2.1 | Offline Audit | ✅ | Jan 8 | SW exists, static cache works |
+| 2.2 | Offline Layers | ❌ | Jan 8 | NO IndexedDB cache for user data |
+| 2.3 | Offline Sync | ❌ | Jan 8 | NO action queue, NO background sync |
+| 2.4 | Features Page Update | ❌ | Jan 8 | NO offline indicators on features |
+| 3.1 | Permission Prompts | ⚠️ | Jan 8 | Microphone ✅, Camera ❌ |
+| 3.2 | Voice Logging | ✅ | Jan 8 | Full GDPR consent dialog |
+| 4.1 | Remove Pricing Check | ✅ | Jan 8 | Uses TrialExpirationGate |
+| 4.2 | FDA Drug API | ✅ | Jan 8 | Full integration, no autocomplete |
+| 5.1 | Dynamic Features Page | ✅ | Jan 8 | MiniSearch + helpArticles |
+| 5.2 | Agentic Updates | ❌ | Jan 8 | Page is static |
+| 5.3 | Offline Status | ❌ | Jan 8 | Not indicated |
+| 6.1 | Multi-Agency Subscribe | ⏳ | | Not verified |
+| 6.2 | Family Subscribe | ⏳ | | Not verified |
+| 7.1 | Cross-Device Session | ⏳ | | Not verified |
+| 7.2 | Session Firestore | 🔒 | | Needs approval |
+| 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
+| 8.2 | Pre-populated Issues | ⏳ | | Not verified |
+| 9.1 | Care Community Offline | ⏳ | | Not verified |
+| 10.1 | Pricing Visibility | ⏳ | | Not verified |
+| 11.1 | Careguide Branding | ✅ | Jan 8 | Fixed, only in App Store URL |
+| 11.2 | Copyright Dynamic | ⏳ | | Not verified |
+| 12.1 | Password Current State | ✅ | Jan 8 | 8+ chars, alphanumeric ONLY |
+| 12.2 | Password Policy | 🔒 | | Current BLOCKS special chars |
+
+Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs Approval
+
+### Task 1 Detailed Findings
+
+**Task 1.1 - Shift Handoff QR/GPS:**
+- ✅ `QRScanner.tsx` component exists (uses html5-qrcode library)
+- ✅ `qrCodeService.ts` - Full QR code generation/validation/Firestore CRUD
+- ✅ `gpsService.ts` - GPS capture, Haversine distance calculation
+- ✅ `LocationOverrideDialog` and `GPSStatus` components exist
+- ❌ **NOT INTEGRATED**: Shift-handoff page uses schedule-based clock-in only
+- ❌ **NO step-by-step camera guidance** for elderly users
+
+**Task 1.2 - Elder Profile Address:**
+- ✅ `Elder` type has `address` field with coordinates (lines 301-312 in types/index.ts)
+- ✅ `Elder` type has `qrCodeId` field
+- ❌ **NO address form** in `ElderProfileTab.tsx` (only demographics/physical/care)
+- ❌ **NO geocoding** in profile UI
+
+**Task 1.3 - Timesheet Service:**
+- ✅ `/dashboard/timesheet` page exists
+- ✅ Weekly/monthly view with My Shifts / Elder Shifts toggle
+- ✅ CSV export functionality
+- ❌ **NO submit button** - view/export only
+- ❌ **NO submission workflow**
+
+**Task 1.4 - Super Admin Approval UI:**
+- ✅ Types exist: `TimesheetSubmission`, `TimesheetApprovalItem`, `ApprovalAction`
+- ❌ **NO approval UI** in agency components or dashboard
+
+### Backend Changes Pending Approval
+
+**1. Geocoding API Route (Task 1.6)**
+- `gpsService.ts` calls `/api/geocode` but **route does not exist**
+- Need: `src/app/api/geocode/route.ts`
+- Purpose: Convert address to lat/lng coordinates for GPS verification
+- Options: Google Geocoding API, MapBox, or OpenStreetMap Nominatim
+
+**2. Firestore Rules (Task 1.5)**
+Collections needing rules:
+```javascript
+// elderQRCodes - QR codes for shift clock-in
+match /elderQRCodes/{qrCodeId} {
+  allow read: if isSignedIn() && isAgencyMember(resource.data.agencyId);
+  allow create: if isSignedIn() && isSuperAdmin(resource.data.agencyId);
+  allow update: if isSignedIn() && isSuperAdmin(resource.data.agencyId);
+  allow delete: if false; // Audit trail
+}
+
+// timesheetEntries - Individual shift records (auto-generated)
+match /timesheetEntries/{entryId} {
+  allow read: if isSignedIn() && (
+    resource.data.caregiverId == request.auth.uid ||
+    isSuperAdmin(resource.data.agencyId)
+  );
+  allow create: if isSignedIn(); // System creates on clock-out
+  allow update: if isSuperAdmin(resource.data.agencyId);
+  allow delete: if false;
+}
+
+// timesheetSubmissions - Weekly submission for approval
+match /timesheetSubmissions/{submissionId} {
+  allow read: if isSignedIn() && (
+    resource.data.caregiverId == request.auth.uid ||
+    isSuperAdmin(resource.data.agencyId)
+  );
+  allow create: if isSignedIn() && resource.data.caregiverId == request.auth.uid;
+  allow update: if isSuperAdmin(resource.data.agencyId);
+  allow delete: if false;
+}
+```
+
+**3. Password Policy Backend (Task 12.2)**
+- Current: 8+ chars, alphanumeric ONLY (no special characters allowed)
+- Requested: 8+ chars, alphanumeric + 2 special chars (!@#$%)
+- Current policy is OPPOSITE of requested - explicitly blocks special characters
+- Requires: Update validation regex in signup/login pages
+
+---
+
+### Task 2 Findings - Offline Caching (PWA)
+
+**Service Worker Status:**
+- ✅ Serwist (Workbox alternative) with precaching
+- ✅ 200+ static assets precached
+- ✅ API response caching (NetworkFirst, 10s timeout)
+- ✅ `useOnlineStatus` hook for online/offline detection
+- ✅ `OfflineIndicator` component
+- ✅ `OfflineAwareButton` component
+
+**What's Missing:**
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Static asset cache | ✅ | Full coverage |
+| Online status detection | ✅ | Works |
+| **IndexedDB user data cache** | ❌ | User data NOT cached locally |
+| **Offline action queue** | ❌ | Actions blocked, not queued |
+| **Background sync** | ❌ | SW has it, app doesn't use it |
+
+**Approach:** Graceful degradation (shows "You're offline") vs offline-first (work offline, sync later)
+
+---
+
+### Task 3 Findings - Microphone/Camera Permissions
+
+| Component | Microphone | Camera (QR Scanner) |
+|-----------|------------|---------------------|
+| Pre-permission consent dialog | ✅ GDPR compliant | ❌ None |
+| Step-by-step guidance | ✅ 3 explanations | ❌ None |
+| Error handling | ✅ Clear messages | ✅ Basic errors |
+| Elderly-friendly text | ✅ Yes | ❌ No |
+
+**Files:**
+- ✅ `MicrophonePermissionDialog.tsx` - Full consent dialog
+- ✅ `useMicrophonePermission.ts` - GDPR-compliant hook
+- ❌ QR Scanner needs similar permission guidance
+
+---
+
+### Task 4 Findings - Medication Features
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| FDA API Integration | ✅ | `src/lib/medical/fdaApi.ts` |
+| Drug Interactions | ✅ | Uses FDA verbatim data |
+| HIPAA Audit Logging | ✅ | PHI disclosure logged |
+| **Medication Autocomplete** | ❌ | FDA API not used for name suggestions |
+| Subscription tier lock | ✅ | Uses TrialExpirationGate, not pricing lock |
+
+---
+
+### Task 5 Findings - Features Page
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Dynamic feature discovery | ✅ | Uses helpArticles database |
+| Full-text search | ✅ | MiniSearch with fuzzy matching |
+| Voice search | ✅ | Supported |
+| Category/role filtering | ✅ | Working |
+| **Offline capability indicators** | ❌ | Not shown |
+| **Agentic auto-updates** | ❌ | Page is static, not auto-updating |
+
+---
+
+### Task 8 Findings - Symptom Checker
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Rate Limits | ✅ | Guest: 2/day, Registered: 5/day |
+| Limit Reached Screen | ✅ | Shows when exceeded |
+| Disclaimer Timer | ✅ | 60-second timer |
+
+---
+
+### Task 11 Findings - Branding
+
+| Issue | Status | Notes |
+|-------|--------|-------|
+| "CareGuide" in display text | ✅ Fixed | Only in App Store URL |
+| App Store URL | ⚠️ | `careguide` in iOS App Store link |
+
+**App Store Link:** `https://apps.apple.com/us/app/careguide/id6749387786`
+- This is the actual App Store listing name, may need App Store update
+
+---
+
+### Task 12 Findings - Password Policy
+
+**Current Policy (signup/page.tsx):**
+```
+- At least 8 characters ✅
+- At least one uppercase (A-Z) ✅
+- At least one number (0-9) ✅
+- Only letters and numbers (NO special characters) ❌
+```
+
+**Requested Policy:**
+```
+- At least 8 characters
+- Alphanumeric + at least 2 special chars (!@#$%)
+```
+
+**Issue:** Current policy BLOCKS special characters, requested policy REQUIRES them
