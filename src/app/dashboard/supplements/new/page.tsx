@@ -87,7 +87,7 @@ export default function NewSupplementPage() {
       }
 
       if (!formData.elderId) {
-        throw new Error('Please select an elder');
+        throw new Error('Please select a loved one');
       }
 
       // Parse times into array (accept comma, space, or both as separators)

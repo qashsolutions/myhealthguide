@@ -574,10 +574,10 @@ export function UnifiedSearch() {
                       &quot;medications&quot;
                     </button>
                     <button
-                      onClick={() => setQuery('how to add elder')}
+                      onClick={() => setQuery('how to add loved one')}
                       className="block w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      &quot;how to add elder&quot;
+                      &quot;how to add loved one&quot;
                     </button>
                     <button
                       onClick={() => setQuery('pricing')}

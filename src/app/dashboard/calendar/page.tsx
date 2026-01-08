@@ -191,7 +191,7 @@ export default function CalendarPage() {
     try {
       const elder = availableElders.find(e => e.id === shiftForm.elderId);
       if (!elder) {
-        setError('Please select an elder');
+        setError('Please select a loved one');
         return;
       }
 

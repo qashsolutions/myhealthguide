@@ -66,7 +66,7 @@ export default function NewDietEntryPage() {
     }
 
     if (!elderId) {
-      setError('Please select an elder');
+      setError('Please select a loved one');
       return;
     }
 
@@ -135,7 +135,7 @@ export default function NewDietEntryPage() {
 
   const handleSave = async () => {
     if (!elderId) {
-      setError('Please select an elder');
+      setError('Please select a loved one');
       return;
     }
 
