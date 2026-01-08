@@ -26,7 +26,7 @@ export function ElderSelector() {
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
         <Loader2 className="h-4 w-4 animate-spin text-gray-600 dark:text-gray-400" />
-        <span className="text-sm text-gray-600 dark:text-gray-400">Loading elders...</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">Loading loved ones...</span>
       </div>
     );
   }
@@ -35,7 +35,7 @@ export function ElderSelector() {
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
         <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-        <span className="text-sm text-gray-600 dark:text-gray-400">No elders assigned</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">No loved ones assigned</span>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export function ElderSelector() {
         onClick={() => setIsOpen(!isOpen)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-label={selectedElder ? `Selected elder: ${selectedElder.name}. Click to change` : 'Select an elder'}
+        aria-label={selectedElder ? `Selected loved one: ${selectedElder.name}. Click to change` : 'Select a loved one'}
         className={cn(
           'flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors',
           'hover:bg-gray-50 dark:hover:bg-gray-800',
@@ -80,7 +80,7 @@ export function ElderSelector() {
             </span>
           ) : (
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              Select elder
+              Select loved one
             </span>
           )}
         </div>
@@ -99,7 +99,7 @@ export function ElderSelector() {
       {isOpen && (
         <div
           role="listbox"
-          aria-label="Select an elder"
+          aria-label="Select a loved one"
           className="absolute top-full left-0 mt-2 w-full min-w-[240px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto"
         >
           {availableElders.map((elder) => (

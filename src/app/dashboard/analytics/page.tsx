@@ -79,24 +79,24 @@ function AnalyticsContent() {
         {hasNoElders && isCaregiverRole ? (
           <>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No Elders Assigned Yet
+              No Loved Ones Assigned Yet
             </h3>
             <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-              Your agency administrator will assign elders to you. Once assigned, you&apos;ll be able to view their analytics here.
+              Your agency administrator will assign loved ones to you. Once assigned, you&apos;ll be able to view their analytics here.
             </p>
           </>
         ) : hasNoElders ? (
           <>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No Elders Found
+              No Loved Ones Found
             </h3>
             <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-              Add an elder to your care group to start tracking their health analytics.
+              Add a loved one to your care group to start tracking their health analytics.
             </p>
           </>
         ) : (
           <p className="text-gray-600 dark:text-gray-400">
-            Please select an elder from the header to view analytics.
+            Please select a loved one from the header to view analytics.
           </p>
         )}
       </div>

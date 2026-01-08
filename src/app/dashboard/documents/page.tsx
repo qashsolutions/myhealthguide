@@ -70,7 +70,7 @@ export default function DocumentsPage() {
     if (!file || !user) return;
 
     if (!selectedElder) {
-      setError('Please select an elder first');
+      setError('Please select a loved one first');
       return;
     }
 
@@ -158,7 +158,7 @@ export default function DocumentsPage() {
             <div className="text-center">
               <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-center text-gray-600 dark:text-gray-400">
-                Please select an elder to manage documents
+                Please select a loved one to manage documents
               </p>
             </div>
           </CardContent>

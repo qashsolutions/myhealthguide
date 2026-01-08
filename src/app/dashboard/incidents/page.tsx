@@ -162,7 +162,7 @@ export default function IncidentsPage() {
         <Card className="p-8">
           <CardContent>
             <p className="text-center text-gray-600 dark:text-gray-400">
-              Please select an elder to manage incident reports
+              Please select a loved one to manage incident reports
             </p>
           </CardContent>
         </Card>

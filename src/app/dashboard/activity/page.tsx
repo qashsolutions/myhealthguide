@@ -575,7 +575,7 @@ export default function ActivityPage() {
     return (
       <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <p className="text-gray-600 dark:text-gray-400">
-          Please select an elder from the sidebar to view activities.
+          Please select a loved one from the sidebar to view activities.
         </p>
       </div>
     );

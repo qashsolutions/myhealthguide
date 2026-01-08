@@ -257,11 +257,11 @@ export default function ClinicalNotesPage() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Elder
+              Select Loved One
             </label>
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <p className="font-medium text-gray-900 dark:text-gray-100">
-                {selectedElder?.name || 'No elder selected'}
+                {selectedElder?.name || 'No loved one selected'}
               </p>
             </div>
           </div>

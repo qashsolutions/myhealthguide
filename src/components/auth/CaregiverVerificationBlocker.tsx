@@ -14,7 +14,7 @@ interface CaregiverVerificationBlockerProps {
 export function CaregiverVerificationBlocker({
   emailVerified,
   phoneVerified,
-  featureName = 'elder care features'
+  featureName = 'loved one care features'
 }: CaregiverVerificationBlockerProps) {
   const isFullyVerified = emailVerified && phoneVerified;
 

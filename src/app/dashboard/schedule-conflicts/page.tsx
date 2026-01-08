@@ -112,10 +112,10 @@ export default function ScheduleConflictsPage() {
                   <AlertCircle className="h-8 w-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  No Elder Selected
+                  No Loved One Selected
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Please select an elder from the dropdown above to check for medication timing conflicts.
+                  Please select a loved one from the dropdown above to check for medication timing conflicts.
                 </p>
               </>
             ) : hasMedications === false ? (

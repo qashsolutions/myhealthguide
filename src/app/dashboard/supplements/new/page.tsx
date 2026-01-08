@@ -139,10 +139,10 @@ export default function NewSupplementPage() {
               <CardContent>
                 <div className="text-center py-8">
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    You need to add an elder before you can add supplements.
+                    You need to add a loved one before you can add supplements.
                   </p>
                   <Button onClick={() => router.push('/dashboard/elders/new')}>
-                    Add Elder First
+                    Add Loved One First
                   </Button>
                 </div>
               </CardContent>

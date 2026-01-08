@@ -114,12 +114,12 @@ export default function ReportsPage() {
             </p>
           </div>
 
-          {/* No Elder Warning */}
+          {/* No Loved One Warning */}
           {!selectedElder && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Please select an elder from the sidebar to view reports.
+                Please select a loved one from the sidebar to view reports.
               </AlertDescription>
             </Alert>
           )}

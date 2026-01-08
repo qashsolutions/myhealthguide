@@ -156,7 +156,7 @@ export function QRScanner({
                 Scan QR Code
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Point your camera at the elder&apos;s QR code to clock in
+                Point your camera at the loved one&apos;s QR code to clock in
               </p>
               <Button onClick={startScanning} disabled={isProcessing}>
                 <Camera className="w-4 h-4 mr-2" />

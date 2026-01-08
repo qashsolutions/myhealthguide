@@ -1147,7 +1147,7 @@ export default function PublicSymptomCheckerPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    Auto-fill from your elder&apos;s health profile
+                    Auto-fill from your loved one&apos;s health profile
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-600" />

@@ -226,7 +226,7 @@ export default function AuthenticatedSymptomCheckerPage() {
 
   const submitSymptomCheck = async (isRefinement = false) => {
     if (!selectedElder) {
-      setError('Please select an elder first');
+      setError('Please select a loved one first');
       return;
     }
 
@@ -422,10 +422,10 @@ export default function AuthenticatedSymptomCheckerPage() {
               <UserCircle className="w-12 h-12 text-blue-600 dark:text-blue-400" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Select an Elder First
+              Select a Loved One First
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Please select an elder from the dropdown in the header to check their symptoms.
+              Please select a loved one from the dropdown in the header to check their symptoms.
               This allows us to use their health profile for a more personalized assessment.
             </p>
             <Button variant="outline" onClick={() => router.push('/dashboard')}>

@@ -293,7 +293,7 @@ export default function InsightsPage() {
               }}
             >
               <SelectTrigger className="w-full max-w-md">
-                <SelectValue placeholder="Select an elder" />
+                <SelectValue placeholder="Select a loved one" />
               </SelectTrigger>
               <SelectContent>
                 {elders.map((elder) => (
@@ -307,12 +307,12 @@ export default function InsightsPage() {
         </Card>
       )}
 
-      {/* No elders warning */}
+      {/* No loved ones warning */}
       {elders.length === 0 && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            No elders found in your group. Please add an elder first to view AI insights.
+            No loved ones found in your group. Please add a loved one first to view AI insights.
           </AlertDescription>
         </Alert>
       )}
