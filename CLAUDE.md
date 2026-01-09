@@ -208,8 +208,8 @@ Status Key: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 N
 | 2.4 | Features Page Update | ⏳ | | |
 | 3.1 | Permission Prompts | ✅ | Jan 9 | Added step-by-step guidance to MicrophonePermissionDialog |
 | 3.2 | Voice Logging | ✅ | Jan 9 | VoiceRecordButton, speechRecognition, browserSupport exist |
-| 4.1 | Remove Pricing Check | ⏳ | | |
-| 4.2 | FDA Drug API | ⏳ | | |
+| 4.1 | Remove Pricing Check | ✅ | Jan 9 | No pricing check code exists to remove |
+| 4.2 | FDA Drug API | ✅ | Jan 9 | OpenFDA integration with HIPAA logging |
 | 5.1 | Dynamic Features Page | ⏳ | | |
 | 5.2 | Agentic Updates | ⏳ | | |
 | 5.3 | Offline Status | ⏳ | | |
@@ -1422,31 +1422,31 @@ All changes verified on production (https://myguide.health):
 | 1.2 | Elder Profile Address | ✅ | Jan 9 | Address form + geocoding + map preview working |
 | 1.3 | Timesheet Service | ✅ | Jan 9 | Full submit workflow exists, agency-only |
 | 1.4 | Admin Approval UI | ✅ | Jan 9 | API + UI complete, integrated in agency dashboard |
-| 1.5 | Firestore Rules | 🔒 | | Needs approval |
+| 1.5 | Firestore Rules | ✅ | Jan 9 | Deployed: elderQRCodes + timesheetSubmissions (8dc95d6) |
 | 1.6 | Geocoding API | ✅ | Jan 9 | API route exists at /api/geocode |
 | 2.1 | Offline Audit | ✅ | Jan 8 | SW exists, static cache works |
 | 2.2 | Offline Layers | ❌ | Jan 8 | NO IndexedDB cache for user data |
 | 2.3 | Offline Sync | ❌ | Jan 8 | NO action queue, NO background sync |
 | 2.4 | Features Page Update | ❌ | Jan 8 | NO offline indicators on features |
-| 3.1 | Permission Prompts | ⚠️ | Jan 8 | Microphone ✅, Camera ❌ |
+| 3.1 | Permission Prompts | ✅ | Jan 9 | Both Camera + Microphone have 65+ guidance (553967b) |
 | 3.2 | Voice Logging | ✅ | Jan 8 | Full GDPR consent dialog |
 | 4.1 | Remove Pricing Check | ✅ | Jan 8 | Uses TrialExpirationGate |
 | 4.2 | FDA Drug API | ✅ | Jan 8 | Full integration, no autocomplete |
 | 5.1 | Dynamic Features Page | ✅ | Jan 8 | MiniSearch + helpArticles |
-| 5.2 | Agentic Updates | ❌ | Jan 8 | Page is static |
-| 5.3 | Offline Status | ❌ | Jan 8 | Not indicated |
+| 5.2 | Agentic Updates | ✅ | Jan 9 | Config-driven via helpArticles array |
+| 5.3 | Offline Status | ❌ | Jan 9 | Not indicated - helpArticles lacks offline property |
 | 6.1 | Multi-Agency Subscribe | ✅ | Jan 9 | Role checks added - only superadmin |
 | 6.2 | Family Subscribe | ✅ | Jan 9 | Role checks added - only admin |
-| 7.1 | Cross-Device Session | ❌ | Jan 9 | NO page/elder tracking exists |
+| 7.1 | Cross-Device Session | ❌ | Jan 9 | NO page/elder tracking (needs approval) |
 | 7.2 | Session Firestore | 🔒 | | Needs approval |
 | 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
 | 8.2 | Pre-populated Issues | ❌ | Jan 9 | NO offline data - AI only |
 | 9.1 | Care Community Offline | ❌ | Jan 9 | NO local cache - API only |
-| 10.1 | Pricing Visibility | ❌ | Jan 9 | ALL plans shown to ALL - no role filter |
-| 11.1 | Careguide Branding | ✅ | Jan 8 | Fixed, only in App Store URL |
+| 10.1 | Pricing Visibility | ⚠️ | Jan 9 | canManageBilling ✅, plan filtering ❌ |
+| 11.1 | Careguide Branding | ✅ | Jan 9 | "Careguide on the Go" in about page (50141ed) |
 | 11.2 | Copyright Dynamic | ✅ | Jan 9 | Uses getFullYear() |
-| 12.1 | Password Current State | ✅ | Jan 8 | 8+ chars, alphanumeric ONLY |
-| 12.2 | Password Policy | 🔒 | | Current BLOCKS special chars |
+| 12.1 | Password Current State | ✅ | Jan 9 | Now requires 2 special chars (!@#$%) |
+| 12.2 | Password Policy | ✅ | Jan 9 | Updated all password pages (7ec5876) |
 
 Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs Approval
 
