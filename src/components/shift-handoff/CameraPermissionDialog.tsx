@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Camera, Shield, Info, Lock, AlertCircle, QrCode } from 'lucide-react';
+import { Camera, Shield, Info, Lock, AlertCircle, QrCode, HandMetal, CheckCircle2, MousePointer2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface CameraPermissionDialogProps {
@@ -126,6 +126,71 @@ export function CameraPermissionDialog({
                 Please read and accept the consent checkbox above to enable QR scanning.
               </AlertDescription>
             </Alert>
+          )}
+
+          {/* Step-by-step browser guidance for 65+ users */}
+          {hasConsented && (
+            <div className="rounded-lg border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4">
+              <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
+                <HandMetal className="w-5 h-5" />
+                What Happens Next (3 Easy Steps)
+              </h4>
+              <div className="space-y-3">
+                {/* Step 1 */}
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-bold">
+                    1
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                      Click the green &quot;Allow Camera Access&quot; button below
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">
+                      <MousePointer2 className="w-3 h-3 inline mr-1" />
+                      It&apos;s the button on the right side
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-bold">
+                    2
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                      Your browser will show a popup at the TOP of your screen
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">
+                      Look for a small box near the address bar asking about camera
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-bold">
+                    3
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                      Click &quot;Allow&quot; in the browser popup
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">
+                      <CheckCircle2 className="w-3 h-3 inline mr-1" />
+                      Then your camera will turn on automatically
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tip for mobile */}
+              <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
+                <p className="text-xs text-green-800 dark:text-green-200">
+                  <strong>On your phone?</strong> The popup may appear at the bottom of your screen instead.
+                </p>
+              </div>
+            </div>
           )}
         </div>
 

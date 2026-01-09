@@ -1,5 +1,5 @@
 - review the documents. build prod ready files, do not add To-Dos. do not assume-ask me when in doubt.
-- today is Jan 8, 2026.
+- today is Jan 9, 2026.
 
 ## UI/UX REORGANIZATION STATUS (Jan 2026)
 
@@ -189,6 +189,53 @@ Status Key: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 N
 
 ---
 
+## PHASE 2: Feature Verification & Fixes (Jan 2026)
+
+**Reference Document:** `/healthguide_refactor_4.md`
+
+| Task | Description | Status | Date | Notes |
+|------|-------------|--------|------|-------|
+| 1.1 | Shift Handoff - QR/GPS | 🔄 | Jan 9 | Fixed timestamp conversion bug (commit 38aceaf) |
+| 1.2 | Elder Profile Address | ⏳ | | |
+| 1.3 | Timesheet Service | ⏳ | | |
+| 1.4 | Admin Approval UI | ⏳ | | |
+| 1.5 | Firestore Rules | 🔒 | | Needs approval |
+| 1.6 | Geocoding API | 🔒 | | Needs approval |
+| 2.1 | Offline Audit | ⏳ | | |
+| 2.2 | Offline Layers | ⏳ | | |
+| 2.3 | Offline Sync | ⏳ | | |
+| 2.4 | Features Page Update | ⏳ | | |
+| 3.1 | Permission Prompts | ⏳ | | |
+| 3.2 | Voice Logging | ⏳ | | |
+| 4.1 | Remove Pricing Check | ⏳ | | |
+| 4.2 | FDA Drug API | ⏳ | | |
+| 5.1 | Dynamic Features Page | ⏳ | | |
+| 5.2 | Agentic Updates | ⏳ | | |
+| 5.3 | Offline Status | ⏳ | | |
+| 6.1 | Multi-Agency Subscribe | ⏳ | | |
+| 6.2 | Family Subscribe | ⏳ | | |
+| 7.1 | Cross-Device Session | ⏳ | | |
+| 7.2 | Session Firestore | 🔒 | | Needs approval |
+| 8.1 | Symptom Limits | ⏳ | | |
+| 8.2 | Pre-populated Issues | ⏳ | | |
+| 9.1 | Care Community Offline | ⏳ | | |
+| 10.1 | Pricing Visibility | ⏳ | | |
+| 11.1 | Careguide Branding | ⏳ | | |
+| 11.2 | Copyright Dynamic | ⏳ | | |
+| 12.1 | Password Current State | ⏳ | | |
+| 12.2 | Password Policy | 🔒 | | Needs approval |
+
+Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs Approval
+
+### Task 1.1 Progress (Shift Handoff)
+- [x] Fixed Firestore timestamp conversion for medication/supplement/diet logs (commit 38aceaf)
+- [ ] QR scanner integration exists
+- [ ] GPS flow integrated
+- [ ] Works on mobile browser
+- [ ] Camera permission prompt with step-by-step user guidance
+
+---
+
 ## CRITICAL: Authentication & Firestore Best Practices
 
 ### 1. Firestore Timestamp Conversion (CRITICAL BUG FIXED: Nov 25, 2025)
@@ -216,6 +263,8 @@ if (user.trialEndDate) {
 
 **Files affected:**
 - `src/components/auth/ProtectedRoute.tsx` (lines 43-53, 119-129) - FIXED
+- `src/lib/ai/shiftHandoffGeneration.ts` - FIXED Jan 9, 2026 (medication/supplement/diet timestamps)
+- `src/components/shift-handoff/SOAPNoteDisplay.tsx` - FIXED Jan 9, 2026 (robust formatTime helper)
 - Any other file that reads date fields from Firestore (medications, appointments, etc.)
 
 **Impact:**
