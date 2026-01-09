@@ -470,7 +470,7 @@ export default function AboutPage() {
             <div>
               <MobileAppIcon />
               <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
-                MyHealthGuide on the Go
+                Careguide on the Go
               </h2>
               <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
                 Download our iOS app and take MyHealthGuide with you wherever you go.
