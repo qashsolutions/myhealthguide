@@ -617,18 +617,45 @@ export function ElderProfileTab({ elder, groupId, userId, onUpdate }: ElderProfi
               <MapPin className="w-4 h-4" />
               Residence Address
             </h3>
-            <div className="space-y-1">
-              <p className="font-medium">{elder.address.street}</p>
-              <p className="text-gray-600 dark:text-gray-400">
-                {elder.address.city}, {elder.address.state} {elder.address.zipCode}
-              </p>
-              {elder.address.country && elder.address.country !== 'USA' && (
-                <p className="text-gray-600 dark:text-gray-400">{elder.address.country}</p>
-              )}
-              {elder.address.coordinates && (
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                  Location verified for QR clock-in
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Address Text */}
+              <div className="space-y-1">
+                <p className="font-medium">{elder.address.street}</p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {elder.address.city}, {elder.address.state} {elder.address.zipCode}
                 </p>
+                {elder.address.country && elder.address.country !== 'USA' && (
+                  <p className="text-gray-600 dark:text-gray-400">{elder.address.country}</p>
+                )}
+                {elder.address.coordinates && (
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                    Location verified for QR clock-in
+                  </p>
+                )}
+              </div>
+
+              {/* Map Preview */}
+              {elder.address.coordinates && (
+                <div className="relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <iframe
+                    title="Location Map"
+                    width="100%"
+                    height="150"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${elder.address.coordinates.longitude - 0.005},${elder.address.coordinates.latitude - 0.003},${elder.address.coordinates.longitude + 0.005},${elder.address.coordinates.latitude + 0.003}&layer=mapnik&marker=${elder.address.coordinates.latitude},${elder.address.coordinates.longitude}`}
+                  />
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${elder.address.coordinates.latitude}&mlon=${elder.address.coordinates.longitude}#map=17/${elder.address.coordinates.latitude}/${elder.address.coordinates.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-2 right-2 text-xs bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded shadow hover:bg-white dark:hover:bg-gray-800"
+                  >
+                    View larger map
+                  </a>
+                </div>
               )}
             </div>
           </div>
