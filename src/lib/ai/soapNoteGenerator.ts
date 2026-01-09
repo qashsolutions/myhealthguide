@@ -258,10 +258,12 @@ function convertAIResponseToSOAPNote(aiResponse: any, data: ShiftDataForSOAP): S
       actions: (aiResponse.plan?.actions || []).map((a: any) => ({
         priority: validatePriority(a.priority),
         action: a.action,
-        reason: a.reason,
+        ...(a.reason && { reason: a.reason }),
       })),
       familyAlertSent: false,
-      familyAlertMessage: aiResponse.plan?.familyAlertNeeded ? aiResponse.plan.familyAlertMessage : undefined,
+      ...(aiResponse.plan?.familyAlertNeeded && aiResponse.plan.familyAlertMessage && {
+        familyAlertMessage: aiResponse.plan.familyAlertMessage
+      }),
     },
     generatedBy: 'ai',
     generatedAt: new Date(),
@@ -408,7 +410,7 @@ function generateRuleBased(data: ShiftDataForSOAP): SOAPNote {
     plan: {
       actions,
       familyAlertSent: false,
-      familyAlertMessage,
+      ...(familyAlertMessage && { familyAlertMessage }),
     },
     generatedBy: 'rule_based',
     generatedAt: new Date(),
