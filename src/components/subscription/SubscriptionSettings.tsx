@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { CreditCard, Calendar, AlertCircle, CheckCircle, Clock, XCircle, ArrowUp, ArrowDown, Ban } from 'lucide-react';
+import { CreditCard, Calendar, AlertCircle, CheckCircle, Clock, XCircle, ArrowUp, ArrowDown, Ban, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   PLAN_CONFIG,
@@ -23,6 +23,7 @@ import {
   getStripePriceId,
   type PlanTier,
 } from '@/lib/subscription';
+import { canManageBilling } from '@/lib/utils/getUserRole';
 
 // Helper function to convert Firestore Timestamp to Date
 function convertFirestoreTimestamp(timestamp: unknown): Date | null {
@@ -382,6 +383,65 @@ export function SubscriptionSettings() {
       setLoading(false);
     }
   };
+
+  // Check if user can manage billing (only admins/owners)
+  const userCanManageBilling = canManageBilling(user);
+
+  // If user cannot manage billing, show read-only view
+  if (!userCanManageBilling) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-blue-600" />
+              Subscription Managed by Admin
+            </CardTitle>
+            <CardDescription>
+              Your subscription is managed by your organization&apos;s administrator.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Show current plan info if available */}
+              {user?.subscriptionTier && (
+                <div className="p-4 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-gray-900">
+                      {PLANS[user.subscriptionTier as keyof typeof PLANS]?.name || 'Active Plan'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    You have access to all features included in your organization&apos;s plan.
+                  </p>
+                </div>
+              )}
+
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  <strong>Need to make changes?</strong>
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Contact your organization&apos;s administrator to manage subscription settings,
+                  upgrade plans, or update billing information.
+                </p>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                <p>
+                  Questions?{' '}
+                  <a href="/help" className="text-blue-600 hover:underline">Visit our help center</a>
+                  {' '}or{' '}
+                  <a href="mailto:support@myguide.health" className="text-blue-600 hover:underline">contact support</a>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

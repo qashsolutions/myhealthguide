@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Users, Shield, CheckCircle, Loader2 } from 'lucide-react';
+import { Heart, Users, Shield, CheckCircle, Loader2, ShieldAlert } from 'lucide-react';
 import {
   PLAN_CONFIG,
   CORE_FEATURES,
@@ -13,6 +13,7 @@ import {
   TRIAL_DURATION_DAYS,
   type PlanTier,
 } from '@/lib/subscription';
+import { canManageBilling } from '@/lib/utils/getUserRole';
 
 
 /**
@@ -47,6 +48,9 @@ export function PricingCards({
   const [selectedPlan, setSelectedPlan] = useState<PlanTier>(defaultSelectedPlan);
   const [loading, setLoading] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Check if logged-in user can manage billing (members/caregivers cannot)
+  const userCanManageBilling = !user || canManageBilling(user);
 
   // Determine if a plan should be greyed out based on user type selection
   const isPlanDisabled = (planId: PlanTier): boolean => {
@@ -320,32 +324,45 @@ export function PricingCards({
                   </ul>
 
                   {/* CTA Button */}
-                  <Button
-                    variant={isSelected && !isDisabled ? 'default' : 'outline'}
-                    className={`w-full ${
-                      isDisabled
-                        ? 'opacity-50 cursor-not-allowed'
-                        : isSelected
-                          ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
-                          : ''
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!isDisabled) handleSubscribe(plan.id, plan.name);
-                    }}
-                    disabled={loading === plan.id || isDisabled}
-                  >
-                    {loading === plan.id ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : isDisabled ? (
-                      'Not available'
-                    ) : (
-                      `Start ${plan.trialDays}-Day Free Trial`
-                    )}
-                  </Button>
+                  {user && !userCanManageBilling ? (
+                    // Logged-in user who cannot manage billing (member/caregiver)
+                    <div className="w-full p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
+                      <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
+                        <ShieldAlert className="w-4 h-4" />
+                        <span className="text-sm font-medium">Contact your admin</span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        Subscription managed by organization
+                      </p>
+                    </div>
+                  ) : (
+                    <Button
+                      variant={isSelected && !isDisabled ? 'default' : 'outline'}
+                      className={`w-full ${
+                        isDisabled
+                          ? 'opacity-50 cursor-not-allowed'
+                          : isSelected
+                            ? '!bg-blue-600 hover:!bg-blue-700 !text-white !border-blue-600'
+                            : ''
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isDisabled) handleSubscribe(plan.id, plan.name);
+                      }}
+                      disabled={loading === plan.id || isDisabled}
+                    >
+                      {loading === plan.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : isDisabled ? (
+                        'Not available'
+                      ) : (
+                        `Start ${plan.trialDays}-Day Free Trial`
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );

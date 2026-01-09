@@ -171,3 +171,31 @@ export function isAgencyCaregiver(user: User | null): boolean {
 export function isReadOnlyUser(user: User | null): boolean {
   return isFamilyMember(user) || isAgencyFamilyMember(user);
 }
+
+/**
+ * Check if user can manage billing/subscription
+ * Only the account owner can subscribe or change plans:
+ * - Agency: super_admin (owner)
+ * - Family: admin (original subscriber)
+ *
+ * Returns false for:
+ * - Family members (invited users)
+ * - Agency caregivers (not superadmin)
+ * - Agency family members
+ */
+export function canManageBilling(user: User | null): boolean {
+  if (!user) return false;
+
+  // Check if user is agency superadmin (owner)
+  if (user.agencies && user.agencies.length > 0) {
+    return user.agencies.some((a) => a.role === 'super_admin');
+  }
+
+  // Check if user is family plan admin (original subscriber)
+  if (user.groups && user.groups.length > 0) {
+    return user.groups.some((g) => g.role === 'admin');
+  }
+
+  // No membership - could be new user, allow access to subscribe
+  return true;
+}
