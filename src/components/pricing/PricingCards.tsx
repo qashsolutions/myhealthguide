@@ -13,7 +13,7 @@ import {
   TRIAL_DURATION_DAYS,
   type PlanTier,
 } from '@/lib/subscription';
-import { canManageBilling } from '@/lib/utils/getUserRole';
+import { canManageBilling, isSuperAdmin, isFamilyAdmin } from '@/lib/utils/getUserRole';
 
 
 /**
@@ -51,6 +51,34 @@ export function PricingCards({
 
   // Check if logged-in user can manage billing (members/caregivers cannot)
   const userCanManageBilling = !user || canManageBilling(user);
+
+  // Determine which plans to show based on user role
+  const getVisiblePlanIds = (): PlanTier[] => {
+    // Not logged in - show all plans
+    if (!user) {
+      return ['family', 'single_agency', 'multi_agency'];
+    }
+
+    // Non-billing users see nothing (handled separately with message)
+    if (!canManageBilling(user)) {
+      return [];
+    }
+
+    // Agency super admin - only show multi_agency
+    if (isSuperAdmin(user)) {
+      return ['multi_agency'];
+    }
+
+    // Family admin - show family plans only (A & B)
+    if (isFamilyAdmin(user)) {
+      return ['family', 'single_agency'];
+    }
+
+    // Default: show all plans (new users who can subscribe)
+    return ['family', 'single_agency', 'multi_agency'];
+  };
+
+  const visiblePlanIds = getVisiblePlanIds();
 
   // Determine if a plan should be greyed out based on user type selection
   const isPlanDisabled = (planId: PlanTier): boolean => {
@@ -190,9 +218,37 @@ export function PricingCards({
           </div>
         )}
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {plans.map((plan) => {
+        {/* Non-billing user message */}
+        {user && !userCanManageBilling && (
+          <div className="mx-auto max-w-md text-center py-12">
+            <div className="inline-flex p-4 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">
+              <ShieldAlert className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Subscription Managed by Your Organization
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Your subscription is managed by your administrator. Please contact them for any billing-related questions.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-500">
+              Need help?{' '}
+              <a href="mailto:admin@myguide.health" className="text-blue-600 hover:underline">
+                Contact support
+              </a>
+            </p>
+          </div>
+        )}
+
+        {/* Pricing Cards - only show if user can see plans */}
+        {visiblePlanIds.length > 0 && (
+          <div className={`grid grid-cols-1 gap-8 ${
+            visiblePlanIds.length === 1
+              ? 'lg:grid-cols-1 max-w-md mx-auto'
+              : visiblePlanIds.length === 2
+                ? 'lg:grid-cols-2 max-w-3xl mx-auto'
+                : 'lg:grid-cols-3'
+          }`}>
+          {plans.filter(plan => visiblePlanIds.includes(plan.id)).map((plan) => {
             const Icon = plan.icon;
             const isSelected = selectedPlan === plan.id;
             const isDisabled = isPlanDisabled(plan.id);
@@ -367,7 +423,8 @@ export function PricingCards({
               </Card>
             );
           })}
-        </div>
+          </div>
+        )}
 
         {/* Trial Info Footer */}
         {showTrialInfo && (

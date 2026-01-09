@@ -220,7 +220,7 @@ Status Key: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 N
 | 8.1 | Symptom Limits | ⏳ | | Not verified |
 | 8.2 | Pre-populated Issues | ⏳ | | No offline data |
 | 9.1 | Care Community Offline | ⏳ | | No local cache |
-| 10.1 | Pricing Visibility | ⏳ | | All plans shown to all |
+| 10.1 | Pricing Visibility | ✅ | Jan 9 | Plans filtered by user role |
 | 11.1 | Careguide Branding | ⏳ | | Not verified |
 | 11.2 | Copyright Dynamic | ✅ | Jan 9 | Uses getFullYear() |
 | 12.1 | Password Current State | ✅ | Jan 9 | Documented below |
@@ -245,6 +245,14 @@ Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs
 - Rules already exist at firestore.rules lines 1174-1208
 - Covers `sessions` and `sessionEvents` collections
 
+**Task 10.1: Pricing Plan Filtering**
+- Added `getVisiblePlanIds()` function in `PricingCards.tsx`
+- Family admins (isFamilyAdmin) see only Plan A & B
+- Agency super admins (isSuperAdmin) see only Multi-Agency
+- Non-billing users see "Subscription Managed by Your Organization"
+- Grid layout adapts to 1, 2, or 3 column layout based on visible plans
+- Logged-out users see all plans
+
 **Task 11.2: Copyright Dynamic**
 - Footer uses `{new Date().getFullYear()}` in `src/components/shared/Footer.tsx`
 
@@ -267,7 +275,7 @@ Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs
 | 7.1 | Cross-Device Session | Low | No page/elder tracking |
 | 8.1-8.2 | Symptom Limits | Medium | Need offline data |
 | 9.1 | Care Community Offline | Medium | No local cache |
-| 10.1 | Pricing Visibility | Medium | Need role-based filtering |
+| 10.1 | Pricing Visibility | ✅ | Filters plans by user role |
 | 11.1 | Careguide Branding | Low | Verify app store text |
 
 ### Task 1.1 Progress (Shift Handoff)
@@ -1442,7 +1450,7 @@ All changes verified on production (https://myguide.health):
 | 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
 | 8.2 | Pre-populated Issues | ❌ | Jan 9 | NO offline data - AI only |
 | 9.1 | Care Community Offline | ❌ | Jan 9 | NO local cache - API only |
-| 10.1 | Pricing Visibility | ⚠️ | Jan 9 | canManageBilling ✅, plan filtering ❌ |
+| 10.1 | Pricing Visibility | ✅ | Jan 9 | Plans filtered by role via getVisiblePlanIds() |
 | 11.1 | Careguide Branding | ✅ | Jan 9 | "Careguide on the Go" in about page (50141ed) |
 | 11.2 | Copyright Dynamic | ✅ | Jan 9 | Uses getFullYear() |
 | 12.1 | Password Current State | ✅ | Jan 9 | Now requires 2 special chars (!@#$%) |
