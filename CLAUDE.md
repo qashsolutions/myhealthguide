@@ -1378,7 +1378,7 @@ All changes verified on production (https://myguide.health):
 | 1.1 | Shift Handoff - QR/GPS | ✅ | Jan 9 | QR+GPS integrated, 65+ camera guidance added |
 | 1.2 | Elder Profile Address | ✅ | Jan 9 | Address form + geocoding + map preview working |
 | 1.3 | Timesheet Service | ✅ | Jan 9 | Full submit workflow exists, agency-only |
-| 1.4 | Admin Approval UI | 🔒 | Jan 9 | Types exist, needs API + UI (requires approval) |
+| 1.4 | Admin Approval UI | ✅ | Jan 9 | API + UI complete, integrated in agency dashboard |
 | 1.5 | Firestore Rules | 🔒 | | Needs approval |
 | 1.6 | Geocoding API | ✅ | Jan 9 | API route exists at /api/geocode |
 | 2.1 | Offline Audit | ✅ | Jan 8 | SW exists, static cache works |
@@ -1392,16 +1392,16 @@ All changes verified on production (https://myguide.health):
 | 5.1 | Dynamic Features Page | ✅ | Jan 8 | MiniSearch + helpArticles |
 | 5.2 | Agentic Updates | ❌ | Jan 8 | Page is static |
 | 5.3 | Offline Status | ❌ | Jan 8 | Not indicated |
-| 6.1 | Multi-Agency Subscribe | ⏳ | | Not verified |
-| 6.2 | Family Subscribe | ⏳ | | Not verified |
-| 7.1 | Cross-Device Session | ⏳ | | Not verified |
+| 6.1 | Multi-Agency Subscribe | ❌ | Jan 9 | NO role checks - ALL see subscribe |
+| 6.2 | Family Subscribe | ❌ | Jan 9 | NO role checks - members see subscribe |
+| 7.1 | Cross-Device Session | ❌ | Jan 9 | NO page/elder tracking exists |
 | 7.2 | Session Firestore | 🔒 | | Needs approval |
 | 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
-| 8.2 | Pre-populated Issues | ⏳ | | Not verified |
-| 9.1 | Care Community Offline | ⏳ | | Not verified |
-| 10.1 | Pricing Visibility | ⏳ | | Not verified |
+| 8.2 | Pre-populated Issues | ❌ | Jan 9 | NO offline data - AI only |
+| 9.1 | Care Community Offline | ❌ | Jan 9 | NO local cache - API only |
+| 10.1 | Pricing Visibility | ❌ | Jan 9 | ALL plans shown to ALL - no role filter |
 | 11.1 | Careguide Branding | ✅ | Jan 8 | Fixed, only in App Store URL |
-| 11.2 | Copyright Dynamic | ⏳ | | Not verified |
+| 11.2 | Copyright Dynamic | ✅ | Jan 9 | Uses getFullYear() |
 | 12.1 | Password Current State | ✅ | Jan 8 | 8+ chars, alphanumeric ONLY |
 | 12.2 | Password Policy | 🔒 | | Current BLOCKS special chars |
 
@@ -1444,14 +1444,21 @@ Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs
 - ✅ Current week submission status display
 - ✅ `timesheetSubmissions` collection integration
 
-**Task 1.4 - Super Admin Approval UI:** ⚠️ NEEDS IMPLEMENTATION
+**Task 1.4 - Super Admin Approval UI:** ✅ COMPLETE (Jan 9)
 - ✅ Types exist: `TimesheetSubmission`, `TimesheetApprovalItem`, `ApprovalAction`
-- ❌ **NO approval API** - `/api/timesheet` has no approve/reject action
-- ❌ **NO approval UI** - No component in agency dashboard
-- **Required to build:**
-  1. API: Add `action:'approve'` and `action:'reject'` to `/api/timesheet`
-  2. UI: Create `TimesheetApprovalDashboard.tsx` component
-  3. Integration: Add to agency dashboard for super admins
+- ✅ **Approval API added** to `/api/timesheet`:
+  - `action: 'getPendingApprovals'` - List pending for agency (super admin only)
+  - `action: 'approve'` - Approve submission with optional notes
+  - `action: 'reject'` - Reject submission with required reason
+  - Super admin role verification on all actions
+- ✅ **TimesheetApprovalDashboard component** created:
+  - Collapsible card showing pending submissions
+  - Approve/Reject buttons with confirmation dialog
+  - Verification badges (GPS verified count, overrides)
+  - Required rejection reason, optional approval notes
+  - Refresh button for real-time updates
+- ✅ **Integrated into AgencyDashboard** for super admins only
+- Commit: `4065749`
 
 ### Backend Changes Pending Approval
 
@@ -1565,6 +1572,32 @@ match /timesheetSubmissions/{submissionId} {
 | Category/role filtering | ✅ | Working |
 | **Offline capability indicators** | ❌ | Not shown |
 | **Agentic auto-updates** | ❌ | Page is static, not auto-updating |
+
+---
+
+### Task 6 Findings - Subscription Visibility (Jan 9)
+
+**Issue:** NO role-based visibility checks - ALL users can see subscription options.
+
+| Component | Location | Role Check | Issue |
+|-----------|----------|------------|-------|
+| SubscriptionSettings | Settings > Subscription tab | ❌ None | Everyone sees subscribe buttons |
+| PricingCards | /pricing, homepage | ❌ None | Everyone sees pricing |
+| Sidebar | Dashboard navigation | ✅ Partial | Only isMultiAgency for Agency section |
+
+**Required Fix (Frontend only - safe to implement):**
+1. `SubscriptionSettings.tsx`: Add role check to hide for members/caregivers
+2. Settings page: Hide Subscription tab for non-admins
+3. `PricingCards.tsx`: Show "Contact your admin" for non-admins
+
+**Who should NOT see subscribe buttons:**
+- Family Members (invited users)
+- Agency Caregivers (not superadmin)
+- Agency Members (family of elder)
+
+**Who SHOULD see subscribe buttons:**
+- Family Plan Admin (original subscriber)
+- Agency Owner/Superadmin
 
 ---
 
