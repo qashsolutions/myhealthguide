@@ -257,9 +257,11 @@ Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs
 - Footer uses `{new Date().getFullYear()}` in `src/components/shared/Footer.tsx`
 
 **Task 12.1-12.2: Password Policy**
-- All signup pages require: 8+ chars, 1 letter, 1 number, 2 special chars (!@#$%)
-- Files: `/signup/page.tsx`, `/family/signup/page.tsx`, `/agency/signup/page.tsx`
-- No password rotation policy implemented
+- All signup/change/reset pages require: 8+ chars, 1 letter, 1 number, 2 special chars (!@#$%)
+- Files: All signup pages, change-password, reset-password, SetPasswordModal, settings
+- 75-day password expiry IS enforced via `ProtectedRoute.tsx` (lines 49-52, 137-139)
+- `AuthService.isPasswordExpired()` checks expiry, redirects to `/change-password`
+- Commit: 7ec5876
 
 ### Remaining Tasks (Not Implemented)
 

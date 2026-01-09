@@ -22,6 +22,8 @@ import {
   Info,
   Mic,
   MicOff,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { helpArticles, HelpArticle, HelpCategory } from '@/lib/help/articles';
 import { UserRole } from '@/types';
@@ -51,7 +53,7 @@ export default function FeaturesPage() {
   const miniSearch = useMemo(() => {
     const ms = new MiniSearch<HelpArticle>({
       fields: ['title', 'description', 'tags', 'value', 'path'],
-      storeFields: ['id', 'title', 'description', 'value', 'path', 'route', 'roles', 'category', 'featured', 'icon'],
+      storeFields: ['id', 'title', 'description', 'value', 'path', 'route', 'roles', 'category', 'featured', 'icon', 'offline'],
       searchOptions: {
         boost: { title: 2, tags: 1.5 },
         fuzzy: 0.2,
@@ -337,9 +339,29 @@ export default function FeaturesPage() {
                   <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                     <Sparkles className="h-6 w-6" />
                   </div>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 capitalize">
-                    {article.category}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 capitalize">
+                      {article.category}
+                    </span>
+                    {/* Offline indicator */}
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 ${
+                      article.offline
+                        ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                        : 'bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
+                    }`}>
+                      {article.offline ? (
+                        <>
+                          <WifiOff className="h-3 w-3" />
+                          Offline
+                        </>
+                      ) : (
+                        <>
+                          <Wifi className="h-3 w-3" />
+                          Online
+                        </>
+                      )}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Title */}

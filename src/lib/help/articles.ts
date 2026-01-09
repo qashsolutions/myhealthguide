@@ -24,6 +24,7 @@ export interface HelpArticle {
   tags: string[]; // For search - include synonyms
   featured: boolean; // Show in "Popular" section
   icon: string; // Lucide icon name
+  offline: boolean; // Works without internet connection
 }
 
 /**
@@ -48,6 +49,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['voice', 'medication', 'meds', 'pills', 'speak', 'log', 'record', 'hands-free'],
     featured: true,
     icon: 'Mic',
+    offline: false,
   },
   {
     id: 'voice-diet',
@@ -61,6 +63,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['voice', 'diet', 'food', 'meals', 'nutrition', 'eating', 'speak'],
     featured: true,
     icon: 'Utensils',
+    offline: false,
   },
 
   // ============================================
@@ -78,6 +81,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['ask', 'questions', 'help', 'assistant', 'answers'],
     featured: true,
     icon: 'Brain',
+    offline: false,
   },
   {
     id: 'clinical-notes',
@@ -91,6 +95,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['clinical', 'notes', 'doctor', 'visit', 'medical', 'summary', 'prepare'],
     featured: true,
     icon: 'FileText',
+    offline: false,
   },
   {
     id: 'health-chat',
@@ -104,6 +109,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['chat', 'ask', 'questions', 'help', 'assistant', 'answers'],
     featured: true,
     icon: 'MessageSquare',
+    offline: false,
   },
   {
     id: 'daily-insights',
@@ -117,6 +123,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['insights', 'daily', 'summary', 'trends', 'patterns', 'health'],
     featured: true,
     icon: 'Sparkles',
+    offline: false,
   },
   {
     id: 'nutrition-analysis',
@@ -130,6 +137,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['nutrition', 'diet', 'food', 'meals', 'tracking', 'patterns'],
     featured: false,
     icon: 'Apple',
+    offline: false,
   },
 
   // ============================================
@@ -147,6 +155,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['medication', 'meds', 'pills', 'add', 'new', 'prescription', 'drugs'],
     featured: false,
     icon: 'Pill',
+    offline: false,
   },
   {
     id: 'medication-adherence',
@@ -160,6 +169,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['medication', 'adherence', 'compliance', 'tracking', 'missed', 'doses'],
     featured: false,
     icon: 'TrendingUp',
+    offline: false,
   },
   {
     id: 'add-diet',
@@ -173,6 +183,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['diet', 'food', 'meals', 'nutrition', 'eating', 'log', 'add'],
     featured: false,
     icon: 'Utensils',
+    offline: false,
   },
   {
     id: 'supplements',
@@ -186,6 +197,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['supplements', 'vitamins', 'minerals', 'tracking'],
     featured: false,
     icon: 'Apple',
+    offline: false,
   },
   {
     id: 'add-elder',
@@ -199,6 +211,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['elder', 'add', 'new', 'patient', 'senior', 'profile'],
     featured: false,
     icon: 'UserPlus',
+    offline: false,
   },
 
   // ============================================
@@ -216,6 +229,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['drug', 'interactions', 'fda', 'safety', 'medications', 'warnings'],
     featured: true,
     icon: 'AlertTriangle',
+    offline: false,
   },
   {
     id: 'schedule-conflicts',
@@ -229,6 +243,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['schedule', 'conflicts', 'timing', 'medications', 'doses'],
     featured: false,
     icon: 'Clock',
+    offline: false,
   },
   {
     id: 'dementia-screening',
@@ -242,6 +257,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['dementia', 'screening', 'cognitive', 'assessment', 'memory', 'alzheimers'],
     featured: false,
     icon: 'Brain',
+    offline: false,
   },
   {
     id: 'caregiver-burnout',
@@ -255,6 +271,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['caregiver', 'burnout', 'stress', 'wellbeing', 'health'],
     featured: false,
     icon: 'Heart',
+    offline: false,
   },
   {
     id: 'incidents',
@@ -268,6 +285,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['incidents', 'falls', 'accidents', 'events', 'reporting'],
     featured: false,
     icon: 'AlertTriangle',
+    offline: false,
   },
 
   // ============================================
@@ -285,6 +303,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['alerts', 'notifications', 'reminders', 'push', 'missed', 'doses'],
     featured: false,
     icon: 'Bell',
+    offline: false,
   },
 
   // ============================================
@@ -302,6 +321,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['invite', 'family', 'members', 'caregivers', 'team', 'collaborate'],
     featured: false,
     icon: 'UserPlus',
+    offline: false,
   },
   {
     id: 'join-group',
@@ -315,6 +335,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['join', 'group', 'invite', 'code', 'family', 'team'],
     featured: false,
     icon: 'Users',
+    offline: false,
   },
   {
     id: 'family-updates',
@@ -328,6 +349,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['family', 'updates', 'reports', 'summaries', 'share'],
     featured: false,
     icon: 'FileText',
+    offline: false,
   },
   {
     id: 'activity-history',
@@ -341,6 +363,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['activity', 'history', 'audit', 'log', 'trail', 'who', 'when'],
     featured: false,
     icon: 'Clock',
+    offline: false,
   },
 
   // ============================================
@@ -358,6 +381,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['agency', 'dashboard', 'management', 'multi-tenant', 'professional'],
     featured: true,
     icon: 'Building2',
+    offline: false,
   },
   {
     id: 'caregiver-assignments',
@@ -371,6 +395,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['caregiver', 'assignments', 'assign', 'elders', 'agency'],
     featured: false,
     icon: 'Users',
+    offline: false,
   },
   {
     id: 'agency-analytics',
@@ -384,6 +409,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['agency', 'analytics', 'metrics', 'compliance', 'performance'],
     featured: false,
     icon: 'TrendingUp',
+    offline: false,
   },
   {
     id: 'agency-billing',
@@ -397,6 +423,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['agency', 'billing', 'pricing', 'payment', 'subscription', 'elder'],
     featured: false,
     icon: 'DollarSign',
+    offline: false,
   },
   {
     id: 'shift-handoff',
@@ -410,6 +437,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['shift', 'handoff', 'transition', 'notes', 'caregivers'],
     featured: false,
     icon: 'ArrowRightLeft',
+    offline: false,
   },
   {
     id: 'availability',
@@ -423,6 +451,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['availability', 'schedule', 'calendar', 'caregivers', 'shifts'],
     featured: false,
     icon: 'Calendar',
+    offline: false,
   },
   {
     id: 'timesheet',
@@ -436,6 +465,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['timesheet', 'hours', 'time', 'tracking', 'payroll'],
     featured: false,
     icon: 'Clock',
+    offline: false,
   },
 
   // ============================================
@@ -453,6 +483,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['calendar', 'schedule', 'appointments', 'activities', 'visual'],
     featured: false,
     icon: 'Calendar',
+    offline: false,
   },
 
   // ============================================
@@ -470,6 +501,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['phi', 'disclosures', 'hipaa', 'compliance', 'privacy', 'security'],
     featured: false,
     icon: 'Shield',
+    offline: false,
   },
   {
     id: 'settings',
@@ -483,6 +515,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['settings', 'account', 'profile', 'preferences', 'privacy'],
     featured: false,
     icon: 'Settings',
+    offline: false,
   },
 
   // ============================================
@@ -500,6 +533,7 @@ export const helpArticles: HelpArticle[] = [
     tags: ['export', 'download', 'data', 'backup', 'portability', 'gdpr'],
     featured: false,
     icon: 'Download',
+    offline: false,
   },
   {
     id: 'documents',
@@ -513,5 +547,6 @@ export const helpArticles: HelpArticle[] = [
     tags: ['documents', 'files', 'upload', 'medical', 'records', 'prescriptions'],
     featured: false,
     icon: 'FileText',
+    offline: false,
   },
 ];
