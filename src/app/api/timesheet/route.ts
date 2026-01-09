@@ -238,6 +238,98 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, submissions });
     }
 
+    // ============= SUPER ADMIN APPROVAL ACTIONS =============
+
+    if (action === 'getPendingApprovals') {
+      // Get pending submissions for this agency (super admin only)
+      const { agencyId: reqAgencyId } = body;
+      if (!reqAgencyId) {
+        return NextResponse.json({ success: false, error: 'Agency ID required' }, { status: 400 });
+      }
+
+      // Verify user is super admin of this agency
+      const userDoc = await db.collection('users').doc(authResult.userId).get();
+      const userData = userDoc.data();
+      const userAgency = userData?.agencies?.find((a: any) => a.agencyId === reqAgencyId);
+
+      if (!userAgency || userAgency.role !== 'superadmin') {
+        return NextResponse.json({ success: false, error: 'Unauthorized - Super admin access required' }, { status: 403 });
+      }
+
+      // Get pending submissions for this agency
+      const pendingQuery = await db.collection('timesheetSubmissions')
+        .where('agencyId', '==', reqAgencyId)
+        .where('status', '==', 'submitted')
+        .orderBy('submittedAt', 'desc')
+        .get();
+
+      const pendingSubmissions = pendingQuery.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          weekStartDate: data.weekStartDate?.toDate(),
+          weekEndDate: data.weekEndDate?.toDate(),
+          submittedAt: data.submittedAt?.toDate(),
+          reviewedAt: data.reviewedAt?.toDate(),
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
+        };
+      });
+
+      return NextResponse.json({ success: true, submissions: pendingSubmissions });
+    }
+
+    if (action === 'approve' || action === 'reject') {
+      const { submissionId, notes, reviewerName } = body;
+
+      if (!submissionId) {
+        return NextResponse.json({ success: false, error: 'Submission ID required' }, { status: 400 });
+      }
+
+      // Get the submission
+      const submissionDoc = await db.collection('timesheetSubmissions').doc(submissionId).get();
+      if (!submissionDoc.exists) {
+        return NextResponse.json({ success: false, error: 'Submission not found' }, { status: 404 });
+      }
+
+      const submissionData = submissionDoc.data();
+
+      // Verify user is super admin of this agency
+      const userDoc = await db.collection('users').doc(authResult.userId).get();
+      const userData = userDoc.data();
+      const userAgency = userData?.agencies?.find((a: any) => a.agencyId === submissionData?.agencyId);
+
+      if (!userAgency || userAgency.role !== 'superadmin') {
+        return NextResponse.json({ success: false, error: 'Unauthorized - Super admin access required' }, { status: 403 });
+      }
+
+      // Check submission is in submitted status
+      if (submissionData?.status !== 'submitted') {
+        return NextResponse.json({ success: false, error: `Cannot ${action} - submission is ${submissionData?.status}` }, { status: 400 });
+      }
+
+      // Update submission
+      const newStatus: TimesheetSubmissionStatus = action === 'approve' ? 'approved' : 'rejected';
+      await db.collection('timesheetSubmissions').doc(submissionId).update({
+        status: newStatus,
+        reviewedAt: FieldValue.serverTimestamp(),
+        reviewedBy: authResult.userId,
+        reviewerName: reviewerName || userData?.firstName || 'Admin',
+        reviewNotes: notes || null,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      // TODO: Send notification to caregiver about approval/rejection
+
+      return NextResponse.json({
+        success: true,
+        message: `Timesheet ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
+        submissionId,
+        newStatus
+      });
+    }
+
     return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
 
   } catch (error) {

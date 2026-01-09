@@ -35,6 +35,7 @@ import { PendingCaregiversSection } from './PendingCaregiversSection';
 import { ActiveCaregiversSection } from './ActiveCaregiversSection';
 import { FeedbackDashboard } from '@/components/feedback/FeedbackDashboard';
 import { ShiftTrackingDashboard } from './ShiftTrackingDashboard';
+import { TimesheetApprovalDashboard } from './TimesheetApprovalDashboard';
 import { FamilyInviteManager } from '@/components/caregiver/FamilyInviteManager';
 import { SuperAdminFamilyOverview } from './SuperAdminFamilyOverview';
 
@@ -573,6 +574,14 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
       {/* Shift Tracking Dashboard - Actual vs Planned */}
       {isSuperAdmin && (
         <ShiftTrackingDashboard agencyId={agencyId} />
+      )}
+
+      {/* Timesheet Approval Dashboard - Super Admin Only */}
+      {isSuperAdmin && agency && (
+        <TimesheetApprovalDashboard
+          agencyId={agencyId}
+          reviewerName={agency.name || 'Admin'}
+        />
       )}
 
       {/* Smart Feedback Dashboard - Only for Super Admin */}

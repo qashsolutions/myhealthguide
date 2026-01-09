@@ -1375,12 +1375,12 @@ All changes verified on production (https://myguide.health):
 
 | Task | Description | Status | Date | Notes |
 |------|-------------|--------|------|-------|
-| 1.1 | Shift Handoff - QR/GPS | ❌ | Jan 8 | Services exist, NOT integrated into UI |
-| 1.2 | Elder Profile Address | ❌ | Jan 8 | Type exists, NO address form in UI |
-| 1.3 | Timesheet Service | ❌ | Jan 8 | View exists, NO submit workflow |
-| 1.4 | Admin Approval UI | ❌ | Jan 8 | Types exist, NO approval UI |
+| 1.1 | Shift Handoff - QR/GPS | ✅ | Jan 9 | QR+GPS integrated, 65+ camera guidance added |
+| 1.2 | Elder Profile Address | ✅ | Jan 9 | Address form + geocoding + map preview working |
+| 1.3 | Timesheet Service | ✅ | Jan 9 | Full submit workflow exists, agency-only |
+| 1.4 | Admin Approval UI | 🔒 | Jan 9 | Types exist, needs API + UI (requires approval) |
 | 1.5 | Firestore Rules | 🔒 | | Needs approval |
-| 1.6 | Geocoding API | 🔒 | | API route missing, needs approval |
+| 1.6 | Geocoding API | ✅ | Jan 9 | API route exists at /api/geocode |
 | 2.1 | Offline Audit | ✅ | Jan 8 | SW exists, static cache works |
 | 2.2 | Offline Layers | ❌ | Jan 8 | NO IndexedDB cache for user data |
 | 2.3 | Offline Sync | ❌ | Jan 8 | NO action queue, NO background sync |
@@ -1409,38 +1409,58 @@ Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs
 
 ### Task 1 Detailed Findings
 
-**Task 1.1 - Shift Handoff QR/GPS:**
+**Task 1.1 - Shift Handoff QR/GPS:** ✅ COMPLETE (Jan 9)
 - ✅ `QRScanner.tsx` component exists (uses html5-qrcode library)
 - ✅ `qrCodeService.ts` - Full QR code generation/validation/Firestore CRUD
 - ✅ `gpsService.ts` - GPS capture, Haversine distance calculation
 - ✅ `LocationOverrideDialog` and `GPSStatus` components exist
-- ❌ **NOT INTEGRATED**: Shift-handoff page uses schedule-based clock-in only
-- ❌ **NO step-by-step camera guidance** for elderly users
+- ✅ QR tab integrated in shift-handoff page
+- ✅ GPS verification integrated into clock-in flow
+- ✅ **65+ user guidance added** to `CameraPermissionDialog.tsx`:
+  - 3-step visual guide with numbered circles
+  - Clear instructions for browser popup
+  - Mobile-specific tip
+  - Commit: `9264a7d`
 
-**Task 1.2 - Elder Profile Address:**
+**Task 1.2 - Elder Profile Address:** ✅ COMPLETE (Jan 9)
 - ✅ `Elder` type has `address` field with coordinates (lines 301-312 in types/index.ts)
 - ✅ `Elder` type has `qrCodeId` field
-- ❌ **NO address form** in `ElderProfileTab.tsx` (only demographics/physical/care)
-- ❌ **NO geocoding** in profile UI
+- ✅ Address form exists in `ElderProfileTab.tsx` (lines 328-389)
+- ✅ Geocoding API exists at `/api/geocode/route.ts` using Google Maps API
+- ✅ **Map preview added** using OpenStreetMap iframe:
+  - Shows marker at elder's residence
+  - "View larger map" link to full OpenStreetMap
+  - 2-column layout on desktop (address + map)
+  - Green dot indicator for verified location
+  - Commit: `dcf7efb`
 
-**Task 1.3 - Timesheet Service:**
+**Task 1.3 - Timesheet Service:** ✅ COMPLETE (Jan 9)
 - ✅ `/dashboard/timesheet` page exists
-- ✅ Weekly/monthly view with My Shifts / Elder Shifts toggle
+- ✅ Weekly/monthly/90-day view with My Shifts / Elder Shifts toggle
 - ✅ CSV export functionality
-- ❌ **NO submit button** - view/export only
-- ❌ **NO submission workflow**
+- ✅ **Submit button exists** (lines 400-416) - Shows for agency caregivers only
+- ✅ **Full submission workflow** via `/api/timesheet` POST with action:'submit'
+- ✅ Status tracking: submitted, approved, rejected
+- ✅ Current week submission status display
+- ✅ `timesheetSubmissions` collection integration
 
-**Task 1.4 - Super Admin Approval UI:**
+**Task 1.4 - Super Admin Approval UI:** ⚠️ NEEDS IMPLEMENTATION
 - ✅ Types exist: `TimesheetSubmission`, `TimesheetApprovalItem`, `ApprovalAction`
-- ❌ **NO approval UI** in agency components or dashboard
+- ❌ **NO approval API** - `/api/timesheet` has no approve/reject action
+- ❌ **NO approval UI** - No component in agency dashboard
+- **Required to build:**
+  1. API: Add `action:'approve'` and `action:'reject'` to `/api/timesheet`
+  2. UI: Create `TimesheetApprovalDashboard.tsx` component
+  3. Integration: Add to agency dashboard for super admins
 
 ### Backend Changes Pending Approval
 
-**1. Geocoding API Route (Task 1.6)**
-- `gpsService.ts` calls `/api/geocode` but **route does not exist**
-- Need: `src/app/api/geocode/route.ts`
-- Purpose: Convert address to lat/lng coordinates for GPS verification
-- Options: Google Geocoding API, MapBox, or OpenStreetMap Nominatim
+**1. Geocoding API Route (Task 1.6)** ✅ ALREADY EXISTS
+- Route exists at `src/app/api/geocode/route.ts`
+- Uses Google Maps Geocoding API
+- Supports both GET and POST requests
+- Has mock fallback for development without API key
+- Verified working in production
 
 **2. Firestore Rules (Task 1.5)**
 Collections needing rules:
