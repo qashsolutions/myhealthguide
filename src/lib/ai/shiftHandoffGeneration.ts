@@ -39,8 +39,15 @@ interface NotableEvent {
 }
 
 /**
- * Recursively remove undefined values from an object
- * Firestore does not accept undefined as field values
+ * Check if a Date is valid
+ */
+function isValidDate(date: Date): boolean {
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
+/**
+ * Recursively remove undefined values and invalid dates from an object
+ * Firestore does not accept undefined as field values or invalid dates
  */
 function removeUndefinedFields<T>(obj: T): T {
   if (obj === null || obj === undefined) {
@@ -52,7 +59,8 @@ function removeUndefinedFields<T>(obj: T): T {
   }
 
   if (obj instanceof Date) {
-    return obj;
+    // Return valid dates, replace invalid ones with current date
+    return (isValidDate(obj) ? obj : new Date()) as T;
   }
 
   if (typeof obj === 'object') {
