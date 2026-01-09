@@ -49,9 +49,31 @@ export function SOAPNoteDisplay({
   shiftEnd,
   caregiverName,
 }: SOAPNoteDisplayProps) {
-  const formatTime = (date: Date | string) => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return format(d, 'h:mm a');
+  // Robust date conversion that handles Firestore Timestamps, strings, and Date objects
+  const toValidDate = (date: any): Date | null => {
+    if (!date) return null;
+    if (date instanceof Date) {
+      return isNaN(date.getTime()) ? null : date;
+    }
+    // Handle Firestore Timestamp objects
+    if (typeof date === 'object' && 'seconds' in date) {
+      return new Date(date.seconds * 1000);
+    }
+    if (typeof date === 'string' || typeof date === 'number') {
+      const d = new Date(date);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    return null;
+  };
+
+  const formatTime = (date: Date | string | any) => {
+    const d = toValidDate(date);
+    if (!d) return '--:--';
+    try {
+      return format(d, 'h:mm a');
+    } catch {
+      return '--:--';
+    }
   };
 
   return (
@@ -64,7 +86,7 @@ export function SOAPNoteDisplay({
               Shift Handoff - {elderName}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {format(shiftStart, 'MMM d, yyyy')} | {formatTime(shiftStart)} - {formatTime(shiftEnd)}
+              {toValidDate(shiftStart) ? format(toValidDate(shiftStart)!, 'MMM d, yyyy') : 'Unknown Date'} | {formatTime(shiftStart)} - {formatTime(shiftEnd)}
             </p>
             {caregiverName && (
               <p className="text-sm text-gray-500 dark:text-gray-500">

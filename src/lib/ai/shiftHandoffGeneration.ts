@@ -278,6 +278,22 @@ export async function generateShiftHandoffNote(
 }
 
 /**
+ * Convert any Firestore Timestamp or timestamp-like object to Date
+ */
+function convertToDate(ts: any): Date | undefined {
+  if (!ts) return undefined;
+  if (ts instanceof Date) return ts;
+  if (typeof ts === 'object' && 'seconds' in ts) {
+    return new Date(ts.seconds * 1000);
+  }
+  if (typeof ts === 'string' || typeof ts === 'number') {
+    const date = new Date(ts);
+    return isNaN(date.getTime()) ? undefined : date;
+  }
+  return undefined;
+}
+
+/**
  * Gather all data logged during shift
  */
 async function gatherShiftData(
@@ -303,10 +319,20 @@ async function gatherShiftData(
     orderBy('createdAt', 'desc')
   );
   const medLogsSnap = await getDocs(medLogsQuery);
-  const medicationLogs = medLogsSnap.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data()
-  })) as MedicationLog[];
+  // Convert Firestore timestamps to JavaScript Dates for medication logs
+  const medicationLogs: MedicationLog[] = medLogsSnap.docs.map((doc) => {
+    const data = doc.data();
+    // Spread data first, then override timestamp fields with proper Date conversions
+    const log = {
+      ...data,
+      id: doc.id,
+      scheduledTime: convertToDate(data.scheduledTime) || new Date(),
+      actualTime: convertToDate(data.actualTime),
+      createdAt: convertToDate(data.createdAt),
+      updatedAt: convertToDate(data.updatedAt),
+    };
+    return log as unknown as MedicationLog;
+  });
 
   console.log('[ShiftHandoff] Found medication logs:', medicationLogs.length);
 
@@ -320,10 +346,20 @@ async function gatherShiftData(
     orderBy('timestamp', 'desc')
   );
   const suppLogsSnap = await getDocs(suppLogsQuery);
-  const supplementLogs = suppLogsSnap.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data()
-  })) as SupplementLog[];
+  // Convert Firestore timestamps to JavaScript Dates for supplement logs
+  const supplementLogs: SupplementLog[] = suppLogsSnap.docs.map((doc) => {
+    const data = doc.data();
+    const log = {
+      ...data,
+      id: doc.id,
+      scheduledTime: convertToDate(data.scheduledTime) || new Date(),
+      actualTime: convertToDate(data.actualTime),
+      timestamp: convertToDate(data.timestamp) || new Date(),
+      createdAt: convertToDate(data.createdAt),
+      updatedAt: convertToDate(data.updatedAt),
+    };
+    return log as unknown as SupplementLog;
+  });
 
   // Get diet entries during shift (collection is snake_case in Firestore)
   const dietQuery = query(
@@ -335,10 +371,18 @@ async function gatherShiftData(
     orderBy('timestamp', 'desc')
   );
   const dietSnap = await getDocs(dietQuery);
-  const dietEntries = dietSnap.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data()
-  })) as DietEntry[];
+  // Convert Firestore timestamps to JavaScript Dates for diet entries
+  const dietEntries: DietEntry[] = dietSnap.docs.map((doc) => {
+    const data = doc.data();
+    const entry = {
+      ...data,
+      id: doc.id,
+      timestamp: convertToDate(data.timestamp) || new Date(),
+      createdAt: convertToDate(data.createdAt),
+      updatedAt: convertToDate(data.updatedAt),
+    };
+    return entry as unknown as DietEntry;
+  });
 
   return {
     medicationLogs,
