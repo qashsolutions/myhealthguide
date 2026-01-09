@@ -223,7 +223,15 @@ export async function generateShiftHandoffNote(
 
     return { ...handoffNote, id: handoffRef.id } as ShiftHandoffNote;
   } catch (error) {
-    console.error('Error generating shift handoff note:', error);
+    console.error('[ShiftHandoff] Error generating shift handoff note:', error);
+    console.error('[ShiftHandoff] Error details:', {
+      shiftSessionId,
+      groupId,
+      elderId,
+      elderName,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined
+    });
     return null;
   }
 }
@@ -237,6 +245,13 @@ async function gatherShiftData(
   startTime: Date,
   endTime: Date
 ) {
+  console.log('[ShiftHandoff] Gathering shift data:', {
+    groupId,
+    elderId,
+    startTime: startTime.toISOString(),
+    endTime: endTime.toISOString()
+  });
+
   // Get medication logs during shift (collection is snake_case in Firestore)
   const medLogsQuery = query(
     collection(db, 'medication_logs'),
@@ -251,6 +266,8 @@ async function gatherShiftData(
     id: doc.id,
     ...doc.data()
   })) as MedicationLog[];
+
+  console.log('[ShiftHandoff] Found medication logs:', medicationLogs.length);
 
   // Get supplement logs during shift (collection is snake_case in Firestore)
   const suppLogsQuery = query(
@@ -752,6 +769,16 @@ export async function endShiftSession(
     }
 
     // Generate handoff note with SOAP format
+    console.log('[ShiftHandoff] Generating handoff note for shift:', {
+      shiftSessionId,
+      groupId,
+      elderId,
+      elderName,
+      caregiverName,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString()
+    });
+
     const handoffNote = await generateShiftHandoffNote(
       shiftSessionId,
       groupId,
@@ -759,6 +786,8 @@ export async function endShiftSession(
       elderName,
       caregiverName
     );
+
+    console.log('[ShiftHandoff] Handoff note generated:', handoffNote ? 'success' : 'null');
 
     return handoffNote;
   } catch (error) {
