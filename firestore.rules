@@ -1892,6 +1892,62 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ============= Elder QR Codes Collection =============
+    // QR codes for shift clock-in/out verification
+
+    match /elderQRCodes/{qrCodeId} {
+      // Super admin can read all QR codes in their agency
+      // Caregivers can read QR codes for elders they're assigned to
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         hasAgencyAccess(resource.data.agencyId) ||
+         isMemberOfGroup(resource.data.groupId));
+
+      // Only super admin can create QR codes
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(request.resource.data.agencyId) &&
+        request.resource.data.createdBy == request.auth.uid;
+
+      // Only super admin can update (deactivate/regenerate)
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(resource.data.agencyId);
+
+      // Only super admin can delete QR codes
+      allow delete: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
+    }
+
+    // ============= Timesheet Submissions Collection =============
+    // Weekly timesheet submissions for approval
+
+    match /timesheetSubmissions/{submissionId} {
+      // Super admin can read all submissions in their agency
+      // Caregiver can read their own submissions
+      allow read: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        (isSuperAdmin(resource.data.agencyId) ||
+         resource.data.caregiverId == request.auth.uid);
+
+      // Caregivers can create their own submissions
+      allow create: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        request.resource.data.caregiverId == request.auth.uid &&
+        hasAgencyAccess(request.resource.data.agencyId);
+
+      // Super admin can update (approve/reject)
+      // Caregiver cannot modify after submission
+      allow update: if isSignedIn() &&
+        hasActiveAccess(request.auth.uid) &&
+        isSuperAdmin(resource.data.agencyId);
+
+      // Only super admin can delete submissions
+      allow delete: if isSignedIn() &&
+        isSuperAdmin(resource.data.agencyId);
+    }
+
     // ============= Default Deny =============
 
     // Deny all other access by default
