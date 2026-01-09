@@ -706,11 +706,11 @@ export default function ShiftHandoffPage() {
                             <div className="flex items-center gap-3">
                               <div>
                                 <p className="font-semibold text-gray-900 dark:text-white">
-                                  {format(handoff.shiftPeriod.start, 'MMM d, yyyy')}
+                                  {handoff.shiftPeriod.start ? format(handoff.shiftPeriod.start, 'MMM d, yyyy') : 'Unknown Date'}
                                 </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {format(handoff.shiftPeriod.start, 'h:mm a')} -
-                                  {format(handoff.shiftPeriod.end, 'h:mm a')}
+                                  {handoff.shiftPeriod.start ? format(handoff.shiftPeriod.start, 'h:mm a') : '--:--'} -
+                                  {handoff.shiftPeriod.end ? format(handoff.shiftPeriod.end, 'h:mm a') : '--:--'}
                                 </p>
                               </div>
                             </div>
