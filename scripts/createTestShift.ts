@@ -81,16 +81,18 @@ async function createTestShift() {
 
   // Create shift for today, starting now (within clock-in window)
   const now = new Date();
-  const startHour = now.getHours();
-  const startMinute = Math.floor(now.getMinutes() / 15) * 15; // Round to 15 min
+
+  // Use UTC for times since server compares in UTC
+  const startHour = now.getUTCHours();
+  const startMinute = Math.floor(now.getUTCMinutes() / 15) * 15; // Round to 15 min
   const startTime = `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`;
 
   // End time 4 hours later
   const endHour = (startHour + 4) % 24;
   const endTime = `${String(endHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`;
 
-  // Create date for today at midnight
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Create date for today at UTC midnight (server compares dates in UTC)
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   const shiftData = {
     agencyId,
