@@ -545,8 +545,14 @@ function SecurityActivitySettings() {
     if (!/[0-9]/.test(password)) {
       return 'Password must contain at least one number';
     }
-    if (!/^[a-zA-Z0-9]+$/.test(password)) {
-      return 'Password must contain only letters and numbers';
+    // Must contain at least 2 special characters from !@#$%
+    const specialChars = password.match(/[!@#$%]/g) || [];
+    if (specialChars.length < 2) {
+      return 'Password must contain at least 2 special characters (!@#$%)';
+    }
+    // Only allow letters, numbers, and allowed special characters
+    if (!/^[a-zA-Z0-9!@#$%]+$/.test(password)) {
+      return 'Password can only contain letters, numbers, and !@#$%';
     }
     return null;
   };

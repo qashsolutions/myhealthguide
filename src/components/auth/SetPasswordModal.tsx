@@ -35,8 +35,10 @@ export function SetPasswordModal({ open, email, onComplete }: SetPasswordModalPr
   const hasMinLength = password.length >= 8;
   const hasLetter = /[a-zA-Z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
+  const specialCharCount = (password.match(/[!@#$%]/g) || []).length;
+  const hasSpecialChars = specialCharCount >= 2;
   const passwordsMatch = password === confirmPassword && password.length > 0;
-  const isValid = hasMinLength && hasLetter && hasNumber && passwordsMatch;
+  const isValid = hasMinLength && hasLetter && hasNumber && hasSpecialChars && passwordsMatch;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +174,10 @@ export function SetPasswordModal({ open, email, onComplete }: SetPasswordModalPr
               <div className={`flex items-center gap-2 ${hasNumber ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle2 className="w-3 h-3" />
                 At least one number
+              </div>
+              <div className={`flex items-center gap-2 ${hasSpecialChars ? 'text-green-600' : 'text-gray-400'}`}>
+                <CheckCircle2 className="w-3 h-3" />
+                At least 2 special characters (!@#$%)
               </div>
               <div className={`flex items-center gap-2 ${passwordsMatch ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle2 className="w-3 h-3" />

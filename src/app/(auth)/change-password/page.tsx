@@ -40,6 +40,17 @@ function ChangePasswordContent() {
       setError('Password must contain at least one number');
       return;
     }
+    // Must contain at least 2 special characters from !@#$%
+    const specialChars = password.match(/[!@#$%]/g) || [];
+    if (specialChars.length < 2) {
+      setError('Password must contain at least 2 special characters (!@#$%)');
+      return;
+    }
+    // Only allow letters, numbers, and allowed special characters
+    if (!/^[a-zA-Z0-9!@#$%]+$/.test(password)) {
+      setError('Password can only contain letters, numbers, and !@#$%');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -82,6 +93,8 @@ function ChangePasswordContent() {
   const hasMinLength = password.length >= 8;
   const hasLetter = /[a-zA-Z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
+  const specialCharCount = (password.match(/[!@#$%]/g) || []).length;
+  const hasSpecialChars = specialCharCount >= 2;
   const passwordsMatch = password && confirmPassword && password === confirmPassword;
 
   // Calculate days until password expires for non-expired users
@@ -151,6 +164,9 @@ function ChangePasswordContent() {
               <li className={hasNumber ? 'text-green-600' : 'text-gray-500'}>
                 {hasNumber ? '✓' : '○'} At least one number (0-9)
               </li>
+              <li className={hasSpecialChars ? 'text-green-600' : 'text-gray-500'}>
+                {hasSpecialChars ? '✓' : '○'} At least 2 special characters (!@#$%)
+              </li>
             </ul>
           </div>
 
@@ -184,7 +200,7 @@ function ChangePasswordContent() {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !hasMinLength || !hasLetter || !hasNumber || !passwordsMatch}
+            disabled={loading || !hasMinLength || !hasLetter || !hasNumber || !hasSpecialChars || !passwordsMatch}
           >
             {loading ? 'Changing Password...' : 'Change Password'}
           </Button>
