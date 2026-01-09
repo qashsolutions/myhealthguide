@@ -56,6 +56,23 @@ export default function ShiftHandoffPage() {
   // Check if elder has address for QR verification
   const elderHasAddress = selectedElder?.address?.coordinates?.latitude && selectedElder?.address?.coordinates?.longitude;
 
+  // Helper to convert UTC time string (HH:MM) to local time for display
+  const formatUTCTimeToLocal = (utcTimeStr: string, shiftDate?: Date | null): string => {
+    const [hours, minutes] = utcTimeStr.split(':').map(Number);
+    const now = new Date();
+    const dateToUse = shiftDate || now;
+    // Create a UTC date with the shift time
+    const utcDate = new Date(Date.UTC(
+      dateToUse.getUTCFullYear(),
+      dateToUse.getUTCMonth(),
+      dateToUse.getUTCDate(),
+      hours,
+      minutes
+    ));
+    // Return formatted local time
+    return utcDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   // Load active shift, scheduled shift, and recent handoffs
   useEffect(() => {
     if (user && selectedElder) {
@@ -146,41 +163,55 @@ export default function ShiftHandoffPage() {
   };
 
   // Check if clock-in is allowed (within 10 minutes of scheduled start)
+  // Uses UTC for all comparisons since shift data is stored in UTC
   const canClockIn = (): { allowed: boolean; reason?: string; minutesUntilStart?: number } => {
     if (!scheduledShift) {
       return { allowed: false, reason: 'No shift scheduled. Contact your supervisor to assign a shift.' };
     }
 
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const shiftDate = scheduledShift.date instanceof Date ? scheduledShift.date : new Date(scheduledShift.date);
-    const shiftDay = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
 
-    // Check if shift is for today
-    if (today.getTime() !== shiftDay.getTime()) {
+    // Use UTC dates for comparison (server stores dates in UTC)
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const shiftDate = scheduledShift.date instanceof Date ? scheduledShift.date : new Date(scheduledShift.date);
+    const shiftDayUTC = new Date(Date.UTC(shiftDate.getUTCFullYear(), shiftDate.getUTCMonth(), shiftDate.getUTCDate()));
+
+    // Check if shift is for today (UTC comparison)
+    if (todayUTC.getTime() !== shiftDayUTC.getTime()) {
       return { allowed: false, reason: `Shift is scheduled for ${format(shiftDate, 'MMM d, yyyy')}, not today.` };
     }
 
-    // Parse scheduled start time
+    // Parse scheduled start time as UTC
+    // The startTime string (e.g., "03:30") represents UTC time
     const [hours, minutes] = scheduledShift.startTime.split(':').map(Number);
-    const scheduledStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+    const scheduledStartUTC = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      hours,
+      minutes
+    ));
 
-    const diffMinutes = (scheduledStart.getTime() - now.getTime()) / (1000 * 60);
+    // Calculate difference using UTC time
+    const diffMinutes = (scheduledStartUTC.getTime() - now.getTime()) / (1000 * 60);
 
     // Can't clock in more than 10 minutes early
     if (diffMinutes > 10) {
+      // Convert UTC time to local for display
+      const localStartTime = new Date(scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return {
         allowed: false,
-        reason: `Too early to clock in. Your shift starts at ${scheduledShift.startTime}.`,
+        reason: `Too early to clock in. Your shift starts at ${localStartTime}.`,
         minutesUntilStart: Math.ceil(diffMinutes)
       };
     }
 
     // Can't clock in more than 30 minutes late (optional grace period)
     if (diffMinutes < -30) {
+      const localStartTime = new Date(scheduledStartUTC).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return {
         allowed: false,
-        reason: `Shift start time (${scheduledShift.startTime}) has passed by more than 30 minutes. Contact your supervisor.`
+        reason: `Shift start time (${localStartTime}) has passed by more than 30 minutes. Contact your supervisor.`
       };
     }
 
@@ -566,7 +597,7 @@ export default function ShiftHandoffPage() {
                         Scheduled Shift
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                        {scheduledShift.startTime} - {scheduledShift.endTime}
+                        {formatUTCTimeToLocal(scheduledShift.startTime, scheduledShift.date instanceof Date ? scheduledShift.date : scheduledShift.date ? new Date(scheduledShift.date) : null)} - {formatUTCTimeToLocal(scheduledShift.endTime, scheduledShift.date instanceof Date ? scheduledShift.date : scheduledShift.date ? new Date(scheduledShift.date) : null)}
                         {scheduledShift.date && (
                           <span className="ml-2">
                             ({format(scheduledShift.date instanceof Date ? scheduledShift.date : new Date(scheduledShift.date), 'MMM d')})
