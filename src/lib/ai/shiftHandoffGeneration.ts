@@ -39,6 +39,36 @@ interface NotableEvent {
 }
 
 /**
+ * Recursively remove undefined values from an object
+ * Firestore does not accept undefined as field values
+ */
+function removeUndefinedFields<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefinedFields(item)) as T;
+  }
+
+  if (obj instanceof Date) {
+    return obj;
+  }
+
+  if (typeof obj === 'object') {
+    const result: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, any>)) {
+      if (value !== undefined) {
+        result[key] = removeUndefinedFields(value);
+      }
+    }
+    return result as T;
+  }
+
+  return obj;
+}
+
+/**
  * Generate shift handoff note when caregiver ends shift
  */
 export async function generateShiftHandoffNote(
@@ -190,8 +220,11 @@ export async function generateShiftHandoffNote(
       }
     };
 
+    // Remove undefined fields before saving to Firestore
+    const sanitizedNote = removeUndefinedFields(handoffNote);
+
     // Save to Firestore
-    const handoffRef = await addDoc(collection(db, 'shiftHandoffNotes'), handoffNote);
+    const handoffRef = await addDoc(collection(db, 'shiftHandoffNotes'), sanitizedNote);
 
     // Update shift session
     await updateDoc(doc(db, 'shiftSessions', shiftSessionId), {
