@@ -155,6 +155,12 @@ export async function GET(request: NextRequest) {
       // Caregivers: only their own | Super admins: all or filtered
       const now = new Date();
 
+      console.log('[shift-handoff] Scheduled shift query:', {
+        elderId,
+        targetCaregiverId,
+        serverNow: now.toISOString(),
+      });
+
       let query = db.collection('scheduledShifts')
         .where('elderId', '==', elderId)
         .where('status', '==', 'scheduled');
@@ -165,10 +171,13 @@ export async function GET(request: NextRequest) {
       }
 
       const shiftsSnap = await query.get();
+      console.log('[shift-handoff] Found', shiftsSnap.size, 'shifts in Firestore');
 
       // Map shifts and convert Timestamps, filter for today's shifts only
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+      // Use UTC dates for consistent comparison (server runs in UTC)
+      const todayStartUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+      console.log('[shift-handoff] Today start UTC:', todayStartUTC.toISOString());
 
       const scheduledShifts = shiftsSnap.docs
         .map(doc => {
@@ -186,6 +195,8 @@ export async function GET(request: NextRequest) {
             }
           }
 
+          console.log('[shift-handoff] Shift', doc.id, 'date:', shiftDate?.toISOString());
+
           return {
             id: doc.id,
             ...data,
@@ -196,10 +207,12 @@ export async function GET(request: NextRequest) {
         })
         .filter(shift => {
           // Filter for today's shifts only (date-based, not time-based)
-          // The client-side canClockIn() handles the actual clock-in time window
+          // Use UTC to avoid timezone issues - compare just the date portion
           if (!shift.date) return true; // Include shifts without date (legacy)
-          const shiftDay = new Date(shift.date.getFullYear(), shift.date.getMonth(), shift.date.getDate());
-          return shiftDay.getTime() === todayStart.getTime();
+          const shiftDayUTC = new Date(Date.UTC(shift.date.getUTCFullYear(), shift.date.getUTCMonth(), shift.date.getUTCDate()));
+          const matches = shiftDayUTC.getTime() === todayStartUTC.getTime();
+          console.log('[shift-handoff] Shift date UTC:', shiftDayUTC.toISOString(), 'matches today:', matches);
+          return matches;
         });
 
       // For super_admins, return all scheduled shifts for today
