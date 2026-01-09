@@ -1392,8 +1392,8 @@ All changes verified on production (https://myguide.health):
 | 5.1 | Dynamic Features Page | ✅ | Jan 8 | MiniSearch + helpArticles |
 | 5.2 | Agentic Updates | ❌ | Jan 8 | Page is static |
 | 5.3 | Offline Status | ❌ | Jan 8 | Not indicated |
-| 6.1 | Multi-Agency Subscribe | ❌ | Jan 9 | NO role checks - ALL see subscribe |
-| 6.2 | Family Subscribe | ❌ | Jan 9 | NO role checks - members see subscribe |
+| 6.1 | Multi-Agency Subscribe | ✅ | Jan 9 | Role checks added - only superadmin |
+| 6.2 | Family Subscribe | ✅ | Jan 9 | Role checks added - only admin |
 | 7.1 | Cross-Device Session | ❌ | Jan 9 | NO page/elder tracking exists |
 | 7.2 | Session Firestore | 🔒 | | Needs approval |
 | 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
@@ -1575,29 +1575,29 @@ match /timesheetSubmissions/{submissionId} {
 
 ---
 
-### Task 6 Findings - Subscription Visibility (Jan 9)
+### Task 6 Findings - Subscription Visibility (Jan 9) ✅ FIXED
 
-**Issue:** NO role-based visibility checks - ALL users can see subscription options.
+**Solution Implemented:** Role-based visibility checks added.
 
-| Component | Location | Role Check | Issue |
-|-----------|----------|------------|-------|
-| SubscriptionSettings | Settings > Subscription tab | ❌ None | Everyone sees subscribe buttons |
-| PricingCards | /pricing, homepage | ❌ None | Everyone sees pricing |
-| Sidebar | Dashboard navigation | ✅ Partial | Only isMultiAgency for Agency section |
+| Component | Location | Role Check | Status |
+|-----------|----------|------------|--------|
+| SubscriptionSettings | Settings > Subscription tab | ✅ canManageBilling() | Shows "Contact Admin" for non-admins |
+| PricingCards | /pricing, homepage | ✅ canManageBilling() | Shows "Contact Admin" for non-admins |
+| getUserRole.ts | Utility | ✅ New function | `canManageBilling()` added |
 
-**Required Fix (Frontend only - safe to implement):**
-1. `SubscriptionSettings.tsx`: Add role check to hide for members/caregivers
-2. Settings page: Hide Subscription tab for non-admins
-3. `PricingCards.tsx`: Show "Contact your admin" for non-admins
+**Implementation (Commit: 51ba949):**
+1. `getUserRole.ts`: Added `canManageBilling()` utility
+2. `SubscriptionSettings.tsx`: Shows read-only view for non-admins
+3. `PricingCards.tsx`: Shows "Contact your admin" instead of subscribe button
 
-**Who should NOT see subscribe buttons:**
-- Family Members (invited users)
-- Agency Caregivers (not superadmin)
-- Agency Members (family of elder)
+**Who sees subscribe buttons:**
+- ✅ Family Plan Admin (original subscriber)
+- ✅ Agency Owner/Superadmin
 
-**Who SHOULD see subscribe buttons:**
-- Family Plan Admin (original subscriber)
-- Agency Owner/Superadmin
+**Who sees "Contact Admin" message:**
+- ✅ Family Members (invited users)
+- ✅ Agency Caregivers (not superadmin)
+- ✅ Agency Members (family of elder)
 
 ---
 
