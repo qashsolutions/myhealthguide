@@ -1450,7 +1450,7 @@ All changes verified on production (https://myguide.health):
 | 7.1 | Cross-Device Session | ❌ | Jan 9 | NO page/elder tracking (needs approval) |
 | 7.2 | Session Firestore | 🔒 | | Needs approval |
 | 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
-| 8.2 | Pre-populated Issues | ❌ | Jan 9 | NO offline data - AI only |
+| 8.2 | Pre-populated Issues | ✅ | Jan 10 | 100 symptoms, 12 categories (cbfbd88) |
 | 9.1 | Care Community Offline | ❌ | Jan 9 | NO local cache - API only |
 | 10.1 | Pricing Visibility | ✅ | Jan 9 | Plans filtered by role via getVisiblePlanIds() |
 | 11.1 | Careguide Branding | ✅ | Jan 9 | "Careguide on the Go" in about page (50141ed) |
@@ -1661,6 +1661,16 @@ match /timesheetSubmissions/{submissionId} {
 | Rate Limits | ✅ | Guest: 2/day, Registered: 5/day |
 | Limit Reached Screen | ✅ | Shows when exceeded |
 | Disclaimer Timer | ✅ | 60-second timer |
+| **Pre-populated Symptoms** | ✅ | 100 common health issues (Jan 10) |
+
+**Task 8.2 Implementation (Jan 10, 2026):**
+- `src/lib/symptom-checker/commonSymptoms.ts` - 100 symptoms data file
+- `src/components/symptom-checker/CommonSymptomsSelector.tsx` - UI component
+- Categories (12): Pain (15), Digestive (12), Breathing (8), Heart (8), Neurological (10), Mobility (8), Skin (8), Mental (7), Sleep (6), Urinary (7), Vision (6), General (5)
+- Features: Search bar, category pills, urgency indicators (Low/Moderate/Urgent/Emergency)
+- "Offline Ready" badge - data bundled in JS, cached by service worker
+- Selecting a symptom pre-populates the description textarea
+- Commit: cbfbd88
 
 ---
 
