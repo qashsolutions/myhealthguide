@@ -12,6 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CaregiverApprovalBlocker, useCaregiverApprovalStatus } from '@/components/auth/CaregiverApprovalBlocker';
 import { SetPasswordModal } from '@/components/auth/SetPasswordModal';
 import { AgencyService } from '@/lib/firebase/agencies';
+import { ContinueSessionDialog } from '@/components/session/ContinueSessionDialog';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 // Inner component that can access auth context
 function DashboardContent({ children }: { children: ReactNode }) {
@@ -63,6 +65,9 @@ function DashboardContent({ children }: { children: ReactNode }) {
     }
   }, [hasPendingApproval, pendingAgencies]);
 
+  // Track session context for cross-device continuity
+  useSessionTracking();
+
   return (
     <ElderProvider>
       {/* Password setup modal for caregivers on first login */}
@@ -73,6 +78,9 @@ function DashboardContent({ children }: { children: ReactNode }) {
           onComplete={() => setShowPasswordModal(false)}
         />
       )}
+
+      {/* Cross-device session continuity dialog */}
+      <ContinueSessionDialog />
 
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
         <FCMProvider />

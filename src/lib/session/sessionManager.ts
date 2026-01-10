@@ -12,7 +12,7 @@
  */
 
 import { db } from '@/lib/firebase/config';
-import { collection, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, Timestamp, query, where, orderBy, limit, getDocs, setDoc, getDoc } from 'firebase/firestore';
 
 export interface SessionData {
   sessionId: string;
@@ -25,6 +25,22 @@ export interface SessionData {
     language: string;
   };
   isActive: boolean;
+  // Cross-device session continuity fields
+  lastPage?: string;
+  lastElderId?: string;
+  lastElderName?: string;
+  lastAction?: string;
+}
+
+export interface SessionContinuityData {
+  lastPage: string;
+  lastElderId?: string;
+  lastElderName?: string;
+  lastAction?: string;
+  lastActivity: Date;
+  deviceInfo: {
+    platform: string;
+  };
 }
 
 const SESSION_KEY = 'app_session_id';
@@ -281,4 +297,174 @@ export async function logSessionEvent(eventType: string, data?: Record<string, a
 
   // Update last activity
   trackSessionActivity();
+}
+
+// ============================================================================
+// CROSS-DEVICE SESSION CONTINUITY
+// ============================================================================
+
+/**
+ * Update session with current page/elder context
+ * Call this on page navigation or elder selection
+ */
+export async function updateSessionContext(context: {
+  page?: string;
+  elderId?: string;
+  elderName?: string;
+  action?: string;
+}) {
+  const sessionId = getSessionId();
+  if (!sessionId) return;
+
+  const sessionData = getSessionData();
+  if (!sessionData) return;
+
+  // Update localStorage
+  if (context.page) sessionData.lastPage = context.page;
+  if (context.elderId) sessionData.lastElderId = context.elderId;
+  if (context.elderName) sessionData.lastElderName = context.elderName;
+  if (context.action) sessionData.lastAction = context.action;
+  sessionData.lastActivity = new Date();
+
+  localStorage.setItem(SESSION_DATA_KEY, JSON.stringify(sessionData));
+
+  // Update Firestore for cross-device access (only if user is logged in)
+  if (sessionData.userId) {
+    try {
+      const userSessionRef = doc(db, 'userSessions', sessionData.userId);
+      await setDoc(userSessionRef, {
+        userId: sessionData.userId,
+        sessionId,
+        lastPage: sessionData.lastPage || null,
+        lastElderId: sessionData.lastElderId || null,
+        lastElderName: sessionData.lastElderName || null,
+        lastAction: sessionData.lastAction || null,
+        lastActivity: Timestamp.now(),
+        deviceInfo: {
+          platform: navigator.platform,
+          userAgent: navigator.userAgent.substring(0, 100) // Truncate for storage
+        },
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error updating session context in Firestore:', error);
+    }
+  }
+}
+
+/**
+ * Get previous session data for a user (for cross-device continuity)
+ * Call this after login to check if user has a previous session to resume
+ */
+export async function getPreviousSessionForUser(userId: string): Promise<SessionContinuityData | null> {
+  try {
+    const userSessionRef = doc(db, 'userSessions', userId);
+    const sessionDoc = await getDoc(userSessionRef);
+
+    if (!sessionDoc.exists()) {
+      return null;
+    }
+
+    const data = sessionDoc.data();
+
+    // Check if the session is from a different device/session
+    const currentSessionId = getSessionId();
+    if (data.sessionId === currentSessionId) {
+      // Same session, no need to offer continuity
+      return null;
+    }
+
+    // Check if session is recent (within last 7 days)
+    let lastActivity: Date;
+    if (data.lastActivity && typeof data.lastActivity === 'object' && 'seconds' in data.lastActivity) {
+      lastActivity = new Date(data.lastActivity.seconds * 1000);
+    } else {
+      lastActivity = new Date(data.lastActivity);
+    }
+
+    const daysSinceActivity = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceActivity > 7) {
+      // Session too old, don't offer continuity
+      return null;
+    }
+
+    // Only return if there's meaningful context to resume
+    if (!data.lastPage || data.lastPage === '/dashboard') {
+      return null;
+    }
+
+    return {
+      lastPage: data.lastPage,
+      lastElderId: data.lastElderId || undefined,
+      lastElderName: data.lastElderName || undefined,
+      lastAction: data.lastAction || undefined,
+      lastActivity,
+      deviceInfo: {
+        platform: data.deviceInfo?.platform || 'Unknown device'
+      }
+    };
+  } catch (error) {
+    console.error('Error getting previous session:', error);
+    return null;
+  }
+}
+
+/**
+ * Clear the cross-device session continuity offer
+ * Call this after user dismisses or accepts the continuity offer
+ */
+export async function clearSessionContinuityOffer(userId: string) {
+  try {
+    const currentSessionId = getSessionId();
+    const userSessionRef = doc(db, 'userSessions', userId);
+
+    // Update the session ID to current, effectively marking continuity as handled
+    await setDoc(userSessionRef, {
+      sessionId: currentSessionId,
+      updatedAt: Timestamp.now()
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error clearing session continuity offer:', error);
+  }
+}
+
+/**
+ * Get human-readable page name from path
+ */
+export function getPageDisplayName(path: string): string {
+  const pageNames: Record<string, string> = {
+    '/dashboard': 'Dashboard',
+    '/dashboard/daily-care': 'Daily Care',
+    '/dashboard/elder-profile': 'Health Profile',
+    '/dashboard/ask-ai': 'Ask AI',
+    '/dashboard/safety-alerts': 'Safety Alerts',
+    '/dashboard/analytics': 'Analytics',
+    '/dashboard/notes': 'My Notes',
+    '/dashboard/settings': 'Settings',
+    '/dashboard/elders': 'Loved Ones',
+    '/dashboard/elders/new': 'Add Loved One',
+    '/dashboard/medications': 'Medications',
+    '/dashboard/supplements': 'Supplements',
+    '/dashboard/diet': 'Diet',
+    '/dashboard/activity': 'Activity',
+    '/dashboard/health-chat': 'Health Chat',
+    '/dashboard/drug-interactions': 'Drug Interactions',
+    '/dashboard/dementia-screening': 'Dementia Screening',
+    '/dashboard/insights': 'Health Trends',
+    '/dashboard/timesheet': 'Timesheet',
+    '/dashboard/shift-handoff': 'Shift Handoff',
+  };
+
+  // Check for exact match first
+  if (pageNames[path]) return pageNames[path];
+
+  // Check for partial match (for dynamic routes)
+  for (const [route, name] of Object.entries(pageNames)) {
+    if (path.startsWith(route)) return name;
+  }
+
+  // Extract last segment as fallback
+  const segments = path.split('/').filter(Boolean);
+  const lastSegment = segments[segments.length - 1] || 'Page';
+  return lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1).replace(/-/g, ' ');
 }
