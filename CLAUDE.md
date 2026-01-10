@@ -1447,8 +1447,8 @@ All changes verified on production (https://myguide.health):
 | 5.3 | Offline Status | ❌ | Jan 9 | Not indicated - helpArticles lacks offline property |
 | 6.1 | Multi-Agency Subscribe | ✅ | Jan 9 | Role checks added - only superadmin |
 | 6.2 | Family Subscribe | ✅ | Jan 9 | Role checks added - only admin |
-| 7.1 | Cross-Device Session | ❌ | Jan 9 | NO page/elder tracking (needs approval) |
-| 7.2 | Session Firestore | 🔒 | | Needs approval |
+| 7.1 | Cross-Device Session | ✅ | Jan 10 | Session context tracking (ecb9d43) |
+| 7.2 | Session Firestore | ✅ | Jan 10 | userSessions collection (ecb9d43) |
 | 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
 | 8.2 | Pre-populated Issues | ✅ | Jan 10 | 100 symptoms, 12 categories (cbfbd88) |
 | 9.1 | Care Community Offline | ❌ | Jan 9 | NO local cache - API only |
@@ -1651,6 +1651,43 @@ match /timesheetSubmissions/{submissionId} {
 - ✅ Family Members (invited users)
 - ✅ Agency Caregivers (not superadmin)
 - ✅ Agency Members (family of elder)
+
+---
+
+### Task 7 Findings - Cross-Device Session Continuity (Jan 10, 2026)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Session context tracking | ✅ | lastPage, lastElderId, lastElderName, lastAction |
+| Firestore storage | ✅ | userSessions collection |
+| Continue session dialog | ✅ | Shows on login from different device |
+| Session expiry | ✅ | 7-day limit |
+
+**Implementation:**
+- `src/lib/session/sessionManager.ts` - Core functions:
+  - `updateSessionContext()` - Track page/elder changes
+  - `getPreviousSessionForUser()` - Retrieve previous session for continuity offer
+  - `clearSessionContinuityOffer()` - Mark continuity as handled
+  - `getPageDisplayName()` - Human-readable page names
+- `src/hooks/useSessionTracking.ts` - Auto-tracks navigation in dashboard
+- `src/components/session/ContinueSessionDialog.tsx` - Resume session UI
+
+**Firestore Collection:** `userSessions` (one doc per user)
+```javascript
+{
+  userId, sessionId, lastPage, lastElderId, lastElderName,
+  lastAction, lastActivity, deviceInfo, updatedAt
+}
+```
+
+**Firestore Rules Required:**
+```javascript
+match /userSessions/{userId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+}
+```
+
+Commit: ecb9d43
 
 ---
 
