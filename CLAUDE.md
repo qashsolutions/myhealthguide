@@ -1434,24 +1434,24 @@ All changes verified on production (https://myguide.health):
 | 1.4 | Admin Approval UI | ✅ | Jan 9 | API + UI complete, integrated in agency dashboard |
 | 1.5 | Firestore Rules | ✅ | Jan 9 | Deployed: elderQRCodes + timesheetSubmissions (8dc95d6) |
 | 1.6 | Geocoding API | ✅ | Jan 9 | API route exists at /api/geocode |
-| 2.1 | Offline Audit | ✅ | Jan 8 | SW exists, static cache works |
-| 2.2 | Offline Layers | ❌ | Jan 8 | NO IndexedDB cache for user data |
-| 2.3 | Offline Sync | ❌ | Jan 8 | NO action queue, NO background sync |
-| 2.4 | Features Page Update | ❌ | Jan 8 | NO offline indicators on features |
+| 2.1 | Offline Audit | ✅ | Jan 9 | SW registered (Serwist), static cache works |
+| 2.2 | Offline Layers | ✅ | Jan 9 | Static assets cached, user data requires IndexedDB |
+| 2.3 | Offline Sync | ❌ | Jan 9 | NOT IMPLEMENTED - requires IndexedDB (high effort) |
+| 2.4 | Features Page Update | ✅ | Jan 9 | Merged with Task 5.3 |
 | 3.1 | Permission Prompts | ✅ | Jan 9 | Both Camera + Microphone have 65+ guidance (553967b) |
 | 3.2 | Voice Logging | ✅ | Jan 8 | Full GDPR consent dialog |
 | 4.1 | Remove Pricing Check | ✅ | Jan 8 | Uses TrialExpirationGate |
 | 4.2 | FDA Drug API | ✅ | Jan 8 | Full integration, no autocomplete |
 | 5.1 | Dynamic Features Page | ✅ | Jan 8 | MiniSearch + helpArticles |
 | 5.2 | Agentic Updates | ✅ | Jan 9 | Config-driven via helpArticles array |
-| 5.3 | Offline Status | ❌ | Jan 9 | Not indicated - helpArticles lacks offline property |
+| 5.3 | Offline Status | ✅ | Jan 9 | Added offline badges to Features page (all 32 articles) |
 | 6.1 | Multi-Agency Subscribe | ✅ | Jan 9 | Role checks added - only superadmin |
 | 6.2 | Family Subscribe | ✅ | Jan 9 | Role checks added - only admin |
 | 7.1 | Cross-Device Session | ✅ | Jan 10 | Session context tracking (ecb9d43) |
 | 7.2 | Session Firestore | ✅ | Jan 10 | userSessions collection (ecb9d43) |
 | 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
 | 8.2 | Pre-populated Issues | ✅ | Jan 10 | 100 symptoms, 12 categories (cbfbd88) |
-| 9.1 | Care Community Offline | ❌ | Jan 9 | NO local cache - API only |
+| 9.1 | Care Community Offline | ❌ | Jan 9 | NOT IMPLEMENTED - requires IndexedDB (low priority) |
 | 10.1 | Pricing Visibility | ✅ | Jan 9 | Plans filtered by role via getVisiblePlanIds() |
 | 11.1 | Careguide Branding | ✅ | Jan 9 | "Careguide on the Go" in about page (50141ed) |
 | 11.2 | Copyright Dynamic | ✅ | Jan 9 | Uses getFullYear() |
