@@ -66,7 +66,9 @@ import {
 } from '@/types/symptomChecker';
 import { ClipboardHeartIcon } from '@/components/icons/ClipboardHeartIcon';
 import { SymptomHistory } from '@/components/symptom-checker/SymptomHistory';
+import { CommonSymptomsSelector } from '@/components/symptom-checker/CommonSymptomsSelector';
 import { cn } from '@/lib/utils';
+import type { CommonSymptom } from '@/lib/symptom-checker/commonSymptoms';
 
 type Screen = 'disclaimer' | 'form' | 'follow-up' | 'results' | 'limit-reached';
 
@@ -157,6 +159,13 @@ export default function PublicSymptomCheckerPage() {
 
   const handleFormChange = (field: keyof SymptomCheckerFormData, value: string | boolean | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setError(null);
+  };
+
+  // Handle common symptom selection - pre-populate the symptoms description
+  const handleSymptomSelect = (symptom: CommonSymptom) => {
+    const newDescription = symptom.description;
+    setFormData(prev => ({ ...prev, symptomsDescription: newDescription }));
     setError(null);
   };
 
@@ -557,6 +566,12 @@ export default function PublicSymptomCheckerPage() {
                     </div>
                   </div>
 
+                  {/* Common Symptoms Selector - Offline-Ready */}
+                  <CommonSymptomsSelector
+                    onSelect={handleSymptomSelect}
+                    className="mb-2"
+                  />
+
                   <div className="space-y-2">
                     <Label htmlFor="symptoms">
                       Describe the Symptoms
@@ -568,7 +583,7 @@ export default function PublicSymptomCheckerPage() {
                       id="symptoms"
                       value={formData.symptomsDescription}
                       onChange={(e) => handleFormChange('symptomsDescription', e.target.value)}
-                      placeholder="Describe what symptoms are being experienced. Include when they started, how severe they are, and if anything makes them better or worse..."
+                      placeholder="Describe what symptoms are being experienced, or select a common issue above to get started..."
                       rows={5}
                       maxLength={2000}
                       required
