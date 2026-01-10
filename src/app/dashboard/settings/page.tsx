@@ -1179,7 +1179,7 @@ function GroupSettings() {
                 <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Caregiver</Badge>
-                    <span className="text-xs text-gray-500">(up to 3 elders)</span>
+                    <span className="text-xs text-gray-500">(up to 3 loved ones)</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -1193,7 +1193,7 @@ function GroupSettings() {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Can view and edit records for assigned elders only
+                    Can view and edit records for assigned loved ones only
                   </p>
                 </div>
               )}

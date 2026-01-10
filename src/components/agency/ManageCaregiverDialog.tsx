@@ -266,7 +266,7 @@ export function ManageCaregiverDialog({
           {action === 'reactivate' && (
             <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <p className="text-sm text-green-700 dark:text-green-300">
-                This will restore full access for <strong>{caregiverName}</strong>. They will be able to access the caregiver dashboard and manage assigned elders.
+                This will restore full access for <strong>{caregiverName}</strong>. They will be able to access the caregiver dashboard and manage assigned loved ones.
               </p>
             </div>
           )}

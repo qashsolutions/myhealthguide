@@ -151,7 +151,6 @@ export function PricingCards({
       icon: Heart,
       iconColor: 'text-blue-600',
       iconBgColor: 'bg-blue-100 dark:bg-blue-900',
-      popular: false,
       trialDays: TRIAL_DURATION_DAYS,
       limits: [
         `${PLAN_CONFIG.family.limits.maxElders} loved one`,
@@ -169,7 +168,6 @@ export function PricingCards({
       icon: Users,
       iconColor: 'text-white',
       iconBgColor: 'bg-blue-600',
-      popular: true,
       trialDays: TRIAL_DURATION_DAYS,
       limits: [
         `${PLAN_CONFIG.single_agency.limits.maxElders} loved one`,
@@ -187,7 +185,6 @@ export function PricingCards({
       icon: Shield,
       iconColor: 'text-purple-600 dark:text-purple-400',
       iconBgColor: 'bg-purple-100 dark:bg-purple-900',
-      popular: false,
       trialDays: MULTI_AGENCY_TRIAL_DAYS,
       limits: [
         `Up to ${PLAN_CONFIG.multi_agency.limits.maxElders} loved ones`,
@@ -265,15 +262,6 @@ export function PricingCards({
                 }`}
                 onClick={() => !isDisabled && setSelectedPlan(plan.id)}
               >
-                {/* Most Popular badge */}
-                {plan.popular && (
-                  <div className="absolute top-0 right-6 transform -translate-y-1/2">
-                    <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-
                 <CardContent className="pt-8 h-full flex flex-col">
                   {/* Icon & Title */}
                   <div className="text-center mb-6">
@@ -426,21 +414,6 @@ export function PricingCards({
           </div>
         )}
 
-        {/* Trial Info Footer */}
-        {showTrialInfo && (
-          <div className="mt-16 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Family Plans (A & B) include a {TRIAL_DURATION_DAYS}-day free trial.
-              Multi Agency plan includes a {MULTI_AGENCY_TRIAL_DAYS}-day free trial.
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Need help choosing?{' '}
-              <a href="mailto:admin@myguide.health" className="text-blue-600 hover:underline">
-                Contact us
-              </a>
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

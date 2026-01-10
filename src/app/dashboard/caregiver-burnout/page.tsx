@@ -161,7 +161,7 @@ export default function CaregiverBurnoutPage() {
               ) : (
                 <>
                   This system analyzes the last 14 days of shift data to identify caregivers at risk of
-                  burnout based on overtime hours, consecutive days worked, number of elders assigned,
+                  burnout based on overtime hours, consecutive days worked, number of loved ones assigned,
                   and average shift length.
                 </>
               )}

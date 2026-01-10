@@ -142,7 +142,7 @@ export function TrialExpirationGate({ children, featureName }: TrialExpirationGa
                   <div className="space-y-2 text-sm">
                     <p className="font-medium">Keep all your data and features:</p>
                     <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
-                      <li>All elders and medication data</li>
+                      <li>All loved ones and medication data</li>
                       <li>Complete history and logs</li>
                       <li>AI-powered insights</li>
                       <li>Unlimited storage</li>

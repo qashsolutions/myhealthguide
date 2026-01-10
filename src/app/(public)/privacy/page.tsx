@@ -420,7 +420,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li><strong>View Your Data:</strong> Access all your information through your dashboard</li>
               <li><strong>Export Your Data:</strong> Download your complete data as JSON or CSV files at any time</li>
-              <li>Export includes: user profile, groups, elders, medications, logs, diet entries, and activity logs</li>
+              <li>Export includes: user profile, groups, loved ones, medications, logs, diet entries, and activity logs</li>
             </ul>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">11.2 Deletion (Right to be Forgotten)</h3>

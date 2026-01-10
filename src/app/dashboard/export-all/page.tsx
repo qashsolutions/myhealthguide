@@ -101,7 +101,7 @@ export default function ExportAllDataPage() {
                   <div>
                     <p className="font-medium">Health Records</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      All elder profiles, medications, and supplements
+                      All loved one profiles, medications, and supplements
                     </p>
                   </div>
                 </div>

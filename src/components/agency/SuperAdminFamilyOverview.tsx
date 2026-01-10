@@ -381,7 +381,7 @@ export function SuperAdminFamilyOverview({ agencyId, groupId }: SuperAdminFamily
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    All caregivers have reached their family member limit ({MAX_MEMBERS_PER_CAREGIVER} each) or have no elders assigned.
+                    All caregivers have reached their family member limit ({MAX_MEMBERS_PER_CAREGIVER} each) or have no loved ones assigned.
                   </AlertDescription>
                 </Alert>
               )}
@@ -561,7 +561,7 @@ export function SuperAdminFamilyOverview({ agencyId, groupId }: SuperAdminFamily
                           <div className="flex items-center justify-between w-full">
                             <span>{caregiver.name}</span>
                             <span className="text-xs text-gray-500 ml-2">
-                              ({caregiver.elderCount} elder{caregiver.elderCount !== 1 ? 's' : ''}, {MAX_MEMBERS_PER_CAREGIVER - caregiver.invitedCount} slot{MAX_MEMBERS_PER_CAREGIVER - caregiver.invitedCount !== 1 ? 's' : ''} left)
+                              ({caregiver.elderCount} loved one{caregiver.elderCount !== 1 ? 's' : ''}, {MAX_MEMBERS_PER_CAREGIVER - caregiver.invitedCount} slot{MAX_MEMBERS_PER_CAREGIVER - caregiver.invitedCount !== 1 ? 's' : ''} left)
                             </span>
                           </div>
                         </SelectItem>
@@ -569,7 +569,7 @@ export function SuperAdminFamilyOverview({ agencyId, groupId }: SuperAdminFamily
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500">
-                    The family member will only see this caregiver&apos;s assigned elders
+                    The family member will only see this caregiver&apos;s assigned loved ones
                   </p>
                 </div>
 

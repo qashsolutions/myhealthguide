@@ -123,7 +123,7 @@ export function DataDeletionPanel({ userId, isAdmin, userEmail, isEmbedded = fal
             <ul className="text-sm space-y-1">
               <li>✗ Your account and profile</li>
               <li>✗ All groups where you are admin</li>
-              <li>✗ All elder profiles</li>
+              <li>✗ All loved one profiles</li>
               <li>✗ All medications and schedules</li>
               <li>✗ All logs and history</li>
               <li>✗ All uploaded files</li>

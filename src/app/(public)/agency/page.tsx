@@ -11,10 +11,8 @@ import {
   Clock,
   Shield,
   BarChart3,
-  FileText,
   CheckCircle,
   ArrowRight,
-  Headphones,
 } from 'lucide-react';
 
 export default function AgencyPage() {
@@ -172,34 +170,6 @@ export default function AgencyPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </section>
-
-      {/* Support Section */}
-      <section className="py-16 px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/30">
-        <div className="mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-6">
-            <Headphones className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            Dedicated Support for Agencies
-          </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
-            Our team is here to help you get the most out of MyHealthGuide with priority support,
-            custom onboarding, and ongoing training for your staff.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/agency/signup">
-              <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
-                Get Started
-              </Button>
-            </Link>
-            <Link href="/about">
-              <Button size="lg" variant="outline">
-                Contact Sales
-              </Button>
-            </Link>
-          </div>
         </div>
       </section>
 

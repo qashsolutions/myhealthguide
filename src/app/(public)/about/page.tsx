@@ -4,111 +4,24 @@ import { Metadata } from 'next';
 import SmartFeaturesGrid from '@/components/about/SmartFeaturesGrid';
 import HeroCTAButtons from '@/components/about/HeroCTAButtons';
 import { Button } from '@/components/ui/button';
+import {
+  Heart,
+  Smartphone,
+  Users,
+  Pill,
+  UtensilsCrossed,
+  FileText,
+  Mic,
+  BarChart3,
+  CheckCircle,
+  Star,
+  Shield,
+} from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'About Us | MyHealthGuide',
   description: 'Learn about MyHealthGuide - built by caregivers, for caregivers. Smart, data-driven tools to simplify caregiving.',
 };
-
-// SVG Icon Components
-const HeartHandsIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-16 h-16">
-    <circle cx="32" cy="32" r="30" fill="#EBF5FF" />
-    <path d="M32 44c-8-6-14-11-14-17 0-4.5 3.5-8 8-8 2.5 0 4.8 1.2 6 3 1.2-1.8 3.5-3 6-3 4.5 0 8 3.5 8 8 0 6-6 11-14 17z" fill="#3B82F6" />
-    <path d="M20 48c0-2 1-3 3-3h18c2 0 3 1 3 3v2c0 1-1 2-2 2H22c-1 0-2-1-2-2v-2z" fill="#93C5FD" />
-    <path d="M24 45v3M28 45v3M32 45v3M36 45v3M40 45v3" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
-const MobileAppIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-16 h-16">
-    <circle cx="32" cy="32" r="30" fill="#ECFDF5" />
-    <rect x="22" y="12" width="20" height="40" rx="3" fill="#10B981" />
-    <rect x="24" y="16" width="16" height="28" rx="1" fill="white" />
-    <circle cx="32" cy="48" r="2" fill="white" />
-    <rect x="26" y="20" width="12" height="2" rx="1" fill="#10B981" fillOpacity="0.5" />
-    <rect x="26" y="24" width="8" height="2" rx="1" fill="#10B981" fillOpacity="0.5" />
-    <circle cx="30" cy="32" r="3" fill="#10B981" fillOpacity="0.3" />
-    <path d="M29 32l1 1 2-2" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const UsersResearchIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-16 h-16">
-    <circle cx="32" cy="32" r="30" fill="#FEF3C7" />
-    <circle cx="24" cy="24" r="6" fill="#F59E0B" />
-    <circle cx="40" cy="24" r="6" fill="#F59E0B" />
-    <path d="M16 44c0-6 4-10 8-10h4c4 0 8 4 8 10" fill="#FCD34D" />
-    <path d="M36 44c0-6 4-10 8-10h4c4 0 8 4 8 10" fill="#FCD34D" />
-    <circle cx="32" cy="38" r="4" fill="#F59E0B" />
-    <path d="M28 50c0-4 2-6 4-6s4 2 4 6" fill="#FCD34D" />
-  </svg>
-);
-
-const MedicationIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
-    <circle cx="32" cy="32" r="28" fill="#DBEAFE" />
-    <rect x="26" y="18" width="12" height="28" rx="6" fill="#3B82F6" />
-    <rect x="26" y="18" width="12" height="14" rx="0" fill="#60A5FA" />
-    <path d="M29 24h6M32 21v6" stroke="white" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const DietIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
-    <circle cx="32" cy="32" r="28" fill="#D1FAE5" />
-    <ellipse cx="32" cy="36" rx="14" ry="10" fill="#10B981" />
-    <ellipse cx="32" cy="34" rx="12" ry="8" fill="#34D399" />
-    <circle cx="28" cy="32" r="3" fill="#FCD34D" />
-    <circle cx="36" cy="34" r="2" fill="#F87171" />
-    <circle cx="32" cy="36" r="2" fill="#A78BFA" />
-    <path d="M32 20v-6M32 14l-2 2M32 14l2 2" stroke="#10B981" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const DocumentIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
-    <circle cx="32" cy="32" r="28" fill="#E0E7FF" />
-    <rect x="20" y="14" width="24" height="36" rx="2" fill="#6366F1" />
-    <rect x="24" y="20" width="16" height="2" rx="1" fill="white" />
-    <rect x="24" y="26" width="12" height="2" rx="1" fill="white" fillOpacity="0.7" />
-    <rect x="24" y="32" width="14" height="2" rx="1" fill="white" fillOpacity="0.7" />
-    <rect x="24" y="38" width="10" height="2" rx="1" fill="white" fillOpacity="0.7" />
-  </svg>
-);
-
-const VoiceIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
-    <circle cx="32" cy="32" r="28" fill="#FCE7F3" />
-    <rect x="28" y="18" width="8" height="20" rx="4" fill="#EC4899" />
-    <path d="M22 32c0 6 4 10 10 10s10-4 10-10" stroke="#EC4899" strokeWidth="3" strokeLinecap="round" />
-    <path d="M32 42v8M28 50h8" stroke="#EC4899" strokeWidth="3" strokeLinecap="round" />
-  </svg>
-);
-
-const AnalyticsIcon = () => (
-  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-12 h-12">
-    <circle cx="32" cy="32" r="28" fill="#FEE2E2" />
-    <rect x="18" y="36" width="8" height="14" rx="1" fill="#EF4444" />
-    <rect x="28" y="28" width="8" height="22" rx="1" fill="#F87171" />
-    <rect x="38" y="20" width="8" height="30" rx="1" fill="#FCA5A5" />
-    <path d="M18 24l10-6 10 8 8-10" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="46" cy="16" r="3" fill="#EF4444" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-green-500 flex-shrink-0">
-    <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
-    <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const StarIcon = () => (
-  <svg viewBox="0 0 24 24" fill="#F59E0B" className="w-5 h-5">
-    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-  </svg>
-);
 
 export default function AboutPage() {
   return (
@@ -137,7 +50,9 @@ export default function AboutPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <HeartHandsIcon />
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center">
+                <Heart className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
               <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
                 Our Story
               </h2>
@@ -157,7 +72,9 @@ export default function AboutPage() {
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl">
-              <UsersResearchIcon />
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+                <Users className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+              </div>
               <h3 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">
                 Built on Real Feedback
               </h3>
@@ -166,7 +83,11 @@ export default function AboutPage() {
                 Every button, every screen, every notification &mdash; designed around what actually helps.
               </p>
               <div className="mt-6 flex items-center gap-2">
-                <StarIcon /><StarIcon /><StarIcon /><StarIcon /><StarIcon />
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
                 <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
                   Based on 100+ caregiver interviews
                 </span>
@@ -248,7 +169,9 @@ export default function AboutPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
               <div className="flex justify-center">
-                <MedicationIcon />
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                  <Pill className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
               </div>
               <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
                 Medications
@@ -260,7 +183,9 @@ export default function AboutPage() {
 
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
               <div className="flex justify-center">
-                <DietIcon />
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                  <UtensilsCrossed className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
               </div>
               <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
                 Diet
@@ -272,7 +197,9 @@ export default function AboutPage() {
 
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
               <div className="flex justify-center">
-                <DocumentIcon />
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                </div>
               </div>
               <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
                 Documents
@@ -284,7 +211,9 @@ export default function AboutPage() {
 
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
               <div className="flex justify-center">
-                <VoiceIcon />
+                <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-xl flex items-center justify-center">
+                  <Mic className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+                </div>
               </div>
               <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
                 Voice
@@ -296,7 +225,9 @@ export default function AboutPage() {
 
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
               <div className="flex justify-center">
-                <AnalyticsIcon />
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                  <BarChart3 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
               </div>
               <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
                 Reports
@@ -308,7 +239,9 @@ export default function AboutPage() {
 
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center hover:shadow-md transition-shadow">
               <div className="flex justify-center">
-                <MobileAppIcon />
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                  <Smartphone className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
               </div>
               <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
                 iOS App
@@ -337,9 +270,7 @@ export default function AboutPage() {
             {/* Family Plan */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-blue-600 dark:text-blue-300">
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor" />
-                </svg>
+                <Heart className="w-6 h-6 text-blue-600 dark:text-blue-300" />
               </div>
               <h3 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">Family Plan</h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Perfect for small families</p>
@@ -349,37 +280,28 @@ export default function AboutPage() {
               </div>
               <ul className="mt-6 space-y-3">
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">1 loved one</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">2 family members</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">All core features</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">Smart health insights</span>
                 </li>
               </ul>
             </div>
 
             {/* Single Agency Plan */}
-            <div className="bg-blue-600 rounded-2xl p-8 relative">
-              <div className="absolute top-0 right-6 -translate-y-1/2">
-                <span className="bg-yellow-400 text-yellow-900 px-4 py-1 rounded-full text-sm font-semibold">
-                  Most Popular
-                </span>
-              </div>
+            <div className="bg-blue-600 rounded-2xl p-8">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
-                  <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="2" />
-                </svg>
+                <Users className="w-6 h-6 text-white" />
               </div>
               <h3 className="mt-4 text-xl font-bold text-white">Single Agency Plan</h3>
               <p className="mt-2 text-sm text-blue-100">For families with caregivers</p>
@@ -389,31 +311,19 @@ export default function AboutPage() {
               </div>
               <ul className="mt-6 space-y-3">
                 <li className="flex items-center gap-3">
-                  <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-green-300 flex-shrink-0">
-                    <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
-                    <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <CheckCircle className="w-5 h-5 text-green-300 flex-shrink-0" />
                   <span className="text-sm text-white">1 loved one</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-green-300 flex-shrink-0">
-                    <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
-                    <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <CheckCircle className="w-5 h-5 text-green-300 flex-shrink-0" />
                   <span className="text-sm text-white">4 team members</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-green-300 flex-shrink-0">
-                    <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
-                    <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <CheckCircle className="w-5 h-5 text-green-300 flex-shrink-0" />
                   <span className="text-sm text-white">Real-time collaboration</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-green-300 flex-shrink-0">
-                    <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2" />
-                    <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <CheckCircle className="w-5 h-5 text-green-300 flex-shrink-0" />
                   <span className="text-sm text-white">Agency dashboard</span>
                 </li>
               </ul>
@@ -422,9 +332,7 @@ export default function AboutPage() {
             {/* Multi Agency Plan */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700">
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-xl flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-purple-600 dark:text-purple-300">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" />
-                </svg>
+                <Shield className="w-6 h-6 text-purple-600 dark:text-purple-300" />
               </div>
               <h3 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">Multi Agency Plan</h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">For professional caregivers</p>
@@ -434,19 +342,19 @@ export default function AboutPage() {
               </div>
               <ul className="mt-6 space-y-3">
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">Up to 30 loved ones</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">Up to 10 caregivers</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">Shift scheduling</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">All smart features</span>
                 </li>
               </ul>
@@ -468,9 +376,11 @@ export default function AboutPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <MobileAppIcon />
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center">
+                <Smartphone className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+              </div>
               <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
-                Careguide on the Go
+                MyHealthGuide on the Go
               </h2>
               <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
                 Download our iOS app and take MyHealthGuide with you wherever you go.
@@ -478,19 +388,19 @@ export default function AboutPage() {
               </p>
               <ul className="mt-6 space-y-3">
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-gray-600 dark:text-gray-300">Quick medication logging</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-gray-600 dark:text-gray-300">Voice-powered entries</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-gray-600 dark:text-gray-300">Push notification reminders</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <CheckIcon />
+                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                   <span className="text-gray-600 dark:text-gray-300">Offline access to documents</span>
                 </li>
               </ul>

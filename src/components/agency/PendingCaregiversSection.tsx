@@ -294,13 +294,13 @@ export function PendingCaregiversSection({ agencyId, userId }: PendingCaregivers
               {confirmDialog.action === 'approve' ? (
                 <>
                   This will grant <strong>{confirmDialog.caregiver?.fullName}</strong> access to
-                  view and manage elder information in your agency. They will be able to see assigned
-                  elders and their health data.
+                  view and manage loved one information in your agency. They will be able to see assigned
+                  loved ones and their health data.
                 </>
               ) : (
                 <>
                   This will reject <strong>{confirmDialog.caregiver?.fullName}&apos;s</strong> request
-                  to join your agency. They will not be able to access any elder information.
+                  to join your agency. They will not be able to access any loved one information.
                   They would need a new invite to try again.
                 </>
               )}
