@@ -19,6 +19,7 @@ import { useElder } from '@/contexts/ElderContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { DietService } from '@/lib/firebase/diet';
+import { createDietEntryOfflineAware } from '@/lib/offline';
 
 export default function NewDietEntryPage() {
   const router = useRouter();
@@ -247,7 +248,7 @@ export default function NewDietEntryPage() {
         itemsCount: finalItems.length
       });
 
-      await DietService.createEntry({
+      const result = await createDietEntryOfflineAware({
         elderId,
         groupId,
         meal: meal as 'breakfast' | 'lunch' | 'dinner' | 'snack',
@@ -260,7 +261,11 @@ export default function NewDietEntryPage() {
         createdAt: new Date()
       }, userId, userRole);
 
-      console.log('[DietNew] Entry saved successfully');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save diet entry');
+      }
+
+      console.log('[DietNew] Entry saved successfully', result.queued ? '(queued for sync)' : '');
       router.push('/dashboard/diet');
     } catch (err: any) {
       console.error('Save error:', err);

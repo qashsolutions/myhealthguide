@@ -30,6 +30,10 @@ import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
 import { SupplementService } from '@/lib/firebase/supplements';
 import { DietService } from '@/lib/firebase/diet';
+import {
+  logMedicationDoseOfflineAware,
+  logSupplementIntakeOfflineAware,
+} from '@/lib/offline';
 import { QuickInsightsCard } from '@/components/insights/QuickInsightsCard';
 import { calculateQuickInsightsFromSchedule, type QuickInsightsData } from '@/lib/utils/complianceCalculation';
 import type { Medication, Supplement, DietEntry, MedicationLog, SupplementLog } from '@/types';
@@ -469,7 +473,7 @@ export default function ActivityPage() {
 
     try {
       if (item.type === 'medication') {
-        await MedicationService.logDose({
+        const result = await logMedicationDoseOfflineAware({
           groupId: selectedElder.groupId,
           elderId: selectedElder.id,
           medicationId: item.sourceId,
@@ -480,8 +484,13 @@ export default function ActivityPage() {
           method: 'manual',
           createdAt: now
         }, user.id, userRole);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to log medication');
+        }
+        // Note: result.queued = true means it was saved offline and will sync later
       } else {
-        await SupplementService.logIntake({
+        const result = await logSupplementIntakeOfflineAware({
           groupId: selectedElder.groupId,
           elderId: selectedElder.id,
           supplementId: item.sourceId,
@@ -492,6 +501,11 @@ export default function ActivityPage() {
           method: 'manual',
           createdAt: now
         }, user.id, userRole);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to log supplement');
+        }
+        // Note: result.queued = true means it was saved offline and will sync later
       }
 
       // Update local state and recalculate insights

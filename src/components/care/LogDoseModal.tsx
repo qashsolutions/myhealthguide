@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
-import { MedicationService } from '@/lib/firebase/medications';
+import { logMedicationDoseOfflineAware } from '@/lib/offline';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface LogDoseModalProps {
@@ -62,7 +62,7 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
           throw new Error('Unable to determine user role');
         }
 
-        await MedicationService.logDose({
+        const result = await logMedicationDoseOfflineAware({
           medicationId: medication.id,
           groupId: medication.groupId,
           elderId: medication.elderId,
@@ -71,8 +71,13 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
           status,
           notes: notes || undefined,
           method: 'manual',
+          loggedBy: userId,
           createdAt: new Date()
         }, userId, userRole);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to log medication');
+        }
       }
 
       onClose();

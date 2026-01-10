@@ -20,6 +20,7 @@ import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { DietService } from '@/lib/firebase/diet';
 import { ElderService } from '@/lib/firebase/elders';
+import { createDietEntryOfflineAware } from '@/lib/offline';
 
 export default function VoiceDietPage() {
   const router = useRouter();
@@ -114,7 +115,7 @@ export default function VoiceDietPage() {
       const elder = elders.find(e => e.name.toLowerCase().trim() === elderName.toLowerCase().trim());
       const elderId = elder?.id || elderName; // Fallback to name if not found
 
-      await DietService.createEntry({
+      const result = await createDietEntryOfflineAware({
         elderId,
         groupId,
         meal: parsedData.meal || 'snack',
@@ -128,8 +129,13 @@ export default function VoiceDietPage() {
         createdAt: new Date()
       }, userId, userRole);
 
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to log meal');
+      }
+
       const mealType = parsedData.meal || 'meal';
-      setSuccess(`Successfully logged ${mealType} for ${elderName}`);
+      const queuedMsg = result.queued ? ' (will sync when online)' : '';
+      setSuccess(`Successfully logged ${mealType} for ${elderName}${queuedMsg}`);
       setShowDialog(false);
       setAnalysis(null);
 

@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { MedicationService } from '@/lib/firebase/medications';
 import { ElderService } from '@/lib/firebase/elders';
+import { logMedicationDoseOfflineAware } from '@/lib/offline';
 
 export default function VoiceMedicationPage() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function VoiceMedicationPage() {
         throw new Error(`Medication "${parsedData.itemName}" not found for ${elderName}. Please add it first.`);
       }
 
-      await MedicationService.logDose({
+      const result = await logMedicationDoseOfflineAware({
         medicationId: medication.id,
         groupId,
         elderId: elder.id,
@@ -84,10 +85,16 @@ export default function VoiceMedicationPage() {
         notes: editedTranscript,
         method: 'voice',
         voiceTranscript: editedTranscript,
+        loggedBy: userId,
         createdAt: new Date()
       }, userId, userRole);
 
-      setSuccess(`Successfully logged ${parsedData.itemName} for ${elderName}`);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to log medication');
+      }
+
+      const queuedMsg = result.queued ? ' (will sync when online)' : '';
+      setSuccess(`Successfully logged ${parsedData.itemName} for ${elderName}${queuedMsg}`);
       setShowDialog(false);
 
       // Redirect after 2 seconds
