@@ -15,6 +15,7 @@ export {
   tipsStore,
   imagesStore,
   syncMetadataStore,
+  syncQueueStore,
 } from './indexedDB';
 
 // Cache management
@@ -65,3 +66,29 @@ export {
   executeIfOnline,
   offlineSafeFetch,
 } from './offlineUtils';
+
+// Offline sync service (for write operations queue)
+export {
+  initializeOfflineSync,
+  cleanupOfflineSync,
+  queueOperation,
+  getPendingOperations,
+  getQueueStatus,
+  processQueue,
+  registerOperationHandler,
+  onQueueStatusChange,
+  hasPendingOperations,
+  clearFailedOperations,
+  retryFailedOperations,
+  isOnlineNow,
+  formatPendingMessage,
+} from './offlineSyncService';
+
+// Offline-aware service wrappers
+export {
+  initializeOfflineAwareServices,
+  logMedicationDoseOfflineAware,
+  logSupplementIntakeOfflineAware,
+  createDietEntryOfflineAware,
+  type OfflineOperationResult,
+} from './offlineAwareServices';

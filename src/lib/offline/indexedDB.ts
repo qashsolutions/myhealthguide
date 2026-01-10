@@ -13,6 +13,7 @@ import {
   type CachedImage,
   type SyncMetadata,
   type DBOperationResult,
+  type QueuedOperation,
 } from './offlineTypes';
 
 // ============= Database Instance =============
@@ -94,6 +95,15 @@ export async function initializeDB(): Promise<DBOperationResult<IDBDatabase>> {
       if (!db.objectStoreNames.contains(STORES.CACHED_IMAGES)) {
         const imagesStore = db.createObjectStore(STORES.CACHED_IMAGES, { keyPath: 'imageUrl' });
         imagesStore.createIndex('cachedAt', 'cachedAt', { unique: false });
+      }
+
+      // Create syncQueue store (for offline write operations)
+      if (!db.objectStoreNames.contains(STORES.SYNC_QUEUE)) {
+        const queueStore = db.createObjectStore(STORES.SYNC_QUEUE, { keyPath: 'id' });
+        queueStore.createIndex('status', 'status', { unique: false });
+        queueStore.createIndex('priority', 'priority', { unique: false });
+        queueStore.createIndex('queuedAt', 'queuedAt', { unique: false });
+        queueStore.createIndex('operationType', 'operationType', { unique: false });
       }
     };
   });
@@ -471,4 +481,24 @@ export const syncMetadataStore = {
   getAll: () => getAllItems<SyncMetadata>(STORES.SYNC_METADATA),
   delete: (dataType: 'tips' | 'images') => deleteItem(STORES.SYNC_METADATA, dataType),
   clear: () => clearStore(STORES.SYNC_METADATA),
+};
+
+/**
+ * Sync queue store operations (for offline write operations)
+ */
+export const syncQueueStore = {
+  put: (item: QueuedOperation) => putItem<QueuedOperation>(STORES.SYNC_QUEUE, item),
+  putMany: (items: QueuedOperation[]) => putItems<QueuedOperation>(STORES.SYNC_QUEUE, items),
+  get: (id: string) => getItem<QueuedOperation>(STORES.SYNC_QUEUE, id),
+  getAll: () => getAllItems<QueuedOperation>(STORES.SYNC_QUEUE),
+  getByStatus: (status: string) =>
+    getItemsByIndex<QueuedOperation>(STORES.SYNC_QUEUE, 'status', status),
+  getByPriority: (priority: string) =>
+    getItemsByIndex<QueuedOperation>(STORES.SYNC_QUEUE, 'priority', priority),
+  getByType: (operationType: string) =>
+    getItemsByIndex<QueuedOperation>(STORES.SYNC_QUEUE, 'operationType', operationType),
+  delete: (id: string) => deleteItem(STORES.SYNC_QUEUE, id),
+  deleteMany: (ids: string[]) => deleteItems(STORES.SYNC_QUEUE, ids),
+  clear: () => clearStore(STORES.SYNC_QUEUE),
+  count: () => countItems(STORES.SYNC_QUEUE),
 };
