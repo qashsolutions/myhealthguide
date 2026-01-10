@@ -36,6 +36,57 @@
 - All 278 E2E tests passing
 - Commit: 6e6ac31
 
+### Jan 10, 2026 - Task 9.1: Care Community Offline Feature
+**Status:** ✅ COMPLETE
+
+**Objective:** Implement offline caching for Care Community tips so users in rural areas with unreliable connectivity can browse tips without internet connection.
+
+**Files Created:**
+| File | Purpose |
+|------|---------|
+| `src/lib/offline/offlineTypes.ts` | TypeScript interfaces and constants |
+| `src/lib/offline/indexedDB.ts` | Generic IndexedDB wrapper utilities |
+| `src/lib/offline/cacheManager.ts` | Tip caching with image compression and size management |
+| `src/lib/offline/syncManager.ts` | Online/offline detection and background sync |
+| `src/lib/offline/index.ts` | Module exports |
+| `src/hooks/useOfflineStatus.ts` | React hook for offline status tracking |
+| `src/hooks/useCachedCommunity.ts` | React hook for cached community data |
+| `src/components/OfflineBadge.tsx` | Offline indicator component |
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `src/app/(public)/tips/page.tsx` | Integrated offline caching, added OfflineBadge, client-side search fallback |
+
+**Technical Implementation:**
+- **IndexedDB Schema:** `myhealthguide_offline` database with stores: `communityTips`, `syncMetadata`, `cachedImages`
+- **Cache Limits:** 50 tips max, 10MB total, 100KB per image
+- **Ranking Algorithm:** Reuses existing `rankTips` function (views + likes + recency)
+- **Sync Strategy:** NetworkFirst with automatic background sync on reconnection
+- **Image Compression:** Canvas-based compression to stay under 100KB limit
+- **FIFO Purging:** Oldest content removed when cache limits exceeded
+
+**User Experience:**
+- Offline Mode badge appears in top-right when disconnected
+- Alert banner shows "You're offline. Showing cached content."
+- "Share a Tip" button disabled when offline
+- Client-side search works offline
+- "Last updated" timestamp shown for cached content
+- Refresh button available when showing cached data while online
+
+**Configuration Constants (`offlineTypes.ts`):**
+```typescript
+CACHE_CONFIG = {
+  MAX_TIPS: 50,
+  MAX_CACHE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
+  MAX_IMAGE_SIZE_BYTES: 100 * 1024, // 100KB per image
+  SYNC_DEBOUNCE_MS: 5000, // Wait 5s after coming online
+  STALE_THRESHOLD_HOURS: 24, // Cache stale after 24 hours
+}
+```
+
+**Build Verification:** ✅ Build passes, no TypeScript errors
+
 ### Phase 1 Completion Summary
 - All display text changed: "Elder" → "Loved One"
 - Variable names, props, CSS classes, API endpoints preserved
