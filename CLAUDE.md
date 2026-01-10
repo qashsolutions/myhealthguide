@@ -57,6 +57,7 @@
 | File | Changes |
 |------|---------|
 | `src/app/(public)/tips/page.tsx` | Integrated offline caching, added OfflineBadge, client-side search fallback |
+| `src/app/(public)/community/page.tsx` | Full offline integration (/tips redirects here) - commit 694097f |
 
 **Technical Implementation:**
 - **IndexedDB Schema:** `myhealthguide_offline` database with stores: `communityTips`, `syncMetadata`, `cachedImages`
@@ -86,6 +87,14 @@ CACHE_CONFIG = {
 ```
 
 **Build Verification:** ✅ Build passes, no TypeScript errors
+
+**Browser Verification (Jan 10, 2026):**
+- ✅ IndexedDB stores created: `communityTips`, `cachedImages`, `syncMetadata`
+- ✅ Tips cached successfully (2 tips in test)
+- ✅ Offline Mode badge appears when disconnected
+- ✅ Alert banner shows cached tip count and last update time
+- ✅ "Share a Tip" button disabled when offline
+- ✅ UI returns to normal when back online
 
 ### Phase 1 Completion Summary
 - All display text changed: "Elder" → "Loved One"
@@ -284,7 +293,7 @@ Status Key: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 N
 | 7.2 | Session Firestore | ✅ | Jan 9 | Rules already exist (lines 1174-1208) |
 | 8.1 | Symptom Limits | ⏳ | | Not verified |
 | 8.2 | Pre-populated Issues | ⏳ | | No offline data |
-| 9.1 | Care Community Offline | ⏳ | | No local cache |
+| 9.1 | Care Community Offline | ✅ | Jan 10 | IndexedDB caching implemented |
 | 10.1 | Pricing Visibility | ✅ | Jan 9 | Plans filtered by user role |
 | 11.1 | Careguide Branding | ⏳ | | Not verified |
 | 11.2 | Copyright Dynamic | ✅ | Jan 9 | Uses getFullYear() |
@@ -341,7 +350,7 @@ Status: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 Needs
 | 5.1-5.3 | Features Page | Medium | Role-based, offline indicators |
 | 7.1 | Cross-Device Session | Low | No page/elder tracking |
 | 8.1-8.2 | Symptom Limits | Medium | Need offline data |
-| 9.1 | Care Community Offline | Medium | No local cache |
+| 9.1 | Care Community Offline | ✅ | IndexedDB caching implemented (Jan 10) |
 | 10.1 | Pricing Visibility | ✅ | Filters plans by user role |
 | 11.1 | Careguide Branding | Low | Verify app store text |
 
@@ -1516,7 +1525,7 @@ All changes verified on production (https://myguide.health):
 | 7.2 | Session Firestore | ✅ | Jan 10 | userSessions collection (ecb9d43) |
 | 8.1 | Symptom Limits | ✅ | Jan 8 | Guest: 2/day, Registered: 5/day |
 | 8.2 | Pre-populated Issues | ✅ | Jan 10 | 100 symptoms, 12 categories (cbfbd88) |
-| 9.1 | Care Community Offline | ❌ | Jan 9 | NOT IMPLEMENTED - requires IndexedDB (low priority) |
+| 9.1 | Care Community Offline | ✅ | Jan 10 | IndexedDB caching for /community page (694097f) |
 | 10.1 | Pricing Visibility | ✅ | Jan 9 | Plans filtered by role via getVisiblePlanIds() |
 | 11.1 | Careguide Branding | ✅ | Jan 9 | "Careguide on the Go" in about page (50141ed) |
 | 11.2 | Copyright Dynamic | ✅ | Jan 9 | Uses getFullYear() |
