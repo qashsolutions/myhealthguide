@@ -1207,6 +1207,15 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
+    // ============= User Sessions (Cross-Device Continuity) =============
+    // Stores last page/elder context for "Continue where you left off" feature
+    // One document per user (userId is the document ID)
+
+    match /userSessions/{userId} {
+      // Users can only read/write their own session data
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // ============= Unified AI Consents Collection =============
     // Single source of truth for all AI and Medical feature consent
 
