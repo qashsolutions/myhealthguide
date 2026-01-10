@@ -30,6 +30,8 @@ export interface UseCachedCommunityReturn {
   isOnline: boolean;
   /** Last time content was synced */
   lastSyncTime: Date | null;
+  /** Total number of cached tips (before filtering) */
+  cachedTipsCount: number;
   /** Refresh tips (fetches from server if online, otherwise returns cache) */
   refresh: () => Promise<void>;
   /** Force sync from server (only works if online) */
@@ -180,6 +182,7 @@ export function useCachedCommunity(
     isFromCache,
     isOnline: online,
     lastSyncTime,
+    cachedTipsCount: tips.length,
     refresh: loadTips,
     forceSync,
   };

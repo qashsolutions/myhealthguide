@@ -35,7 +35,9 @@ import {
   ShieldCheck,
   TrendingUp,
   Zap,
-  Eye
+  Eye,
+  WifiOff,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserFeatureStats } from '@/lib/engagement/featureTracker';
@@ -50,6 +52,8 @@ import {
 import type { PublishedTip, CaregiverNoteCategory } from '@/types';
 import type { UserFeatureEngagement } from '@/types/engagement';
 import { format, isToday, isThisWeek, isThisMonth, parseISO } from 'date-fns';
+import { useCachedCommunity } from '@/hooks/useCachedCommunity';
+import { OfflineBadge, LastUpdatedIndicator } from '@/components/OfflineBadge';
 
 type SortOption = 'date' | 'author' | 'relevant';
 type CategoryFilter = CaregiverNoteCategory | 'all';
@@ -84,6 +88,17 @@ export default function CommunityPage() {
   const [weekOpen, setWeekOpen] = useState(true);
   const [monthOpen, setMonthOpen] = useState(true);
   const [olderOpen, setOlderOpen] = useState(false);
+
+  // Offline caching
+  const {
+    tips: cachedTips,
+    loading: cacheLoading,
+    error: cacheError,
+    isFromCache,
+    isOnline,
+    lastSyncTime,
+    cachedTipsCount,
+  } = useCachedCommunity();
 
   // Check if user can share tips (signed in + email verified + phone verified)
   // NOTE: Subscription is NOT required for notes/tips feature
@@ -121,19 +136,13 @@ export default function CommunityPage() {
     }
   };
 
-  // Load tips and ranking data
+  // Load tips and ranking data - use cached tips when available
   useEffect(() => {
-    async function loadTipsAndRanking() {
+    async function loadRankingData(tipsData: PublishedTip[]) {
       try {
-        // Load tips
-        const response = await fetch('/api/tips?limit=200&sortBy=date');
-        const data = await response.json();
-
-        if (data.success) {
-          setTips(data.tips);
-
-          // Load ranking data in parallel
-          const tipIds = data.tips.map((t: PublishedTip) => t.id!);
+        // Load ranking data in parallel (only if online)
+        if (isOnline) {
+          const tipIds = tipsData.map((t: PublishedTip) => t.id!);
 
           const [engagement, trending, stats] = await Promise.all([
             getTipEngagement(tipIds),
@@ -147,7 +156,7 @@ export default function CommunityPage() {
           setIsPersonalized(stats.length > 0);
 
           // Calculate rankings
-          const tipsForRanking = data.tips.map((t: PublishedTip) => ({
+          const tipsForRanking = tipsData.map((t: PublishedTip) => ({
             id: t.id!,
             category: t.category,
             publishedAt: t.publishedAt,
@@ -156,37 +165,55 @@ export default function CommunityPage() {
           const ranked = rankTips(tipsForRanking, stats, engagement, trending);
           const rankedMap = new Map(ranked.map(r => [r.tipId, r]));
           setRankedTips(rankedMap);
-        } else {
-          setError(data.error || 'Failed to load tips');
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load tips');
-      } finally {
-        setLoading(false);
+        // Ranking data is non-critical, don't show error for this
+        console.warn('Failed to load ranking data:', err);
       }
     }
 
-    loadTipsAndRanking();
-  }, [user?.id]);
+    // Use cached tips when available
+    if (!cacheLoading && cachedTips.length > 0) {
+      setTips(cachedTips);
+      setLoading(false);
+      loadRankingData(cachedTips);
+    } else if (!cacheLoading && cacheError && !isOnline) {
+      // Offline with no cache
+      setError('You are offline. Tips will be available when you reconnect.');
+      setLoading(false);
+    } else if (cacheLoading) {
+      setLoading(true);
+    } else if (!cacheLoading && cachedTips.length === 0 && isOnline) {
+      // Online but no tips cached yet - this is handled by the hook
+      setLoading(false);
+    }
+  }, [cachedTips, cacheLoading, cacheError, isOnline, user?.id]);
 
-  // Search tips
+  // Search tips - client-side when offline
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      // Reset to full list
-      setLoading(true);
-      try {
-        const response = await fetch('/api/tips?limit=200&sortBy=date');
-        const data = await response.json();
-        if (data.success) {
-          setTips(data.tips);
-        }
-      } catch (err) {
-        // Keep existing tips
-      }
-      setLoading(false);
+      // Reset to full list from cache
+      setTips(cachedTips);
       return;
     }
 
+    // Client-side search when offline
+    if (!isOnline) {
+      setSearching(true);
+      const query = searchQuery.toLowerCase();
+      const filtered = cachedTips.filter(tip =>
+        tip.title.toLowerCase().includes(query) ||
+        tip.summary?.toLowerCase().includes(query) ||
+        tip.content?.toLowerCase().includes(query) ||
+        tip.keywords?.some(k => k.toLowerCase().includes(query)) ||
+        tip.category.toLowerCase().includes(query)
+      );
+      setTips(filtered);
+      setSearching(false);
+      return;
+    }
+
+    // Online search via API
     setSearching(true);
     try {
       const params = new URLSearchParams({
@@ -204,7 +231,15 @@ export default function CommunityPage() {
         setTips(data.tips || data.hits || []);
       }
     } catch (err: any) {
-      // Keep existing tips on error
+      // Fallback to client-side search on error
+      const query = searchQuery.toLowerCase();
+      const filtered = cachedTips.filter(tip =>
+        tip.title.toLowerCase().includes(query) ||
+        tip.summary?.toLowerCase().includes(query) ||
+        tip.content?.toLowerCase().includes(query) ||
+        tip.keywords?.some(k => k.toLowerCase().includes(query))
+      );
+      setTips(filtered);
     } finally {
       setSearching(false);
     }
@@ -488,7 +523,26 @@ export default function CommunityPage() {
 
   return (
     <TooltipProvider>
+      {/* Offline Badge */}
+      <OfflineBadge showCacheStatus={isFromCache} />
+
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        {/* Offline Alert */}
+        {!isOnline && (
+          <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700">
+            <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              You&apos;re offline. Showing {cachedTipsCount} cached tips.
+              {lastSyncTime && (
+                <span className="ml-1 flex items-center gap-1 inline-flex">
+                  <Clock className="w-3 h-3" />
+                  Last updated: {lastSyncTime.toLocaleDateString()}
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -500,13 +554,25 @@ export default function CommunityPage() {
               Your guide to caregiving wisdom
             </p>
           </div>
-          {canShareTip ? (
+          {canShareTip && isOnline ? (
             <Link href="/dashboard/notes/new">
               <Button>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Share a Tip
               </Button>
             </Link>
+          ) : !isOnline ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <WifiOff className="w-4 h-4 mr-2" />
+                  Share a Tip
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Sharing tips requires an internet connection</p>
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -718,8 +784,11 @@ export default function CommunityPage() {
 
       {/* Results Count */}
       {tips.length > 0 && (
-        <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-          Showing {filteredTips.length} of {tips.length} tips
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400 space-y-1">
+          <div>Showing {filteredTips.length} of {tips.length} tips</div>
+          {isFromCache && (
+            <LastUpdatedIndicator lastSyncTime={lastSyncTime} />
+          )}
         </div>
       )}
       </div>
