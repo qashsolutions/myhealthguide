@@ -15,6 +15,12 @@ import { AgencyService } from '@/lib/firebase/agencies';
 import { ContinueSessionDialog } from '@/components/session/ContinueSessionDialog';
 import { useSessionTracking } from '@/hooks/useSessionTracking';
 
+// Component that uses session tracking - must be inside ElderProvider
+function SessionTracker() {
+  useSessionTracking();
+  return null;
+}
+
 // Inner component that can access auth context
 function DashboardContent({ children }: { children: ReactNode }) {
   const { user, refreshUser } = useAuth();
@@ -65,11 +71,10 @@ function DashboardContent({ children }: { children: ReactNode }) {
     }
   }, [hasPendingApproval, pendingAgencies]);
 
-  // Track session context for cross-device continuity
-  useSessionTracking();
-
   return (
     <ElderProvider>
+      {/* Session tracking - inside ElderProvider */}
+      <SessionTracker />
       {/* Password setup modal for caregivers on first login */}
       {showPasswordModal && user?.email && (
         <SetPasswordModal
