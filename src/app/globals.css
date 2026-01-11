@@ -24,6 +24,16 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+
+    /* 55+ Accessibility Variables */
+    --a11y-min-touch-target: 44px;
+    --a11y-preferred-touch-target: 48px;
+    --a11y-min-font-size: 16px;
+    --a11y-preferred-font-size: 18px;
+    --a11y-min-secondary-font: 14px;
+    --a11y-line-height: 1.6;
+    --a11y-focus-ring-width: 2px;
+    --a11y-focus-ring-offset: 2px;
   }
 
   .dark {
@@ -59,6 +69,40 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* Enhanced focus states for 55+ accessibility */
+  :focus-visible {
+    outline: var(--a11y-focus-ring-width) solid hsl(var(--ring));
+    outline-offset: var(--a11y-focus-ring-offset);
+  }
+
+  /* Reduced motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Ensure minimum touch target size for interactive elements */
+  button,
+  [role="button"],
+  a,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: var(--a11y-min-touch-target);
+  }
+
+  /* Better text readability for seniors */
+  p, li, td, th, label, span {
+    line-height: var(--a11y-line-height);
   }
 }
 

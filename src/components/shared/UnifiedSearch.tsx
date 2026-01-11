@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import MiniSearch from 'minisearch';
-import { Search, Mic, MicOff, X, Loader2, AlertCircle, ArrowLeft, Sparkles } from 'lucide-react';
+import { Search, Mic, MicOff, X, Loader2, AlertCircle, ArrowLeft, Sparkles, Navigation, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -17,6 +17,7 @@ import { checkVoiceInputSupport } from '@/lib/voice/browserSupport';
 import { helpArticles, HelpArticle } from '@/lib/help/articles';
 import type { VoiceSearchResult } from '@/lib/ai/voiceSearch';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
+import { processVoiceNavigation, getAvailableCommands, VoiceNavigationResult } from '@/lib/voice/voiceNavigation';
 
 /**
  * UnifiedSearch Component
@@ -41,6 +42,8 @@ export function UnifiedSearch() {
   const [pendingVoiceStart, setPendingVoiceStart] = useState(false);
   const [searchMode, setSearchMode] = useState<'local' | 'ai'>('local'); // Toggle between local MiniSearch and AI search
   const [aiResult, setAiResult] = useState<VoiceSearchResult | null>(null);
+  const [voiceNavResult, setVoiceNavResult] = useState<VoiceNavigationResult | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -166,6 +169,45 @@ export function UnifiedSearch() {
     }
   }, [user]);
 
+  // Voice navigation handler - checks if input is a navigation command
+  const handleVoiceNavigation = useCallback((voiceQuery: string) => {
+    const isAuthenticated = !!user;
+    const navResult = processVoiceNavigation(voiceQuery, isAuthenticated);
+
+    if (navResult.type === 'navigation' && navResult.route && navResult.confidence >= 0.5) {
+      // Show navigation feedback
+      setVoiceNavResult(navResult);
+      setIsNavigating(true);
+
+      // Navigate after brief feedback delay
+      setTimeout(() => {
+        router.push(navResult.route!);
+        handleClose();
+      }, 800);
+
+      return true; // Handled as navigation
+    } else if (navResult.type === 'help') {
+      // Show help suggestions
+      setVoiceNavResult(navResult);
+      return true; // Handled as help
+    }
+
+    return false; // Not a navigation command, proceed with AI search
+  }, [user, router]);
+
+  // Process voice input - checks navigation first, falls back to AI search
+  const handleVoiceInput = useCallback((transcript: string) => {
+    setQuery(transcript);
+
+    // First try voice navigation
+    const wasNavigation = handleVoiceNavigation(transcript);
+
+    // If not a navigation command, proceed with AI search
+    if (!wasNavigation) {
+      handleAiSearch(transcript);
+    }
+  }, [handleVoiceNavigation, handleAiSearch]);
+
   // Initialize Web Speech API
   useEffect(() => {
     if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -181,9 +223,9 @@ export function UnifiedSearch() {
         const transcriptText = event.results[current][0].transcript;
         setQuery(transcriptText);
 
-        // If final result, trigger AI search
+        // If final result, process as voice navigation or AI search
         if (event.results[current].isFinal) {
-          handleAiSearch(transcriptText);
+          handleVoiceInput(transcriptText);
         }
       };
 
@@ -202,7 +244,9 @@ export function UnifiedSearch() {
             setError('No microphone found. Please check your microphone connection.');
             break;
           case 'network':
-            setError('Network error occurred. Please check your internet connection.');
+            // The Web Speech API requires connection to Google's servers (for Chrome)
+            // This error can occur due to: firewall, VPN, corporate network, or temporary outage
+            setError('Voice recognition service is temporarily unavailable. This can happen due to network restrictions or service issues. Please use text search instead, or try again later.');
             break;
           case 'aborted':
             break;
@@ -218,7 +262,7 @@ export function UnifiedSearch() {
         setIsListening(false);
       };
     }
-  }, [handleAiSearch]);
+  }, [handleVoiceInput]);
 
   // Start voice recognition
   const startListening = useCallback(() => {
@@ -316,6 +360,8 @@ export function UnifiedSearch() {
     setIsOpen(false);
     setQuery('');
     setAiResult(null);
+    setVoiceNavResult(null);
+    setIsNavigating(false);
     setError(null);
     setSearchMode('local');
   };
@@ -478,6 +524,42 @@ export function UnifiedSearch() {
 
             {/* Results */}
             <div className="flex-1 overflow-y-auto px-4 py-3">
+              {/* Voice Navigation Feedback */}
+              {isNavigating && voiceNavResult && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="relative">
+                    <Navigation className="h-12 w-12 text-green-600 animate-pulse" />
+                    <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-green-200 animate-ping" />
+                  </div>
+                  <p className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+                    {voiceNavResult.message}
+                  </p>
+                </div>
+              )}
+
+              {/* Help Suggestions */}
+              {!isNavigating && voiceNavResult?.type === 'help' && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <HelpCircle className="h-5 w-5 text-blue-600" />
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {voiceNavResult.message}
+                      </p>
+                    </div>
+                    {voiceNavResult.suggestions && (
+                      <ul className="space-y-2">
+                        {voiceNavResult.suggestions.map((suggestion, idx) => (
+                          <li key={idx} className="text-sm text-gray-700 dark:text-gray-300">
+                            {suggestion}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {isSearching ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -485,7 +567,7 @@ export function UnifiedSearch() {
                     Searching...
                   </span>
                 </div>
-              ) : aiResult ? (
+              ) : !isNavigating && !voiceNavResult && aiResult ? (
                 // AI Results
                 <div className="space-y-4">
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -520,7 +602,7 @@ export function UnifiedSearch() {
                     </div>
                   )}
                 </div>
-              ) : query.trim() && topResults.length > 0 ? (
+              ) : !isNavigating && !voiceNavResult && query.trim() && topResults.length > 0 ? (
                 // Local Results
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -547,7 +629,7 @@ export function UnifiedSearch() {
                     </button>
                   ))}
                 </div>
-              ) : query.trim() ? (
+              ) : !isNavigating && !voiceNavResult && query.trim() ? (
                 // No Results
                 <div className="text-center py-8">
                   <Search className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
@@ -562,7 +644,7 @@ export function UnifiedSearch() {
                     Try AI Search
                   </Button>
                 </div>
-              ) : (
+              ) : !isNavigating && !voiceNavResult ? (
                 // Empty State
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <p className="font-medium mb-4">Try searching for:</p>
@@ -587,7 +669,7 @@ export function UnifiedSearch() {
                     </button>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -691,8 +773,42 @@ export function UnifiedSearch() {
                 </div>
               )}
 
+              {/* Voice Navigation Feedback */}
+              {isNavigating && voiceNavResult && (
+                <div className="mt-3 flex flex-col items-center justify-center py-6">
+                  <div className="relative">
+                    <Navigation className="h-8 w-8 text-green-600 animate-pulse" />
+                    <div className="absolute inset-0 h-8 w-8 rounded-full border-2 border-green-200 animate-ping" />
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-gray-900 dark:text-white">
+                    {voiceNavResult.message}
+                  </p>
+                </div>
+              )}
+
+              {/* Help Suggestions */}
+              {!isNavigating && voiceNavResult?.type === 'help' && (
+                <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <HelpCircle className="h-4 w-4 text-blue-600" />
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {voiceNavResult.message}
+                      </p>
+                    </div>
+                    {voiceNavResult.suggestions && (
+                      <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                        {voiceNavResult.suggestions.map((suggestion, idx) => (
+                          <li key={idx}>{suggestion}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Results Dropdown */}
-              {!isSearching && (query.trim() || aiResult) && (
+              {!isSearching && !isNavigating && !voiceNavResult && (query.trim() || aiResult) && (
                 <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3 max-h-96 overflow-y-auto">
                   {aiResult ? (
                     // AI Results

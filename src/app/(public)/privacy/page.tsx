@@ -189,7 +189,7 @@ export default function PrivacyPage() {
               <strong>Data Sent to Gemini:</strong> Medication logs and schedules, supplement logs, diet entries, loved one names and ages, health conditions (if provided), user chat messages, and voice transcripts.
             </p>
             <p className="mb-4">
-              API Endpoint: https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent
+              API Endpoint: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">6.3 Communication Services</h3>

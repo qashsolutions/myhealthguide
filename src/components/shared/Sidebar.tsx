@@ -176,7 +176,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           <Link
             href={href}
             className={cn(
-              'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+              'relative flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all duration-150 min-h-[44px]',
               'hover:bg-gray-100 dark:hover:bg-gray-700',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
               active
@@ -186,13 +186,13 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           >
             {/* Left accent bar for active state */}
             {active && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-600 dark:bg-blue-400 rounded-full" />
             )}
-            <Icon className={cn('w-5 h-5', active && 'text-blue-600 dark:text-blue-400')} />
+            <Icon className={cn('w-5 h-5 flex-shrink-0', active && 'text-blue-600 dark:text-blue-400')} />
             <span className="flex-1">{label}</span>
             {badge !== undefined && (
               <span className={cn(
-                'text-xs px-2 py-0.5 rounded-full font-semibold',
+                'text-sm px-2.5 py-0.5 rounded-full font-semibold',
                 badgeColors[badgeColor]
               )}>
                 {badge}
@@ -202,7 +202,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </TooltipTrigger>
         {tooltip && (
           <TooltipContent side="right">
-            <p>{tooltip}</p>
+            <p className="text-base">{tooltip}</p>
           </TooltipContent>
         )}
       </Tooltip>
@@ -217,12 +217,12 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     children: React.ReactNode;
     showIndicator?: boolean;
   }) => (
-    <div className="px-3 pt-5 pb-2">
+    <div className="px-4 pt-6 pb-2">
       <div className="flex items-center gap-2">
         {showIndicator && (
-          <span className="w-2 h-2 rounded-full bg-green-500" />
+          <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
         )}
-        <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
+        <span className="text-sm font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
           {children}
         </span>
       </div>
@@ -231,8 +231,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
   // Gray section label (for non-elder sections)
   const GraySectionLabel = ({ children }: { children: React.ReactNode }) => (
-    <div className="px-3 pt-5 pb-2">
-      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+    <div className="px-4 pt-6 pb-2">
+      <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
         {children}
       </span>
     </div>

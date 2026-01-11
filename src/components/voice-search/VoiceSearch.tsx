@@ -148,7 +148,9 @@ export function VoiceSearch() {
             setError('No microphone found. Please check your microphone connection.');
             break;
           case 'network':
-            setError('Network error occurred. Please check your internet connection.');
+            // The Web Speech API requires connection to Google's servers (for Chrome)
+            // This error can occur due to: firewall, VPN, corporate network, or temporary outage
+            setError('Voice recognition service is temporarily unavailable. This can happen due to network restrictions or service issues. Please use text search instead, or try again later.');
             break;
           case 'aborted':
             // User cancelled - don't show error
