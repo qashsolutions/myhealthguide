@@ -8,7 +8,7 @@ export default function TermsPage() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
             <strong>Effective Date:</strong> November 28, 2025
             <br />
-            <strong>Last Updated:</strong> January 04, 2026
+            <strong>Last Updated:</strong> January 11, 2026
           </p>
 
           <section className="mb-8">
@@ -350,7 +350,7 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">12.4 Third-Party Services</h3>
             <p className="mb-4">
-              We are not responsible for the accuracy, reliability, availability, or performance of third-party services (including but not limited to Firebase, Google Cloud, Google Gemini AI, FDA OpenFDA API, Twilio, SendGrid, Stripe) integrated with our Service. Your use of such third-party services is at your own risk and subject to the terms and conditions of those third parties.
+              We are not responsible for the accuracy, reliability, availability, or performance of third-party services (including but not limited to Firebase, Google Cloud, Google Gemini AI, Anthropic Claude, FDA OpenFDA API, Stripe) integrated with our Service. Your use of such third-party services is at your own risk and subject to the terms and conditions of those third parties.
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">12.5 Jurisdictional Limitations</h3>
