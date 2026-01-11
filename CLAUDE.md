@@ -157,8 +157,18 @@ SYNC_QUEUE_CONFIG = {
 | `functions/src/index.ts` | Added `sendDailyFamilyNotes` scheduled function |
 | `firestore.rules` | Added `daily_family_notes` collection rules |
 
-**Cloud Function: `sendDailyFamilyNotes`**
-- **Schedule:** `0 19 * * *` (7 PM daily PST)
+**Cloud Functions: Daily Family Notes with Retry**
+
+| Function | Schedule | Purpose |
+|----------|----------|---------|
+| `sendDailyFamilyNotes` | 7 PM PST | Primary trigger |
+| `sendDailyFamilyNotes8PM` | 8 PM PST | Fallback #1 |
+| `sendDailyFamilyNotes9PM` | 9 PM PST | Fallback #2 |
+
+**Features:**
+- `failurePolicy: true` for automatic Firebase retries (up to 2x)
+- Duplicate prevention (checks for existing note before sending)
+- `triggerTime` field tracks which schedule sent the note
 - **Creates:** `daily_family_notes` collection documents
 - **Sends:** `user_notifications` to all group members + admin
 - **Queues:** FCM push via `fcm_notification_queue`
@@ -202,10 +212,14 @@ firebase deploy --only firestore:rules
 ```
 
 **Deployment Status (Jan 10, 2026):**
-- ✅ Cloud Functions deployed to Firebase (`sendDailyFamilyNotes` created)
+- ✅ Cloud Functions deployed to Firebase:
+  - `sendDailyFamilyNotes` (7 PM) - created
+  - `sendDailyFamilyNotes8PM` (8 PM fallback) - created
+  - `sendDailyFamilyNotes9PM` (9 PM fallback) - created
 - ✅ Firestore rules deployed (`daily_family_notes` collection)
 - ✅ Vercel deployment complete (cookie consent blocking)
-- ✅ Commit: 42129ce pushed to origin/main
+- ✅ E2E tests updated (cookie consent handling)
+- ✅ Commits: 42129ce, 1f482ad, b0e5b82 pushed to origin/main
 
 ### Jan 10, 2026 - Refactor-6 Implementation
 **Status:** ✅ ALL 5 PHASES COMPLETE
