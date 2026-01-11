@@ -1,0 +1,206 @@
+/**
+ * Accessibility Variables for 55+ Users
+ *
+ * These CSS custom properties define the foundation for accessible design.
+ * All values meet or exceed WCAG 2.1 AA guidelines with considerations
+ * for users aged 55 and older.
+ *
+ * Usage:
+ *   var(--a11y-font-size-body)
+ *   var(--a11y-touch-target-min)
+ *   etc.
+ */
+
+:root {
+  /* ========================================
+   * TYPOGRAPHY
+   * ======================================== */
+
+  /* Font Sizes - Larger for 55+ readability */
+  --a11y-font-size-xs: 14px;      /* Minimum for secondary text */
+  --a11y-font-size-sm: 16px;      /* Small but readable */
+  --a11y-font-size-body: 18px;    /* Primary body text */
+  --a11y-font-size-lg: 20px;      /* Emphasized text */
+  --a11y-font-size-xl: 24px;      /* Large emphasis */
+
+  /* Heading Sizes - Clear hierarchy */
+  --a11y-font-size-h1: 32px;
+  --a11y-font-size-h2: 26px;
+  --a11y-font-size-h3: 22px;
+  --a11y-font-size-h4: 20px;
+  --a11y-font-size-h5: 18px;
+  --a11y-font-size-h6: 16px;
+
+  /* Line Heights - Improved readability */
+  --a11y-line-height-tight: 1.3;   /* Headings */
+  --a11y-line-height-normal: 1.5;  /* Standard text */
+  --a11y-line-height-relaxed: 1.6; /* Body text for seniors */
+  --a11y-line-height-loose: 1.8;   /* Extra readable */
+
+  /* Letter Spacing */
+  --a11y-letter-spacing-tight: -0.025em;
+  --a11y-letter-spacing-normal: 0;
+  --a11y-letter-spacing-wide: 0.025em;
+  --a11y-letter-spacing-wider: 0.05em;
+
+  /* Font Weights */
+  --a11y-font-weight-normal: 400;
+  --a11y-font-weight-medium: 500;
+  --a11y-font-weight-semibold: 600;
+  --a11y-font-weight-bold: 700;
+
+  /* ========================================
+   * SPACING
+   * ======================================== */
+
+  --a11y-spacing-xs: 4px;
+  --a11y-spacing-sm: 8px;
+  --a11y-spacing-md: 12px;
+  --a11y-spacing-lg: 16px;
+  --a11y-spacing-xl: 24px;
+  --a11y-spacing-2xl: 32px;
+  --a11y-spacing-3xl: 48px;
+
+  /* Component-specific spacing */
+  --a11y-input-padding-x: 16px;
+  --a11y-input-padding-y: 12px;
+  --a11y-button-padding-x: 20px;
+  --a11y-button-padding-y: 12px;
+  --a11y-card-padding: 24px;
+  --a11y-section-gap: 32px;
+
+  /* ========================================
+   * TOUCH TARGETS
+   * ======================================== */
+
+  /* WCAG 2.1 Level AAA recommends 44x44px minimum */
+  --a11y-touch-target-min: 44px;
+  --a11y-touch-target-comfortable: 48px;
+  --a11y-touch-target-large: 56px;
+
+  /* Clickable area expansion (for icons with padding) */
+  --a11y-click-area-min: 44px;
+
+  /* ========================================
+   * FOCUS STATES
+   * ======================================== */
+
+  --a11y-focus-ring-color: hsl(221.2 83.2% 53.3%);
+  --a11y-focus-ring-color-dark: hsl(217.2 91.2% 59.8%);
+  --a11y-focus-ring-width: 3px;
+  --a11y-focus-ring-offset: 2px;
+  --a11y-focus-ring-style: solid;
+
+  /* Focus ring for dark backgrounds */
+  --a11y-focus-ring-light: hsl(210 40% 98%);
+
+  /* ========================================
+   * COLORS - HIGH CONTRAST
+   * ======================================== */
+
+  /* Text colors meeting WCAG AA 4.5:1 contrast ratio */
+  --a11y-text-primary: hsl(222.2 84% 4.9%);
+  --a11y-text-secondary: hsl(215.4 16.3% 36.9%);
+  --a11y-text-muted: hsl(215.4 16.3% 46.9%);
+  --a11y-text-on-primary: hsl(210 40% 98%);
+  --a11y-text-on-dark: hsl(210 40% 98%);
+
+  /* Background colors */
+  --a11y-bg-primary: hsl(0 0% 100%);
+  --a11y-bg-secondary: hsl(210 40% 96.1%);
+  --a11y-bg-muted: hsl(210 40% 96.1%);
+  --a11y-bg-accent: hsl(221.2 83.2% 53.3%);
+
+  /* Border colors - visible but not harsh */
+  --a11y-border-color: hsl(214.3 31.8% 71.4%);
+  --a11y-border-color-strong: hsl(214.3 31.8% 51.4%);
+  --a11y-border-color-subtle: hsl(214.3 31.8% 91.4%);
+
+  /* Status colors - distinguishable for color blindness */
+  --a11y-color-success: hsl(142.1 76.2% 36.3%);
+  --a11y-color-success-bg: hsl(142.1 76.2% 94%);
+  --a11y-color-warning: hsl(45.4 93.4% 47.5%);
+  --a11y-color-warning-bg: hsl(45.4 93.4% 94%);
+  --a11y-color-error: hsl(0 84.2% 60.2%);
+  --a11y-color-error-bg: hsl(0 84.2% 96%);
+  --a11y-color-info: hsl(221.2 83.2% 53.3%);
+  --a11y-color-info-bg: hsl(221.2 83.2% 96%);
+
+  /* ========================================
+   * BORDERS & RADIUS
+   * ======================================== */
+
+  --a11y-border-width: 1px;
+  --a11y-border-width-thick: 2px;
+  --a11y-radius-sm: 4px;
+  --a11y-radius-md: 8px;
+  --a11y-radius-lg: 12px;
+  --a11y-radius-xl: 16px;
+  --a11y-radius-full: 9999px;
+
+  /* ========================================
+   * TRANSITIONS
+   * ======================================== */
+
+  /* Respect prefers-reduced-motion */
+  --a11y-transition-fast: 150ms ease;
+  --a11y-transition-normal: 200ms ease;
+  --a11y-transition-slow: 300ms ease;
+
+  /* ========================================
+   * SHADOWS
+   * ======================================== */
+
+  --a11y-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --a11y-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --a11y-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --a11y-shadow-focus: 0 0 0 var(--a11y-focus-ring-width) var(--a11y-focus-ring-color);
+
+  /* ========================================
+   * Z-INDEX SCALE
+   * ======================================== */
+
+  --a11y-z-dropdown: 50;
+  --a11y-z-sticky: 100;
+  --a11y-z-modal-backdrop: 200;
+  --a11y-z-modal: 210;
+  --a11y-z-tooltip: 300;
+  --a11y-z-skip-link: 9999;
+}
+
+/* Dark mode overrides */
+.dark {
+  --a11y-text-primary: hsl(210 40% 98%);
+  --a11y-text-secondary: hsl(215 20.2% 75.1%);
+  --a11y-text-muted: hsl(215 20.2% 65.1%);
+  --a11y-text-on-primary: hsl(222.2 47.4% 11.2%);
+
+  --a11y-bg-primary: hsl(222.2 84% 4.9%);
+  --a11y-bg-secondary: hsl(217.2 32.6% 17.5%);
+  --a11y-bg-muted: hsl(217.2 32.6% 17.5%);
+
+  --a11y-border-color: hsl(217.2 32.6% 37.5%);
+  --a11y-border-color-strong: hsl(217.2 32.6% 57.5%);
+  --a11y-border-color-subtle: hsl(217.2 32.6% 17.5%);
+
+  --a11y-focus-ring-color: var(--a11y-focus-ring-color-dark);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --a11y-transition-fast: 0ms;
+    --a11y-transition-normal: 0ms;
+    --a11y-transition-slow: 0ms;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --a11y-border-width: 2px;
+    --a11y-focus-ring-width: 4px;
+    --a11y-text-secondary: var(--a11y-text-primary);
+    --a11y-border-color: var(--a11y-text-primary);
+  }
+}

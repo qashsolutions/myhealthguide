@@ -2,12 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import Link from 'next/link';
 import { Ticket, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import {
   parseInviteCode,
@@ -15,6 +11,12 @@ import {
   getInviteTypeDescription,
   getSignupRouteForInviteType
 } from '@/lib/utils/inviteCode';
+import {
+  AccessibleButton,
+  AccessibleInput,
+  AccessibleLink,
+  AccessiblePageWrapper,
+} from '@/components/accessibility';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -117,161 +119,139 @@ export default function LoginPage() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sign In</CardTitle>
-        <CardDescription>
-          Enter your credentials to access your account
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
+    <AccessiblePageWrapper title="Sign In">
+      <Card>
+        <CardHeader>
+          <CardTitle>Sign In</CardTitle>
+          <CardDescription>
+            Enter your credentials to access your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <AccessibleInput
+              label="Email"
               type="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              error={error && error.includes('email') ? error : undefined}
             />
-          </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label htmlFor="password">Password</Label>
-              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
-                Forgot password?
-              </Link>
-            </div>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Minimum 8 characters: a-z, A-Z, 0-9, !@#$%"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          {error && (
-            <div className="text-sm text-red-600 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-gray-950 px-2 text-gray-500">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          <Link href="/phone-login" className="block">
-            <Button type="button" variant="outline" className="w-full">
-              Sign in with Phone Number
-            </Button>
-          </Link>
-        </form>
-
-        {/* Invite Code Section */}
-        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          {!showInviteCode ? (
-            <button
-              type="button"
-              onClick={() => setShowInviteCode(true)}
-              className="w-full flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              <Ticket className="w-4 h-4" />
-              Have an invite code?
-            </button>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="inviteCode" className="text-sm font-medium">
-                  Enter Invite Code
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowInviteCode(false);
-                    setInviteCode('');
-                    setInviteCodeError('');
-                    setInviteCodeValid(false);
-                    setInviteType(null);
-                  }}
-                  className="text-xs text-gray-500 hover:text-gray-700"
-                >
-                  Cancel
-                </button>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-base font-medium text-gray-900 dark:text-gray-100">
+                  Password
+                </span>
+                <AccessibleLink href="/forgot-password" size="sm" variant="subtle">
+                  Forgot password?
+                </AccessibleLink>
               </div>
-              <div className="relative">
-                <Input
-                  id="inviteCode"
+              <AccessibleInput
+                label="Password"
+                hideLabel
+                type="password"
+                placeholder="Minimum 8 characters: a-z, A-Z, 0-9, !@#$%"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                showPasswordToggle
+              />
+            </div>
+
+            {error && !error.includes('email') && (
+              <div className="flex items-center gap-2 text-base text-red-600 dark:text-red-400" role="alert">
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <AccessibleButton
+              type="submit"
+              fullWidth
+              loading={loading}
+              loadingText="Signing in to your account"
+            >
+              Sign In
+            </AccessibleButton>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-sm uppercase">
+                <span className="bg-white dark:bg-gray-950 px-2 text-gray-500">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <AccessibleLink href="/phone-login" variant="button" className="w-full justify-center">
+              Sign in with Phone Number
+            </AccessibleLink>
+          </form>
+
+          {/* Invite Code Section */}
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            {!showInviteCode ? (
+              <AccessibleButton
+                variant="ghost"
+                fullWidth
+                onClick={() => setShowInviteCode(true)}
+                iconLeft={<Ticket className="w-5 h-5" />}
+              >
+                Have an invite code?
+              </AccessibleButton>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-medium">Enter Invite Code</span>
+                  <AccessibleButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowInviteCode(false);
+                      setInviteCode('');
+                      setInviteCodeError('');
+                      setInviteCodeValid(false);
+                      setInviteType(null);
+                    }}
+                  >
+                    Cancel
+                  </AccessibleButton>
+                </div>
+                <AccessibleInput
+                  label="Invite Code"
+                  hideLabel
                   type="text"
                   placeholder="e.g., FAM-AB12 or MAG-C-XY34"
                   value={inviteCode}
                   onChange={(e) => handleInviteCodeChange(e.target.value)}
-                  className={`font-mono uppercase ${
-                    inviteCodeValid
-                      ? 'border-green-500 focus:ring-green-500'
-                      : inviteCodeError
-                        ? 'border-red-500 focus:ring-red-500'
-                        : ''
-                  }`}
+                  error={inviteCodeError}
+                  success={inviteCodeValid && inviteType ? `Valid code for: ${inviteType}` : undefined}
+                  className="font-mono uppercase"
                 />
-                {inviteCodeValid && (
-                  <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
-                )}
+                <AccessibleButton
+                  fullWidth
+                  onClick={handleInviteCodeSubmit}
+                  disabled={!inviteCode}
+                  loading={inviteCodeValidating}
+                  loadingText="Validating invite code"
+                >
+                  Continue with Invite Code
+                </AccessibleButton>
               </div>
-              {inviteCodeValid && inviteType && (
-                <p className="text-sm text-green-600 flex items-center gap-1">
-                  <CheckCircle className="w-4 h-4" />
-                  Valid code for: {inviteType}
-                </p>
-              )}
-              {inviteCodeError && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  {inviteCodeError}
-                </p>
-              )}
-              <Button
-                type="button"
-                onClick={handleInviteCodeSubmit}
-                disabled={inviteCodeValidating || !inviteCode}
-                className="w-full"
-              >
-                {inviteCodeValidating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Validating...
-                  </>
-                ) : (
-                  'Continue with Invite Code'
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-blue-600 hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+            )}
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-base text-gray-600 dark:text-gray-400">
+            Don&apos;t have an account?{' '}
+            <AccessibleLink href="/signup">Sign up</AccessibleLink>
+          </p>
+        </CardFooter>
+      </Card>
+    </AccessiblePageWrapper>
   );
 }

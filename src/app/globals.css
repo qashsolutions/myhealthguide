@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Accessibility System - 55+ User Support */
+@import '../styles/accessibility-variables.css';
+@import '../styles/accessibility-utilities.css';
+
 @layer base {
   :root {
     --background: 0 0% 100%;

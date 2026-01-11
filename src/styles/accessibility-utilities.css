@@ -1,0 +1,569 @@
+/**
+ * Accessibility Utility Classes for 55+ Users
+ *
+ * Ready-to-use classes that enforce accessibility standards.
+ * Apply these classes to elements for instant accessibility compliance.
+ *
+ * Usage:
+ *   <p className="a11y-text-body">Readable body text</p>
+ *   <button className="a11y-touch-target">Tappable button</button>
+ */
+
+/* ========================================
+ * TYPOGRAPHY UTILITIES
+ * ======================================== */
+
+/* Body text - Primary readable size */
+.a11y-text-body {
+  font-size: var(--a11y-font-size-body);
+  line-height: var(--a11y-line-height-relaxed);
+  color: var(--a11y-text-primary);
+}
+
+/* Small text - Secondary information */
+.a11y-text-small {
+  font-size: var(--a11y-font-size-sm);
+  line-height: var(--a11y-line-height-normal);
+  color: var(--a11y-text-secondary);
+}
+
+/* Large text - Emphasized content */
+.a11y-text-large {
+  font-size: var(--a11y-font-size-lg);
+  line-height: var(--a11y-line-height-relaxed);
+  color: var(--a11y-text-primary);
+}
+
+/* Extra small - Use sparingly, only for truly secondary info */
+.a11y-text-xs {
+  font-size: var(--a11y-font-size-xs);
+  line-height: var(--a11y-line-height-normal);
+  color: var(--a11y-text-muted);
+}
+
+/* Heading utilities */
+.a11y-heading-1 {
+  font-size: var(--a11y-font-size-h1);
+  font-weight: var(--a11y-font-weight-bold);
+  line-height: var(--a11y-line-height-tight);
+  color: var(--a11y-text-primary);
+  letter-spacing: var(--a11y-letter-spacing-tight);
+}
+
+.a11y-heading-2 {
+  font-size: var(--a11y-font-size-h2);
+  font-weight: var(--a11y-font-weight-semibold);
+  line-height: var(--a11y-line-height-tight);
+  color: var(--a11y-text-primary);
+}
+
+.a11y-heading-3 {
+  font-size: var(--a11y-font-size-h3);
+  font-weight: var(--a11y-font-weight-semibold);
+  line-height: var(--a11y-line-height-tight);
+  color: var(--a11y-text-primary);
+}
+
+.a11y-heading-4 {
+  font-size: var(--a11y-font-size-h4);
+  font-weight: var(--a11y-font-weight-medium);
+  line-height: var(--a11y-line-height-tight);
+  color: var(--a11y-text-primary);
+}
+
+/* Muted text for less important content */
+.a11y-text-muted {
+  color: var(--a11y-text-muted);
+}
+
+/* ========================================
+ * TOUCH TARGET UTILITIES
+ * ======================================== */
+
+/* Minimum touch target - 44px */
+.a11y-touch-target {
+  min-height: var(--a11y-touch-target-min);
+  min-width: var(--a11y-touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Comfortable touch target - 48px */
+.a11y-touch-target-comfortable {
+  min-height: var(--a11y-touch-target-comfortable);
+  min-width: var(--a11y-touch-target-comfortable);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Large touch target - 56px */
+.a11y-touch-target-large {
+  min-height: var(--a11y-touch-target-large);
+  min-width: var(--a11y-touch-target-large);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Expand clickable area without changing visual size */
+.a11y-click-expand {
+  position: relative;
+}
+
+.a11y-click-expand::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: var(--a11y-click-area-min);
+  min-height: var(--a11y-click-area-min);
+}
+
+/* ========================================
+ * FOCUS UTILITIES
+ * ======================================== */
+
+/* Standard focus ring */
+.a11y-focus-ring:focus-visible {
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-color);
+  outline-offset: var(--a11y-focus-ring-offset);
+}
+
+/* Focus ring for dark backgrounds */
+.a11y-focus-ring-light:focus-visible {
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-light);
+  outline-offset: var(--a11y-focus-ring-offset);
+}
+
+/* Focus ring with shadow (for rounded elements) */
+.a11y-focus-shadow:focus-visible {
+  outline: none;
+  box-shadow: var(--a11y-shadow-focus);
+}
+
+/* Remove default focus and apply custom */
+.a11y-focus-custom:focus {
+  outline: none;
+}
+
+.a11y-focus-custom:focus-visible {
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-color);
+  outline-offset: var(--a11y-focus-ring-offset);
+}
+
+/* ========================================
+ * SPACING UTILITIES
+ * ======================================== */
+
+/* Comfortable spacing between elements */
+.a11y-spacing-comfortable {
+  gap: var(--a11y-spacing-lg);
+}
+
+.a11y-spacing-relaxed {
+  gap: var(--a11y-spacing-xl);
+}
+
+/* Padding utilities */
+.a11y-p-comfortable {
+  padding: var(--a11y-spacing-lg);
+}
+
+.a11y-p-card {
+  padding: var(--a11y-card-padding);
+}
+
+/* Margin utilities */
+.a11y-mb-section {
+  margin-bottom: var(--a11y-section-gap);
+}
+
+/* ========================================
+ * CONTRAST & VISIBILITY UTILITIES
+ * ======================================== */
+
+/* High contrast text */
+.a11y-high-contrast {
+  color: var(--a11y-text-primary);
+  font-weight: var(--a11y-font-weight-medium);
+}
+
+/* Status indicators with patterns (not just color) */
+.a11y-status-success {
+  color: var(--a11y-color-success);
+  background-color: var(--a11y-color-success-bg);
+  border-left: 4px solid var(--a11y-color-success);
+  padding: var(--a11y-spacing-md) var(--a11y-spacing-lg);
+}
+
+.a11y-status-warning {
+  color: var(--a11y-text-primary);
+  background-color: var(--a11y-color-warning-bg);
+  border-left: 4px solid var(--a11y-color-warning);
+  padding: var(--a11y-spacing-md) var(--a11y-spacing-lg);
+}
+
+.a11y-status-error {
+  color: var(--a11y-color-error);
+  background-color: var(--a11y-color-error-bg);
+  border-left: 4px solid var(--a11y-color-error);
+  padding: var(--a11y-spacing-md) var(--a11y-spacing-lg);
+}
+
+.a11y-status-info {
+  color: var(--a11y-color-info);
+  background-color: var(--a11y-color-info-bg);
+  border-left: 4px solid var(--a11y-color-info);
+  padding: var(--a11y-spacing-md) var(--a11y-spacing-lg);
+}
+
+/* ========================================
+ * INTERACTIVE ELEMENT UTILITIES
+ * ======================================== */
+
+/* Base interactive element styling */
+.a11y-interactive {
+  min-height: var(--a11y-touch-target-min);
+  padding: var(--a11y-button-padding-y) var(--a11y-button-padding-x);
+  font-size: var(--a11y-font-size-body);
+  font-weight: var(--a11y-font-weight-medium);
+  border-radius: var(--a11y-radius-md);
+  transition: background-color var(--a11y-transition-fast),
+              border-color var(--a11y-transition-fast),
+              box-shadow var(--a11y-transition-fast);
+  cursor: pointer;
+}
+
+.a11y-interactive:focus-visible {
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-color);
+  outline-offset: var(--a11y-focus-ring-offset);
+}
+
+/* Button variants */
+.a11y-btn-primary {
+  background-color: var(--a11y-bg-accent);
+  color: var(--a11y-text-on-primary);
+  border: var(--a11y-border-width) solid transparent;
+}
+
+.a11y-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.a11y-btn-secondary {
+  background-color: var(--a11y-bg-secondary);
+  color: var(--a11y-text-primary);
+  border: var(--a11y-border-width) solid var(--a11y-border-color);
+}
+
+.a11y-btn-secondary:hover {
+  background-color: var(--a11y-bg-muted);
+}
+
+.a11y-btn-outline {
+  background-color: transparent;
+  color: var(--a11y-text-primary);
+  border: var(--a11y-border-width-thick) solid var(--a11y-border-color-strong);
+}
+
+.a11y-btn-outline:hover {
+  background-color: var(--a11y-bg-secondary);
+}
+
+/* ========================================
+ * FORM UTILITIES
+ * ======================================== */
+
+/* Accessible input styling */
+.a11y-input {
+  min-height: var(--a11y-touch-target-min);
+  padding: var(--a11y-input-padding-y) var(--a11y-input-padding-x);
+  font-size: var(--a11y-font-size-body);
+  line-height: var(--a11y-line-height-normal);
+  border: var(--a11y-border-width) solid var(--a11y-border-color);
+  border-radius: var(--a11y-radius-md);
+  background-color: var(--a11y-bg-primary);
+  color: var(--a11y-text-primary);
+  transition: border-color var(--a11y-transition-fast),
+              box-shadow var(--a11y-transition-fast);
+}
+
+.a11y-input:focus {
+  outline: none;
+  border-color: var(--a11y-focus-ring-color);
+  box-shadow: 0 0 0 var(--a11y-focus-ring-width) rgba(37, 99, 235, 0.2);
+}
+
+.a11y-input::placeholder {
+  color: var(--a11y-text-muted);
+}
+
+/* Form label */
+.a11y-label {
+  display: block;
+  font-size: var(--a11y-font-size-body);
+  font-weight: var(--a11y-font-weight-medium);
+  color: var(--a11y-text-primary);
+  margin-bottom: var(--a11y-spacing-sm);
+}
+
+/* Required field indicator */
+.a11y-required::after {
+  content: ' *';
+  color: var(--a11y-color-error);
+}
+
+/* Error message styling */
+.a11y-error-message {
+  display: flex;
+  align-items: center;
+  gap: var(--a11y-spacing-sm);
+  font-size: var(--a11y-font-size-sm);
+  color: var(--a11y-color-error);
+  margin-top: var(--a11y-spacing-sm);
+}
+
+/* Help text */
+.a11y-help-text {
+  font-size: var(--a11y-font-size-sm);
+  color: var(--a11y-text-muted);
+  margin-top: var(--a11y-spacing-xs);
+}
+
+/* ========================================
+ * CARD UTILITIES
+ * ======================================== */
+
+.a11y-card {
+  background-color: var(--a11y-bg-primary);
+  border: var(--a11y-border-width) solid var(--a11y-border-color-subtle);
+  border-radius: var(--a11y-radius-lg);
+  padding: var(--a11y-card-padding);
+  box-shadow: var(--a11y-shadow-sm);
+}
+
+.a11y-card-interactive {
+  cursor: pointer;
+  transition: box-shadow var(--a11y-transition-fast),
+              border-color var(--a11y-transition-fast);
+}
+
+.a11y-card-interactive:hover {
+  box-shadow: var(--a11y-shadow-md);
+  border-color: var(--a11y-border-color);
+}
+
+.a11y-card-interactive:focus-visible {
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-color);
+  outline-offset: var(--a11y-focus-ring-offset);
+}
+
+/* ========================================
+ * NAVIGATION UTILITIES
+ * ======================================== */
+
+.a11y-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--a11y-spacing-md);
+  min-height: var(--a11y-touch-target-min);
+  padding: var(--a11y-spacing-md) var(--a11y-spacing-lg);
+  font-size: var(--a11y-font-size-body);
+  font-weight: var(--a11y-font-weight-medium);
+  color: var(--a11y-text-secondary);
+  text-decoration: none;
+  border-radius: var(--a11y-radius-md);
+  transition: background-color var(--a11y-transition-fast),
+              color var(--a11y-transition-fast);
+}
+
+.a11y-nav-item:hover {
+  background-color: var(--a11y-bg-secondary);
+  color: var(--a11y-text-primary);
+}
+
+.a11y-nav-item:focus-visible {
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-color);
+  outline-offset: -2px;
+}
+
+.a11y-nav-item[data-active='true'],
+.a11y-nav-item.active {
+  color: var(--a11y-text-primary);
+  font-weight: var(--a11y-font-weight-semibold);
+}
+
+/* ========================================
+ * SKIP LINK (Keyboard Navigation)
+ * ======================================== */
+
+.a11y-skip-link {
+  position: fixed;
+  top: -100px;
+  left: var(--a11y-spacing-lg);
+  z-index: var(--a11y-z-skip-link);
+  padding: var(--a11y-spacing-md) var(--a11y-spacing-xl);
+  background-color: var(--a11y-bg-accent);
+  color: var(--a11y-text-on-primary);
+  font-size: var(--a11y-font-size-body);
+  font-weight: var(--a11y-font-weight-semibold);
+  text-decoration: none;
+  border-radius: var(--a11y-radius-md);
+  transition: top var(--a11y-transition-fast);
+}
+
+.a11y-skip-link:focus {
+  top: var(--a11y-spacing-lg);
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-light);
+  outline-offset: var(--a11y-focus-ring-offset);
+}
+
+/* ========================================
+ * SCREEN READER UTILITIES
+ * ======================================== */
+
+/* Visually hidden but accessible to screen readers */
+.a11y-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Show on focus (for skip links, etc.) */
+.a11y-sr-only-focusable:focus,
+.a11y-sr-only-focusable:focus-within {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ========================================
+ * LINK UTILITIES
+ * ======================================== */
+
+.a11y-link {
+  color: var(--a11y-color-info);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: var(--a11y-font-weight-medium);
+  transition: color var(--a11y-transition-fast);
+}
+
+.a11y-link:hover {
+  color: var(--a11y-text-primary);
+}
+
+.a11y-link:focus-visible {
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-color);
+  outline-offset: var(--a11y-focus-ring-offset);
+  border-radius: 2px;
+}
+
+/* Link with icon */
+.a11y-link-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--a11y-spacing-xs);
+}
+
+/* ========================================
+ * LIST UTILITIES
+ * ======================================== */
+
+.a11y-list {
+  font-size: var(--a11y-font-size-body);
+  line-height: var(--a11y-line-height-relaxed);
+}
+
+.a11y-list li {
+  margin-bottom: var(--a11y-spacing-sm);
+}
+
+.a11y-list li::marker {
+  color: var(--a11y-color-info);
+}
+
+/* ========================================
+ * TABLE UTILITIES
+ * ======================================== */
+
+.a11y-table {
+  width: 100%;
+  font-size: var(--a11y-font-size-body);
+  border-collapse: collapse;
+}
+
+.a11y-table th,
+.a11y-table td {
+  padding: var(--a11y-spacing-md) var(--a11y-spacing-lg);
+  text-align: left;
+  border-bottom: var(--a11y-border-width) solid var(--a11y-border-color-subtle);
+}
+
+.a11y-table th {
+  font-weight: var(--a11y-font-weight-semibold);
+  background-color: var(--a11y-bg-secondary);
+}
+
+.a11y-table tr:hover {
+  background-color: var(--a11y-bg-muted);
+}
+
+/* ========================================
+ * ICON UTILITIES
+ * ======================================== */
+
+/* Icons should always have accompanying text or aria-label */
+.a11y-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.a11y-icon-sm {
+  width: 20px;
+  height: 20px;
+}
+
+.a11y-icon-lg {
+  width: 28px;
+  height: 28px;
+}
+
+/* Icon button with expanded touch target */
+.a11y-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--a11y-touch-target-min);
+  min-height: var(--a11y-touch-target-min);
+  padding: var(--a11y-spacing-sm);
+  border-radius: var(--a11y-radius-md);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--a11y-transition-fast);
+}
+
+.a11y-icon-button:hover {
+  background-color: var(--a11y-bg-secondary);
+}
+
+.a11y-icon-button:focus-visible {
+  outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-color);
+  outline-offset: var(--a11y-focus-ring-offset);
+}

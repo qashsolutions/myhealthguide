@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import Link from 'next/link';
+import { AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  AccessibleButton,
+  AccessibleInput,
+  AccessibleLink,
+  AccessiblePageWrapper,
+} from '@/components/accessibility';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -104,122 +107,123 @@ export default function SignupPage() {
     }
   };
 
+  // Password validation indicators
+  const passwordChecks = {
+    length: formData.password.length >= 8,
+    letter: /[a-zA-Z]/.test(formData.password),
+    number: /[0-9]/.test(formData.password),
+    special: (formData.password.match(/[!@#$%]/g) || []).length >= 2,
+  };
+
+  const PasswordCheck = ({ met, text }: { met: boolean; text: string }) => (
+    <li className={`flex items-center gap-2 ${met ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+      {met ? (
+        <CheckCircle className="h-4 w-4 flex-shrink-0" />
+      ) : (
+        <span className="h-4 w-4 rounded-full border border-current flex-shrink-0" />
+      )}
+      <span>{text}</span>
+    </li>
+  );
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Account</CardTitle>
-        <CardDescription>
-          Start your 45-day free trial - no credit card required
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
+    <AccessiblePageWrapper title="Create Account">
+      <Card>
+        <CardHeader>
+          <CardTitle>Create Account</CardTitle>
+          <CardDescription>
+            Start your 45-day free trial - no credit card required
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <AccessibleInput
+                label="First Name"
                 placeholder="John"
                 value={formData.firstName}
                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                 required
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
+              <AccessibleInput
+                label="Last Name"
                 placeholder="Smith"
                 value={formData.lastName}
                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                 required
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
+            <AccessibleInput
+              label="Email"
               type="email"
               placeholder="you@example.com"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
               required
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter password"
-              value={formData.password}
-              onChange={handlePasswordChange}
-              required
-              className={passwordError ? 'border-red-500 focus-visible:ring-red-500' : ''}
-            />
-            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-              <p>Password requirements:</p>
-              <ul className="list-disc list-inside pl-1 space-y-0.5">
-                <li className={formData.password.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
-                  At least 8 characters
-                </li>
-                <li className={/[a-zA-Z]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
-                  At least one letter (a-z, A-Z)
-                </li>
-                <li className={/[0-9]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
-                  At least one number (0-9)
-                </li>
-                <li className={(formData.password.match(/[!@#$%]/g) || []).length >= 2 ? 'text-green-600 dark:text-green-400' : ''}>
-                  At least 2 special characters (!@#$%)
-                </li>
-              </ul>
+            <div className="space-y-2">
+              <AccessibleInput
+                label="Password"
+                type="password"
+                placeholder="Enter password"
+                value={formData.password}
+                onChange={handlePasswordChange}
+                required
+                showPasswordToggle
+                error={passwordError}
+              />
+              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2 mt-3">
+                <p className="font-medium">Password requirements:</p>
+                <ul className="space-y-1.5">
+                  <PasswordCheck met={passwordChecks.length} text="At least 8 characters" />
+                  <PasswordCheck met={passwordChecks.letter} text="At least one letter (a-z, A-Z)" />
+                  <PasswordCheck met={passwordChecks.number} text="At least one number (0-9)" />
+                  <PasswordCheck met={passwordChecks.special} text="At least 2 special characters (!@#$%)" />
+                </ul>
+              </div>
             </div>
-            {passwordError && (
-              <div className="text-sm text-red-600 dark:text-red-400">
-                {passwordError}
+
+            {error && (
+              <div className="flex items-center gap-2 text-base text-red-600 dark:text-red-400" role="alert">
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                {error}
               </div>
             )}
-          </div>
 
-          {error && (
-            <div className="text-sm text-red-600 dark:text-red-400">
-              {error}
+            <AccessibleButton
+              type="submit"
+              fullWidth
+              loading={loading}
+              loadingText="Creating your account"
+            >
+              Create Account
+            </AccessibleButton>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-sm uppercase">
+                <span className="bg-white dark:bg-gray-950 px-2 text-gray-500">
+                  Or sign up with
+                </span>
+              </div>
             </div>
-          )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create Account'}
-          </Button>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-gray-950 px-2 text-gray-500">
-                Or sign up with
-              </span>
-            </div>
-          </div>
-
-          <Link href="/phone-signup" className="block">
-            <Button type="button" variant="outline" className="w-full">
+            <AccessibleLink href="/phone-signup" variant="button" className="w-full justify-center">
               Sign up with Phone Number
-            </Button>
-          </Link>
-        </form>
-      </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+            </AccessibleLink>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-base text-gray-600 dark:text-gray-400">
+            Already have an account?{' '}
+            <AccessibleLink href="/login">Sign in</AccessibleLink>
+          </p>
+        </CardFooter>
+      </Card>
+    </AccessiblePageWrapper>
   );
 }
