@@ -29,7 +29,7 @@
 
 'use client';
 
-import { PricingCards } from '@/components/pricing/PricingCards';
+import { TabbedPricingCards } from '@/components/pricing/TabbedPricingCards';
 
 export default function PricingPage() {
   // Note: We allow logged-in users to view pricing page so they can compare plans
@@ -49,11 +49,10 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* All Plans - No pre-selection required */}
-      <PricingCards
+      {/* Tabbed Pricing - For Families | For Agencies */}
+      <TabbedPricingCards
         showHeader={false}
         showTrialInfo={true}
-        defaultSelectedPlan="single_agency"
       />
     </div>
   );
