@@ -43,20 +43,15 @@ export default function HeroCTAButtons() {
   }
 
   if (user) {
-    // User is logged in but not subscribed (free trial without payment)
+    // User is logged in but not subscribed - show centered dashboard button
+    // (Subscribe option is available in the pricing section below)
     return (
-      <div className="mt-10 flex items-center justify-center gap-x-6">
-        <Link
-          href="/pricing"
-          className="rounded-full bg-blue-600 px-8 py-3 text-base font-semibold text-white shadow-lg hover:bg-blue-500 transition-all"
-        >
-          Subscribe Now
-        </Link>
+      <div className="mt-10 flex justify-center">
         <Link
           href="/dashboard"
-          className="text-base font-semibold leading-6 text-gray-900 dark:text-white hover:text-blue-600"
+          className="rounded-full bg-blue-600 px-8 py-3 text-base font-semibold text-white shadow-lg hover:bg-blue-500 transition-all"
         >
-          Go to Dashboard <span aria-hidden="true">→</span>
+          Go to Dashboard
         </Link>
       </div>
     );
