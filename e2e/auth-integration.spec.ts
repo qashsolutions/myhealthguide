@@ -218,6 +218,7 @@ test.describe('Auth Integration - Email Login', () => {
   test('should validate email format', async ({ page }) => {
     await page.goto('/login');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     const emailInput = page.locator('input[type="email"], input[name="email"]').first();
     const passwordInput = page.locator('input[type="password"]').first();
@@ -296,6 +297,7 @@ test.describe('Auth Integration - Password Reset', () => {
   test('should accept email for password reset', async ({ page }) => {
     await page.goto('/forgot-password');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     const emailInput = page.locator('input[type="email"], input[name="email"]').first();
     await emailInput.fill(TEST_CONFIG.accounts.primary.email);
@@ -312,6 +314,7 @@ test.describe('Auth Integration - Password Reset', () => {
   test('should navigate back to login from forgot password', async ({ page }) => {
     await page.goto('/forgot-password');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     const backLink = page.getByRole('link', { name: /back|login|sign in/i }).first();
     await backLink.click();
@@ -388,6 +391,7 @@ test.describe('Auth Integration - Navigation', () => {
   test('should navigate from login to forgot password', async ({ page }) => {
     await page.goto('/login');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     const forgotLink = page.getByRole('link', { name: /forgot|reset/i }).first();
     await forgotLink.click();
@@ -399,6 +403,7 @@ test.describe('Auth Integration - Navigation', () => {
   test('should navigate from login to phone login', async ({ page }) => {
     await page.goto('/login');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     // Look for phone login link
     const phoneLink = page.getByRole('link', { name: /phone|sms|mobile/i }).first();
@@ -417,6 +422,7 @@ test.describe('Auth Integration - Form Validation', () => {
   test('should require email on login', async ({ page }) => {
     await page.goto('/login');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     const passwordInput = page.locator('input[type="password"]').first();
     await passwordInput.fill(TEST_CONFIG.defaultPassword);
@@ -433,6 +439,7 @@ test.describe('Auth Integration - Form Validation', () => {
   test('should require password on login', async ({ page }) => {
     await page.goto('/login');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     const emailInput = page.locator('input[type="email"], input[name="email"]').first();
     await emailInput.fill(TEST_CONFIG.accounts.primary.email);
@@ -466,6 +473,7 @@ test.describe('Auth Integration - Form Validation', () => {
   test('should require email on forgot password', async ({ page }) => {
     await page.goto('/forgot-password');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     const submitButton = page.getByRole('button', { name: /reset|send|submit/i }).first();
     await submitButton.click();
@@ -515,6 +523,7 @@ test.describe('Auth Integration - Security', () => {
   test('should clear form after failed login attempt', async ({ page }) => {
     await page.goto('/login');
     await waitForPageLoad(page);
+    await dismissCookieConsent(page);
 
     const emailInput = page.locator('input[type="email"], input[name="email"]').first();
     const passwordInput = page.locator('input[type="password"]').first();

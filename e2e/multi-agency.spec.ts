@@ -239,6 +239,13 @@ test.describe('Multi-Agency - Mobile Access', () => {
     await waitForPageLoad(page);
     await dismissCookieConsent(page);
 
+    // Click on "For Agencies" tab to see Multi Agency plan (tabbed UI)
+    const agenciesTab = page.locator('button:has-text("For Agencies")').first();
+    if (await agenciesTab.isVisible().catch(() => false)) {
+      await agenciesTab.click();
+      await page.waitForTimeout(500);
+    }
+
     // Scroll down to see agency plan on mobile (cards are stacked)
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(500);
