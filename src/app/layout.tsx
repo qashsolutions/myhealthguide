@@ -94,8 +94,12 @@ export const metadata: Metadata = {
     description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking and intelligent insights.',
     creator: '@myguidehealth'
   },
+  // IMPORTANT: Do NOT remove these verification tags - required for search console access
   verification: {
     google: '9e30119a2aec4ced',
+    other: {
+      'msvalidate.01': '972734170EAD806A333EE69462C5156E', // Bing Webmaster Tools
+    },
   },
   icons: {
     icon: [
