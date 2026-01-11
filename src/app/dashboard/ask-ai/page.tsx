@@ -60,7 +60,7 @@ function AskAIContent() {
       <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
         <p className="text-gray-600 dark:text-gray-400">
-          Please select a loved one from the header to use AI features.
+          Please select a loved one from the header to use smart features.
         </p>
       </div>
     );
@@ -73,7 +73,7 @@ function AskAIContent() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Ask AI
+              Smart Insights
             </h1>
             <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
               <Sparkles className="w-3 h-3 mr-1" />
@@ -81,7 +81,7 @@ function AskAIContent() {
             </Badge>
           </div>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            AI-powered health insights and reports for {selectedElder.name}
+            Smart health insights and reports for {selectedElder.name}
           </p>
         </div>
       </div>
@@ -130,7 +130,7 @@ function AskAIContent() {
         <div className="flex gap-3">
           <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>AI Disclaimer:</strong> AI responses are based on logged data and are not medical advice.
+            <strong>Disclaimer:</strong> Responses are based on logged data and are not medical advice.
             Always consult healthcare professionals for medical decisions.
           </div>
         </div>
@@ -154,7 +154,7 @@ function ChatTab({ elderName }: { elderName: string }) {
         />
         <QuickActionCard
           title="Health Assistant"
-          description="Ask questions about care and get AI-powered answers"
+          description="Ask questions about care and get smart answers"
           icon={Brain}
           linkHref="/dashboard/health-chat"
           color="purple"
@@ -240,7 +240,7 @@ function ReportsTab({ elderName }: { elderName: string }) {
       <div className="grid sm:grid-cols-2 gap-4">
         <ReportCard
           title="Health Trends Report"
-          description="Weekly summaries, compliance charts, and AI insights"
+          description="Weekly summaries, compliance charts, and smart insights"
           icon={BarChart3}
           linkHref="/dashboard/insights"
           color="purple"
