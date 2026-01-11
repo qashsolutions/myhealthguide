@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +14,8 @@ import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { ElderService } from '@/lib/firebase/elders';
 import { addEmergencyContact } from '@/lib/firebase/elderHealthProfile';
-import { User, Info, ShieldAlert, Phone, Mail, MapPin, Stethoscope, Heart } from 'lucide-react';
+import { canCreateElder, type PlanValidationResult } from '@/lib/firebase/planLimits';
+import { User, Info, ShieldAlert, Phone, Mail, MapPin, Stethoscope, Heart, ArrowUpCircle, Loader2 } from 'lucide-react';
 import type { Elder, ElderEmergencyContact } from '@/types';
 
 // Check if user is a caregiver (not super admin) in any agency
@@ -89,6 +91,31 @@ export default function NewElderPage() {
   const [useExactDOB, setUseExactDOB] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [planLimitCheck, setPlanLimitCheck] = useState<PlanValidationResult | null>(null);
+  const [checkingPlanLimit, setCheckingPlanLimit] = useState(true);
+
+  // Check plan limits on mount
+  useEffect(() => {
+    async function checkPlanLimits() {
+      if (!user?.id || !user?.groups?.[0]?.groupId) {
+        setCheckingPlanLimit(false);
+        return;
+      }
+
+      try {
+        const result = await canCreateElder(user.id, user.groups[0].groupId);
+        setPlanLimitCheck(result);
+      } catch (err) {
+        console.error('Error checking plan limits:', err);
+        // Allow to proceed if check fails - server will enforce limits
+        setPlanLimitCheck({ allowed: true });
+      } finally {
+        setCheckingPlanLimit(false);
+      }
+    }
+
+    checkPlanLimits();
+  }, [user?.id, user?.groups]);
 
   // Check if user is a caregiver - they cannot add elders
   const isCaregiver = isCaregiverOnly(user);
@@ -127,6 +154,70 @@ export default function NewElderPage() {
             >
               Return to Dashboard
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading while checking plan limits
+  if (checkingPlanLimit) {
+    return (
+      <div className="max-w-lg mx-auto mt-12">
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <span className="ml-3 text-gray-600 dark:text-gray-400">Checking plan limits...</span>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show upgrade prompt if plan limit reached
+  if (planLimitCheck && !planLimitCheck.allowed) {
+    return (
+      <div className="max-w-lg mx-auto mt-12">
+        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                <ArrowUpCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <CardTitle className="text-amber-800 dark:text-amber-200">Plan Limit Reached</CardTitle>
+                <CardDescription className="text-amber-600 dark:text-amber-300">
+                  Upgrade to add more loved ones
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              {planLimitCheck.message}
+            </p>
+            {planLimitCheck.current !== undefined && planLimitCheck.limit !== undefined && (
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span>Current: {planLimitCheck.current} / {planLimitCheck.limit} loved one{planLimitCheck.limit > 1 ? 's' : ''}</span>
+              </div>
+            )}
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Upgrade your plan to care for more loved ones with additional features and storage.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Link href="/pricing" className="flex-1">
+                <Button className="w-full">
+                  <ArrowUpCircle className="w-4 h-4 mr-2" />
+                  View Plans
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/dashboard')}
+              >
+                Return to Dashboard
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
