@@ -376,14 +376,20 @@ export default function AboutPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center">
-                <Smartphone className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+              <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center p-2">
+                <Image
+                  src="/favicon-32x32.png"
+                  alt="CareGuide app icon"
+                  width={48}
+                  height={48}
+                  className="w-12 h-12"
+                />
               </div>
               <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
-                MyHealthGuide on the Go
+                CareGuide
               </h2>
               <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-                Download our iOS app and take MyHealthGuide with you wherever you go.
+                Download our iOS app and take care management with you wherever you go.
                 Log medications, track meals, and access all your documents &mdash; right from your pocket.
               </p>
               <ul className="mt-6 space-y-3">
@@ -429,7 +435,7 @@ export default function AboutPage() {
                   <div className="w-full h-full rounded-[2.5rem] overflow-hidden">
                     <Image
                       src="/images/ios-app-screenshot.png"
-                      alt="MyHealthGuide iOS App - Settings screen showing account, subscription, and group information"
+                      alt="CareGuide iOS App - Settings screen showing account, subscription, and group information"
                       width={288}
                       height={564}
                       className="w-full h-full object-cover object-top"
