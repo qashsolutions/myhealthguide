@@ -94,12 +94,10 @@ export const metadata: Metadata = {
     description: 'AI-powered caregiving platform for families and agencies. Automated medication tracking and intelligent insights.',
     creator: '@myguidehealth'
   },
-  // IMPORTANT: Do NOT remove these verification tags - required for search console access
+  // IMPORTANT: Do NOT remove - required for Google Search Console access
+  // Bing verification is in <head> section as direct meta tag
   verification: {
     google: '9e30119a2aec4ced',
-    other: {
-      'msvalidate.01': '972734170EAD806A333EE69462C5156E', // Bing Webmaster Tools
-    },
   },
   icons: {
     icon: [
@@ -123,6 +121,9 @@ export default function RootLayout({
         <StructuredData />
         {/* PWA meta tags for cross-platform compatibility */}
         <meta name="mobile-web-app-capable" content="yes" />
+        {/* IMPORTANT: Search engine verification tags - DO NOT REMOVE */}
+        {/* Bing Webmaster Tools verification */}
+        <meta name="msvalidate.01" content="972734170EAD806A333EE69462C5156E" />
       </head>
       <body className={inter.className}>
         <Providers>
