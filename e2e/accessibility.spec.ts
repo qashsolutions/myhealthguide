@@ -242,6 +242,13 @@ test.describe('Accessibility - ARIA', () => {
   test('form errors should be associated with inputs', async ({ page }) => {
     await page.goto('/login');
 
+    // Dismiss cookie consent if present (blocking modal)
+    const cookieAcceptButton = page.getByRole('button', { name: /accept|agree|allow/i });
+    if (await cookieAcceptButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await cookieAcceptButton.click();
+      await page.waitForTimeout(500);
+    }
+
     // Submit empty form to trigger validation
     const submitButton = page.getByRole('button', { name: /log ?in|sign ?in|submit/i }).first();
     if (await submitButton.isVisible()) {
