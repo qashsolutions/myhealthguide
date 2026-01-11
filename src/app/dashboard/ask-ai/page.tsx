@@ -7,7 +7,6 @@ import { useElder } from '@/contexts/ElderContext';
 import { useTabTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   MessageSquare,
   FileText,
@@ -16,7 +15,6 @@ import {
   Loader2,
   AlertCircle,
   ChevronRight,
-  Sparkles,
   Search,
   Mic,
 } from 'lucide-react';
@@ -71,15 +69,9 @@ function AskAIContent() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Smart Insights
-            </h1>
-            <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-              <Sparkles className="w-3 h-3 mr-1" />
-              New
-            </Badge>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Smart Insights
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Smart health insights and reports for {selectedElder.name}
           </p>
