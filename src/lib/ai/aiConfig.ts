@@ -13,7 +13,7 @@ export const AI_MODELS = {
   GEMINI_PRIMARY: 'gemini-3-pro-preview',
 
   // Secondary/Fallback: Claude Opus 4.5
-  CLAUDE_FALLBACK: 'claude-opus-4-5-20250514',
+  CLAUDE_FALLBACK: 'claude-opus-4-5-20251101',
 } as const;
 
 // API endpoints

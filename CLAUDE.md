@@ -989,7 +989,7 @@ const model = vertex.preview.getGenerativeModel({
 ### 10. Agentic AI Analytics (IMPLEMENTED: Dec 8, 2025)
 
 **Primary:** Gemini 3 Pro Preview with thinking mode
-**Fallback:** Claude Opus 4.5 (`claude-opus-4-5-20250514`)
+**Fallback:** Claude Opus 4.5 (`claude-opus-4-5-20251101`)
 
 **How Fallback Works:**
 ```typescript
