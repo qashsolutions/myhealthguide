@@ -1966,3 +1966,89 @@ Commit: ecb9d43
 ```
 
 **Issue:** Current policy BLOCKS special characters, requested policy REQUIRES them
+
+---
+
+### 16. Subscription Security Tests (ADDED: Jan 10, 2026)
+
+**IMPORTANT:** Comprehensive E2E security tests have been added to verify subscription and billing security.
+
+#### Test File
+`e2e/subscription.spec.ts` - 28 tests total
+
+#### Test Categories
+
+| Category | Tests | Description |
+|----------|-------|-------------|
+| Tabbed Pricing UI | 6 | Verify new "For Families" / "For Agencies" tabs |
+| Trial Status | 2 | Trial info and "no credit card" messaging |
+| Checkout Flow | 3 | Plan selection and trial button navigation |
+| Plan Comparison | 2 | Feature tables and "Most Popular" badge |
+| Navigation | 2 | Pricing page navigation |
+| Mobile Responsiveness | 1 | Mobile viewport testing |
+| **Security (Negative)** | 5 | Auth bypass attempts |
+| **Plan Limits (Negative)** | 2 | Limit display verification |
+| **Invite Code Security** | 3 | Code validation tests |
+| Support/FAQ | 2 | Help links |
+
+#### Security Negative Tests
+
+```typescript
+// Tests that verify unauthorized access is blocked:
+
+1. should redirect unauthenticated users from billing settings
+   - Attempts: GET /dashboard/settings
+   - Expected: Redirect to login/signup/pricing
+
+2. should redirect unauthenticated users from dashboard
+   - Attempts: GET /dashboard
+   - Expected: Redirect or auth gate visible
+
+3. should block API checkout endpoint without authentication
+   - Attempts: POST /api/create-checkout-session
+   - Expected: 400/401/403 status
+
+4. should block API billing portal endpoint without authentication
+   - Attempts: POST /api/billing/portal
+   - Expected: Error response or no portal URL
+
+5. should block API subscription check without authentication
+   - Attempts: GET /api/billing/subscriptions
+   - Expected: 401/403/404/405 status
+```
+
+#### Invite Code Security Tests
+
+```typescript
+1. login page should have invite code option
+   - Verifies "Have an invite code?" is visible
+
+2. short invite code format should not show valid indicator
+   - Enters "ABC" (too short)
+   - Verifies NO "Valid code for:" text appears
+
+3. valid invite code format should show validation
+   - Enters "FAM-AB12" (valid format)
+   - Verifies green checkmark or "Valid code for:" appears
+```
+
+#### Running Subscription Tests
+
+```bash
+# Run against production
+PLAYWRIGHT_BASE_URL=https://myguide.health SKIP_WEB_SERVER=1 npx playwright test e2e/subscription.spec.ts
+
+# Run against local
+npx playwright test e2e/subscription.spec.ts
+```
+
+#### Test Results (Jan 10, 2026)
+
+| Test Suite | Results |
+|------------|---------|
+| Subscription Tests | 28/28 ✅ |
+
+**DO NOT:**
+- Remove negative security tests
+- Skip auth checks when adding new billing endpoints
+- Allow unauthenticated API access to billing functions
