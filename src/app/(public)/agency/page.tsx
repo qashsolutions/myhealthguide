@@ -50,13 +50,12 @@ export default function AgencyPage() {
   ];
 
   const benefits = [
-    'Unlimited caregivers per agency',
+    'Up to 10 caregivers per agency',
     'Up to 3 clients per caregiver',
     'Client-specific caregiver assignments',
     'Real-time care coordination',
     'Professional documentation tools',
     'Compliance reporting',
-    'Priority support',
     'Custom onboarding',
   ];
 
