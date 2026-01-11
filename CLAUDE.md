@@ -2185,3 +2185,62 @@ npx playwright test e2e/subscription.spec.ts
 - Remove negative security tests
 - Skip auth checks when adding new billing endpoints
 - Allow unauthenticated API access to billing functions
+
+---
+
+## Phase 8: Comprehensive Pre-Go-Live Testing (Jan 11, 2026)
+
+**Reference Document:** `refactor-8.md`
+**Test Results:** `TEST_RESULTS_PHASE8.md`
+**Bug Report:** `BUG_REPORT_PHASE8.md`
+
+### Status Summary
+
+| Category | Status | Details |
+|----------|--------|---------|
+| 1. Authentication | ✅ PARTIAL | Email login, Phone auth tested. BUG-002 fixed |
+| 2. RBAC | ✅ PARTIAL | Plan A admin/member tested. BUG-001 fixed |
+| 3. Subscription | 🔲 PENDING | - |
+| 4. Security | 🔲 PENDING | - |
+| 5. HIPAA | 🔲 PENDING | - |
+| 6. UI/UX | 🔲 PENDING | - |
+| 7. Forms | 🔲 PENDING | - |
+| 8. Performance | 🔲 PENDING | - |
+
+### Bugs Found and Fixed
+
+| Bug ID | Priority | Description | Status |
+|--------|----------|-------------|--------|
+| BUG-001 | P1 | Plan A elder limit not enforced at navigation level | ✅ FIXED |
+| BUG-002 | P1 | Phone auth permissions error for new users | ✅ FIXED |
+
+### BUG-001: Elder Limit Not Enforced
+**Root Cause:** `/dashboard/elders/new` page did not check plan limits before showing form
+**Fix:** Added `canCreateElder` check in page component. Shows "Plan Limit Reached" card when at limit.
+**Files:** `src/app/dashboard/elders/new/page.tsx`
+
+### BUG-002: Phone Auth Permissions Error
+**Root Cause:** Race condition between Firebase Auth and Firestore token propagation
+**Fix:** Three-part fix:
+1. `auth.ts` - Added token refresh and 300ms delay after phone verification
+2. `phone-login/page.tsx` - Enhanced error handling to redirect permission errors
+3. `phone-signup/page.tsx` - Added complete_profile flow for redirected users
+**Files:** `src/lib/firebase/auth.ts`, `src/app/(auth)/phone-login/page.tsx`, `src/app/(auth)/phone-signup/page.tsx`
+
+### Phone Auth Negative Tests (All PASS)
+
+| Test | Result |
+|------|--------|
+| Empty phone number | ✅ Error shown |
+| Non-10-digit phone | ✅ Input restricted |
+| Letters in phone field | ✅ Sanitized |
+| Invalid verification code | ✅ Error shown |
+| Expired verification code | ✅ Handled |
+| Missing name on complete_profile | ✅ Validation enforced |
+| Permissions error for new user | ✅ BUG-002 FIXED |
+
+### E2E Test Configuration Update
+- Extended timeout from 30 to 45 minutes in `.github/workflows/tests.yml`
+- Note: Authenticated tests require real Firebase credentials (CI uses dummy credentials)
+
+
