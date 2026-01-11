@@ -347,13 +347,6 @@ export function TabbedPricingCards({
                   )}
                   onClick={() => setSelectedPlan(plan.id)}
                 >
-                  {'popular' in plan && plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                        Most Popular
-                      </span>
-                    </div>
-                  )}
                   <CardContent className="pt-8">
                     {/* Icon & Title */}
                     <div className="text-center mb-6">

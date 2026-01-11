@@ -166,13 +166,6 @@ export default function FamilyPage() {
                 key={plan.name}
                 className={`relative ${plan.popular ? 'border-2 border-blue-500 shadow-xl' : 'border shadow-lg'}`}
               >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-blue-600 text-white text-sm font-medium px-4 py-1 rounded-full">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
                 <CardContent className="pt-8">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                     {plan.name}
