@@ -235,10 +235,18 @@ firebase deploy --only firestore:rules
 | E | Cleanup & Polish | ✅ Complete |
 
 **Key Deliverables:**
-1. `sendDailyFamilyNotes` Cloud Function - 7 PM daily summaries
+1. `sendDailyFamilyNotes` Cloud Function - 7 PM daily summaries + 8PM/9PM fallbacks
 2. Cookie consent now BLOCKING (GDPR/CCPA compliant)
 3. jspdf security vulnerability fixed (v4.0.0)
 4. Firestore rules for `daily_family_notes` collection
+5. **Task 1: Pricing Page Redesign** (Commit: 119e385)
+   - Tabbed UI: "For Families" | "For Agencies"
+   - Collapsible role-based feature lists (Caregiver, Member, Agency Owner)
+   - Mobile responsive design
+6. **Task 9: Role-Prefixed Invite Codes** (Commit: 67156cd)
+   - New formats: FAM-XXXX, AGY-XXXX, MAG-C-XXXX, MAG-M-XXXX
+   - "Have invite code?" section on login page
+   - Real-time validation and auto-routing
 
 ### Phase 1 Completion Summary
 - All display text changed: "Elder" → "Loved One"
