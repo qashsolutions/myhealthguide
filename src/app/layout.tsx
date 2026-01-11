@@ -37,8 +37,17 @@ export const metadata: Metadata = {
     telephone: false,
   },
   keywords: [
-    'eldercare management',
+    // Primary target keywords
     'caregiver app',
+    'eldercare management',
+    'eldercare app',
+    'voice enabled care tracking',
+    'dementia screening',
+    'dementia assessment tool',
+    'care community',
+    'family caregiver plan',
+    'agency caregiver plan',
+    // Secondary keywords
     'caregiver agencies',
     'AI caregiving',
     'AI agentic automation',
@@ -50,8 +59,14 @@ export const metadata: Metadata = {
     'medication reminder app',
     'family caregiving tools',
     'agency caregiver management',
-    'voice-enabled care tracking',
-    'intelligent eldercare'
+    'intelligent eldercare',
+    // Long-tail keywords for USA
+    'best caregiver app USA',
+    'eldercare software for families',
+    'voice medication tracking',
+    'cognitive screening for elderly',
+    'caregiver support community',
+    'affordable eldercare plans',
   ],
   authors: [{ name: 'myguide.health' }],
   robots: {
