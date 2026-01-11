@@ -1032,6 +1032,86 @@ const response = await authenticatedFetch('/api/ai-analytics', {
 });
 ```
 
+### 10b. AI Router Service (IMPLEMENTED: Jan 11, 2026)
+
+**IMPORTANT:** Central AI routing service for standardized Gemini/Claude integration.
+
+**Architecture:**
+```
+User Request → AI Router → Classification → Provider Selection → Response
+                              ↓
+              ┌─────────────────────────────────────┐
+              │ Simple queries → Gemini (primary)   │
+              │ Complex queries → Gemini + thinking │
+              │ Gemini fails → Fallback to Claude   │
+              │ Both fail → Graceful error          │
+              └─────────────────────────────────────┘
+```
+
+**Files:**
+- `src/lib/ai/aiConfig.ts` - Central AI configuration
+- `src/lib/ai/aiRouter.ts` - Router service with classification
+- `src/app/api/ai-router/route.ts` - API endpoint
+
+**Configuration (aiConfig.ts):**
+- Models: `gemini-3-pro-preview` (primary), `claude-opus-4-5-20251101` (fallback)
+- Timeouts: 15s (simple), 30s (complex), 60s (extended)
+- Retry: 2 attempts with exponential backoff
+- Quality validation: min response length, error pattern detection
+
+**Query Classification:**
+```typescript
+// Automatically classifies based on:
+// - Request type (drug_interaction → complex)
+// - Medical keywords (symptoms, diagnosis → complex)
+// - Complexity keywords (analyze, compare → complex)
+// - Word/character count
+
+import { routeAIRequest } from '@/lib/ai/aiRouter';
+
+const response = await routeAIRequest({
+  query: 'What is aspirin?',
+  requestType: 'medication_info',
+  // Optional: forceProvider, forceComplexity, useThinking, context
+});
+
+// Returns: { success, response, metadata: { provider, model, latencyMs, usedFallback, complexity } }
+```
+
+**Convenience Functions:**
+```typescript
+import { chat, medicationQuery, checkDrugInteraction, analyzeSymptoms, getCareRecommendation, search, testProviders } from '@/lib/ai/aiRouter';
+
+// Simple chat
+await chat('What is diabetes?');
+
+// Medication info
+await medicationQuery('Tell me about metformin', ['metformin', 'aspirin']);
+
+// Drug interactions (always complex)
+await checkDrugInteraction(['warfarin', 'aspirin', 'ibuprofen']);
+
+// Test provider connectivity
+const status = await testProviders();
+// { gemini: { available: true, latencyMs: 2383 }, claude: { available: true, latencyMs: 2032 } }
+```
+
+**API Endpoint:**
+```bash
+# Test providers
+GET /api/ai-router
+
+# Send query
+POST /api/ai-router
+Content-Type: application/json
+{
+  "query": "What is aspirin?",
+  "requestType": "medication_info",
+  "forceProvider": "gemini",  // optional
+  "useThinking": true         // optional
+}
+```
+
 ### 11. Hybrid Dementia Q&A Assessment (IMPLEMENTED: Dec 23, 2025)
 
 **IMPORTANT:** This is a caregiver-administered cognitive screening tool, NOT a diagnostic tool.
