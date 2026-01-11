@@ -8,7 +8,7 @@ export default function PrivacyPage() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
             <strong>Effective Date:</strong> November 28, 2025
             <br />
-            <strong>Last Updated:</strong> November 28, 2025
+            <strong>Last Updated:</strong> January 11, 2026
           </p>
 
           {/* HIPAA Notice Callout */}
@@ -193,33 +193,40 @@ export default function PrivacyPage() {
             </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">6.3 Communication Services</h3>
-            <p className="mb-4"><strong>Twilio (SMS)</strong></p>
+            <p className="mb-4"><strong>Firebase Phone Authentication</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li>Purpose: SMS verification codes (OTP), medication reminders, health alerts</li>
-              <li>Data Shared: Phone numbers and SMS message content (medication names, alerts)</li>
+              <li>Purpose: SMS verification codes (OTP) for phone authentication</li>
+              <li>Data Shared: Phone numbers</li>
             </ul>
 
-            <p className="mb-4"><strong>SendGrid (Email)</strong></p>
+            <p className="mb-4"><strong>Firebase Trigger Email Extension</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Purpose: Email verification and notifications</li>
               <li>Data Shared: Email addresses and notification content</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">6.4 Payment Processing</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.4 AI Services</h3>
+            <p className="mb-4"><strong>Anthropic Claude</strong></p>
+            <ul className="list-disc pl-6 mb-4 space-y-2">
+              <li>Purpose: AI-powered health analysis, fallback for Gemini AI services</li>
+              <li>Data Shared: Health summaries, medication data, and care notes (when Gemini is unavailable)</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.5 Payment Processing</h3>
             <p className="mb-4"><strong>Stripe</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Purpose: Subscription payments and billing management</li>
               <li>Data Shared: Stripe customer ID and subscription ID. Payment information is handled directly by Stripe and never stored on our servers.</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">6.5 Voice Services</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.6 Voice Services</h3>
             <p className="mb-4"><strong>Browser Web Speech API and Google Cloud Speech-to-Text</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Purpose: Voice-enabled medication and diet logging</li>
               <li>Data Shared: Audio recordings and voice transcripts</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">6.6 Medical Data</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.7 Medical Data</h3>
             <p className="mb-4"><strong>FDA API (OpenFDA)</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Purpose: Drug interaction detection, medication safety information, side effect data</li>
@@ -227,7 +234,7 @@ export default function PrivacyPage() {
               <li>API Endpoint: https://api.fda.gov/drug/label.json</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mt-6 mb-3">6.7 Security Services</h3>
+            <h3 className="text-xl font-semibold mt-6 mb-3">6.8 Security Services</h3>
             <p className="mb-4"><strong>Cloudflare Turnstile and Google reCAPTCHA v3</strong></p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li>Purpose: Bot protection and CAPTCHA verification</li>
@@ -504,7 +511,7 @@ export default function PrivacyPage() {
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-12">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              This Privacy Policy was last updated on November 28, 2025. By using myguide.health, you acknowledge that you have read and understood this Privacy Policy.
+              This Privacy Policy was last updated on January 11, 2026. By using myguide.health, you acknowledge that you have read and understood this Privacy Policy.
             </p>
           </div>
         </div>

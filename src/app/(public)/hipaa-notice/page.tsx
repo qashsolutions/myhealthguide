@@ -8,7 +8,7 @@ export default function HipaaNoticePage() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
             <strong>Effective Date:</strong> November 18, 2025
             <br />
-            <strong>Last Updated:</strong> November 18, 2025
+            <strong>Last Updated:</strong> January 11, 2026
           </p>
 
           <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-600 p-6 mb-8">
@@ -100,14 +100,10 @@ export default function HipaaNoticePage() {
               We may disclose your PHI to our Business Associates who perform services on our behalf. We have Business Associate Agreements (BAAs) with these entities requiring them to safeguard your PHI:
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
-              <li><strong>Google/Firebase:</strong> Cloud infrastructure, database storage, file storage, authentication</li>
+              <li><strong>Google/Firebase:</strong> Cloud infrastructure, database storage, file storage, authentication, email notifications</li>
               <li><strong>Google Gemini AI:</strong> Health summaries, medication analysis, diet analysis</li>
-              <li><strong>Twilio:</strong> SMS notifications for medication reminders and health alerts</li>
-              <li><strong>SendGrid:</strong> Email notifications</li>
+              <li><strong>Anthropic Claude:</strong> AI-powered health analysis (fallback service)</li>
             </ul>
-            <p className="mb-4 text-sm text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 p-4 rounded">
-              <strong>Note:</strong> We are actively obtaining formal BAAs from all vendors. Until BAAs are in place, use of this Service for PHI may not be fully HIPAA compliant.
-            </p>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4. Other Uses and Disclosures</h3>
             <p className="mb-4">We may use or disclose your PHI without your authorization in the following situations:</p>
