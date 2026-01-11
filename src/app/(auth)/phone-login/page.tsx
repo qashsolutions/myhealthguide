@@ -106,7 +106,13 @@ export default function PhoneLoginPage() {
     } catch (err: any) {
       console.error('Error verifying code:', err);
 
-      if (err.message.includes('User data required')) {
+      // Check if this is a new user (needs to sign up)
+      // Handle both "User data required" and "permission" errors as new user cases
+      const isNewUserError = err.message?.includes('User data required') ||
+        err.message?.includes('permission') ||
+        err.code === 'permission-denied';
+
+      if (isNewUserError) {
         // New user - redirect to signup with phone (automatically prepend +1 for US numbers)
         const digitsOnly = phoneNumber.replace(/\D/g, '');
         const formattedPhone = `+1${digitsOnly}`;

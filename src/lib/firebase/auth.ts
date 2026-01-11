@@ -348,9 +348,35 @@ export class AuthService {
       const firebaseUser = await this.verifyPhoneCode(confirmationResult, verificationCode);
       console.log('✅ [AUTH-SERVICE] Phone verified! Firebase UID:', firebaseUser.uid);
 
+      // Force refresh the ID token to ensure Firestore has the new auth state
+      // This fixes a race condition where Firestore queries fail with permissions errors
+      // immediately after phone verification
+      console.log('🔄 [AUTH-SERVICE] Refreshing ID token for Firestore...');
+      await firebaseUser.getIdToken(true);
+
+      // Small delay to ensure Firestore client has the new auth state propagated
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       // Check if user document exists
       console.log('📄 [AUTH-SERVICE] Checking if user document exists...');
-      let userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      let userDoc;
+      try {
+        userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      } catch (firestoreError: any) {
+        // If Firestore read fails with permissions error, treat as new user
+        // This can happen due to timing issues with auth token propagation
+        console.warn('⚠️ [AUTH-SERVICE] Firestore read failed:', firestoreError?.message);
+        if (firestoreError?.message?.includes('permission') || firestoreError?.code === 'permission-denied') {
+          console.log('📄 [AUTH-SERVICE] Treating as new user due to permissions error');
+          if (!userData) {
+            throw new Error('User data required for new phone sign-ups');
+          }
+          // Fall through to create new user
+          userDoc = { exists: () => false } as any;
+        } else {
+          throw firestoreError;
+        }
+      }
       console.log('📄 [AUTH-SERVICE] User document exists:', userDoc.exists());
 
       if (userDoc.exists()) {
@@ -531,6 +557,194 @@ export class AuthService {
       return user;
     } catch (error: any) {
       console.error('Error signing in with phone:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create user document for an already-authenticated phone user
+   * Used when user is redirected from phone-login to phone-signup
+   * (Firebase Auth succeeded but no Firestore document exists)
+   */
+  static async createPhoneUser(
+    firebaseUser: FirebaseUser,
+    phoneNumber: string,
+    userData: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    }
+  ): Promise<User> {
+    try {
+      console.log('📱 [AUTH-SERVICE] createPhoneUser called for UID:', firebaseUser.uid);
+
+      // Force refresh token to ensure Firestore has auth state
+      await firebaseUser.getIdToken(true);
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Check if user document already exists (race condition protection)
+      const existingDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      if (existingDoc.exists()) {
+        console.log('📱 [AUTH-SERVICE] User document already exists');
+        return existingDoc.data() as User;
+      }
+
+      // Check if phone number already used (trial enforcement)
+      const phoneHash = hashPhoneNumber(phoneNumber);
+      const phoneIndexRef = collection(db, 'phone_index');
+      const phoneQuery = query(phoneIndexRef, where('phoneHash', '==', phoneHash));
+      const phoneSnapshot = await getDocs(phoneQuery);
+
+      if (!phoneSnapshot.empty) {
+        throw new Error('This phone number has already been used for a trial account');
+      }
+
+      const now = new Date();
+      const trialEnd = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000);
+      const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000);
+
+      const user: User = {
+        id: firebaseUser.uid,
+        email: userData.email || '',
+        phoneNumber: phoneNumber,
+        phoneNumberHash: phoneHash,
+        emailVerified: false,
+        phoneVerified: true,
+        emailVerifiedAt: null,
+        phoneVerifiedAt: now,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        groups: [],
+        agencies: [],
+        preferences: {
+          theme: 'light',
+          notifications: {
+            sms: true,
+            email: true
+          }
+        },
+        trialStartDate: now,
+        trialEndDate: trialEnd,
+        gracePeriodStartDate: null,
+        gracePeriodEndDate: null,
+        dataExportRequested: false,
+        subscriptionStatus: 'trial',
+        subscriptionTier: null,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        subscriptionStartDate: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        pendingPlanChange: null,
+        storageUsed: 0,
+        storageLimit: 25 * 1024 * 1024,
+        lastPasswordChange: now,
+        passwordExpiresAt: passwordExpiry,
+        passwordResetRequired: false,
+        createdAt: now,
+        lastLoginAt: now
+      };
+
+      console.log('💾 [AUTH-SERVICE] Creating user document...');
+      await setDoc(doc(db, 'users', firebaseUser.uid), user);
+
+      // Create phone index
+      await setDoc(doc(db, 'phone_index', phoneHash), {
+        userId: firebaseUser.uid,
+        phoneHash: phoneHash,
+        createdAt: now
+      });
+
+      // Create default group and agency
+      const trialEndDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
+
+      const group = await GroupService.createGroup({
+        name: `${userData.firstName}'s Family`,
+        type: 'family',
+        adminId: firebaseUser.uid,
+        members: [{
+          userId: firebaseUser.uid,
+          role: 'admin',
+          permissionLevel: 'admin',
+          permissions: [],
+          addedAt: now,
+          addedBy: firebaseUser.uid,
+          approvalStatus: 'approved'
+        }],
+        memberIds: [firebaseUser.uid],
+        writeMemberIds: [],
+        elders: [],
+        subscription: {
+          tier: 'family',
+          status: 'trial',
+          trialEndsAt: trialEndDate,
+          currentPeriodEnd: trialEndDate,
+          stripeCustomerId: '',
+          stripeSubscriptionId: ''
+        },
+        settings: {
+          notificationRecipients: [firebaseUser.uid],
+          notificationPreferences: {
+            enabled: true,
+            frequency: 'realtime',
+            types: ['missed_doses', 'diet_alerts', 'supplement_alerts']
+          }
+        },
+        inviteCode: '',
+        inviteCodeGeneratedAt: now,
+        inviteCodeGeneratedBy: firebaseUser.uid,
+        createdAt: now,
+        updatedAt: now
+      }, firebaseUser.uid);
+
+      const agency = await AgencyService.createAgency({
+        name: `${userData.firstName}'s Family`,
+        superAdminId: firebaseUser.uid,
+        type: 'individual',
+        groupIds: [group.id],
+        caregiverIds: [firebaseUser.uid],
+        maxEldersPerCaregiver: 3,
+        subscription: {
+          tier: 'family',
+          status: 'trial',
+          trialEndsAt: trialEndDate,
+          currentPeriodEnd: trialEndDate,
+          stripeCustomerId: '',
+          stripeSubscriptionId: ''
+        },
+        settings: {
+          notificationPreferences: {
+            enabled: true,
+            frequency: 'realtime',
+            types: ['missed_doses', 'diet_alerts', 'supplement_alerts']
+          }
+        },
+        createdAt: now,
+        updatedAt: now
+      });
+
+      await GroupService.updateGroupSettings(group.id, {
+        agencyId: agency.id
+      } as any);
+
+      await updateDoc(doc(db, 'users', firebaseUser.uid), {
+        groups: [{
+          groupId: group.id,
+          role: 'admin',
+          permissionLevel: 'admin',
+          joinedAt: now
+        }],
+        agencies: [{
+          agencyId: agency.id,
+          role: 'super_admin',
+          joinedAt: now
+        }]
+      });
+
+      console.log('✅ [AUTH-SERVICE] User created successfully');
+      return user;
+    } catch (error: any) {
+      console.error('Error creating phone user:', error);
       throw error;
     }
   }

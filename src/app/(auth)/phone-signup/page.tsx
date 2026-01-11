@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthService } from '@/lib/firebase/auth';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase/config';
 
 function PhoneSignupForm() {
   const router = useRouter();
@@ -24,10 +25,23 @@ function PhoneSignupForm() {
   const [error, setError] = useState('');
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [step, setStep] = useState<'phone' | 'verify'>('phone');
+  const [step, setStep] = useState<'phone' | 'verify' | 'complete_profile'>('phone');
+
+  // Check for redirected user from phone-login (already authenticated via Firebase)
+  useEffect(() => {
+    const phoneParam = searchParams.get('phone');
+    if (phoneParam && auth.currentUser) {
+      // User was redirected from phone-login and is already authenticated
+      // They just need to complete their profile
+      console.log('📞 [PHONE-SIGNUP] Redirected from phone-login, user already authenticated');
+      const digitsOnly = phoneParam.replace(/\D/g, '').replace(/^1/, ''); // Remove +1 prefix
+      setPhoneNumber(digitsOnly);
+      setStep('complete_profile');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
-    // Initialize reCAPTCHA only when on phone step
+    // Initialize reCAPTCHA only when on phone step (not needed for complete_profile)
     if (step === 'phone' && !recaptchaVerifier) {
       // Wait for DOM to be ready
       const timer = setTimeout(() => {
@@ -147,6 +161,47 @@ function PhoneSignupForm() {
     await completeSignup();
   };
 
+  // Handle profile completion for users redirected from phone-login
+  // (already authenticated via Firebase, just need Firestore document)
+  const handleCompleteProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!formData.firstName || !formData.lastName) {
+        throw new Error('Please fill in all fields');
+      }
+
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        throw new Error('Authentication session expired. Please try again.');
+      }
+
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+      const formattedPhone = `+1${digitsOnly}`;
+
+      console.log('📞 [PHONE-SIGNUP] Creating user document for already-authenticated user');
+      console.log('📞 [PHONE-SIGNUP] Firebase UID:', firebaseUser.uid);
+      console.log('📞 [PHONE-SIGNUP] Phone:', formattedPhone);
+
+      // Create user document directly using AuthService.createPhoneUser
+      const user = await AuthService.createPhoneUser(firebaseUser, formattedPhone, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: ''
+      });
+
+      console.log('✅ [PHONE-SIGNUP] User document created! User ID:', user.id);
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Error completing profile:', err);
+      setError(err.message || 'Failed to create account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -154,9 +209,65 @@ function PhoneSignupForm() {
         <CardDescription>
           {step === 'phone' && 'Enter your information and phone number'}
           {step === 'verify' && 'Verify your phone number'}
+          {step === 'complete_profile' && 'Complete your profile to finish signup'}
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Step: Complete profile for redirected users (already authenticated) */}
+        {step === 'complete_profile' && (
+          <form onSubmit={handleCompleteProfile} className="space-y-4">
+            {/* Phone verified indicator */}
+            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg mb-4">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-sm text-green-700 dark:text-green-400">
+                Phone +1 {phoneNumber} verified
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  placeholder="Smith"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="text-sm text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                'Complete Sign Up'
+              )}
+            </Button>
+          </form>
+        )}
+
         {step === 'phone' && (
           <form onSubmit={handleSendCode} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
