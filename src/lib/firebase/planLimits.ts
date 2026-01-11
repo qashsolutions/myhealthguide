@@ -67,7 +67,13 @@ export async function getUserTier(userId: string): Promise<PlanTier | null> {
       return userData.subscriptionTier as PlanTier;
     }
 
-    // During trial without paid subscription, assume family tier for limits
+    // During trial, use the user's selected subscription tier for limits and display
+    // This ensures the correct plan name is shown (e.g., "Family Plan A" vs "Family Plan B")
+    if (userData.subscriptionStatus === 'trial' && userData.subscriptionTier) {
+      return userData.subscriptionTier as PlanTier;
+    }
+
+    // Fallback for trial users without a tier set - use 'family' (Plan A) as default
     if (userData.subscriptionStatus === 'trial') {
       return 'family';
     }
