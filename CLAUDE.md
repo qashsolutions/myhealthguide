@@ -96,6 +96,111 @@ CACHE_CONFIG = {
 - ✅ "Share a Tip" button disabled when offline
 - ✅ UI returns to normal when back online
 
+### Jan 10, 2026 - Task 2.3: Offline Sync Queue for Write Operations
+**Status:** ✅ COMPLETE
+
+**Objective:** Implement offline sync queue to prevent data loss when users submit health data (medications, supplements, diet) while offline.
+
+**Files Created:**
+| File | Purpose |
+|------|---------|
+| `src/lib/offline/offlineSyncService.ts` | Core queue management with auto-sync |
+| `src/lib/offline/offlineAwareServices.ts` | Service wrappers with offline support |
+| `src/hooks/useSyncQueue.ts` | React hook for queue status |
+| `src/components/PendingSyncIndicator.tsx` | Header indicator showing sync status |
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `src/lib/offline/offlineTypes.ts` | Added sync queue types, bumped DB version to 2 |
+| `src/lib/offline/indexedDB.ts` | Added `syncQueue` store with indexes |
+| `src/lib/offline/index.ts` | Export new functions |
+| `src/components/shared/DashboardHeader.tsx` | Added PendingSyncIndicator |
+
+**Technical Implementation:**
+- **IndexedDB Store:** `syncQueue` with indexes for status, priority, queuedAt, operationType
+- **Supported Operations:** medication_log (critical), supplement_log (critical), diet_log (high)
+- **Priority Processing:** Critical items synced first when back online
+- **Auto-Sync:** 2-second delay after coming online, then processes queue
+- **Retry Logic:** Max 5 attempts with exponential backoff
+- **Queue Limit:** 100 items max
+
+**User Experience:**
+- PendingSyncIndicator badge in dashboard header
+- Shows "Offline (X pending)" when disconnected with pending items
+- Shows "Syncing..." with spinner when processing queue
+- Shows "X pending" when online with pending items
+- Popover with breakdown by operation type
+- Failed items can be retried or cleared
+
+**Configuration Constants (`offlineTypes.ts`):**
+```typescript
+SYNC_QUEUE_CONFIG = {
+  MAX_QUEUE_SIZE: 100,
+  MAX_RETRY_ATTEMPTS: 5,
+  RETRY_DELAY_BASE_MS: 1000,
+  SYNC_DELAY_MS: 2000,
+  SYNC_CHECK_INTERVAL_MS: 30000,
+}
+```
+
+**Commit:** 34fefee
+
+### Jan 10, 2026 - Daily Family Notes Cloud Function
+**Status:** ✅ COMPLETE
+
+**Objective:** Send automated daily summaries at 7 PM to all family members with care activity stats.
+
+**Files Created/Modified:**
+| File | Changes |
+|------|---------|
+| `functions/src/index.ts` | Added `sendDailyFamilyNotes` scheduled function |
+| `firestore.rules` | Added `daily_family_notes` collection rules |
+
+**Cloud Function: `sendDailyFamilyNotes`**
+- **Schedule:** `0 19 * * *` (7 PM daily PST)
+- **Creates:** `daily_family_notes` collection documents
+- **Sends:** `user_notifications` to all group members + admin
+- **Queues:** FCM push via `fcm_notification_queue`
+
+**Data Aggregated:**
+- Medications taken/missed count
+- Supplements logged
+- Diet entries count
+- Active alerts
+
+**Notification Format:**
+```
+Title: "Daily Update: [Elder Name]"
+Body: "All 3 medications taken • 2 supplements • 3 meals logged"
+```
+
+**Firestore Collection: `daily_family_notes`**
+```typescript
+{
+  groupId: string,
+  elderId: string,
+  elderName: string,
+  date: Timestamp,
+  stats: {
+    medicationsTotal: number,
+    medicationsTaken: number,
+    medicationsMissed: number,
+    supplementsTaken: number,
+    mealsLogged: number,
+    activeAlerts: number
+  },
+  summary: string,
+  createdAt: Timestamp
+}
+```
+
+**Deployment:**
+```bash
+firebase deploy --only functions
+firebase deploy --only firestore:rules
+```
+
 ### Phase 1 Completion Summary
 - All display text changed: "Elder" → "Loved One"
 - Variable names, props, CSS classes, API endpoints preserved
@@ -278,7 +383,7 @@ Status Key: ⏳ Pending | 🔄 In Progress | ✅ Complete | ❌ Blocked | 🔒 N
 | 1.6 | Geocoding API | ✅ | Jan 9 | Already exists at /api/geocode/route.ts |
 | 2.1 | Offline Audit | ✅ | Jan 9 | Service worker exists w/ Serwist |
 | 2.2 | Offline Layers | ⏳ | | No IndexedDB cache |
-| 2.3 | Offline Sync | ⏳ | | No background sync |
+| 2.3 | Offline Sync | ✅ | Jan 10 | IndexedDB queue + PendingSyncIndicator (34fefee) |
 | 2.4 | Features Page Update | ⏳ | | |
 | 3.1 | Permission Prompts | ✅ | Jan 9 | Added step-by-step guidance to MicrophonePermissionDialog |
 | 3.2 | Voice Logging | ✅ | Jan 9 | VoiceRecordButton, speechRecognition, browserSupport exist |
@@ -1510,7 +1615,7 @@ All changes verified on production (https://myguide.health):
 | 1.6 | Geocoding API | ✅ | Jan 9 | API route exists at /api/geocode |
 | 2.1 | Offline Audit | ✅ | Jan 9 | SW registered (Serwist), static cache works |
 | 2.2 | Offline Layers | ✅ | Jan 9 | Static assets cached, user data requires IndexedDB |
-| 2.3 | Offline Sync | ❌ | Jan 9 | NOT IMPLEMENTED - requires IndexedDB (high effort) |
+| 2.3 | Offline Sync | ✅ | Jan 10 | IndexedDB queue + PendingSyncIndicator (34fefee) |
 | 2.4 | Features Page Update | ✅ | Jan 9 | Merged with Task 5.3 |
 | 3.1 | Permission Prompts | ✅ | Jan 9 | Both Camera + Microphone have 65+ guidance (553967b) |
 | 3.2 | Voice Logging | ✅ | Jan 8 | Full GDPR consent dialog |

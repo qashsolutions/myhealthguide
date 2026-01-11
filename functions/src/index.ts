@@ -2088,3 +2088,202 @@ export const generateWeeklySummaries = functions.pubsub
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
+
+// ============= DAILY FAMILY NOTES =============
+
+/**
+ * Scheduled Job: Send Daily Family Notes
+ * Runs every day at 7 PM local time
+ *
+ * Generates a summary of the day's care activities for each elder:
+ * - Medications taken/missed
+ * - Supplements logged
+ * - Diet entries
+ * - Any incidents or alerts
+ *
+ * Sends notification to all family members in the group
+ */
+export const sendDailyFamilyNotes = functions.pubsub
+  .schedule('0 19 * * *') // Every day at 7 PM (19:00)
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting sendDailyFamilyNotes job...');
+
+    try {
+      const now = new Date();
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+
+      // Get all active groups
+      const groupsSnapshot = await admin.firestore()
+        .collection('groups')
+        .get();
+
+      let notesSent = 0;
+
+      for (const groupDoc of groupsSnapshot.docs) {
+        const group = groupDoc.data();
+        const groupId = groupDoc.id;
+        const memberIds: string[] = group.memberIds || [];
+        const adminId = group.adminId;
+
+        // Include admin in notification recipients
+        const allRecipients = adminId && !memberIds.includes(adminId)
+          ? [adminId, ...memberIds]
+          : memberIds;
+
+        if (allRecipients.length === 0) continue;
+
+        // Get elders in this group
+        const eldersSnapshot = await admin.firestore()
+          .collection('elders')
+          .where('groupId', '==', groupId)
+          .get();
+
+        for (const elderDoc of eldersSnapshot.docs) {
+          const elder = elderDoc.data();
+          const elderId = elderDoc.id;
+          const elderName = elder.firstName || 'your loved one';
+
+          // Gather today's activity data
+          const [medsSnapshot, supplementsSnapshot, dietSnapshot, alertsSnapshot] = await Promise.all([
+            // Medication logs for today
+            admin.firestore()
+              .collection('medication_logs')
+              .where('groupId', '==', groupId)
+              .where('elderId', '==', elderId)
+              .where('createdAt', '>=', admin.firestore.Timestamp.fromDate(todayStart))
+              .get(),
+            // Supplement logs for today
+            admin.firestore()
+              .collection('supplement_logs')
+              .where('groupId', '==', groupId)
+              .where('elderId', '==', elderId)
+              .where('createdAt', '>=', admin.firestore.Timestamp.fromDate(todayStart))
+              .get(),
+            // Diet entries for today
+            admin.firestore()
+              .collection('diet_entries')
+              .where('groupId', '==', groupId)
+              .where('elderId', '==', elderId)
+              .where('createdAt', '>=', admin.firestore.Timestamp.fromDate(todayStart))
+              .get(),
+            // Active alerts for this elder
+            admin.firestore()
+              .collection('alerts')
+              .where('groupId', '==', groupId)
+              .where('elderId', '==', elderId)
+              .where('status', '==', 'active')
+              .limit(3)
+              .get()
+          ]);
+
+          // Calculate stats
+          const totalMeds = medsSnapshot.size;
+          const takenMeds = medsSnapshot.docs.filter(doc => doc.data().status === 'taken').length;
+          const missedMeds = medsSnapshot.docs.filter(doc => doc.data().status === 'missed').length;
+          const supplementsTaken = supplementsSnapshot.size;
+          const mealsLogged = dietSnapshot.size;
+          const activeAlerts = alertsSnapshot.size;
+
+          // Skip if no activity today
+          if (totalMeds === 0 && supplementsTaken === 0 && mealsLogged === 0) {
+            console.log(`No activity for elder ${elderId}, skipping daily note`);
+            continue;
+          }
+
+          // Generate summary message
+          const summaryParts: string[] = [];
+
+          // Medication summary
+          if (totalMeds > 0) {
+            if (missedMeds === 0) {
+              summaryParts.push(`All ${takenMeds} medication${takenMeds > 1 ? 's' : ''} taken`);
+            } else {
+              summaryParts.push(`${takenMeds}/${totalMeds} meds taken, ${missedMeds} missed`);
+            }
+          }
+
+          // Supplements
+          if (supplementsTaken > 0) {
+            summaryParts.push(`${supplementsTaken} supplement${supplementsTaken > 1 ? 's' : ''}`);
+          }
+
+          // Diet
+          if (mealsLogged > 0) {
+            summaryParts.push(`${mealsLogged} meal${mealsLogged > 1 ? 's' : ''} logged`);
+          }
+
+          const summaryText = summaryParts.join(' • ');
+
+          // Determine priority based on missed doses and alerts
+          const priority = missedMeds > 0 || activeAlerts > 0 ? 'high' : 'low';
+          const requiresAction = missedMeds > 0 || activeAlerts > 0;
+
+          // Store the daily note summary
+          const noteRef = await admin.firestore().collection('daily_family_notes').add({
+            groupId: groupId,
+            elderId: elderId,
+            elderName: elderName,
+            date: admin.firestore.Timestamp.fromDate(todayStart),
+            stats: {
+              medicationsTotal: totalMeds,
+              medicationsTaken: takenMeds,
+              medicationsMissed: missedMeds,
+              supplementsTaken: supplementsTaken,
+              mealsLogged: mealsLogged,
+              activeAlerts: activeAlerts
+            },
+            summary: summaryText,
+            createdAt: admin.firestore.Timestamp.now()
+          });
+
+          // Create notification for each recipient
+          for (const recipientId of allRecipients) {
+            // In-app notification
+            await admin.firestore().collection('user_notifications').add({
+              userId: recipientId,
+              groupId: groupId,
+              elderId: elderId,
+              type: 'daily_family_note',
+              title: `Daily Update: ${elderName}`,
+              message: summaryText,
+              priority: priority,
+              actionUrl: `/dashboard/activity?elder=${elderId}`,
+              read: false,
+              dismissed: false,
+              actionRequired: requiresAction,
+              sourceCollection: 'daily_family_notes',
+              sourceId: noteRef.id,
+              expiresAt: null,
+              createdAt: admin.firestore.Timestamp.now()
+            });
+
+            // Queue FCM push notification
+            await admin.firestore().collection('fcm_notification_queue').add({
+              userId: recipientId,
+              title: `Daily Update: ${elderName}`,
+              body: summaryText,
+              data: {
+                type: 'daily_family_note',
+                groupId: groupId,
+                elderId: elderId,
+                noteId: noteRef.id
+              },
+              status: 'pending',
+              createdAt: admin.firestore.Timestamp.now()
+            });
+          }
+
+          notesSent++;
+          console.log(`Sent daily note for elder ${elderId}: ${summaryText}`);
+        }
+      }
+
+      console.log(`Sent ${notesSent} daily family notes`);
+      return { success: true, notesSent };
+    } catch (error) {
+      console.error('Error in sendDailyFamilyNotes:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });

@@ -51,7 +51,7 @@
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",
     "html5-qrcode": "^2.3.8",
-    "jspdf": "^3.0.3",
+    "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.2",
     "jszip": "^3.10.1",
     "libphonenumber-js": "^1.11.5",

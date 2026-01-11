@@ -122,11 +122,36 @@ export function CookieConsent() {
     console.log('Analytics initialized');
   };
 
+  // Block body scroll when banner is showing
+  useEffect(() => {
+    if (showBanner) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showBanner]);
+
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center p-4">
-      <Card className="w-full max-w-4xl pointer-events-auto shadow-2xl border-2 border-blue-500 bg-white dark:bg-gray-900">
+    <>
+      {/* Full-screen blocking backdrop - GDPR/CCPA compliant */}
+      <div
+        className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
+        aria-hidden="true"
+      />
+
+      {/* Modal container - centered and blocking */}
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cookie-consent-title"
+      >
+        <Card className="w-full max-w-4xl pointer-events-auto shadow-2xl border-2 border-blue-500 bg-white dark:bg-gray-900 my-auto">
         {/* Header */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 p-4">
           <div className="flex items-center gap-3">
@@ -134,7 +159,7 @@ export function CookieConsent() {
               <Cookie className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              <h3 id="cookie-consent-title" className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 Cookie Preferences
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -281,6 +306,7 @@ export function CookieConsent() {
           </p>
         </div>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

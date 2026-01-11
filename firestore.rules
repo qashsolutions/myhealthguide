@@ -1278,6 +1278,25 @@ service cloud.firestore {
       allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
+    // ============= Daily Family Notes Collection =============
+    // Daily summaries of care activities sent to family members at 7 PM
+
+    match /daily_family_notes/{noteId} {
+      // Group members can read daily notes for their elders
+      allow read: if isGroupAdmin(resource.data.groupId) ||
+        (isMemberOfGroup(resource.data.groupId) && hasActiveAccess(request.auth.uid));
+
+      // Only Cloud Functions create daily notes (not direct user creation)
+      // Allow create for server-side (Cloud Functions run with admin privileges)
+      allow create: if false;
+
+      // Daily notes are immutable once created
+      allow update: if false;
+
+      // GDPR: Admin can delete even without active trial
+      allow delete: if isGroupAdmin(resource.data.groupId);
+    }
+
     // ============= Document Analyses Collection =============
     // AI-powered document analysis results (OCR + structured extraction)
 
