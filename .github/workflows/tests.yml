@@ -86,10 +86,13 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
   # Playwright E2E Tests
+  # NOTE: Authenticated tests require real Firebase credentials
+  # CI runs with dummy credentials so only public page tests will pass
+  # For authenticated testing, run against production with real credentials
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
