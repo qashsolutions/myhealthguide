@@ -1,22 +1,164 @@
 /**
  * Invite Code Generator and Validator
- * Generates 6-digit alphanumeric codes (encrypted) for group invites
+ * Generates role-prefixed alphanumeric codes for group invites
+ *
+ * Format:
+ * - FAM-XXXX    → Family Plan Member
+ * - AGY-XXXX    → Small Agency Caregiver/Member
+ * - MAG-C-XXXX  → Multi-Agency Caregiver
+ * - MAG-M-XXXX  → Multi-Agency Member
  */
+
+export type InviteCodeType =
+  | 'family_member'      // FAM-XXXX
+  | 'agency_member'      // AGY-XXXX
+  | 'multi_agency_caregiver'  // MAG-C-XXXX
+  | 'multi_agency_member';    // MAG-M-XXXX
+
+export interface ParsedInviteCode {
+  type: InviteCodeType;
+  code: string;
+  fullCode: string;
+}
+
+const CODE_PREFIXES: Record<InviteCodeType, string> = {
+  family_member: 'FAM',
+  agency_member: 'AGY',
+  multi_agency_caregiver: 'MAG-C',
+  multi_agency_member: 'MAG-M',
+};
 
 /**
- * Generate a 6-digit alphanumeric invite code
- * Format: XXXXXX (uppercase letters and numbers)
+ * Generate a 4-digit alphanumeric code segment
  */
-export function generateInviteCode(): string {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+function generateCodeSegment(length: number = 4): string {
+  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous chars (0, O, 1, I)
   let code = '';
 
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * characters.length);
     code += characters[randomIndex];
   }
 
   return code;
+}
+
+/**
+ * Generate a role-prefixed invite code
+ * @param type The type of invite (determines prefix)
+ * @returns Full invite code with prefix (e.g., "FAM-AB12")
+ */
+export function generateInviteCode(type?: InviteCodeType): string {
+  const segment = generateCodeSegment(4);
+
+  // If no type provided, generate legacy 6-char code for backwards compatibility
+  if (!type) {
+    return generateCodeSegment(6);
+  }
+
+  const prefix = CODE_PREFIXES[type];
+  return `${prefix}-${segment}`;
+}
+
+/**
+ * Parse an invite code to extract type and validate format
+ * @param code The invite code to parse
+ * @returns Parsed code info or null if invalid
+ */
+export function parseInviteCode(code: string): ParsedInviteCode | null {
+  const normalizedCode = code.toUpperCase().trim();
+
+  // Check for new prefixed formats
+  if (normalizedCode.startsWith('MAG-C-')) {
+    const segment = normalizedCode.slice(6);
+    if (segment.length === 4 && /^[A-Z0-9]+$/.test(segment)) {
+      return {
+        type: 'multi_agency_caregiver',
+        code: segment,
+        fullCode: normalizedCode,
+      };
+    }
+  }
+
+  if (normalizedCode.startsWith('MAG-M-')) {
+    const segment = normalizedCode.slice(6);
+    if (segment.length === 4 && /^[A-Z0-9]+$/.test(segment)) {
+      return {
+        type: 'multi_agency_member',
+        code: segment,
+        fullCode: normalizedCode,
+      };
+    }
+  }
+
+  if (normalizedCode.startsWith('FAM-')) {
+    const segment = normalizedCode.slice(4);
+    if (segment.length === 4 && /^[A-Z0-9]+$/.test(segment)) {
+      return {
+        type: 'family_member',
+        code: segment,
+        fullCode: normalizedCode,
+      };
+    }
+  }
+
+  if (normalizedCode.startsWith('AGY-')) {
+    const segment = normalizedCode.slice(4);
+    if (segment.length === 4 && /^[A-Z0-9]+$/.test(segment)) {
+      return {
+        type: 'agency_member',
+        code: segment,
+        fullCode: normalizedCode,
+      };
+    }
+  }
+
+  // Check for legacy 6-8 char codes (backwards compatibility)
+  if (/^[A-Z0-9]{6,8}$/.test(normalizedCode)) {
+    return {
+      type: 'family_member', // Default legacy codes to family member
+      code: normalizedCode,
+      fullCode: normalizedCode,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Get the signup route for an invite code type
+ */
+export function getSignupRouteForInviteType(type: InviteCodeType): string {
+  switch (type) {
+    case 'family_member':
+      return '/caregiver-family-invite';
+    case 'agency_member':
+      return '/caregiver-family-invite';
+    case 'multi_agency_caregiver':
+      return '/caregiver-family-invite';
+    case 'multi_agency_member':
+      return '/caregiver-family-invite';
+    default:
+      return '/caregiver-family-invite';
+  }
+}
+
+/**
+ * Get human-readable description for invite type
+ */
+export function getInviteTypeDescription(type: InviteCodeType): string {
+  switch (type) {
+    case 'family_member':
+      return 'Family Plan Member';
+    case 'agency_member':
+      return 'Small Agency Member';
+    case 'multi_agency_caregiver':
+      return 'Agency Caregiver';
+    case 'multi_agency_member':
+      return 'Agency Member';
+    default:
+      return 'Member';
+  }
 }
 
 /**
@@ -110,12 +252,21 @@ export async function decryptInviteCode(encryptedCode: string, secretKey?: strin
 }
 
 /**
- * Validate invite code format
+ * Validate invite code format (supports both legacy and new prefixed formats)
  */
 export function validateInviteCodeFormat(code: string): boolean {
-  // Must be exactly 6 characters, alphanumeric uppercase
-  const regex = /^[A-Z0-9]{6}$/;
-  return regex.test(code);
+  const normalizedCode = code.toUpperCase().trim();
+
+  // Check for new prefixed formats
+  if (/^FAM-[A-Z0-9]{4}$/.test(normalizedCode)) return true;
+  if (/^AGY-[A-Z0-9]{4}$/.test(normalizedCode)) return true;
+  if (/^MAG-C-[A-Z0-9]{4}$/.test(normalizedCode)) return true;
+  if (/^MAG-M-[A-Z0-9]{4}$/.test(normalizedCode)) return true;
+
+  // Legacy 6-8 character format
+  if (/^[A-Z0-9]{6,8}$/.test(normalizedCode)) return true;
+
+  return false;
 }
 
 /**

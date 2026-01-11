@@ -18,6 +18,11 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { GroupMember, Permission } from '@/types';
+import {
+  generateInviteCode as generatePrefixedCode,
+  parseInviteCode,
+  type InviteCodeType
+} from '@/lib/utils/inviteCode';
 
 export interface InviteCode {
   id: string;
@@ -27,6 +32,7 @@ export interface InviteCode {
   createdBy: string;
   createdByName: string;
   role: 'admin' | 'member';
+  inviteType?: InviteCodeType;  // New: role-prefixed type
   permissions: Permission[];
   maxUses: number;
   currentUses: number;
@@ -43,15 +49,11 @@ export interface InviteAcceptance {
 
 export class InviteService {
   /**
-   * Generate a unique invite code
+   * Generate a unique invite code with optional role prefix
+   * @param inviteType Optional type for prefixed codes (FAM-, AGY-, MAG-C-, MAG-M-)
    */
-  static generateInviteCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous chars
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
+  static generateInviteCode(inviteType?: InviteCodeType): string {
+    return generatePrefixedCode(inviteType);
   }
 
   /**
@@ -63,12 +65,13 @@ export class InviteService {
     createdBy: string;
     createdByName: string;
     role: 'admin' | 'member';
+    inviteType?: InviteCodeType;  // New: role-prefixed type
     permissions: Permission[];
     maxUses?: number;
     expiresInDays?: number;
   }): Promise<InviteCode> {
     try {
-      const code = this.generateInviteCode();
+      const code = this.generateInviteCode(params.inviteType);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + (params.expiresInDays || 7));
 
@@ -79,6 +82,7 @@ export class InviteService {
         createdBy: params.createdBy,
         createdByName: params.createdByName,
         role: params.role,
+        inviteType: params.inviteType,
         permissions: params.permissions,
         maxUses: params.maxUses || 5,
         currentUses: 0,
@@ -104,13 +108,15 @@ export class InviteService {
   }
 
   /**
-   * Get invite by code
+   * Get invite by code (supports both legacy and prefixed codes)
    */
   static async getInviteByCode(code: string): Promise<InviteCode | null> {
     try {
+      const normalizedCode = code.toUpperCase().trim();
+
       const q = query(
         collection(db, 'invites'),
-        where('code', '==', code.toUpperCase()),
+        where('code', '==', normalizedCode),
         where('isActive', '==', true)
       );
 
@@ -120,17 +126,25 @@ export class InviteService {
         return null;
       }
 
-      const doc = snapshot.docs[0];
-      const data = doc.data();
+      const docSnap = snapshot.docs[0];
+      const data = docSnap.data();
+
+      // Parse invite type from code if not stored
+      let inviteType = data.inviteType;
+      if (!inviteType) {
+        const parsed = parseInviteCode(data.code);
+        inviteType = parsed?.type;
+      }
 
       return {
-        id: doc.id,
+        id: docSnap.id,
         code: data.code,
         groupId: data.groupId,
         groupName: data.groupName,
         createdBy: data.createdBy,
         createdByName: data.createdByName,
         role: data.role,
+        inviteType,
         permissions: data.permissions,
         maxUses: data.maxUses,
         currentUses: data.currentUses,
