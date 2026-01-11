@@ -148,7 +148,7 @@ export default function LoginPage() {
             <Input
               id="password"
               type="password"
-              placeholder="8+ chars with letters, numbers, !@#$%"
+              placeholder="Minimum 8 characters: a-z, A-Z, 0-9, !@#$%"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -260,9 +260,6 @@ export default function LoginPage() {
                   'Continue with Invite Code'
                 )}
               </Button>
-              <p className="text-xs text-gray-500 text-center">
-                Code formats: FAM-XXXX, AGY-XXXX, MAG-C-XXXX, MAG-M-XXXX
-              </p>
             </div>
           )}
         </div>
