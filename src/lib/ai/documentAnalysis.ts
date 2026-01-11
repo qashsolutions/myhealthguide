@@ -110,7 +110,7 @@ export interface DocumentAnalysis {
 }
 
 /**
- * Initialize Vertex AI client (reuses existing pattern from medgemmaService.ts)
+ * Initialize Vertex AI client (reuses existing pattern from medicalAIService.ts)
  */
 function getVertexAI(): VertexAI {
   if (!vertexAI && projectId) {

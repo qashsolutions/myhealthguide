@@ -1,5 +1,5 @@
 /**
- * MedGemma 27B Service - Medical AI via Vertex AI
+ * Medical AI Service - Health AI via Google Vertex AI (Gemini 3 Pro)
  *
  * IMPORTANT: This service provides OBSERVATIONAL SUMMARIES and DISCUSSION POINTS ONLY.
  * It does NOT provide medical advice, recommendations, or guidance.
@@ -10,6 +10,8 @@
  * - Never prescriptive or directive
  *
  * Users must always consult healthcare providers for medical decisions.
+ *
+ * Powered by Google Gemini 3 Pro via Vertex AI
  */
 
 import { VertexAI } from '@google-cloud/vertexai';
@@ -96,20 +98,20 @@ let vertexAI: VertexAI | null = null;
  * 2. GOOGLE_APPLICATION_CREDENTIALS (for local dev) - file path
  */
 function getVertexAI(): VertexAI {
-  console.log('[MedGemma Service] getVertexAI called');
-  console.log('[MedGemma Service] projectId:', projectId);
-  console.log('[MedGemma Service] location:', location);
+  console.log('[Medical AI Service] getVertexAI called');
+  console.log('[Medical AI Service] projectId:', projectId);
+  console.log('[Medical AI Service] location:', location);
 
   if (!vertexAI && projectId) {
     const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-    console.log('[MedGemma Service] Has GOOGLE_APPLICATION_CREDENTIALS_JSON:', !!credentialsJson);
-    console.log('[MedGemma Service] GOOGLE_APPLICATION_CREDENTIALS_JSON length:', credentialsJson?.length || 0);
+    console.log('[Medical AI Service] Has GOOGLE_APPLICATION_CREDENTIALS_JSON:', !!credentialsJson);
+    console.log('[Medical AI Service] GOOGLE_APPLICATION_CREDENTIALS_JSON length:', credentialsJson?.length || 0);
 
     if (credentialsJson) {
       // Production (Vercel): Use JSON credentials from environment variable
       try {
         const credentials = JSON.parse(credentialsJson);
-        console.log('[MedGemma Service] Parsed credentials, project_id:', credentials.project_id);
+        console.log('[Medical AI Service] Parsed credentials, project_id:', credentials.project_id);
         vertexAI = new VertexAI({
           project: projectId,
           location: location,
@@ -117,24 +119,24 @@ function getVertexAI(): VertexAI {
             credentials: credentials,
           },
         });
-        console.log('[MedGemma Service] VertexAI initialized with JSON credentials');
+        console.log('[Medical AI Service] VertexAI initialized with JSON credentials');
       } catch (error) {
-        console.error('[MedGemma Service] Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
+        console.error('[Medical AI Service] Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error);
         throw new Error('Invalid GOOGLE_APPLICATION_CREDENTIALS_JSON format');
       }
     } else {
       // Local Dev: Use GOOGLE_APPLICATION_CREDENTIALS file path (auto-detected by SDK)
-      console.log('[MedGemma Service] Using default credentials (file path or ADC)');
+      console.log('[Medical AI Service] Using default credentials (file path or ADC)');
       vertexAI = new VertexAI({
         project: projectId,
         location: location,
       });
-      console.log('[MedGemma Service] VertexAI initialized with default credentials');
+      console.log('[Medical AI Service] VertexAI initialized with default credentials');
     }
   }
 
   if (!vertexAI) {
-    console.error('[MedGemma Service] VertexAI not configured - projectId:', projectId);
+    console.error('[Medical AI Service] VertexAI not configured - projectId:', projectId);
     throw new Error('Vertex AI not configured. Set GOOGLE_CLOUD_PROJECT_ID environment variable.');
   }
 
@@ -142,13 +144,12 @@ function getVertexAI(): VertexAI {
 }
 
 /**
- * MedGemma model configuration
+ * Medical AI model configuration
  *
+ * Uses Gemini 3 Pro Preview via Vertex AI for medical queries.
  * NOTE: MedLM-large was deprecated on September 29, 2025.
- * Using gemini-3-pro-preview with medical system prompt as the primary model.
- * MedGemma models are available through Model Garden for specialized medical use.
  */
-const MEDGEMMA_CONFIG = {
+const MEDICAL_AI_CONFIG = {
   // Primary model - Gemini 3 Pro Preview (MedLM-large is deprecated)
   model: 'gemini-3-pro-preview',
 
@@ -178,7 +179,7 @@ const MEDGEMMA_CONFIG = {
  * Guides AI to provide factual observations and summaries.
  * Output is validated separately to catch any advice that slips through.
  */
-const MEDICAL_SYSTEM_PROMPT = `You are MedGemma, a medical AI assistant that provides FACTUAL OBSERVATIONS and DATA SUMMARIES.
+const MEDICAL_SYSTEM_PROMPT = `You are a medical AI assistant that provides FACTUAL OBSERVATIONS and DATA SUMMARIES.
 
 YOUR ROLE:
 - Summarize health data (medications, compliance, diet) in a clear, organized way
@@ -211,7 +212,7 @@ RESPONSE FORMAT:
  * Guides AI to generate conversation starters for healthcare provider visits.
  * These are NOT recommendations - they are topics based on data patterns.
  */
-const DISCUSSION_POINTS_SYSTEM_PROMPT = `You are MedGemma, a medical AI assistant that helps caregivers prepare for healthcare provider visits.
+const DISCUSSION_POINTS_SYSTEM_PROMPT = `You are a medical AI assistant that helps caregivers prepare for healthcare provider visits.
 
 YOUR ROLE:
 - Generate DISCUSSION POINTS (conversation starters) based on health data patterns
@@ -246,7 +247,7 @@ Return an array of discussion points, each with:
  * Guides AI to generate questions caregivers can ask their healthcare provider.
  * Questions are based on data patterns, not medical interpretations.
  */
-const QUESTIONS_FOR_PROVIDER_PROMPT = `You are MedGemma, a medical AI assistant that helps caregivers prepare questions for healthcare provider visits.
+const QUESTIONS_FOR_PROVIDER_PROMPT = `You are a medical AI assistant that helps caregivers prepare questions for healthcare provider visits.
 
 YOUR ROLE:
 - Generate QUESTIONS that caregivers can ask their healthcare provider
@@ -365,7 +366,7 @@ export async function generateClinicalNote(
       userRole,
       groupId,
       elderId,
-      serviceName: 'Google MedGemma (Vertex AI)',
+      serviceName: 'Google Gemini 3 Pro (Vertex AI)',
       serviceType: 'clinical_note_generation',
       dataShared: [
         'elder_demographics',
@@ -583,8 +584,8 @@ End with: "This is an observational summary of logged data. Please discuss with 
 
   try {
     const model = vertex.preview.getGenerativeModel({
-      model: MEDGEMMA_CONFIG.model,
-      generationConfig: MEDGEMMA_CONFIG.generationConfig,
+      model: MEDICAL_AI_CONFIG.model,
+      generationConfig: MEDICAL_AI_CONFIG.generationConfig,
       systemInstruction: MEDICAL_SYSTEM_PROMPT,
     });
 
@@ -657,8 +658,8 @@ Return ONLY valid JSON array, no other text.`;
 
   try {
     const model = vertex.preview.getGenerativeModel({
-      model: MEDGEMMA_CONFIG.model,
-      generationConfig: { ...MEDGEMMA_CONFIG.generationConfig, temperature: 0.2 },
+      model: MEDICAL_AI_CONFIG.model,
+      generationConfig: { ...MEDICAL_AI_CONFIG.generationConfig, temperature: 0.2 },
       systemInstruction: DISCUSSION_POINTS_SYSTEM_PROMPT,
     });
 
@@ -736,8 +737,8 @@ Return ONLY valid JSON array, no other text.`;
 
   try {
     const model = vertex.preview.getGenerativeModel({
-      model: MEDGEMMA_CONFIG.model,
-      generationConfig: { ...MEDGEMMA_CONFIG.generationConfig, temperature: 0.2 },
+      model: MEDICAL_AI_CONFIG.model,
+      generationConfig: { ...MEDICAL_AI_CONFIG.generationConfig, temperature: 0.2 },
       systemInstruction: QUESTIONS_FOR_PROVIDER_PROMPT,
     });
 
@@ -998,7 +999,7 @@ export async function processNaturalLanguageQuery(
       userRole,
       groupId,
       elderId,
-      serviceName: 'Google MedGemma (Vertex AI)',
+      serviceName: 'Google Gemini 3 Pro (Vertex AI)',
       serviceType: 'query_parsing',
       dataShared: ['query_text', 'elder_name'],
       purpose: 'Parse natural language query to retrieve health data',
@@ -1024,23 +1025,23 @@ Return JSON only:
   "responseTemplate": "factual template like: Based on the logged data, the compliance rate was {compliance}%"
 }`;
 
-    console.log('[MedGemma Service] processNaturalLanguageQuery - getting VertexAI client');
+    console.log('[Medical AI Service] processNaturalLanguageQuery - getting VertexAI client');
     const vertex = getVertexAI();
 
-    console.log('[MedGemma Service] processNaturalLanguageQuery - creating model with:', MEDGEMMA_CONFIG.model);
+    console.log('[Medical AI Service] processNaturalLanguageQuery - creating model with:', MEDICAL_AI_CONFIG.model);
     const model = vertex.preview.getGenerativeModel({
-      model: MEDGEMMA_CONFIG.model,
-      generationConfig: { ...MEDGEMMA_CONFIG.generationConfig, temperature: 0.1 },
+      model: MEDICAL_AI_CONFIG.model,
+      generationConfig: { ...MEDICAL_AI_CONFIG.generationConfig, temperature: 0.1 },
     });
 
-    console.log('[MedGemma Service] processNaturalLanguageQuery - calling generateContent...');
+    console.log('[Medical AI Service] processNaturalLanguageQuery - calling generateContent...');
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
-    console.log('[MedGemma Service] processNaturalLanguageQuery - got response');
+    console.log('[Medical AI Service] processNaturalLanguageQuery - got response');
 
     const responseText = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    console.log('[MedGemma Service] processNaturalLanguageQuery - responseText length:', responseText.length);
+    console.log('[Medical AI Service] processNaturalLanguageQuery - responseText length:', responseText.length);
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
 
     if (jsonMatch) {
@@ -1049,9 +1050,9 @@ Return JSON only:
 
     throw new Error('Failed to parse response');
   } catch (error) {
-    console.error('[MedGemma Service] Query parsing error:', error);
-    console.error('[MedGemma Service] Error details:', error instanceof Error ? error.message : String(error));
-    console.log('[MedGemma Service] Using keyword fallback');
+    console.error('[Medical AI Service] Query parsing error:', error);
+    console.error('[Medical AI Service] Error details:', error instanceof Error ? error.message : String(error));
+    console.log('[Medical AI Service] Using keyword fallback');
     return parseQueryKeywords(query, context);
   }
 }

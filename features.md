@@ -205,7 +205,7 @@
 
 These features require **Unified AI & Medical Consent**:
 - 60-second mandatory reading time
-- 4 required checkboxes (AI understanding, MedGemma terms, medical disclaimer, data processing)
+- 4 required checkboxes (AI understanding, Google AI terms, medical disclaimer, data processing)
 - 90-day expiry with automatic re-consent
 
 **Consent Required For:**
@@ -249,8 +249,8 @@ type FeatureName =
 ## API Endpoints by Feature Area
 
 ### Core (All Plans)
-- `/api/medgemma/query` — Health chat
-- `/api/medgemma/clinical-note` — Clinical notes
+- `/api/medgemma/query` — Health chat (legacy route name)
+- `/api/medgemma/clinical-note` — Clinical notes (legacy route name)
 - `/api/drug-interactions` — Drug interaction checking
 - `/api/dementia-assessment/*` — Cognitive assessments
 - `/api/medication-adherence` — Adherence prediction

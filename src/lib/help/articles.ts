@@ -75,7 +75,7 @@ export const helpArticles: HelpArticle[] = [
     description: 'Ask questions about medications, meals, and care - get instant answers',
     value: 'Get answers in seconds, not minutes',
     path: 'Dashboard → Health Assistant',
-    route: '/dashboard/medgemma',
+    route: '/dashboard/ask-ai',
     roles: ['admin', 'caregiver', 'caregiver_admin', 'super_admin'],
     category: 'ai',
     tags: ['ask', 'questions', 'help', 'assistant', 'answers'],

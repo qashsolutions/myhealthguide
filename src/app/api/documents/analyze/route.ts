@@ -2,7 +2,7 @@
  * Document Analysis API Route
  *
  * POST /api/documents/analyze
- * Analyzes an uploaded document using OCR and MedGemma AI
+ * Analyzes an uploaded document using OCR and Google Gemini 3 Pro AI
  *
  * GET /api/documents/analyze?documentId=xxx
  * Gets existing analysis for a document

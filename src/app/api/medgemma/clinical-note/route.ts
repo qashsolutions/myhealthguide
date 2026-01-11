@@ -1,9 +1,9 @@
 /**
- * API Route: Generate Clinical Note with MedGemma
+ * API Route: Generate Clinical Note with Medical AI
  *
- * POST /api/medgemma/clinical-note
+ * POST /api/medgemma/clinical-note (legacy route - kept for compatibility)
  *
- * Generates a comprehensive clinical summary report using MedGemma AI
+ * Generates a comprehensive clinical summary report using Google Gemini 3 Pro
  * including:
  * - Observational summary (factual data only)
  * - Discussion points (conversation starters for provider visits)
@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { generateClinicalNote } from '@/lib/ai/medgemmaService';
+import { generateClinicalNote } from '@/lib/ai/medicalAIService';
 import { UserRole } from '@/lib/medical/phiAuditLog';
 import {
   verifyAuthToken,

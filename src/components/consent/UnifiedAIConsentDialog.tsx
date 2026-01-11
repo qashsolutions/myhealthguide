@@ -32,7 +32,6 @@ import {
   MINIMUM_READ_TIME_MS,
   CONSENT_VALIDITY_DAYS,
   GOOGLE_HAI_DEF_TERMS_URL,
-  MEDGEMMA_MODEL_CARD_URL,
   createUnifiedConsent
 } from '@/lib/consent/unifiedConsentManagement';
 
@@ -59,12 +58,12 @@ export function UnifiedAIConsentDialog({
 
   // Checkbox states
   const [acceptAIFeatures, setAcceptAIFeatures] = useState(false);
-  const [acceptMedgemmaTerms, setAcceptMedgemmaTerms] = useState(false);
+  const [acceptGoogleAITerms, setAcceptGoogleAITerms] = useState(false);
   const [acceptMedicalDisclaimer, setAcceptMedicalDisclaimer] = useState(false);
   const [acceptDataProcessing, setAcceptDataProcessing] = useState(false);
 
-  // Model preference
-  const [preferredModel, setPreferredModel] = useState<'medgemma-4b' | 'medgemma-27b'>('medgemma-27b');
+  // Model preference (accurate = high thinking, fast = low thinking)
+  const [preferredModel, setPreferredModel] = useState<'accurate' | 'fast'>('accurate');
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,7 +78,7 @@ export function UnifiedAIConsentDialog({
     hasScrolledToBottom &&
     hasMetReadingTime &&
     acceptAIFeatures &&
-    acceptMedgemmaTerms &&
+    acceptGoogleAITerms &&
     acceptMedicalDisclaimer &&
     acceptDataProcessing;
 
@@ -121,7 +120,7 @@ export function UnifiedAIConsentDialog({
         groupId,
         {
           aiFeatures: acceptAIFeatures,
-          medgemmaTerms: acceptMedgemmaTerms,
+          googleAITerms: acceptGoogleAITerms,
           medicalDisclaimer: acceptMedicalDisclaimer,
           dataProcessing: acceptDataProcessing
         },
@@ -145,7 +144,7 @@ export function UnifiedAIConsentDialog({
       setHasScrolledToBottom(false);
       setTimeSpentReading(0);
       setAcceptAIFeatures(false);
-      setAcceptMedgemmaTerms(false);
+      setAcceptGoogleAITerms(false);
       setAcceptMedicalDisclaimer(false);
       setAcceptDataProcessing(false);
     }
@@ -247,15 +246,14 @@ export function UnifiedAIConsentDialog({
             </AlertDescription>
           </Alert>
 
-          {/* Section 2: Google MedGemma Terms */}
+          {/* Section 2: Google AI Terms */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
             <h3 className="font-semibold text-lg flex items-center gap-2">
               <Brain className="w-5 h-5 text-blue-600" />
-              2. Google Health AI Developer Foundations Terms
+              2. Google AI Terms
             </h3>
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              AI features are powered by Google Health AI Developer Foundations (HAI-DEF),
-              including MedGemma models. By enabling these features, you agree to:
+              AI features are powered by Google Gemini via Vertex AI. By enabling these features, you agree to:
             </p>
             <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
               <li>
@@ -266,32 +264,31 @@ export function UnifiedAIConsentDialog({
                   rel="noopener noreferrer"
                   className="text-blue-600 dark:text-blue-400 underline inline-flex items-center gap-1"
                 >
-                  Google Health AI Developer Foundations Terms of Use
+                  Google Cloud Terms of Service
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </li>
               <li>
                 The{' '}
                 <a
-                  href={MEDGEMMA_MODEL_CARD_URL}
+                  href="https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 dark:text-blue-400 underline inline-flex items-center gap-1"
                 >
-                  MedGemma Model Card
+                  Google Responsible AI Practices
                   <ExternalLink className="w-3 h-3" />
-                </a>{' '}
-                describing model capabilities and limitations
+                </a>
               </li>
               <li>
                 The{' '}
                 <a
-                  href="https://developers.google.com/health-ai-developer-foundations/prohibited-use-policy"
+                  href="https://policies.google.com/privacy"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 dark:text-blue-400 underline inline-flex items-center gap-1"
                 >
-                  Prohibited Use Policy
+                  Google Privacy Policy
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </li>
@@ -301,25 +298,25 @@ export function UnifiedAIConsentDialog({
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <p className="text-sm font-medium mb-3 flex items-center gap-2">
                 <Scale className="w-4 h-4" />
-                Choose Your Preferred AI Model:
+                Choose Your Preferred AI Mode:
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   className={`border-2 rounded-lg p-3 text-left transition-all ${
-                    preferredModel === 'medgemma-27b'
+                    preferredModel === 'accurate'
                       ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
                   }`}
-                  onClick={() => setPreferredModel('medgemma-27b')}
+                  onClick={() => setPreferredModel('accurate')}
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full border-2 ${
-                      preferredModel === 'medgemma-27b'
+                      preferredModel === 'accurate'
                         ? 'border-blue-600 bg-blue-600'
                         : 'border-gray-300'
                     }`} />
-                    <span className="font-medium text-sm">MedGemma 27B</span>
+                    <span className="font-medium text-sm">Accurate Mode</span>
                     <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">
                       Recommended
                     </span>
@@ -331,19 +328,19 @@ export function UnifiedAIConsentDialog({
                 <button
                   type="button"
                   className={`border-2 rounded-lg p-3 text-left transition-all ${
-                    preferredModel === 'medgemma-4b'
+                    preferredModel === 'fast'
                       ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
                   }`}
-                  onClick={() => setPreferredModel('medgemma-4b')}
+                  onClick={() => setPreferredModel('fast')}
                 >
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full border-2 ${
-                      preferredModel === 'medgemma-4b'
+                      preferredModel === 'fast'
                         ? 'border-blue-600 bg-blue-600'
                         : 'border-gray-300'
                     }`} />
-                    <span className="font-medium text-sm">MedGemma 4B</span>
+                    <span className="font-medium text-sm">Fast Mode</span>
                     <Zap className="w-3 h-3 text-yellow-600" />
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 ml-5">
@@ -416,7 +413,7 @@ export function UnifiedAIConsentDialog({
             <AlertDescription className="text-purple-800 dark:text-purple-200 mt-2 space-y-2 text-sm">
               <p><strong>How your data is processed:</strong></p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Health data is securely sent to Google Vertex AI (MedGemma/Gemini) for processing</li>
+                <li>Health data is securely sent to Google Vertex AI (Gemini) for processing</li>
                 <li>Data is de-identified before analysis - no personal identifiers are shared with AI</li>
                 <li>AI-generated insights are stored in your secure, HIPAA-aligned database</li>
                 <li>Google does not retain your health data beyond processing</li>
@@ -493,13 +490,13 @@ export function UnifiedAIConsentDialog({
 
             <label className="flex items-start gap-3 cursor-pointer">
               <Checkbox
-                checked={acceptMedgemmaTerms}
-                onCheckedChange={(checked) => setAcceptMedgemmaTerms(checked === true)}
+                checked={acceptGoogleAITerms}
+                onCheckedChange={(checked) => setAcceptGoogleAITerms(checked === true)}
                 disabled={!hasScrolledToBottom || !hasMetReadingTime}
               />
               <span className={`text-sm ${hasScrolledToBottom && hasMetReadingTime ? '' : 'opacity-50'}`}>
-                I accept the <strong>Google Health AI Developer Foundations Terms of Use</strong> and
-                understand MedGemma&apos;s capabilities and limitations
+                I accept the <strong>Google AI Terms</strong> and understand
+                the AI&apos;s capabilities and limitations
               </span>
             </label>
 

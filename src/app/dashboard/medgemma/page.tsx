@@ -123,7 +123,7 @@ export default function MedGemmaHubPage() {
                   You can now use all AI-powered health features.
                   {consent && (
                     <span className="block mt-1 text-sm">
-                      Mode: <strong className="font-semibold">{consent.preferredModel === 'medgemma-4b' ? 'Fast' : 'Accurate'}</strong>
+                      Mode: <strong className="font-semibold">{consent.preferredModel === 'fast' ? 'Fast' : 'Accurate'}</strong>
                       {' '}• Valid until: <strong>{consent.expiresAt?.toLocaleDateString()}</strong>
                     </span>
                   )}
@@ -278,7 +278,7 @@ export default function MedGemmaHubPage() {
                     You can change this anytime in Settings
                     {consent?.preferredModel && (
                       <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
-                        • Current: {consent.preferredModel === 'medgemma-4b' ? 'Fast' : 'Accurate'} Mode
+                        • Current: {consent.preferredModel === 'fast' ? 'Fast' : 'Accurate'} Mode
                       </span>
                     )}
                   </CardDescription>
@@ -295,7 +295,7 @@ export default function MedGemmaHubPage() {
               <CardContent className="pt-0">
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Accurate Mode */}
-                  <div className={`p-4 rounded-lg border-2 ${consent?.preferredModel === 'medgemma-27b' || !consent?.preferredModel ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
+                  <div className={`p-4 rounded-lg border-2 ${consent?.preferredModel === 'accurate' || !consent?.preferredModel ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-semibold flex items-center gap-2">
                         <Target className="w-5 h-5 text-blue-600" />
@@ -325,7 +325,7 @@ export default function MedGemmaHubPage() {
                   </div>
 
                   {/* Fast Mode */}
-                  <div className={`p-4 rounded-lg border-2 ${consent?.preferredModel === 'medgemma-4b' ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
+                  <div className={`p-4 rounded-lg border-2 ${consent?.preferredModel === 'fast' ? 'border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
                     <h4 className="font-semibold flex items-center gap-2 mb-2">
                       <Zap className="w-5 h-5 text-yellow-600" />
                       Fast Mode

@@ -4,7 +4,7 @@
  * Single source of truth for all AI and medical feature consent.
  * Consolidates:
  * - AI Features consent (health change detection, medication optimization, etc.)
- * - MedGemma/Google HAI-DEF terms
+ * - Google AI terms (Vertex AI / Gemini)
  * - Medical disclaimer (drug interactions, side effects, dementia screening)
  *
  * COMPLIANCE REQUIREMENTS:
@@ -13,6 +13,8 @@
  * - Users must check all acknowledgment boxes
  * - Consent expires after 90 days
  * - All access is logged for audit trail
+ *
+ * Powered by Google Gemini 3 Pro via Vertex AI
  */
 
 import { db } from '@/lib/firebase/config';
@@ -29,11 +31,10 @@ import {
 } from 'firebase/firestore';
 
 // Constants
-export const CONSENT_VERSION = '2.0.0';
+export const CONSENT_VERSION = '2.1.0'; // Updated for MedGemma removal
 export const CONSENT_VALIDITY_DAYS = 90;
 export const MINIMUM_READ_TIME_MS = 60000; // 60 seconds
-export const GOOGLE_HAI_DEF_TERMS_URL = 'https://developers.google.com/health-ai-developer-foundations/terms';
-export const MEDGEMMA_MODEL_CARD_URL = 'https://developers.google.com/health-ai-developer-foundations/medgemma/model-card';
+export const GOOGLE_HAI_DEF_TERMS_URL = 'https://cloud.google.com/terms/service-terms';
 
 /**
  * Unified consent record structure
@@ -52,7 +53,7 @@ export interface UnifiedAIConsent {
   // What was consented to
   acceptedTerms: {
     aiFeatures: boolean;           // Health change detection, medication optimization, etc.
-    medgemmaTerms: boolean;        // Google HAI-DEF terms
+    googleAITerms: boolean;        // Google AI terms (Vertex AI / Gemini)
     medicalDisclaimer: boolean;    // Not medical advice disclaimer
     dataProcessing: boolean;       // Data sent to Google AI
   };
@@ -62,7 +63,7 @@ export interface UnifiedAIConsent {
   scrolledToBottom: boolean;       // User scrolled through entire document
 
   // Preferences
-  preferredModel: 'medgemma-4b' | 'medgemma-27b';
+  preferredModel: 'accurate' | 'fast'; // accurate = high thinking, fast = low thinking
 
   // Status
   isActive: boolean;
@@ -189,7 +190,7 @@ export async function checkUnifiedConsent(
 
     // Check if all required terms were accepted
     const { acceptedTerms } = consent;
-    if (!acceptedTerms.aiFeatures || !acceptedTerms.medgemmaTerms ||
+    if (!acceptedTerms.aiFeatures || !acceptedTerms.googleAITerms ||
         !acceptedTerms.medicalDisclaimer || !acceptedTerms.dataProcessing) {
       return {
         valid: false,
@@ -221,13 +222,13 @@ export async function createUnifiedConsent(
   groupId: string,
   acceptedTerms: {
     aiFeatures: boolean;
-    medgemmaTerms: boolean;
+    googleAITerms: boolean;
     medicalDisclaimer: boolean;
     dataProcessing: boolean;
   },
   timeSpentReading: number,
   scrolledToBottom: boolean,
-  preferredModel: 'medgemma-4b' | 'medgemma-27b' = 'medgemma-27b'
+  preferredModel: 'accurate' | 'fast' = 'accurate'
 ): Promise<UnifiedAIConsent> {
   try {
     const now = new Date();

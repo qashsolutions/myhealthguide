@@ -103,7 +103,7 @@ const SEARCH_KNOWLEDGE_BASE = {
     },
     ai_insights: {
       title: 'AI Health Insights',
-      description: 'Get intelligent daily summaries, pattern detection, and proactive health alerts powered by Google Gemini 3 Pro and MedGemma medical AI.',
+      description: 'Get intelligent daily summaries, pattern detection, and proactive health alerts powered by Google Gemini 3 Pro.',
       url: '/features',
     },
     medication: {

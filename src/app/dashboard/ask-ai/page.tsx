@@ -156,7 +156,7 @@ function ChatTab({ elderName }: { elderName: string }) {
           title="Health Assistant"
           description="Ask questions about care and get AI-powered answers"
           icon={Brain}
-          linkHref="/dashboard/medgemma"
+          linkHref="/dashboard/health-chat"
           color="purple"
         />
         <QuickActionCard

@@ -1,9 +1,9 @@
 /**
- * API Route: Process Natural Language Query with MedGemma
+ * API Route: Process Natural Language Query with Medical AI
  *
- * POST /api/medgemma/query
+ * POST /api/medgemma/query (legacy route - kept for compatibility)
  *
- * Processes natural language queries about health data using MedGemma AI.
+ * Processes natural language queries about health data using Google Gemini 3 Pro.
  * All responses are OBSERVATIONAL ONLY - no medical advice or recommendations.
  *
  * AUTHENTICATION: Requires Firebase ID token in Authorization header
@@ -12,7 +12,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { processNaturalLanguageQuery } from '@/lib/ai/medgemmaService';
+import { processNaturalLanguageQuery } from '@/lib/ai/medicalAIService';
 import { UserRole } from '@/lib/medical/phiAuditLog';
 import {
   verifyAuthToken,
@@ -130,14 +130,14 @@ interface RequestBody {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[MedGemma Query API] Request received');
+  console.log('[Medical AI Query API] Request received');
 
   try {
     // Verify authentication
-    console.log('[MedGemma Query API] Verifying auth token...');
+    console.log('[Medical AI Query API] Verifying auth token...');
     const authResult = await verifyAuthToken(request);
     if (!authResult.success || !authResult.userId) {
-      console.log('[MedGemma Query API] Auth failed:', authResult.error);
+      console.log('[Medical AI Query API] Auth failed:', authResult.error);
       return NextResponse.json(
         { error: authResult.error || 'Authentication required' },
         { status: 401 }
@@ -145,11 +145,11 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = authResult.userId;
-    console.log('[MedGemma Query API] Auth successful, userId:', userId);
+    console.log('[Medical AI Query API] Auth successful, userId:', userId);
 
     const body: RequestBody = await request.json();
     const { groupId, elderId, elderName, query: userQuery } = body;
-    console.log('[MedGemma Query API] Request body:', { groupId, elderId, elderName, queryLength: userQuery?.length });
+    console.log('[Medical AI Query API] Request body:', { groupId, elderId, elderName, queryLength: userQuery?.length });
 
     if (!groupId || !userQuery) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -170,8 +170,8 @@ export async function POST(request: NextRequest) {
     const userData = await getUserDataServer(userId);
     const userRole: UserRole = userData?.role || 'member';
 
-    console.log('[MedGemma Query API] Calling processNaturalLanguageQuery...');
-    console.log('[MedGemma Query API] Vertex AI config:', {
+    console.log('[Medical AI Query API] Calling processNaturalLanguageQuery...');
+    console.log('[Medical AI Query API] Vertex AI config:', {
       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
       location: process.env.VERTEX_AI_LOCATION || 'global',
       hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
@@ -187,12 +187,12 @@ export async function POST(request: NextRequest) {
         groupId,
         elderId
       );
-      console.log('[MedGemma Query API] Query intent result:', queryIntent);
+      console.log('[Medical AI Query API] Query intent result:', queryIntent);
     } catch (queryError) {
-      console.error('[MedGemma Query API] processNaturalLanguageQuery failed:', queryError);
+      console.error('[Medical AI Query API] processNaturalLanguageQuery failed:', queryError);
       // Use simple keyword-based parsing as fallback
       queryIntent = parseQueryKeywords(userQuery, elderName);
-      console.log('[MedGemma Query API] Using keyword fallback:', queryIntent);
+      console.log('[Medical AI Query API] Using keyword fallback:', queryIntent);
     }
 
     const { intent, parameters, needsData } = queryIntent;
@@ -393,10 +393,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[MedGemma Query API] ERROR:', error);
-    console.error('[MedGemma Query API] Error name:', error instanceof Error ? error.name : 'Unknown');
-    console.error('[MedGemma Query API] Error message:', error instanceof Error ? error.message : String(error));
-    console.error('[MedGemma Query API] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('[Medical AI Query API] ERROR:', error);
+    console.error('[Medical AI Query API] Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('[Medical AI Query API] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[Medical AI Query API] Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Failed to process query' },
       { status: 500 }

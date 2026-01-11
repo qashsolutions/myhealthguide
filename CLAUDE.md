@@ -16,7 +16,7 @@
 | 7 | E2E Testing | ✅ COMPLETE | Jan 10, 2026 |
 | 8 | Modular Accessibility Components | ✅ COMPLETE | Jan 10, 2026 |
 | 9 | AI Integration Strategy | 🔲 PENDING | - |
-| 10 | MedGemma Reference Audit | 🔲 PENDING | - |
+| 10 | MedGemma Branding Cleanup | ✅ COMPLETE | Jan 11, 2026 |
 
 ### Task 8: Modular Accessibility Component System ✅ COMPLETE
 
@@ -786,11 +786,11 @@ match /sessionEvents/{eventId} {
 - Must scroll to bottom of terms
 - 4 required checkboxes:
   1. AI Features understanding
-  2. Google MedGemma/HAI-DEF terms
+  2. Google AI terms (Vertex AI / Gemini)
   3. Medical disclaimer acknowledgment
   4. Data processing consent
 - 90-day expiry with automatic re-consent requirement
-- Model preference selection (MedGemma 27B or 4B)
+- Model preference selection (Accurate or Fast mode)
 - Access logging for audit trail
 
 **Firestore Collections:**
@@ -964,7 +964,7 @@ const model = vertex.preview.getGenerativeModel({
 - `src/lib/ai/chatService.ts` - Smart Assistant chat (Direct API)
 - `src/lib/ai/geminiService.ts` - General AI service (Direct API)
 - `src/lib/ai/voiceSearch.ts` - Voice search (Direct API)
-- `src/lib/ai/medgemmaService.ts` - Medical AI queries (Vertex AI SDK)
+- `src/lib/ai/medicalAIService.ts` - Medical AI queries (Vertex AI SDK)
 - `src/lib/ai/agenticAnalytics.ts` - AI-driven analytics (Direct API with Claude fallback)
 - `src/lib/ai/soapNoteGenerator.ts` - SOAP note generation (Direct API)
 - `src/lib/ai/elderHealthInsights.ts` - Health insights (Direct API)
