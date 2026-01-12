@@ -23,6 +23,7 @@ import { ElderDropdown } from '@/components/dashboard/ElderDropdown';
 import { UnifiedSearch } from '@/components/shared/UnifiedSearch';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
+import { AccessibilitySettingsButton } from '@/components/accessibility/AccessibilitySettingsButton';
 
 interface DashboardHeaderProps {
   onMenuClick?: () => void;
@@ -108,6 +109,11 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             <Moon className="w-5 h-5" />
           )}
         </Button>
+
+        {/* Accessibility Settings - Hidden on small mobile */}
+        <div className="hidden sm:flex">
+          <AccessibilitySettingsButton />
+        </div>
 
         {/* Symptom Checker - Hidden on small mobile */}
         <Button

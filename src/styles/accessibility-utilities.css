@@ -567,3 +567,65 @@
   outline: var(--a11y-focus-ring-width) var(--a11y-focus-ring-style) var(--a11y-focus-ring-color);
   outline-offset: var(--a11y-focus-ring-offset);
 }
+
+/* ========================================
+ * USER-TOGGLEABLE ACCESSIBILITY SETTINGS
+ * Applied via JavaScript to <html> element
+ * ======================================== */
+
+/* Large Text Mode - Increases base font size by 25% */
+html.a11y-large-text {
+  font-size: 125%;
+}
+
+html.a11y-large-text body {
+  line-height: 1.7;
+}
+
+/* High Contrast Mode - Enhanced color contrast */
+html.a11y-high-contrast {
+  --foreground: 0 0% 0%;
+  --background: 0 0% 100%;
+  --muted-foreground: 0 0% 20%;
+}
+
+html.a11y-high-contrast.dark {
+  --foreground: 0 0% 100%;
+  --background: 0 0% 0%;
+  --muted-foreground: 0 0% 85%;
+}
+
+html.a11y-high-contrast * {
+  border-color: currentColor !important;
+}
+
+html.a11y-high-contrast a,
+html.a11y-high-contrast button {
+  text-decoration: underline;
+}
+
+html.a11y-high-contrast img {
+  filter: contrast(1.2);
+}
+
+/* Reduced Motion Mode - Disables animations */
+html.a11y-reduced-motion *,
+html.a11y-reduced-motion *::before,
+html.a11y-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Also respect system preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
