@@ -71,6 +71,8 @@ google-cloud-sdk/
 # Documentation (exclude generated/temp docs, keep project docs)
 *.md
 !CLAUDE.md
+!CLAUDE-ARCHITECTURE.md
+!CLAUDE-HISTORY.md
 !README.md
 !features.md
 !.claude/commands/*.md
