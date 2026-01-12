@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useRef } from 'react';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { DashboardHeader } from '@/components/shared/DashboardHeader';
 import { VerificationBanner } from '@/components/auth/VerificationBanner';
@@ -36,33 +36,19 @@ function DashboardContent({ children }: { children: ReactNode }) {
     }
   }, [user?.passwordSetupRequired]);
 
-  // Track if we're on desktop for responsive behavior
-  const [isDesktop, setIsDesktop] = useState(false);
+  // Use ref to track initialization and prevent re-running
+  const initializedRef = useRef(false);
 
-  // Auto-open sidebar on desktop, only close when transitioning from desktop to mobile
+  // Auto-open sidebar on desktop only on initial mount
   useEffect(() => {
-    const handleResize = () => {
-      const nowDesktop = window.innerWidth >= 1024;
-      setIsDesktop(prev => {
-        // Only auto-close sidebar when transitioning FROM desktop TO mobile
-        if (prev && !nowDesktop) {
-          setIsSidebarOpen(false);
-        }
-        // Always open sidebar on desktop
-        if (nowDesktop) {
-          setIsSidebarOpen(true);
-        }
-        return nowDesktop;
-      });
-    };
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
-    // Initial check
-    const initialDesktop = window.innerWidth >= 1024;
-    setIsDesktop(initialDesktop);
-    setIsSidebarOpen(initialDesktop);
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const isDesktopView = window.innerWidth >= 1024;
+    console.log('[Layout] Initial setup, isDesktop:', isDesktopView);
+    if (isDesktopView) {
+      setIsSidebarOpen(true);
+    }
   }, []);
 
   // Fetch agency name for pending approval message
@@ -109,10 +95,10 @@ function DashboardContent({ children }: { children: ReactNode }) {
         />
         <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
           <DashboardHeader onMenuClick={() => {
-            console.log('[Layout] Menu clicked, current isSidebarOpen:', isSidebarOpen);
             setIsSidebarOpen(prev => {
-              console.log('[Layout] Toggling sidebar from', prev, 'to', !prev);
-              return !prev;
+              const newState = !prev;
+              console.log('[Layout] Sidebar toggled:', prev, '->', newState);
+              return newState;
             });
           }} />
           <VerificationBanner />
