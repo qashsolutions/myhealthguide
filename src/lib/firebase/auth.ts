@@ -949,6 +949,15 @@ export class AuthService {
   }
 
   /**
+   * Update lastVerificationDate (for re-verification flow)
+   */
+  static async updateLastVerificationDate(userId: string): Promise<void> {
+    await updateDoc(doc(db, 'users', userId), {
+      lastVerificationDate: new Date()
+    });
+  }
+
+  /**
    * Send phone verification code
    */
   static async sendPhoneVerificationCode(

@@ -132,6 +132,12 @@ function VerifyPageContent() {
             // Both should already be verified from initial signup
             // This is just a periodic check - redirect immediately if both are verified
             if (emailIsVerified && phoneIsVerified) {
+              // Update lastVerificationDate to prevent redirect loop
+              try {
+                await AuthService.updateLastVerificationDate(firebaseUser.uid);
+              } catch (err) {
+                console.error('Error updating lastVerificationDate:', err);
+              }
               setTimeout(() => router.push('/dashboard'), 1000);
             }
           } else {
