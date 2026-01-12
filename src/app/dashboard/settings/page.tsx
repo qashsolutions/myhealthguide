@@ -432,7 +432,11 @@ function ProfileSettings() {
           <Input
             id="phone"
             type="tel"
-            value={user?.phoneNumber ? obfuscatePhone(user.phoneNumber) : ''}
+            value={user?.phoneNumber
+              ? obfuscatePhone(user.phoneNumber)
+              : user?.phoneVerified
+                ? 'Phone verified via sign-in'
+                : ''}
             disabled
             className="bg-gray-50 dark:bg-gray-900"
           />
@@ -688,7 +692,13 @@ function SecurityActivitySettings() {
                     <div className={`w-3 h-3 rounded-full ${user?.phoneVerified ? 'bg-green-500' : 'bg-gray-300'}`} />
                     <div>
                       <p className="font-medium">Phone Verification</p>
-                      <p className="text-sm text-gray-500">{user?.phoneNumber ? obfuscatePhone(user.phoneNumber) : 'No phone added'}</p>
+                      <p className="text-sm text-gray-500">
+                        {user?.phoneNumber
+                          ? obfuscatePhone(user.phoneNumber)
+                          : user?.phoneVerified
+                            ? 'Phone verified via sign-in'
+                            : 'No phone added'}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

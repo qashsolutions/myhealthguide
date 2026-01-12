@@ -20,15 +20,18 @@ export function ActivityHistory({ userId }: ActivityHistoryProps) {
   const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
-    loadActivities();
+    // Load activities without date filter to get all recent activity
+    loadActivities(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const loadActivities = async () => {
+  const loadActivities = async (skipDateFilter = false) => {
     try {
       setLoading(true);
-      const start = startDate ? new Date(startDate) : undefined;
-      const end = endDate ? new Date(endDate) : undefined;
+      // If skipDateFilter is true (initial load), don't use date filters
+      // This allows us to see all activity regardless of dates
+      const start = !skipDateFilter && startDate ? new Date(startDate) : undefined;
+      const end = !skipDateFilter && endDate ? new Date(endDate) : undefined;
       const logs = await getUserActivity(userId, start, end, 50);
       setActivities(logs);
     } catch (error) {
@@ -39,7 +42,7 @@ export function ActivityHistory({ userId }: ActivityHistoryProps) {
   };
 
   const handleFilter = () => {
-    loadActivities();
+    loadActivities(false);
   };
 
   const handleExport = () => {
@@ -138,7 +141,8 @@ export function ActivityHistory({ userId }: ActivityHistoryProps) {
             <div className="text-center py-8 text-gray-500">Loading activity...</div>
           ) : activities.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No activity found for the selected period
+              <p className="mb-2">No activity found{startDate || endDate ? ' for the selected period' : ''}</p>
+              <p className="text-xs">Activity tracking captures login events, page visits, and security-related actions.</p>
             </div>
           ) : (
             <div className="space-y-3">
