@@ -4,6 +4,138 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## SMS Refactor 10 - Phone Auth & Email Verification Fixes (Jan 12, 2026)
+
+**Reference Document:** `smsrefactor-10.md`
+
+### Issues Fixed
+
+| Issue | Root Cause | Fix | Commit |
+|-------|-----------|-----|--------|
+| SMS not sending on retry | reCAPTCHA verifier not cleared | Call `.clear()` before creating new verifier | `e30ebdf` |
+| Password rejecting special chars | Regex `^[a-zA-Z0-9]+$` rejected special chars | Changed to require special characters | `60e8390` |
+| Email verification extra step | Users landed on Firebase page, not app | Added `continueUrl` to redirect to `/login?emailVerified=true` | `612c9b9` |
+| Verify page flickering | `onAuthStateChanged` firing multiple times | Added `verificationLockRef` to prevent re-processing | `0b17b74` |
+
+---
+
+### Issue 1: reCAPTCHA Not Clearing on Retry
+
+**Problem:** User tried phone SMS auth multiple times but couldn't send SMS after first attempt.
+
+**Root Cause:** `setupRecaptchaVerifier()` in `auth.ts` only cleared the container HTML but did NOT call `.clear()` on the existing RecaptchaVerifier instance.
+
+**Before (BAD):**
+```typescript
+const container = document.getElementById(containerId);
+if (container) {
+  container.innerHTML = ''; // Only clears HTML, not the verifier instance
+}
+```
+
+**After (GOOD):**
+```typescript
+if (windowWithRecaptcha.recaptchaVerifier) {
+  try {
+    windowWithRecaptcha.recaptchaVerifier.clear(); // Clear the instance first
+  } catch (e) {
+    console.log('[PHONE AUTH] Could not clear previous verifier:', e);
+  }
+  windowWithRecaptcha.recaptchaVerifier = null;
+}
+const container = document.getElementById(containerId);
+if (container) {
+  container.innerHTML = '';
+}
+```
+
+**File:** `src/lib/firebase/auth.ts`
+
+---
+
+### Issue 2: Password Validation Rejecting Special Characters
+
+**Problem:** Password `L8le$2003` was being rejected with error "Password must contain only letters and numbers" even though the UI said special characters were required.
+
+**Root Cause:** In `verify/page.tsx`, the validation regex `^[a-zA-Z0-9]+$` was explicitly rejecting any password with special characters.
+
+**Before (BAD):**
+```typescript
+if (!/^[a-zA-Z0-9]+$/.test(password)) {
+  setPasswordError('Password must contain only letters and numbers');
+  return false;
+}
+```
+
+**After (GOOD):**
+```typescript
+if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+  setPasswordError('Password must contain at least one special character (!@#$%)');
+  return false;
+}
+```
+
+**Files:** `src/app/(auth)/verify/page.tsx`, `src/lib/firebase/auth.ts`
+
+---
+
+### Issue 3: Email Verification Landing on Firebase Page
+
+**Problem:** After clicking email verification link, users landed on Firebase's generic page (`healthguide-bc3ba.firebaseapp.com`) instead of the app's login page.
+
+**Solution:** Added `actionCodeSettings` with `continueUrl` to all `sendEmailVerification()` calls to redirect users to `/login?emailVerified=true`.
+
+**Files Updated:**
+- `src/lib/firebase/auth.ts` - `createUser()`, `linkEmailToPhoneAuth()`, `resendVerificationEmail()`
+- `src/app/(auth)/verify/page.tsx` - `handleResendEmailVerification()`
+- `src/app/(auth)/verify-email/page.tsx` - `resendVerificationEmail()`
+- `src/app/(auth)/login/page.tsx` - Added success banner when `emailVerified=true` param detected
+
+---
+
+### Issue 4: Verify Page Flickering Between States
+
+**Problem:** Verify page was flickering between "All Set!" and the verification form after both email and phone were verified.
+
+**Root Cause:** `onAuthStateChanged` listener fires multiple times, causing re-evaluation of verification status and UI flickering.
+
+**Solution:** Added `verificationLockRef` using `useRef` that acts as a lock. Once verification is complete, subsequent auth state changes are ignored.
+
+```typescript
+const verificationLockRef = useRef(false);
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // Skip processing if verification is already complete
+    if (verificationLockRef.current) {
+      return;
+    }
+    // ... verification logic ...
+    if (emailIsVerified && phoneIsVerified) {
+      verificationLockRef.current = true; // Set lock
+      setTimeout(() => router.push('/dashboard'), 2000);
+    }
+  });
+}, []);
+```
+
+**File:** `src/app/(auth)/verify/page.tsx`
+
+---
+
+### Test Results
+
+| Test | Result |
+|------|--------|
+| Send SMS first attempt | ✅ PASS |
+| Send SMS retry same number | ✅ PASS |
+| Password with special chars | ✅ PASS |
+| Email verification redirect | ✅ PASS |
+| Login page success banner | ✅ PASS |
+| Verify page no flickering | ✅ PASS |
+
+---
+
 ## Mobile Hamburger Menu Fix (Jan 12, 2026)
 
 ### Issue
