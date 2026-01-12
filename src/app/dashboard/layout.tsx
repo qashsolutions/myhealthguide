@@ -4,7 +4,6 @@ import { ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { DashboardHeader } from '@/components/shared/DashboardHeader';
 import { VerificationBanner } from '@/components/auth/VerificationBanner';
-import { TrialExpirationBanner } from '@/components/auth/TrialExpirationBanner';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { FCMProvider } from '@/components/notifications/FCMProvider';
 import { ElderProvider } from '@/contexts/ElderContext';
@@ -103,7 +102,6 @@ function DashboardContent({ children }: { children: ReactNode }) {
         <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
           <DashboardHeader onMenuClick={handleMenuClick} />
           <VerificationBanner />
-          <TrialExpirationBanner />
           <main className="flex-1 overflow-y-auto">
             <div className="p-4 sm:p-6 min-h-full">
               {hasPendingApproval ? (
