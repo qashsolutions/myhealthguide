@@ -1,7 +1,7 @@
 # MyHealthGuide - Claude Code Instructions
 
 - Review the documents. Build prod ready files, do not add To-Dos. Do not assume - ask me when in doubt.
-- Today is Jan 11, 2026.
+- Today is Jan 12, 2026.
 - The firebase config will not work in local.
 
 ## Related Documentation

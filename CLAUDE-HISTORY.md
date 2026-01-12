@@ -4,6 +4,85 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## Mobile Hamburger Menu Fix (Jan 12, 2026)
+
+### Issue
+Mobile hamburger menu clicks were registering in console but sidebar never visually appeared. State was toggling `false → true` but immediately resetting back to `false`.
+
+### Root Cause
+**Inline callback causing useEffect to fire on every render**
+
+In `dashboard/layout.tsx`:
+```tsx
+// BAD - inline function creates new reference on every render
+<Sidebar onClose={() => setIsSidebarOpen(false)} />
+```
+
+In `Sidebar.tsx`:
+```tsx
+// This effect fires when onClose changes (every render!)
+useEffect(() => {
+  if (onClose && window.innerWidth < 1024) {
+    onClose(); // Immediately closes sidebar
+  }
+}, [pathname, onClose]); // onClose in dependency array
+```
+
+**Sequence:**
+1. User taps hamburger → state: `false → true`
+2. Component re-renders with new `onClose` function reference
+3. Sidebar's useEffect fires (onClose changed)
+4. `onClose()` called → state: `true → false`
+5. Sidebar never visually appears
+
+### Solution
+
+**1. Memoize callbacks with `useCallback`** (`dashboard/layout.tsx`):
+```tsx
+const handleSidebarClose = useCallback(() => {
+  setIsSidebarOpen(false);
+}, []);
+
+const handleMenuClick = useCallback(() => {
+  setIsSidebarOpen(prev => !prev);
+}, []);
+
+<Sidebar onClose={handleSidebarClose} />
+<DashboardHeader onMenuClick={handleMenuClick} />
+```
+
+**2. Use `useRef` to avoid dependency** (`Sidebar.tsx`):
+```tsx
+const onCloseRef = useRef(onClose);
+onCloseRef.current = onClose;
+
+useEffect(() => {
+  if (onCloseRef.current && window.innerWidth < 1024) {
+    onCloseRef.current();
+  }
+}, [pathname]); // No onClose dependency
+```
+
+### Failed Approaches (DO NOT USE)
+
+| Approach | Why It Failed |
+|----------|---------------|
+| `setIsSidebarOpen(!isSidebarOpen)` | Stale closure - always reads initial value |
+| Adding `onTouchEnd` handler | Caused double-firing with onClick on mobile |
+| `e.preventDefault()` / `e.stopPropagation()` | Didn't address root cause |
+| Resize event handler resetting state | Was continuously called, not just on breakpoint change |
+| `touch-manipulation` CSS | Doesn't fix React callback issues |
+
+### Files Modified
+- `src/app/dashboard/layout.tsx` - Added useCallback, useRef
+- `src/components/shared/Sidebar.tsx` - Used useRef for onClose
+- `src/components/shared/DashboardHeader.tsx` - Simplified onClick
+
+### Key Lesson
+**Never pass inline arrow functions as props to components that use them in useEffect dependencies.** Always use `useCallback` or `useRef` pattern.
+
+---
+
 ## Refactor 9: SOC-2 Aligned Pre-Go-Live Testing (Jan 11, 2026)
 
 **Reference Documents:** `TEST_RESULTS_REFACTOR9.md`, `EXECUTIVE_SUMMARY.md` (gitignored)
