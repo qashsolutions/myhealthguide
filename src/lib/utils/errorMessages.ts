@@ -34,7 +34,7 @@ const firebaseAuthErrors: Record<string, string> = {
 
   // Rate Limiting
   'auth/too-many-requests':
-    'Too many attempts. Please wait a few minutes before trying again.',
+    'Too many attempts. Please wait 5-10 minutes before trying again.',
   'auth/quota-exceeded':
     'Service temporarily unavailable. Please try again in a few minutes.',
 
