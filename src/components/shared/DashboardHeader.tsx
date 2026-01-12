@@ -64,10 +64,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         {/* Hamburger Menu - Mobile Only */}
         <button
           type="button"
-          onClick={() => {
-            console.log('[DashboardHeader] Hamburger clicked');
-            onMenuClick?.();
-          }}
+          onClick={onMenuClick}
           className="lg:hidden flex items-center justify-center w-11 h-11 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600"
           aria-label="Open menu"
         >

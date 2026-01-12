@@ -44,9 +44,7 @@ function DashboardContent({ children }: { children: ReactNode }) {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    const isDesktopView = window.innerWidth >= 1024;
-    console.log('[Layout] Initial setup, isDesktop:', isDesktopView);
-    if (isDesktopView) {
+    if (window.innerWidth >= 1024) {
       setIsSidebarOpen(true);
     }
   }, []);
@@ -73,16 +71,11 @@ function DashboardContent({ children }: { children: ReactNode }) {
 
   // Memoize callbacks to prevent unnecessary re-renders
   const handleSidebarClose = useCallback(() => {
-    console.log('[Layout] Sidebar close called');
     setIsSidebarOpen(false);
   }, []);
 
   const handleMenuClick = useCallback(() => {
-    setIsSidebarOpen(prev => {
-      const newState = !prev;
-      console.log('[Layout] Sidebar toggled:', prev, '->', newState);
-      return newState;
-    });
+    setIsSidebarOpen(prev => !prev);
   }, []);
 
   return (
