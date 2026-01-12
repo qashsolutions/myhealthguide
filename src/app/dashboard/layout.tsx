@@ -108,7 +108,13 @@ function DashboardContent({ children }: { children: ReactNode }) {
           onClose={() => setIsSidebarOpen(false)}
         />
         <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
-          <DashboardHeader onMenuClick={() => setIsSidebarOpen(prev => !prev)} />
+          <DashboardHeader onMenuClick={() => {
+            console.log('[Layout] Menu clicked, current isSidebarOpen:', isSidebarOpen);
+            setIsSidebarOpen(prev => {
+              console.log('[Layout] Toggling sidebar from', prev, 'to', !prev);
+              return !prev;
+            });
+          }} />
           <VerificationBanner />
           <TrialExpirationBanner />
           <main className="flex-1 overflow-y-auto">
