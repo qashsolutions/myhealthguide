@@ -830,6 +830,12 @@ function VerifyPageContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* reCAPTCHA container - always in DOM to prevent "element removed" errors */}
+          <div
+            id="recaptcha-container"
+            className={`flex justify-center ${phoneVerified || phoneSent ? 'hidden' : ''}`}
+          />
+
           {!phoneVerified ? (
             <>
               {/* Phone editing mode - show input to enter new phone */}
@@ -951,16 +957,13 @@ function VerifyPageContent() {
                   )}
 
                   {!phoneSent ? (
-                    <>
-                      <div id="recaptcha-container" className="flex justify-center"></div>
-                      <Button
-                        onClick={handleSendPhoneCode}
-                        className="w-full h-12 text-lg"
-                        disabled={authProvider === 'email' && !userPhone && !phoneInput}
-                      >
-                        {authProvider === 'phone' ? 'Phone already verified via sign-in' : 'Send verification code'}
-                      </Button>
-                    </>
+                    <Button
+                      onClick={handleSendPhoneCode}
+                      className="w-full h-12 text-lg"
+                      disabled={authProvider === 'email' && !userPhone && !phoneInput}
+                    >
+                      {authProvider === 'phone' ? 'Phone already verified via sign-in' : 'Send verification code'}
+                    </Button>
                   ) : (
                     <div className="space-y-3">
                       <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
