@@ -108,16 +108,17 @@ export function AccessiblePageWrapper({
         <a
           href={`#${mainId}`}
           className={cn(
-            // Hidden by default
-            'fixed top-0 left-0 z-[9999]',
-            'px-6 py-3 m-4',
-            'bg-blue-600 text-white',
-            'text-base font-semibold',
-            'rounded-lg shadow-lg',
-            'transform -translate-y-full',
-            'transition-transform duration-150',
-            // Show on focus
-            'focus:translate-y-0',
+            // Hidden off-screen by default using sr-only pattern
+            'absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0',
+            '[clip:rect(0,0,0,0)]',
+            // Show on focus - override sr-only
+            'focus:static focus:w-auto focus:h-auto focus:p-0 focus:m-4',
+            'focus:overflow-visible focus:whitespace-normal focus:[clip:auto]',
+            'focus:z-[9999]',
+            'focus:px-6 focus:py-3',
+            'focus:bg-blue-600 focus:text-white',
+            'focus:text-base focus:font-semibold',
+            'focus:rounded-lg focus:shadow-lg',
             'focus:outline-none focus:ring-[3px] focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600'
           )}
         >
