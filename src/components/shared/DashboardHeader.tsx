@@ -58,18 +58,17 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
     : 'JD';
 
   return (
-    <header data-header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-4 lg:px-6 gap-2 lg:gap-6">
+    <header data-header className="sticky top-0 z-30 h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-4 lg:px-6 gap-2 lg:gap-6">
       <div className="flex items-center gap-3 lg:gap-4">
         {/* Hamburger Menu - Mobile Only */}
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
+          type="button"
           onClick={onMenuClick}
-          className="lg:hidden"
+          className="lg:hidden flex items-center justify-center w-11 h-11 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation"
           aria-label="Open menu"
         >
           <Menu className="w-6 h-6" />
-        </Button>
+        </button>
 
         {/* Logo - Hidden on mobile (shown in sidebar) */}
         <div className="hidden lg:flex items-center">
