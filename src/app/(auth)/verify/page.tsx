@@ -817,10 +817,17 @@ function VerifyPageContent() {
             </>
           ) : (
             <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-              <p className="text-base text-green-600 dark:text-green-400 font-medium">
-                Email verified!
-              </p>
+              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-base text-green-600 dark:text-green-400 font-medium">
+                  Email verified!
+                </p>
+                {userEmail && (
+                  <p className="text-sm text-green-600/80 dark:text-green-400/80">
+                    {userEmail}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -1050,10 +1057,17 @@ function VerifyPageContent() {
             </>
           ) : (
             <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-              <p className="text-base text-green-600 dark:text-green-400 font-medium">
-                Phone verified!
-              </p>
+              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-base text-green-600 dark:text-green-400 font-medium">
+                  Phone verified!
+                </p>
+                {userPhone && (
+                  <p className="text-sm text-green-600/80 dark:text-green-400/80">
+                    {userPhone}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
