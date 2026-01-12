@@ -399,6 +399,14 @@ function VerifyPageContent() {
         setUserPhone(formattedPhone);
       }
 
+      // Reset reCAPTCHA for potential resend - verifier is consumed after use
+      try {
+        const newVerifier = AuthService.setupRecaptchaVerifier('recaptcha-container');
+        setRecaptchaVerifier(newVerifier);
+      } catch (resetErr) {
+        console.error('Error resetting reCAPTCHA for resend:', resetErr);
+      }
+
     } catch (err: any) {
       console.error('Error sending phone code:', err);
       setError(getFirebaseErrorMessage(err));
