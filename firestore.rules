@@ -131,7 +131,7 @@ service cloud.firestore {
       allow update: if isOwner(userId) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'emailVerified', 'emailVerifiedAt', 'phoneVerified', 'phoneVerifiedAt',
-          'email', 'phoneNumber', 'phoneNumberHash'
+          'email', 'phoneNumber', 'phoneNumberHash', 'lastVerificationDate'
         ]);
 
       // Special rule: Allow updating password-related fields (HIPAA compliance)
