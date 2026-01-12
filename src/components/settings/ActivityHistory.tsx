@@ -32,13 +32,19 @@ export function ActivityHistory({ userId }: ActivityHistoryProps) {
       setLoading(true);
       // If skipDateFilter is true (initial load), don't use date filters
       // This allows us to see all activity regardless of dates
-      const start = !skipDateFilter && startDate ? new Date(startDate) : undefined;
 
-      // For end date, set to end of day (23:59:59.999) to include all activities on that day
+      // Parse dates in LOCAL timezone (not UTC)
+      // new Date("2026-01-12") parses as UTC midnight, causing timezone issues
+      // new Date("2026-01-12T00:00:00") parses as LOCAL midnight
+      let start: Date | undefined;
+      if (!skipDateFilter && startDate) {
+        start = new Date(startDate + 'T00:00:00');
+      }
+
+      // For end date, set to end of day (23:59:59.999) in LOCAL timezone
       let end: Date | undefined;
       if (!skipDateFilter && endDate) {
-        end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end = new Date(endDate + 'T23:59:59.999');
       }
 
       const logs = await getUserActivity(userId, start, end, 50);
