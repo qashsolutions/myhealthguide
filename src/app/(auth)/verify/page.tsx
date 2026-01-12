@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AuthService } from '@/lib/firebase/auth';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 import { getFirebaseErrorMessage } from '@/lib/utils/errorMessages';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Unified Verification Page
@@ -49,6 +50,7 @@ export default function VerifyPage() {
 function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { refreshUser } = useAuth();
 
   // Check if this is a re-verification (10-day periodic check)
   const isReVerification = searchParams.get('mode') === 'reverify';
@@ -135,6 +137,9 @@ function VerifyPageContent() {
               // Update lastVerificationDate to prevent redirect loop
               try {
                 await AuthService.updateLastVerificationDate(firebaseUser.uid);
+                // Refresh AuthContext so ProtectedRoute sees updated lastVerificationDate
+                await refreshUser();
+                console.log('[Verify] Updated lastVerificationDate and refreshed user context');
               } catch (err) {
                 console.error('Error updating lastVerificationDate:', err);
               }
@@ -153,7 +158,7 @@ function VerifyPageContent() {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, refreshUser, isReVerification]);
 
   // Initialize reCAPTCHA when needed
   useEffect(() => {

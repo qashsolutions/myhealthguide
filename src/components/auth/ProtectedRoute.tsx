@@ -41,6 +41,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     // Initial: Both email AND phone must be verified
     // Re-verification (every 10 days): Only ONE method needed
     const verificationStatus = AuthService.isReVerificationRequired(user);
+    console.log('[ProtectedRoute] Verification check:', {
+      status: verificationStatus,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      lastVerificationDate: user.lastVerificationDate,
+    });
     if (verificationStatus === 'initial') {
       router.push('/verify');
       return;
