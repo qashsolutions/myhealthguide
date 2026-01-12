@@ -15,12 +15,13 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings, Download } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings, Download, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
 import { GroupService } from '@/lib/firebase/groups';
+import { AgencyService } from '@/lib/firebase/agencies';
 import { MemberCard } from '@/components/group/MemberCard';
 import { InviteCodeDialog } from '@/components/group/InviteCodeDialog';
 import { ApprovalQueue } from '@/components/group/ApprovalQueue';
@@ -882,6 +883,7 @@ function GroupSettings() {
   const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
   const [showRolePermissions, setShowRolePermissions] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
+  const [agencyName, setAgencyName] = useState<string | null>(null);
 
   // Get actual user and group data from auth context
   const currentUser = {
@@ -889,13 +891,38 @@ function GroupSettings() {
     name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User',
     email: user?.email || ''
   };
-  const groupId = user?.groups?.[0]?.groupId || '';
-  const isGroupAdmin = user?.groups?.[0]?.role === 'admin';
+
+  // Check if user is an agency caregiver (has agency membership but is not super_admin)
+  const userAgencyMembership = user?.agencies?.[0];
+  const isAgencyCaregiverUser = userAgencyMembership?.role === 'caregiver' || userAgencyMembership?.role === 'caregiver_admin' || userAgencyMembership?.role === 'family_member';
+
+  // For agency caregivers, use their assigned group; for others, use regular group membership
+  const groupId = isAgencyCaregiverUser
+    ? (userAgencyMembership?.assignedGroupIds?.[0] || '')
+    : (user?.groups?.[0]?.groupId || '');
+  const isGroupAdmin = isAgencyCaregiverUser ? false : (user?.groups?.[0]?.role === 'admin');
 
   // Get plan-based limits using centralized service
   const maxMembers = getMaxMembersFromService(tier);
   const planInfo = getMemberPlanInfo(tier);
   const isAtLimit = members.length >= maxMembers;
+
+  // Fetch agency name for agency caregivers
+  useEffect(() => {
+    const fetchAgencyName = async () => {
+      if (isAgencyCaregiverUser && userAgencyMembership?.agencyId) {
+        try {
+          const agency = await AgencyService.getAgency(userAgencyMembership.agencyId);
+          if (agency) {
+            setAgencyName(agency.name);
+          }
+        } catch (error) {
+          console.error('Error fetching agency name:', error);
+        }
+      }
+    };
+    fetchAgencyName();
+  }, [isAgencyCaregiverUser, userAgencyMembership?.agencyId]);
 
   useEffect(() => {
     if (groupId) {
@@ -990,7 +1017,67 @@ function GroupSettings() {
     }
   };
 
-  // Show message if no group found
+  // For agency caregivers: show their agency membership info
+  // They should NOT see "Create or Join a Group" - they're already part of an agency
+  if (isAgencyCaregiverUser && userAgencyMembership) {
+    const roleDisplayName = userAgencyMembership.role === 'caregiver'
+      ? 'Caregiver'
+      : userAgencyMembership.role === 'caregiver_admin'
+        ? 'Caregiver Admin'
+        : 'Family Member';
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-blue-600" />
+              Agency Membership
+            </CardTitle>
+            <CardDescription>
+              You are part of an agency managed group
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
+                  {agencyName?.[0]?.toUpperCase() || 'A'}
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {agencyName || 'Loading agency...'}
+                  </p>
+                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
+                    {roleDisplayName}
+                  </Badge>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <p>
+                  <span className="font-medium">Your Role:</span> {roleDisplayName}
+                </p>
+                {userAgencyMembership.assignedElderIds && userAgencyMembership.assignedElderIds.length > 0 && (
+                  <p>
+                    <span className="font-medium">Assigned Elders:</span> {userAgencyMembership.assignedElderIds.length}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                <Info className="w-4 h-4 inline mr-1" />
+                Group management is handled by your agency administrator. Contact them for any membership changes.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show message if no group found (for non-agency users only)
   if (!groupId) {
     return (
       <div className="text-center py-12">

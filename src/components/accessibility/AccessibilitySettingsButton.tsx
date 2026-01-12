@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Accessibility, Type, Eye, Zap } from 'lucide-react';
+import { Type, Eye, Zap } from 'lucide-react';
+import { UniversalAccessibilityIcon } from '@/components/icons/UniversalAccessibilityIcon';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -90,7 +91,7 @@ export function AccessibilitySettingsButton() {
   if (!mounted) {
     return (
       <Button variant="ghost" size="icon" className="relative" disabled>
-        <Accessibility className="w-5 h-5" />
+        <UniversalAccessibilityIcon className="w-5 h-5" />
       </Button>
     );
   }
@@ -105,7 +106,7 @@ export function AccessibilitySettingsButton() {
           aria-label="Accessibility settings"
           title="Accessibility Settings"
         >
-          <Accessibility className="w-5 h-5" />
+          <UniversalAccessibilityIcon className="w-5 h-5" />
           {hasActiveSettings && (
             <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-blue-500" />
           )}
@@ -113,7 +114,7 @@ export function AccessibilitySettingsButton() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuLabel className="flex items-center gap-2">
-          <Accessibility className="w-4 h-4" />
+          <UniversalAccessibilityIcon className="w-4 h-4" />
           Accessibility Settings
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

@@ -29,12 +29,23 @@ export function AlertPreferencesSettings() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
-  const groupId = user?.groups?.[0]?.groupId || '';
   const userId = user?.id || '';
+
+  // Check if user is an agency caregiver (has agency membership but is not super_admin)
+  const userAgencyMembership = user?.agencies?.[0];
+  const isAgencyCaregiverUser = userAgencyMembership?.role === 'caregiver' || userAgencyMembership?.role === 'caregiver_admin' || userAgencyMembership?.role === 'family_member';
+
+  // For agency caregivers, use their assigned group; for others, use regular group membership
+  const groupId = isAgencyCaregiverUser
+    ? (userAgencyMembership?.assignedGroupIds?.[0] || '')
+    : (user?.groups?.[0]?.groupId || '');
 
   useEffect(() => {
     if (userId && groupId) {
       loadPreferences();
+    } else if (userId && !groupId) {
+      // No group - stop loading and show content with defaults or empty state
+      setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, groupId]);
