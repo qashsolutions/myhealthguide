@@ -36,17 +36,31 @@ function DashboardContent({ children }: { children: ReactNode }) {
     }
   }, [user?.passwordSetupRequired]);
 
-  // Auto-open sidebar on desktop
+  // Track if we're on desktop for responsive behavior
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Auto-open sidebar on desktop, only close when transitioning from desktop to mobile
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setIsSidebarOpen(true);
-      } else {
-        setIsSidebarOpen(false);
-      }
+      const nowDesktop = window.innerWidth >= 1024;
+      setIsDesktop(prev => {
+        // Only auto-close sidebar when transitioning FROM desktop TO mobile
+        if (prev && !nowDesktop) {
+          setIsSidebarOpen(false);
+        }
+        // Always open sidebar on desktop
+        if (nowDesktop) {
+          setIsSidebarOpen(true);
+        }
+        return nowDesktop;
+      });
     };
 
-    handleResize();
+    // Initial check
+    const initialDesktop = window.innerWidth >= 1024;
+    setIsDesktop(initialDesktop);
+    setIsSidebarOpen(initialDesktop);
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
