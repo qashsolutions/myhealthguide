@@ -96,11 +96,15 @@ export default function PhoneLoginPage() {
       // Note: For existing users, this will work. For new users, they need to sign up first
       const digitsOnly = phoneNumber.replace(/\D/g, '');
       const formattedPhone = `+1${digitsOnly}`;
-      await AuthService.signInWithPhone(
+      const loggedInUser = await AuthService.signInWithPhone(
         formattedPhone,
         verificationCode,
         confirmationResult
       );
+
+      // Log login activity
+      const { logActivity } = await import('@/lib/firebase/activity');
+      await logActivity(loggedInUser.id, 'Login', '/phone-login', { method: 'phone' });
 
       // Redirect to dashboard
       router.push('/dashboard');

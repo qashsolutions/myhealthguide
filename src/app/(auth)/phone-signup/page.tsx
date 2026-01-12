@@ -147,6 +147,10 @@ function PhoneSignupForm() {
       console.log('✅ [PHONE-SIGNUP] Sign in successful! User ID:', user.id);
       console.log('✅ [PHONE-SIGNUP] User phone in DB:', user.phoneNumber);
 
+      // Log account creation activity
+      const { logActivity } = await import('@/lib/firebase/activity');
+      await logActivity(user.id, 'Account Created', '/phone-signup', { method: 'phone' });
+
       // Redirect to dashboard (verification banner will prompt for email)
       router.push('/dashboard');
     } catch (err: any) {

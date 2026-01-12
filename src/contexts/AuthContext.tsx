@@ -11,6 +11,7 @@ import {
   endSession,
   trackSessionActivity
 } from '@/lib/session/sessionManager';
+import { logActivity } from '@/lib/firebase/activity';
 
 interface AuthContextType {
   user: User | null;
@@ -61,6 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Initialize/associate session with user
             if (typeof window !== 'undefined') {
               associateSessionWithUser(userData.id);
+
+              // Log session resume activity (user was already logged in)
+              logActivity(userData.id, 'Session Resumed', window.location.pathname);
             }
           } else {
             // This can happen briefly during signup before Firestore document is created
@@ -97,12 +101,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<User> => {
     const newUser = await AuthService.createUser(email, password, userData);
     setUser(newUser);
+
+    // Log signup activity
+    if (typeof window !== 'undefined') {
+      logActivity(newUser.id, 'Account Created', window.location.pathname, { method: 'email' });
+    }
+
     return newUser;
   };
 
   const signIn = async (email: string, password: string): Promise<User> => {
     const loggedInUser = await AuthService.signIn(email, password);
     setUser(loggedInUser);
+
+    // Log login activity
+    if (typeof window !== 'undefined') {
+      logActivity(loggedInUser.id, 'Login', window.location.pathname, { method: 'email' });
+    }
+
     return loggedInUser;
   };
 
