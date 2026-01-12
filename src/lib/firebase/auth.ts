@@ -267,28 +267,53 @@ export class AuthService {
   /**
    * Initialize RecaptchaVerifier for phone auth
    * Must be called on client side with a DOM element
+   *
+   * IMPORTANT: This properly clears any existing verifier before creating a new one
+   * to prevent "reCAPTCHA has already been rendered" errors on retry attempts.
    */
   static setupRecaptchaVerifier(containerId: string): RecaptchaVerifier {
     if (typeof window === 'undefined') {
       throw new Error('RecaptchaVerifier can only be initialized in browser');
     }
 
-    // Clear any existing recaptcha
+    console.log('[PHONE AUTH] Setting up reCAPTCHA verifier for container:', containerId);
+
+    // CRITICAL: Clear any existing reCAPTCHA verifier instance first
+    // This prevents "reCAPTCHA has already been rendered" errors on retries
+    const windowWithRecaptcha = window as any;
+    if (windowWithRecaptcha.recaptchaVerifier) {
+      try {
+        console.log('[PHONE AUTH] Clearing existing reCAPTCHA verifier...');
+        windowWithRecaptcha.recaptchaVerifier.clear();
+      } catch (e) {
+        console.log('[PHONE AUTH] Could not clear previous verifier (may already be cleared):', e);
+      }
+      windowWithRecaptcha.recaptchaVerifier = null;
+    }
+
+    // Clear the container HTML as well
     const container = document.getElementById(containerId);
     if (container) {
       container.innerHTML = '';
     }
 
-    return new RecaptchaVerifier(auth, containerId, {
+    // Create fresh verifier
+    console.log('[PHONE AUTH] Creating new reCAPTCHA verifier...');
+    const verifier = new RecaptchaVerifier(auth, containerId, {
       size: 'normal',
       callback: () => {
         // reCAPTCHA solved - allow signInWithPhoneNumber
-        console.log('reCAPTCHA verified');
+        console.log('[PHONE AUTH] reCAPTCHA verified successfully');
       },
       'expired-callback': () => {
-        console.log('reCAPTCHA expired');
+        console.log('[PHONE AUTH] reCAPTCHA expired - user may need to re-verify');
       }
     });
+
+    // Store reference globally to allow clearing on retry
+    windowWithRecaptcha.recaptchaVerifier = verifier;
+
+    return verifier;
   }
 
   /**
@@ -299,16 +324,25 @@ export class AuthService {
     recaptchaVerifier: RecaptchaVerifier
   ): Promise<ConfirmationResult> {
     try {
+      console.log('[PHONE AUTH] Formatting phone number:', phoneNumber);
       const formattedPhone = formatPhoneNumber(phoneNumber);
+      console.log('[PHONE AUTH] Formatted phone:', formattedPhone);
+
+      console.log('[PHONE AUTH] Calling signInWithPhoneNumber...');
       const confirmationResult = await signInWithPhoneNumber(
         auth,
         formattedPhone,
         recaptchaVerifier
       );
+      console.log('[PHONE AUTH] SMS sent successfully! Confirmation result received.');
       return confirmationResult;
     } catch (error: any) {
-      console.error('Error sending phone verification:', error);
-      throw new Error(error.message || 'Failed to send verification code');
+      console.error('[PHONE AUTH] Error sending phone verification:', error);
+      console.error('[PHONE AUTH] Error code:', error.code);
+      console.error('[PHONE AUTH] Error message:', error.message);
+
+      // Re-throw with the original error to preserve error code for proper error handling
+      throw error;
     }
   }
 
@@ -320,11 +354,20 @@ export class AuthService {
     code: string
   ): Promise<FirebaseUser> {
     try {
+      console.log('[PHONE AUTH] Verifying SMS code...');
+      console.log('[PHONE AUTH] Code length:', code?.length);
+      console.log('[PHONE AUTH] ConfirmationResult exists:', !!confirmationResult);
+
       const result = await confirmationResult.confirm(code);
+      console.log('[PHONE AUTH] Code verified successfully! User UID:', result.user?.uid);
       return result.user;
     } catch (error: any) {
-      console.error('Error verifying code:', error);
-      throw new Error(error.message || 'Invalid verification code');
+      console.error('[PHONE AUTH] Error verifying code:', error);
+      console.error('[PHONE AUTH] Error code:', error.code);
+      console.error('[PHONE AUTH] Error message:', error.message);
+
+      // Re-throw with original error to preserve error code
+      throw error;
     }
   }
 
