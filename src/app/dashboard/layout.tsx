@@ -94,7 +94,7 @@ function DashboardContent({ children }: { children: ReactNode }) {
           onClose={() => setIsSidebarOpen(false)}
         />
         <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
-          <DashboardHeader onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+          <DashboardHeader onMenuClick={() => setIsSidebarOpen(prev => !prev)} />
           <VerificationBanner />
           <TrialExpirationBanner />
           <main className="flex-1 overflow-y-auto">
