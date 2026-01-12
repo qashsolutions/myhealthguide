@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase/config';
 import { sendEmailVerification, onAuthStateChanged, reload, getAuth } from 'firebase/auth';
@@ -88,9 +88,17 @@ function VerifyPageContent() {
   const [error, setError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  // Lock to prevent re-processing once verification is complete (prevents flickering)
+  const verificationLockRef = useRef(false);
+
   // Load user data on mount
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Skip processing if verification is already complete (prevents flickering)
+      if (verificationLockRef.current) {
+        return;
+      }
+
       if (firebaseUser) {
         setUserId(firebaseUser.uid);
 
@@ -134,6 +142,8 @@ function VerifyPageContent() {
             // Both should already be verified from initial signup
             // This is just a periodic check - redirect immediately if both are verified
             if (emailIsVerified && phoneIsVerified) {
+              // Set lock to prevent flickering from subsequent auth state changes
+              verificationLockRef.current = true;
               // Update lastVerificationDate to prevent redirect loop
               try {
                 await AuthService.updateLastVerificationDate(firebaseUser.uid);
@@ -148,6 +158,8 @@ function VerifyPageContent() {
           } else {
             // Initial verification: Both must be verified
             if (emailIsVerified && phoneIsVerified) {
+              // Set lock to prevent flickering from subsequent auth state changes
+              verificationLockRef.current = true;
               setTimeout(() => router.push('/dashboard'), 2000);
             }
           }
