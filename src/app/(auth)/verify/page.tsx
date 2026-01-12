@@ -180,7 +180,7 @@ function VerifyPageContent() {
     }
   }, [authProvider, phoneVerified, recaptchaVerifier]);
 
-  // Password validation
+  // Password validation - must have 8+ chars, letters, numbers, and special characters
   const validatePassword = (password: string): boolean => {
     setPasswordError('');
 
@@ -196,8 +196,9 @@ function VerifyPageContent() {
       setPasswordError('Password must contain at least one number');
       return false;
     }
-    if (!/^[a-zA-Z0-9]+$/.test(password)) {
-      setPasswordError('Password must contain only letters and numbers');
+    // Require at least one special character
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      setPasswordError('Password must contain at least one special character (!@#$%)');
       return false;
     }
     return true;

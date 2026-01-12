@@ -1068,7 +1068,7 @@ export class AuthService {
    * Confirm password reset with new password
    */
   static async confirmPasswordReset(code: string, newPassword: string): Promise<void> {
-    // Validate password strength
+    // Validate password strength (must match Firebase Auth password policy)
     if (newPassword.length < 8) {
       throw new Error('Password must be at least 8 characters long');
     }
@@ -1077,6 +1077,9 @@ export class AuthService {
     }
     if (!/[0-9]/.test(newPassword)) {
       throw new Error('Password must contain at least one number');
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      throw new Error('Password must contain at least one special character (!@#$%)');
     }
 
     // Confirm the password reset with Firebase
@@ -1091,7 +1094,7 @@ export class AuthService {
       throw new Error('No user signed in');
     }
 
-    // Validate password strength
+    // Validate password strength (must match Firebase Auth password policy)
     if (newPassword.length < 8) {
       throw new Error('Password must be at least 8 characters long');
     }
@@ -1100,6 +1103,9 @@ export class AuthService {
     }
     if (!/[0-9]/.test(newPassword)) {
       throw new Error('Password must contain at least one number');
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      throw new Error('Password must contain at least one special character (!@#$%)');
     }
 
     // Update password in Firebase Auth
