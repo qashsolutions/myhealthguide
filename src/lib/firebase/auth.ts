@@ -45,10 +45,10 @@ export class AuthService {
 
     const firebaseUser = userCredential.user;
 
-    // Send email verification - continueUrl redirects user back to verify page after Firebase's verification
+    // Send email verification - continueUrl redirects user to login page with success message
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
     const actionCodeSettings = {
-      url: `${baseUrl}/verify`,
+      url: `${baseUrl}/login?emailVerified=true`,
       handleCodeInApp: false
     };
     await sendEmailVerification(firebaseUser, actionCodeSettings);
@@ -886,10 +886,10 @@ export class AuthService {
 
       if (linkedUser.email) {
         // Action code settings for the verification email
-        // continueUrl is where user goes after clicking "Continue" on Firebase's verification page
+        // continueUrl redirects user to login page with success message after verification
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
         const actionCodeSettings = {
-          url: `${baseUrl}/verify`,
+          url: `${baseUrl}/login?emailVerified=true`,
           handleCodeInApp: false
         };
         console.log('ActionCodeSettings:', actionCodeSettings);
@@ -924,7 +924,12 @@ export class AuthService {
           if (auth.currentUser) {
             await reload(auth.currentUser);
             if (auth.currentUser.email) {
-              await sendEmailVerification(auth.currentUser);
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
+              const actionCodeSettings = {
+                url: `${baseUrl}/login?emailVerified=true`,
+                handleCodeInApp: false
+              };
+              await sendEmailVerification(auth.currentUser, actionCodeSettings);
               console.log('Verification email sent for already-linked provider');
               return; // Success!
             }
@@ -976,7 +981,12 @@ export class AuthService {
       throw new Error('No user logged in');
     }
 
-    await sendEmailVerification(currentUser);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
+    const actionCodeSettings = {
+      url: `${baseUrl}/login?emailVerified=true`,
+      handleCodeInApp: false
+    };
+    await sendEmailVerification(currentUser, actionCodeSettings);
   }
 
   /**

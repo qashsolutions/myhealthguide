@@ -311,10 +311,10 @@ function VerifyPageContent() {
         }
 
         console.log('Calling sendEmailVerification...');
-        // continueUrl redirects user back to verify page after Firebase's verification
+        // continueUrl redirects user to login page with success message after verification
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
         const actionCodeSettings = {
-          url: `${baseUrl}/verify`,
+          url: `${baseUrl}/login?emailVerified=true`,
           handleCodeInApp: false
         };
         console.log('ActionCodeSettings:', actionCodeSettings);

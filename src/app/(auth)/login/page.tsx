@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { Ticket, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Ticket, Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 import {
   parseInviteCode,
   validateInviteCodeFormat,
@@ -19,13 +19,15 @@ import {
 } from '@/components/accessibility';
 import { getFirebaseErrorMessage } from '@/lib/utils/errorMessages';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailVerifiedSuccess, setEmailVerifiedSuccess] = useState(false);
 
   // Invite code state
   const [showInviteCode, setShowInviteCode] = useState(false);
@@ -34,6 +36,16 @@ export default function LoginPage() {
   const [inviteCodeValidating, setInviteCodeValidating] = useState(false);
   const [inviteCodeValid, setInviteCodeValid] = useState(false);
   const [inviteType, setInviteType] = useState<string | null>(null);
+
+  // Check for emailVerified query param (redirect from email verification)
+  useEffect(() => {
+    if (searchParams.get('emailVerified') === 'true') {
+      setEmailVerifiedSuccess(true);
+      // Auto-hide the success message after 10 seconds
+      const timer = setTimeout(() => setEmailVerifiedSuccess(false), 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   const handleInviteCodeChange = (value: string) => {
     setInviteCode(value.toUpperCase());
@@ -105,6 +117,25 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Email verified success banner */}
+          {emailVerifiedSuccess && (
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-green-800 dark:text-green-200">
+                    Email verified successfully!
+                  </p>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    You can now sign in to your account.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <AccessibleInput
               label="Email"
@@ -230,5 +261,13 @@ export default function LoginPage() {
         </CardFooter>
       </Card>
     </AccessiblePageWrapper>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

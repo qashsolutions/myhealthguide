@@ -42,7 +42,13 @@ function VerifyEmailContent() {
     try {
       setError('');
       if (auth.currentUser) {
-        await sendEmailVerification(auth.currentUser);
+        // continueUrl redirects user to login page with success message after verification
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myguide.health';
+        const actionCodeSettings = {
+          url: `${baseUrl}/login?emailVerified=true`,
+          handleCodeInApp: false
+        };
+        await sendEmailVerification(auth.currentUser, actionCodeSettings);
         setEmailSent(true);
         setTimeout(() => setEmailSent(false), 5000);
       }
