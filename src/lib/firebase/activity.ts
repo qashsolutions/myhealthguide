@@ -66,26 +66,14 @@ async function getIPAddress(): Promise<string> {
 }
 
 /**
- * Get approximate location from IP (using free service)
+ * Get approximate location from IP
+ * Note: Skipping external IP geolocation API to avoid mixed content issues
+ * Location tracking is optional - we track device/browser info instead
  */
-async function getLocationFromIP(ip: string): Promise<{ city?: string; state?: string; country?: string }> {
-  try {
-    // Use ip-api.com free tier (no API key needed, 45 requests/minute)
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,city,regionName,country`);
-    const data = await response.json();
-
-    if (data.status === 'success') {
-      return {
-        city: data.city,
-        state: data.regionName,
-        country: data.country,
-      };
-    }
-    return {};
-  } catch (error) {
-    console.error('Error fetching location:', error);
-    return {};
-  }
+async function getLocationFromIP(_ip: string): Promise<{ city?: string; state?: string; country?: string }> {
+  // Skip location lookup - external geolocation APIs require HTTP which causes
+  // mixed content errors on HTTPS sites. We can add server-side geolocation later if needed.
+  return {};
 }
 
 /**
@@ -191,29 +179,28 @@ export async function logActivity(
     const browserInfo = getBrowserInfo();
     const sessionId = getSessionId();
 
-    // Create activity log
-    const activityLog: Omit<ActivityLog, 'id'> = {
+    // Create activity log - only include defined values (Firestore doesn't accept undefined)
+    const activityLog: Record<string, any> = {
       userId,
-      timestamp: new Date(),
+      timestamp: Timestamp.fromDate(new Date()),
       action,
       page,
-      city: location.city,
-      state: location.state,
-      country: location.country,
       ipAddressHash: ipHash,
       deviceType,
       browser: browserInfo.browser,
-      browserVersion: browserInfo.browserVersion,
-      os: browserInfo.os,
       sessionId,
-      metadata,
     };
 
+    // Add optional fields only if they have values
+    if (location.city) activityLog.city = location.city;
+    if (location.state) activityLog.state = location.state;
+    if (location.country) activityLog.country = location.country;
+    if (browserInfo.browserVersion) activityLog.browserVersion = browserInfo.browserVersion;
+    if (browserInfo.os) activityLog.os = browserInfo.os;
+    if (metadata && Object.keys(metadata).length > 0) activityLog.metadata = metadata;
+
     // Store in Firestore
-    await addDoc(collection(db, `user_activity/${userId}/logs`), {
-      ...activityLog,
-      timestamp: Timestamp.fromDate(activityLog.timestamp),
-    });
+    await addDoc(collection(db, `user_activity/${userId}/logs`), activityLog);
   } catch (error) {
     console.error('Error logging activity:', error);
     // Don't throw - activity tracking should not break the app

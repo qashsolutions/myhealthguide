@@ -16,8 +16,10 @@ interface ActivityHistoryProps {
 export function ActivityHistory({ userId }: ActivityHistoryProps) {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
+  // Initialize end date to today
+  const today = new Date().toISOString().split('T')[0];
   const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [endDate, setEndDate] = useState(today);
 
   useEffect(() => {
     // Load activities without date filter to get all recent activity
