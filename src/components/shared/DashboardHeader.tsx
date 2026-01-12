@@ -64,16 +64,22 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         {/* Hamburger Menu - Mobile Only */}
         <button
           type="button"
-          onClick={() => {
-            console.log('[DashboardHeader] Hamburger clicked, onMenuClick exists:', !!onMenuClick);
-            if (onMenuClick) {
-              onMenuClick();
-            }
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[DashboardHeader] Hamburger clicked via onClick');
+            onMenuClick?.();
           }}
-          className="lg:hidden flex items-center justify-center w-11 h-11 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation"
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            console.log('[DashboardHeader] Hamburger touched via onTouchEnd');
+            onMenuClick?.();
+          }}
+          className="lg:hidden flex items-center justify-center w-11 h-11 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 touch-manipulation select-none"
           aria-label="Open menu"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-6 h-6 pointer-events-none" />
         </button>
 
         {/* Logo - Hidden on mobile (shown in sidebar) */}
