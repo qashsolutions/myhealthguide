@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState, useEffect, useRef } from 'react';
+import { ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { DashboardHeader } from '@/components/shared/DashboardHeader';
 import { VerificationBanner } from '@/components/auth/VerificationBanner';
@@ -71,6 +71,20 @@ function DashboardContent({ children }: { children: ReactNode }) {
     }
   }, [hasPendingApproval, pendingAgencies]);
 
+  // Memoize callbacks to prevent unnecessary re-renders
+  const handleSidebarClose = useCallback(() => {
+    console.log('[Layout] Sidebar close called');
+    setIsSidebarOpen(false);
+  }, []);
+
+  const handleMenuClick = useCallback(() => {
+    setIsSidebarOpen(prev => {
+      const newState = !prev;
+      console.log('[Layout] Sidebar toggled:', prev, '->', newState);
+      return newState;
+    });
+  }, []);
+
   return (
     <ElderProvider>
       {/* Session tracking - inside ElderProvider */}
@@ -91,16 +105,10 @@ function DashboardContent({ children }: { children: ReactNode }) {
         <FCMProvider />
         <Sidebar
           isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
+          onClose={handleSidebarClose}
         />
         <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
-          <DashboardHeader onMenuClick={() => {
-            setIsSidebarOpen(prev => {
-              const newState = !prev;
-              console.log('[Layout] Sidebar toggled:', prev, '->', newState);
-              return newState;
-            });
-          }} />
+          <DashboardHeader onMenuClick={handleMenuClick} />
           <VerificationBanner />
           <TrialExpirationBanner />
           <main className="flex-1 overflow-y-auto">

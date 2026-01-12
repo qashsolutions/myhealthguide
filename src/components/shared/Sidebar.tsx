@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useElder } from '@/contexts/ElderContext';
@@ -130,11 +130,15 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   }, [selectedElder, availableElders]);
 
   // Close sidebar on route change (mobile only)
+  // Use ref to avoid dependency on onClose callback
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    if (onClose && window.innerWidth < 1024) {
-      onClose();
+    if (onCloseRef.current && window.innerWidth < 1024) {
+      onCloseRef.current();
     }
-  }, [pathname, onClose]);
+  }, [pathname]);
 
   // Helper to check if a path is active
   const isActive = (path: string) => {
