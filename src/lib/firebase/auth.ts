@@ -71,6 +71,7 @@ export class AuthService {
       phoneVerified: false,
       emailVerifiedAt: null,
       phoneVerifiedAt: null,
+      lastVerificationDate: null,
       firstName: userData.firstName,
       lastName: userData.lastName,
       groups: [],
@@ -417,6 +418,7 @@ export class AuthService {
         phoneVerified: true,
         emailVerifiedAt: null,
         phoneVerifiedAt: now,
+        lastVerificationDate: now, // Phone verified at signup
         firstName: userData.firstName,
         lastName: userData.lastName,
         groups: [],
@@ -612,6 +614,7 @@ export class AuthService {
         phoneVerified: true,
         emailVerifiedAt: null,
         phoneVerifiedAt: now,
+        lastVerificationDate: now, // Phone verified at signup
         firstName: userData.firstName,
         lastName: userData.lastName,
         groups: [],
@@ -769,11 +772,13 @@ export class AuthService {
     await linkWithCredential(auth.currentUser, credential);
 
     // Update user document with phone number and mark as verified
+    const now = new Date();
     await updateDoc(doc(db, 'users', auth.currentUser.uid), {
       phoneNumber: phoneNumber,
       phoneNumberHash: hashPhoneNumber(phoneNumber),
       phoneVerified: true,
-      phoneVerifiedAt: new Date()
+      phoneVerifiedAt: now,
+      lastVerificationDate: now
     });
   }
 
@@ -894,12 +899,14 @@ export class AuthService {
   }
 
   /**
-   * Mark email as verified
+   * Mark email as verified and update last verification date
    */
   static async markEmailVerified(userId: string): Promise<void> {
+    const now = new Date();
     await updateDoc(doc(db, 'users', userId), {
       emailVerified: true,
-      emailVerifiedAt: new Date()
+      emailVerifiedAt: now,
+      lastVerificationDate: now
     });
   }
 
@@ -930,12 +937,14 @@ export class AuthService {
   }
 
   /**
-   * Mark phone as verified
+   * Mark phone as verified and update last verification date
    */
   static async markPhoneVerified(userId: string): Promise<void> {
+    const now = new Date();
     await updateDoc(doc(db, 'users', userId), {
       phoneVerified: true,
-      phoneVerifiedAt: new Date()
+      phoneVerifiedAt: now,
+      lastVerificationDate: now
     });
   }
 
@@ -1126,5 +1135,74 @@ export class AuthService {
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
     return diffDays;
+  }
+
+  /**
+   * Check if re-verification is required (10 days since last verification)
+   *
+   * Initial signup: User must verify BOTH email AND phone
+   * Re-verification: User only needs to verify ONE (email OR phone) every 10 days
+   *
+   * @returns 'initial' if initial verification needed, 'reverify' if re-verification needed, false if no verification needed
+   */
+  static isReVerificationRequired(user: User): 'initial' | 'reverify' | false {
+    // Initial verification: Both email AND phone must be verified at least once
+    if (!user.emailVerified || !user.phoneVerified) {
+      return 'initial';
+    }
+
+    // Check if lastVerificationDate exists
+    if (!user.lastVerificationDate) {
+      // Both are verified but no lastVerificationDate - require re-verification
+      return 'reverify';
+    }
+
+    // Convert Firestore Timestamp to Date
+    let lastVerificationDate: Date;
+    if (typeof user.lastVerificationDate === 'object' && 'seconds' in user.lastVerificationDate) {
+      lastVerificationDate = new Date((user.lastVerificationDate as any).seconds * 1000);
+    } else if (user.lastVerificationDate instanceof Date) {
+      lastVerificationDate = user.lastVerificationDate;
+    } else {
+      lastVerificationDate = new Date(user.lastVerificationDate);
+    }
+
+    // Check if 10 days have elapsed
+    const now = new Date();
+    const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
+    const msSinceLastVerification = now.getTime() - lastVerificationDate.getTime();
+
+    if (msSinceLastVerification > tenDaysInMs) {
+      return 'reverify';
+    }
+
+    return false;
+  }
+
+  /**
+   * Get days until re-verification is required
+   */
+  static getDaysUntilReVerification(user: User): number | null {
+    if (!user.lastVerificationDate) {
+      return 0; // Re-verification needed now
+    }
+
+    // Convert Firestore Timestamp to Date
+    let lastVerificationDate: Date;
+    if (typeof user.lastVerificationDate === 'object' && 'seconds' in user.lastVerificationDate) {
+      lastVerificationDate = new Date((user.lastVerificationDate as any).seconds * 1000);
+    } else if (user.lastVerificationDate instanceof Date) {
+      lastVerificationDate = user.lastVerificationDate;
+    } else {
+      lastVerificationDate = new Date(user.lastVerificationDate);
+    }
+
+    const now = new Date();
+    const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
+    const nextVerificationDate = new Date(lastVerificationDate.getTime() + tenDaysInMs);
+    const diffMs = nextVerificationDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    return Math.max(0, diffDays);
   }
 }

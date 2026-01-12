@@ -10,6 +10,7 @@ export interface User {
   phoneVerified: boolean;
   emailVerifiedAt: Date | null;
   phoneVerifiedAt: Date | null;
+  lastVerificationDate: Date | null; // Last re-verification (email OR phone) - requires re-verify every 10 days
   firstName: string;
   lastName: string;
   profileImage?: string;

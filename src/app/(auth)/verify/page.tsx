@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase/config';
 import { sendEmailVerification, onAuthStateChanged, reload, getAuth } from 'firebase/auth';
-import { CheckCircle, AlertCircle, RefreshCw, Mail, Smartphone, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle, AlertCircle, RefreshCw, Mail, Smartphone, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,8 +24,34 @@ import { getFirebaseErrorMessage } from '@/lib/utils/errorMessages';
  *
  * All other pages (Settings, VerificationBanner) should redirect here.
  */
+
+// Loading fallback for Suspense
+function VerifyPageLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="text-center">
+        <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main component wrapped in Suspense
 export default function VerifyPage() {
+  return (
+    <Suspense fallback={<VerifyPageLoading />}>
+      <VerifyPageContent />
+    </Suspense>
+  );
+}
+
+function VerifyPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check if this is a re-verification (10-day periodic check)
+  const isReVerification = searchParams.get('mode') === 'reverify';
 
   // User state
   const [userId, setUserId] = useState('');
@@ -97,9 +123,22 @@ export default function VerifyPage() {
             setEmailVerified(true);
           }
 
-          // If both are verified, redirect to dashboard
-          if ((userData.emailVerified || firebaseUser.emailVerified) && userData.phoneVerified) {
-            setTimeout(() => router.push('/dashboard'), 2000);
+          // Redirect logic depends on verification mode
+          const emailIsVerified = userData.emailVerified || firebaseUser.emailVerified;
+          const phoneIsVerified = userData.phoneVerified;
+
+          if (isReVerification) {
+            // Re-verification: Only ONE method needs to be re-verified
+            // Both should already be verified from initial signup
+            // This is just a periodic check - redirect immediately if both are verified
+            if (emailIsVerified && phoneIsVerified) {
+              setTimeout(() => router.push('/dashboard'), 1000);
+            }
+          } else {
+            // Initial verification: Both must be verified
+            if (emailIsVerified && phoneIsVerified) {
+              setTimeout(() => router.push('/dashboard'), 2000);
+            }
           }
         }
       } else {
@@ -422,17 +461,23 @@ export default function VerifyPage() {
   // RENDER
   // ==========================================
 
-  // Both verified - redirect to dashboard
+  // Verification complete - redirect to dashboard
+  // For initial verification: both must be verified
+  // For re-verification: either one being re-verified is sufficient
+  const verificationComplete = isReVerification
+    ? (emailVerified || phoneVerified)
+    : (emailVerified && phoneVerified);
+
   useEffect(() => {
-    if (emailVerified && phoneVerified) {
+    if (verificationComplete) {
       const timer = setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [emailVerified, phoneVerified, router]);
+  }, [verificationComplete, router]);
 
-  if (emailVerified && phoneVerified) {
+  if (verificationComplete) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <Card className="max-w-md w-full">
@@ -440,9 +485,13 @@ export default function VerifyPage() {
             <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">All Set!</h1>
+            <h1 className="text-2xl font-bold mb-2">
+              {isReVerification ? 'Re-verification Complete!' : 'All Set!'}
+            </h1>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Your email and phone are both verified.
+              {isReVerification
+                ? 'Your identity has been confirmed.'
+                : 'Your email and phone are both verified.'}
             </p>
             <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
           </CardContent>
@@ -453,12 +502,33 @@ export default function VerifyPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      {/* Re-verification banner */}
+      {isReVerification && (
+        <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="w-8 h-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-blue-800 dark:text-blue-200">
+                  Periodic Security Check
+                </p>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  For your protection, we require identity verification every 10 days. You only need to verify <strong>one</strong> method below.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Verify Your Contact Information
+          {isReVerification ? 'Verify Your Identity' : 'Verify Your Contact Information'}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          For your security and HIPAA compliance, please verify both your email and phone number
+          {isReVerification
+            ? 'Choose one verification method below to continue'
+            : 'For your security and HIPAA compliance, please verify both your email and phone number'}
         </p>
       </div>
 
@@ -984,17 +1054,19 @@ export default function VerifyPage() {
         </Card>
       )}
 
-      {/* Continue to Dashboard - Only when BOTH are verified */}
+      {/* Continue to Dashboard */}
       <Card className="bg-gray-50 dark:bg-gray-800">
         <CardContent className="pt-6 text-center">
           <p className="text-base text-gray-600 dark:text-gray-400">
-            {emailVerified && phoneVerified ? (
-              <>Both verifications complete! You can now access the app.</>
+            {verificationComplete ? (
+              <>Verification complete! You can now access the app.</>
+            ) : isReVerification ? (
+              <>Verify your identity using <strong>either</strong> email or phone to continue.</>
             ) : (
-              <>Please verify both email and phone to continue. This is required for HIPAA compliance and account security.</>
+              <>Please verify <strong>both</strong> email and phone to continue. This is required for HIPAA compliance and account security.</>
             )}
           </p>
-          {emailVerified && phoneVerified && (
+          {verificationComplete && (
             <Button
               onClick={() => router.push('/dashboard')}
               variant="default"

@@ -37,10 +37,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       return;
     }
 
-    // Check if user has completed BOTH email and phone verification (HIPAA requirement)
-    const needsVerification = !user.emailVerified || !user.phoneVerified;
-    if (needsVerification) {
+    // Check verification status using the re-verification system
+    // Initial: Both email AND phone must be verified
+    // Re-verification (every 10 days): Only ONE method needed
+    const verificationStatus = AuthService.isReVerificationRequired(user);
+    if (verificationStatus === 'initial') {
       router.push('/verify');
+      return;
+    }
+    if (verificationStatus === 'reverify') {
+      router.push('/verify?mode=reverify');
       return;
     }
 
@@ -120,9 +126,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Check verification status first
-  const needsVerification = !user.emailVerified || !user.phoneVerified;
-  if (needsVerification) {
+  // Check verification status first (initial or re-verification)
+  const verificationStatus = AuthService.isReVerificationRequired(user);
+  if (verificationStatus) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
