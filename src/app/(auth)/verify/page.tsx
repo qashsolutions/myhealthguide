@@ -54,6 +54,7 @@ export default function VerifyPage() {
   const [verifyingPhone, setVerifyingPhone] = useState(false);
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
 
   // Error state
   const [error, setError] = useState('');
@@ -761,97 +762,203 @@ export default function VerifyPage() {
         <CardContent className="space-y-4">
           {!phoneVerified ? (
             <>
-              {/* Email-auth user: needs to ADD phone */}
-              {authProvider === 'email' && !userPhone && (
-                <div className="space-y-3">
-                  <Label htmlFor="phone">Phone Number (US only)</Label>
-                  <div className="flex">
-                    <div className="flex items-center px-4 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md h-12">
-                      <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">+1</span>
+              {/* Phone editing mode - show input to enter new phone */}
+              {isEditingPhone && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      Enter a different phone number. A verification code will be sent to the new number.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="newPhone">New Phone Number (US only)</Label>
+                    <div className="flex">
+                      <div className="flex items-center px-4 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md h-12">
+                        <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">+1</span>
+                      </div>
+                      <Input
+                        id="newPhone"
+                        type="tel"
+                        placeholder="(555) 123-4567"
+                        value={phoneInput}
+                        onChange={(e) => {
+                          const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setPhoneInput(cleaned);
+                        }}
+                        className="rounded-l-none h-12 text-lg"
+                        maxLength={10}
+                      />
                     </div>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="(555) 123-4567"
-                      value={phoneInput}
-                      onChange={(e) => {
-                        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setPhoneInput(cleaned);
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingPhone(false);
+                        setPhoneInput('');
+                        setPhoneSent(false);
+                        setPhoneCode('');
+                        setError('');
                       }}
-                      className="rounded-l-none h-12 text-lg"
-                      maxLength={10}
-                    />
+                      className="flex-1 h-12"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (phoneInput.length === 10) {
+                          // Update userPhone to use the new number
+                          setUserPhone(`+1${phoneInput}`);
+                          setIsEditingPhone(false);
+                          setPhoneSent(false);
+                          setPhoneCode('');
+                          setError('');
+                        } else {
+                          setError('Please enter a valid 10-digit phone number');
+                        }
+                      }}
+                      className="flex-1 h-12"
+                      disabled={phoneInput.length !== 10}
+                    >
+                      Use This Number
+                    </Button>
                   </div>
                 </div>
               )}
 
-              {/* Has phone - show verification */}
-              {(userPhone || phoneInput) && (
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <p className="text-base text-gray-600 dark:text-gray-400">
-                    Verify <strong>{userPhone || `+1${phoneInput}`}</strong> to enable emergency alerts
-                  </p>
-                </div>
-              )}
-
-              {!phoneSent ? (
+              {/* Not editing - show normal flow */}
+              {!isEditingPhone && (
                 <>
-                  <div id="recaptcha-container" className="flex justify-center"></div>
-                  <Button
-                    onClick={handleSendPhoneCode}
-                    className="w-full h-12 text-lg"
-                    disabled={authProvider === 'email' && !userPhone && !phoneInput}
-                  >
-                    {authProvider === 'phone' ? 'Phone already verified via sign-in' : 'Send verification code'}
-                  </Button>
-                </>
-              ) : (
-                <div className="space-y-3">
-                  <Label htmlFor="code">Enter 6-digit code</Label>
-                  <Input
-                    id="code"
-                    type="text"
-                    placeholder="------"
-                    value={phoneCode}
-                    onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    maxLength={6}
-                    className="text-center text-3xl tracking-widest h-16 font-mono placeholder:text-gray-300 dark:placeholder:text-gray-600"
-                  />
-                  <p className="text-sm text-gray-500 text-center">
-                    Code sent to {userPhone || `+1${phoneInput}`}
-                  </p>
-                  <Button
-                    onClick={handleVerifyPhoneCode}
-                    disabled={verifyingPhone || phoneCode.length !== 6}
-                    className="w-full h-12 text-lg"
-                  >
-                    {verifyingPhone ? (
-                      <>
-                        <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
-                        Verifying...
-                      </>
-                    ) : (
-                      'Verify code'
-                    )}
-                  </Button>
-                  <Button
-                    onClick={handleSendPhoneCode}
-                    variant="outline"
-                    className="w-full h-12 text-lg"
-                  >
-                    Resend code
-                  </Button>
-                </div>
-              )}
+                  {/* Email-auth user: needs to ADD phone */}
+                  {authProvider === 'email' && !userPhone && (
+                    <div className="space-y-3">
+                      <Label htmlFor="phone">Phone Number (US only)</Label>
+                      <div className="flex">
+                        <div className="flex items-center px-4 bg-gray-100 dark:bg-gray-800 border border-r-0 rounded-l-md h-12">
+                          <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">+1</span>
+                        </div>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                          value={phoneInput}
+                          onChange={(e) => {
+                            const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setPhoneInput(cleaned);
+                          }}
+                          className="rounded-l-none h-12 text-lg"
+                          maxLength={10}
+                        />
+                      </div>
+                    </div>
+                  )}
 
-              {/* Phone-auth users already have phone verified */}
-              {authProvider === 'phone' && (
-                <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                  <p className="text-base text-blue-600 dark:text-blue-400 font-medium">
-                    Phone verified via sign-in
-                  </p>
-                </div>
+                  {/* Has phone - show verification with Change option */}
+                  {(userPhone || phoneInput) && !phoneSent && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <p className="text-base text-gray-600 dark:text-gray-400">
+                          Verify <strong>{userPhone || `+1${phoneInput}`}</strong> to enable emergency alerts
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setIsEditingPhone(true);
+                            setPhoneInput('');
+                            setPhoneSent(false);
+                            setPhoneCode('');
+                            setError('');
+                          }}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        >
+                          Change Phone
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!phoneSent ? (
+                    <>
+                      <div id="recaptcha-container" className="flex justify-center"></div>
+                      <Button
+                        onClick={handleSendPhoneCode}
+                        className="w-full h-12 text-lg"
+                        disabled={authProvider === 'email' && !userPhone && !phoneInput}
+                      >
+                        {authProvider === 'phone' ? 'Phone already verified via sign-in' : 'Send verification code'}
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Code sent to <strong>{userPhone || `+1${phoneInput}`}</strong>
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setIsEditingPhone(true);
+                              setPhoneInput('');
+                              setPhoneSent(false);
+                              setPhoneCode('');
+                              setError('');
+                            }}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          >
+                            Change Phone
+                          </Button>
+                        </div>
+                      </div>
+
+                      <Label htmlFor="code">Enter 6-digit code</Label>
+                      <Input
+                        id="code"
+                        type="text"
+                        placeholder="------"
+                        value={phoneCode}
+                        onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        maxLength={6}
+                        className="text-center text-3xl tracking-widest h-16 font-mono placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                      />
+                      <Button
+                        onClick={handleVerifyPhoneCode}
+                        disabled={verifyingPhone || phoneCode.length !== 6}
+                        className="w-full h-12 text-lg"
+                      >
+                        {verifyingPhone ? (
+                          <>
+                            <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          'Verify code'
+                        )}
+                      </Button>
+                      <Button
+                        onClick={handleSendPhoneCode}
+                        variant="outline"
+                        className="w-full h-12 text-lg"
+                      >
+                        Resend code
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Phone-auth users already have phone verified */}
+                  {authProvider === 'phone' && (
+                    <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      <p className="text-base text-blue-600 dark:text-blue-400 font-medium">
+                        Phone verified via sign-in
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </>
           ) : (
