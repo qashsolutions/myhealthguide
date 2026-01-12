@@ -10,6 +10,7 @@ import { AuthService } from '@/lib/firebase/auth';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { getFirebaseErrorMessage } from '@/lib/utils/errorMessages';
 
 export default function PhoneLoginPage() {
   const router = useRouter();
@@ -61,7 +62,7 @@ export default function PhoneLoginPage() {
       setStep('code');
     } catch (err: any) {
       console.error('Error sending code:', err);
-      setError(err.message || 'Failed to send verification code. Please try again.');
+      setError(getFirebaseErrorMessage(err));
 
       // Reset reCAPTCHA on error
       if (recaptchaVerifier) {
@@ -118,7 +119,7 @@ export default function PhoneLoginPage() {
         const formattedPhone = `+1${digitsOnly}`;
         router.push(`/phone-signup?phone=${encodeURIComponent(formattedPhone)}&code=${verificationCode}`);
       } else {
-        setError(err.message || 'Invalid verification code. Please try again.');
+        setError(getFirebaseErrorMessage(err));
       }
     } finally {
       setLoading(false);

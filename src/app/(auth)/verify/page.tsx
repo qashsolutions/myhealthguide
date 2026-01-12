@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthService } from '@/lib/firebase/auth';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
+import { getFirebaseErrorMessage } from '@/lib/utils/errorMessages';
 
 /**
  * Unified Verification Page
@@ -212,7 +213,7 @@ export default function VerifyPage() {
       console.error('Error linking email:', err);
       console.error('Error code:', err.code);
       console.error('Error message:', err.message);
-      setError(err.message || 'Failed to link email. Please try again.');
+      setError(getFirebaseErrorMessage(err));
       // Don't set userEmail or emailLinkSent on error
     } finally {
       setLinkingEmail(false);
@@ -279,11 +280,7 @@ export default function VerifyPage() {
       console.error('Error code:', err.code);
       console.error('Error message:', err.message);
 
-      if (err.code === 'auth/too-many-requests') {
-        setError('Too many requests. Please wait a few minutes.');
-      } else {
-        setError(`Failed to send: ${err.code || 'unknown'} - ${err.message || 'Check console for details'}`);
-      }
+      setError(getFirebaseErrorMessage(err));
     }
   };
 
@@ -311,11 +308,7 @@ export default function VerifyPage() {
       }
     } catch (err: any) {
       console.error('Check email verification error:', err);
-      if (err.code === 'auth/user-token-expired') {
-        setError('Your session has expired. Please refresh the page to continue.');
-      } else {
-        setError('Failed to check verification status. Please try again.');
-      }
+      setError(getFirebaseErrorMessage(err));
     } finally {
       setCheckingEmail(false);
     }
@@ -368,7 +361,7 @@ export default function VerifyPage() {
 
     } catch (err: any) {
       console.error('Error sending phone code:', err);
-      setError(err.message || 'Failed to send verification code');
+      setError(getFirebaseErrorMessage(err));
 
       // Reset reCAPTCHA on error
       try {
@@ -418,7 +411,7 @@ export default function VerifyPage() {
 
     } catch (err: any) {
       console.error('Error verifying phone:', err);
-      setError(err.message || err.code || 'Invalid verification code');
+      setError(getFirebaseErrorMessage(err));
     } finally {
       setVerifyingPhone(false);
     }
@@ -716,7 +709,7 @@ export default function VerifyPage() {
                           setEmailLinkSent(true);
                         } catch (err: any) {
                           console.error('Error updating email:', err);
-                          setError(err.message || 'Failed to update email');
+                          setError(getFirebaseErrorMessage(err));
                         } finally {
                           setLinkingEmail(false);
                         }

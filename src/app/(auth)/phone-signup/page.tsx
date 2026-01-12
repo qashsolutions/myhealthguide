@@ -11,6 +11,7 @@ import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 import { Loader2, Mail, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { auth } from '@/lib/firebase/config';
+import { getFirebaseErrorMessage } from '@/lib/utils/errorMessages';
 
 function PhoneSignupForm() {
   const router = useRouter();
@@ -93,7 +94,7 @@ function PhoneSignupForm() {
       setStep('verify');
     } catch (err: any) {
       console.error('Error sending code:', err);
-      setError(err.message || 'Failed to send verification code');
+      setError(getFirebaseErrorMessage(err));
 
       // Reset reCAPTCHA
       if (recaptchaVerifier) {
@@ -150,7 +151,7 @@ function PhoneSignupForm() {
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Error completing signup:', err);
-      setError(err.message || 'Failed to create account');
+      setError(getFirebaseErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -196,7 +197,7 @@ function PhoneSignupForm() {
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Error completing profile:', err);
-      setError(err.message || 'Failed to create account');
+      setError(getFirebaseErrorMessage(err));
     } finally {
       setLoading(false);
     }

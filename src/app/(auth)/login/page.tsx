@@ -17,6 +17,7 @@ import {
   AccessibleLink,
   AccessiblePageWrapper,
 } from '@/components/accessibility';
+import { getFirebaseErrorMessage } from '@/lib/utils/errorMessages';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -88,31 +89,7 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Sign in error:', err);
-
-      // Map Firebase error codes to user-friendly messages
-      let errorMessage = 'Failed to sign in. Please try again.';
-
-      // Check error code (Firebase errors have this)
-      const errorCode = err.code || '';
-      // Also check if error message contains the code (fallback detection)
-      const errorStr = err.message || '';
-
-      if (errorCode === 'auth/invalid-credential' ||
-          errorCode === 'auth/user-not-found' ||
-          errorCode === 'auth/wrong-password' ||
-          errorStr.includes('invalid-credential') ||
-          errorStr.includes('user-not-found') ||
-          errorStr.includes('wrong-password')) {
-        errorMessage = 'Invalid email or password. Please check your credentials or create an account.';
-      } else if (errorCode === 'auth/invalid-email' || errorStr.includes('invalid-email')) {
-        errorMessage = 'Please enter a valid email address.';
-      } else if (errorCode === 'auth/user-disabled' || errorStr.includes('user-disabled')) {
-        errorMessage = 'This account has been disabled. Please contact support.';
-      } else if (errorCode === 'auth/too-many-requests' || errorStr.includes('too-many-requests')) {
-        errorMessage = 'Too many failed attempts. Please try again later or reset your password.';
-      }
-
-      setError(errorMessage);
+      setError(getFirebaseErrorMessage(err));
     } finally {
       setLoading(false);
     }

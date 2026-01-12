@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AuthService } from '@/lib/firebase/auth';
 import Link from 'next/link';
 import { Mail, ArrowLeft, Check } from 'lucide-react';
+import { getFirebaseErrorMessage, isFirebaseError } from '@/lib/utils/errorMessages';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -31,19 +32,11 @@ export default function ForgotPasswordPage() {
     } catch (err: any) {
       console.error('Password reset error:', err);
 
-      // Map Firebase error codes to user-friendly messages
-      const errorCode = err.code || '';
-      const errorStr = err.message || '';
-
-      if (errorCode === 'auth/user-not-found' || errorStr.includes('user-not-found')) {
-        // For security, don't reveal if email exists
+      // For security, don't reveal if email exists (user-not-found)
+      if (isFirebaseError(err, 'auth/user-not-found')) {
         setSuccess(true);
-      } else if (errorCode === 'auth/invalid-email' || errorStr.includes('invalid-email')) {
-        setError('Please enter a valid email address');
-      } else if (errorCode === 'auth/too-many-requests' || errorStr.includes('too-many-requests')) {
-        setError('Too many requests. Please try again later.');
       } else {
-        setError(err.message || 'Failed to send reset email. Please try again.');
+        setError(getFirebaseErrorMessage(err));
       }
     } finally {
       setLoading(false);
