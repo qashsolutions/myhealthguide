@@ -25,19 +25,85 @@ export default function TimesheetPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
-  // Check if user is agency caregiver or family member
+  // Check if user is agency caregiver, admin, or family member
   const userAgencyRole = user?.agencies?.[0]?.role;
   const isFamilyMember = userAgencyRole === 'family_member';
+  const isAgencyAdmin = userAgencyRole === 'super_admin' || userAgencyRole === 'caregiver_admin';
   const isAgencyCaregiver = user?.agencies && user.agencies.length > 0 && !isFamilyMember;
   const agencyId = user?.agencies?.[0]?.agencyId;
 
+  // Admin-specific state
+  const [pendingApprovals, setPendingApprovals] = useState<TimesheetSubmission[]>([]);
+  const [loadingApprovals, setLoadingApprovals] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
   useEffect(() => {
     loadShifts();
-    if (isAgencyCaregiver) {
+    if (isAgencyCaregiver && !isAgencyAdmin) {
       loadSubmissions();
+    }
+    if (isAgencyAdmin && agencyId) {
+      loadPendingApprovals();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, selectedElder, timeRange, viewMode]);
+
+  const loadPendingApprovals = async () => {
+    if (!user || !agencyId || !isAgencyAdmin) return;
+
+    setLoadingApprovals(true);
+    try {
+      const response = await authenticatedFetch('/api/timesheet', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getPendingApprovals', agencyId })
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const approvals = data.submissions.map((s: any) => ({
+          ...s,
+          weekStartDate: s.weekStartDate ? new Date(s.weekStartDate) : null,
+          weekEndDate: s.weekEndDate ? new Date(s.weekEndDate) : null,
+          submittedAt: s.submittedAt ? new Date(s.submittedAt) : null,
+          reviewedAt: s.reviewedAt ? new Date(s.reviewedAt) : null,
+        })) as TimesheetSubmission[];
+        setPendingApprovals(approvals);
+      }
+    } catch (err: any) {
+      console.error('Error loading pending approvals:', err);
+    } finally {
+      setLoadingApprovals(false);
+    }
+  };
+
+  const handleApproveReject = async (submissionId: string, action: 'approve' | 'reject', notes?: string) => {
+    if (!user) return;
+
+    setProcessingId(submissionId);
+    try {
+      const response = await authenticatedFetch('/api/timesheet', {
+        method: 'POST',
+        body: JSON.stringify({
+          action,
+          submissionId,
+          notes,
+          reviewerName: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Admin'
+        })
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        // Reload pending approvals
+        loadPendingApprovals();
+      } else {
+        console.error('Error processing submission:', data.error);
+      }
+    } catch (err: any) {
+      console.error('Error processing submission:', err);
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const loadShifts = async () => {
     if (!user) return;
@@ -245,10 +311,10 @@ export default function TimesheetPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Timesheet
+            {isAgencyAdmin ? 'Timesheet Management' : 'Timesheet'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            View and export shift hours
+            {isAgencyAdmin ? 'Review and approve caregiver timesheets' : 'View and export shift hours'}
           </p>
         </div>
         <Button onClick={exportTimesheet} variant="outline">
@@ -256,6 +322,103 @@ export default function TimesheetPage() {
           Export CSV
         </Button>
       </div>
+
+      {/* Admin: Pending Approvals Section */}
+      {isAgencyAdmin && (
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock3 className="w-5 h-5 text-blue-600" />
+              Pending Timesheet Approvals
+              {pendingApprovals.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-600 text-white">
+                  {pendingApprovals.length}
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingApprovals ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+              </div>
+            ) : pendingApprovals.length === 0 ? (
+              <div className="text-center py-6">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                <p className="text-gray-600 dark:text-gray-400">All timesheets have been reviewed!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingApprovals.map((submission) => (
+                  <div
+                    key={submission.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 gap-4"
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {submission.caregiverName}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Week of {submission.weekStartDate ? format(submission.weekStartDate, 'MMM d') : ''} - {submission.weekEndDate ? format(submission.weekEndDate, 'MMM d, yyyy') : ''}
+                      </p>
+                      <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <span><strong>{submission.totalShifts}</strong> shifts</span>
+                        <span><strong>{submission.totalHours}</strong> hours</span>
+                        {submission.verifiedShifts !== undefined && submission.verifiedShifts > 0 && (
+                          <span className="text-green-600 dark:text-green-400">
+                            {submission.verifiedShifts} verified
+                          </span>
+                        )}
+                        {submission.overrideShifts !== undefined && submission.overrideShifts > 0 && (
+                          <span className="text-amber-600 dark:text-amber-400">
+                            {submission.overrideShifts} with overrides
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        Submitted {submission.submittedAt ? format(submission.submittedAt, 'MMM d, h:mm a') : ''}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 sm:flex-shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                        onClick={() => handleApproveReject(submission.id!, 'reject')}
+                        disabled={processingId === submission.id}
+                      >
+                        {processingId === submission.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        ) : (
+                          <>
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Reject
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => handleApproveReject(submission.id!, 'approve')}
+                        disabled={processingId === submission.id}
+                      >
+                        {processingId === submission.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Approve
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card>

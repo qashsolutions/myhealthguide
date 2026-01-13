@@ -252,8 +252,8 @@ export async function POST(request: NextRequest) {
       const userData = userDoc.data();
       const userAgency = userData?.agencies?.find((a: any) => a.agencyId === reqAgencyId);
 
-      if (!userAgency || userAgency.role !== 'superadmin') {
-        return NextResponse.json({ success: false, error: 'Unauthorized - Super admin access required' }, { status: 403 });
+      if (!userAgency || (userAgency.role !== 'super_admin' && userAgency.role !== 'caregiver_admin')) {
+        return NextResponse.json({ success: false, error: 'Unauthorized - Admin access required' }, { status: 403 });
       }
 
       // Get pending submissions for this agency
@@ -300,8 +300,8 @@ export async function POST(request: NextRequest) {
       const userData = userDoc.data();
       const userAgency = userData?.agencies?.find((a: any) => a.agencyId === submissionData?.agencyId);
 
-      if (!userAgency || userAgency.role !== 'superadmin') {
-        return NextResponse.json({ success: false, error: 'Unauthorized - Super admin access required' }, { status: 403 });
+      if (!userAgency || (userAgency.role !== 'super_admin' && userAgency.role !== 'caregiver_admin')) {
+        return NextResponse.json({ success: false, error: 'Unauthorized - Admin access required' }, { status: 403 });
       }
 
       // Check submission is in submitted status
