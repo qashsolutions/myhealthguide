@@ -91,18 +91,26 @@ export function ElderProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      setAvailableElders(elders);
+      // Deduplicate elders by ID to prevent any rendering issues
+      const uniqueElders = elders.reduce((acc: Elder[], elder) => {
+        if (!acc.find(e => e.id === elder.id)) {
+          acc.push(elder);
+        }
+        return acc;
+      }, []);
+
+      setAvailableElders(uniqueElders);
 
       // Auto-select elder if only one available or restore from localStorage
-      if (elders.length > 0) {
+      if (uniqueElders.length > 0) {
         const savedElderId = localStorage.getItem(SELECTED_ELDER_KEY);
-        const savedElder = elders.find(e => e.id === savedElderId);
+        const savedElder = uniqueElders.find(e => e.id === savedElderId);
 
         if (savedElder) {
           setSelectedElderState(savedElder);
         } else {
           // Auto-select first elder
-          setSelectedElderState(elders[0]);
+          setSelectedElderState(uniqueElders[0]);
         }
       } else {
         setSelectedElderState(null);

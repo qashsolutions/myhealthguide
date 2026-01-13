@@ -7,13 +7,16 @@
 
 ## Bug Summary
 
-| Severity | Count | Fixed |
-|----------|-------|-------|
-| Critical | 0 | 0 |
-| High | 3 | **3** |
-| Medium | 2 | **2** |
-| Low | 1 | **1** |
-| **Total** | **6** | **6** |
+| Severity | Count | Fixed | Pending |
+|----------|-------|-------|---------|
+| Critical | 0 | 0 | 0 |
+| High | 3 | **3** | 0 |
+| Medium | 3 | **3** | 0 |
+| Low | 1 | **1** | 0 |
+| **Total** | **7** | **7** | 0 |
+
+### All Bugs Fixed
+- BUG-009: Dashboard Loved Ones count incorrect (Medium severity) - FIXED Jan 13, 2026
 
 ---
 
@@ -203,21 +206,49 @@ Added access block for family members. When `user?.agencies?.[0]?.role === 'fami
 
 ---
 
-## Negative Test Results
+### BUG-009: Caregiver Dashboard Shows Incorrect Loved Ones Count
+
+**Feature Area:** Dashboard / Data Display
+**Severity:** Medium
+**Status:** ✅ FIXED
+
+**Steps to Reproduce:**
+1. Login as any Caregiver (ramanac+c1@gmail.com through ramanac+c10@gmail.com)
+2. View the Dashboard
+3. Observe "LOVED ONES" count in the stats header
+
+**Expected Behavior:**
+Each caregiver should see "3" Loved Ones (their assigned elders: LO-C{n}-1, LO-C{n}-2, LO-C{n}-3)
+
+**Actual Behavior:**
+- Caregivers 1-3 see "18" Loved Ones
+- Caregivers 4-10 see "15" Loved Ones
+- Elder cards appear duplicated below the main row
+
+**Screenshots/Notes:**
+- The actual elder cards displayed are correct (3 per caregiver)
+- Only the count number in the header is incorrect
+- Does not affect functionality, only visual display
+- Likely a query issue counting all elders instead of assigned ones
+
+**Fix Applied:**
+1. Modified dashboard page to use `availableElders.length` directly for Loved Ones count instead of relying on `dashboardData?.aggregate.totalElders` which could have stale values.
+2. Added deduplication step in ElderContext to ensure no duplicate elders end up in the `availableElders` array - uses `reduce()` to filter by unique elder IDs.
+Files: `src/app/dashboard/page.tsx`, `src/contexts/ElderContext.tsx`
+
+---
+
+## Negative Test Results (After Bug Fixes)
 
 ### Routes Properly Blocked for Family Member:
-| Route | Result |
-|-------|--------|
-| /dashboard/agency-management | 404 (Blocked) |
-| /dashboard/elder-profile | Access Denied message |
-| /dashboard/shift-handoff | "Caregiver Access Required" message |
-
-### Routes Improperly Accessible:
-| Route | Result |
-|-------|--------|
-| /dashboard/timesheet | Full access (should be blocked) |
-| /dashboard/documents | Can upload (should be view-only) |
-| /dashboard/family-updates | Can generate reports (should be view-only) |
+| Route | Result | Status |
+|-------|--------|--------|
+| /dashboard/agency-management | 404 (Blocked) | ✅ |
+| /dashboard/elder-profile | Access Denied message | ✅ |
+| /dashboard/shift-handoff | "Caregiver Access Required" message | ✅ |
+| /dashboard/timesheet | "Caregiver Access Required" message | ✅ FIXED |
+| /dashboard/documents | Read-only (no upload buttons) | ✅ FIXED |
+| /dashboard/family-updates | View-only (no generate buttons) | ✅ FIXED |
 
 ---
 

@@ -260,7 +260,7 @@ export default function DashboardPage() {
                 Loved Ones
               </h3>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {aggregate.totalElders}
+                {availableElders.length}
               </p>
             </div>
             <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
