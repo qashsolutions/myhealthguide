@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
+import { isReadOnlyUser } from '@/lib/utils/getUserRole';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { Loader2, ArrowLeft } from 'lucide-react';
@@ -22,6 +23,9 @@ export default function EditMedicationPage() {
   const medicationId = params.medicationId as string;
   const { user } = useAuth();
   const { availableElders } = useElder();
+
+  // Check if user has read-only access
+  const readOnly = isReadOnlyUser(user);
 
   const [medication, setMedication] = useState<Medication | null>(null);
   const [formData, setFormData] = useState({
@@ -148,6 +152,29 @@ export default function EditMedicationPage() {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  // Block read-only users from accessing this page
+  if (readOnly) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Restricted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                You have view-only access. Only caregivers can edit medications.
+              </p>
+              <Button onClick={() => router.push('/dashboard/medications')}>
+                Back to Medications
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

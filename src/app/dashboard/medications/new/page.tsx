@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
+import { isReadOnlyUser } from '@/lib/utils/getUserRole';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 
@@ -18,6 +19,9 @@ export default function NewMedicationPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { selectedElder, availableElders } = useElder();
+
+  // Check if user has read-only access
+  const readOnly = isReadOnlyUser(user);
 
   // Check if user is on multi-agency plan (can have multiple active elders)
   const isMultiAgencyPlan = user?.subscriptionTier === 'multi_agency';
@@ -53,6 +57,29 @@ export default function NewMedicationPage() {
       setFormData(prev => ({ ...prev, elderId: selectedElder.id }));
     }
   }, [selectedElder, activeElders, formData.elderId]);
+
+  // Block read-only users from accessing this page
+  if (readOnly) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Restricted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                You have view-only access. Only caregivers can add medications.
+              </p>
+              <Button onClick={() => router.push('/dashboard/medications')}>
+                Back to Medications
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Determine user's role for HIPAA audit logging
   // Check both group role and agency role (caregivers have write access)

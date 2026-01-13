@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
+import { isReadOnlyUser } from '@/lib/utils/getUserRole';
 import { useElderDataLoader } from '@/hooks/useDataLoader';
 import { format } from 'date-fns';
 import type { Medication } from '@/types';
@@ -31,6 +32,9 @@ export default function MedicationsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [medicationToDelete, setMedicationToDelete] = useState<Medication | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Check if user has read-only access (family member or agency family member)
+  const readOnly = isReadOnlyUser(user);
 
   // Determine user's role for HIPAA audit logging
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
@@ -114,12 +118,14 @@ export default function MedicationsPage() {
               Voice Log
             </Button>
           </Link>
-          <Link href="/dashboard/medications/new">
-            <Button size="icon" className="rounded-full w-10 h-10">
-              <Plus className="w-5 h-5" />
-              <span className="sr-only">Add Medication</span>
-            </Button>
-          </Link>
+          {!readOnly && (
+            <Link href="/dashboard/medications/new">
+              <Button size="icon" className="rounded-full w-10 h-10">
+                <Plus className="w-5 h-5" />
+                <span className="sr-only">Add Medication</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -135,11 +141,13 @@ export default function MedicationsPage() {
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             No medications added yet for {selectedElder.name}
           </p>
-          <Link href="/dashboard/medications/new">
-            <Button>
-              Add Your First Medication
-            </Button>
-          </Link>
+          {!readOnly && (
+            <Link href="/dashboard/medications/new">
+              <Button>
+                Add Your First Medication
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -184,26 +192,28 @@ export default function MedicationsPage() {
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push(`/dashboard/medications/${med.id}/edit`)}
-                    className="flex-1"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteClick(med)}
-                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Delete
-                  </Button>
-                </div>
+                {!readOnly && (
+                  <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700 mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/dashboard/medications/${med.id}/edit`)}
+                      className="flex-1"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteClick(med)}
+                      className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
             );
