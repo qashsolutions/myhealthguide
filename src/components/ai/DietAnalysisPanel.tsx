@@ -41,11 +41,15 @@ export function DietAnalysisPanel({ analysis, meal, items }: DietAnalysisPanelPr
             <h3 className="font-semibold text-gray-900 dark:text-white capitalize">{meal}</h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            {items.map((item, idx) => (
-              <Badge key={idx} variant="outline">
-                {item}
-              </Badge>
-            ))}
+            {items.map((item, idx) => {
+              // Handle both string items and object items {name, calories, portion}
+              const itemText = typeof item === 'string' ? item : (item as unknown as { name?: string })?.name || 'Unknown';
+              return (
+                <Badge key={idx} variant="outline">
+                  {itemText}
+                </Badge>
+              );
+            })}
           </div>
         </div>
 

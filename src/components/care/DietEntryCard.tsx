@@ -69,11 +69,15 @@ export function DietEntryCard({ entry, elder, onDelete }: DietEntryCardProps) {
             Items:
           </p>
           <div className="flex flex-wrap gap-1">
-            {entry.items.map((item, idx) => (
-              <Badge key={idx} variant="secondary" className="text-xs">
-                {item}
-              </Badge>
-            ))}
+            {entry.items.map((item, idx) => {
+              // Handle both string items and object items {name, calories, portion}
+              const itemText = typeof item === 'string' ? item : (item as { name?: string })?.name || 'Unknown';
+              return (
+                <Badge key={idx} variant="secondary" className="text-xs">
+                  {itemText}
+                </Badge>
+              );
+            })}
           </div>
         </div>
 

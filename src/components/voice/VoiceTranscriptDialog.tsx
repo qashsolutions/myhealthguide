@@ -176,11 +176,15 @@ export function VoiceTranscriptDialog({
                   <div>
                     <span className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">Items:</span>
                     <div className="flex flex-wrap gap-1">
-                      {parsedData.items.map((item, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          {item}
-                        </Badge>
-                      ))}
+                      {parsedData.items.map((item, idx) => {
+                        // Handle both string items and object items {name, calories, portion}
+                        const itemText = typeof item === 'string' ? item : (item as { name?: string })?.name || 'Unknown';
+                        return (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {itemText}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

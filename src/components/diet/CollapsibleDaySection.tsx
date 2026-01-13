@@ -128,11 +128,15 @@ export function CollapsibleDaySection({
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap gap-1">
-                  {entry.items.map((item, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs">
-                      {item}
-                    </Badge>
-                  ))}
+                  {entry.items.map((item, idx) => {
+                    // Handle both string items and object items {name, calories, portion}
+                    const itemText = typeof item === 'string' ? item : (item as { name?: string })?.name || 'Unknown';
+                    return (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {itemText}
+                      </Badge>
+                    );
+                  })}
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">

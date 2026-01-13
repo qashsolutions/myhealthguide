@@ -1,7 +1,7 @@
 # MyHealthGuide - Claude Code Instructions
 
 - Review the documents. Build prod ready files, do not add To-Dos. Do not assume - ask me when in doubt.
-- Today is Jan 12, 2026.
+- Today is Jan 13, 2026.
 - The firebase config will not work in local.
 
 ## Related Documentation
@@ -29,6 +29,37 @@
 | 8 | Modular Accessibility Components | ✅ COMPLETE | Jan 10, 2026 |
 | 9 | AI Integration Strategy | 🔲 PENDING | - |
 | 10 | MedGemma Branding Cleanup | ✅ COMPLETE | Jan 11, 2026 |
+
+---
+
+## Current Phase: Phase 12 - Agency Feature Comprehensive Testing
+
+**Reference Document:** `refactor-12.md`
+**Status:** 🔄 IN PROGRESS
+
+### MANDATORY TESTING REQUIREMENTS
+
+**EVERY SINGLE TEST MUST BE EXECUTED. NO EXCEPTIONS.**
+
+| Scope | Count | Requirement |
+|-------|-------|-------------|
+| Caregivers | 10 | Test ALL 10 caregivers individually |
+| Elders | 30 | Test ALL 30 elders (3 per caregiver) |
+| Family Members | 60+ | Test ALL family members (2 per elder) |
+| Features | ALL | Every click, every field, every access |
+
+### Testing Rules
+- Do NOT assume features are missing - click and verify
+- Do NOT skip "repetitive" tests - each user may have different bugs
+- Do NOT make time-based excuses - execute ALL tests
+- Document EVERY result in `AGENCY_FEATURE_TEST_RESULTS.md`
+- Document EVERY bug in `AGENCY_BUGS_FOUND.md`
+
+### Test Accounts Pattern
+- Agency Owner: `ramanac+owner@gmail.com`
+- Caregivers 1-10: `ramanac+c1@gmail.com` through `ramanac+c10@gmail.com`
+- Family Members: `ramanac+c{1-10}m{1-6}@gmail.com`
+- Password (all): `AbcD1234`
 
 ---
 

@@ -265,7 +265,11 @@ async function updateFeatureStats(
       await setDoc(statsRef, newStats);
     }
   } catch (error) {
-    console.error('Error updating feature stats:', error);
+    // Silently fail - feature stats are non-critical analytics
+    // Firebase permission errors can occur if rules aren't deployed
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[FeatureTracker] Stats update failed (non-critical):', error);
+    }
   }
 }
 
