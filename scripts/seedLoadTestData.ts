@@ -259,16 +259,13 @@ async function seedDietEntries(elderId: string, groupId: string, userId: string,
     const meal = mealTypes[i % mealTypes.length];
     const entryDate = randomDate(30);
 
-    // Use correct field names matching DietService expectations
+    // Use correct field names matching DietEntry type (items: string[])
     const dietData = {
       groupId,
       elderId,
-      meal, // Changed from mealType
-      timestamp: Timestamp.fromDate(entryDate), // Changed from mealDate
-      items: [ // Changed from foods
-        { name: randomItem(foods), portion: '1 serving', calories: Math.floor(Math.random() * 300) + 100 },
-        { name: randomItem(foods), portion: '0.5 cup', calories: Math.floor(Math.random() * 200) + 50 },
-      ],
+      meal,
+      timestamp: Timestamp.fromDate(entryDate),
+      items: [randomItem(foods), randomItem(foods)], // Plain string array
       notes: `Test diet entry #${i + 1}`,
       loggedBy: userId,
       method: Math.random() > 0.3 ? 'manual' : 'voice',
