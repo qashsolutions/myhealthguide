@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings, Download, Building2 } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings, Download, Building2, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
@@ -102,6 +102,9 @@ function obfuscatePhone(phone: string): string {
 export default function SettingsPage() {
   // Feature tracking
   useFeatureTracking('settings');
+
+  const { signOut } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [activeTab, setActiveTab] = useState('profile');
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -211,6 +214,36 @@ export default function SettingsPage() {
             >
               <Database className="w-4 h-4 mr-2" />
               Privacy & Data
+            </Button>
+          </div>
+
+          {/* Logout Section */}
+          <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+              onClick={async () => {
+                setLoggingOut(true);
+                try {
+                  await signOut();
+                } catch (error) {
+                  console.error('Error signing out:', error);
+                  setLoggingOut(false);
+                }
+              }}
+              disabled={loggingOut}
+            >
+              {loggingOut ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing out...
+                </>
+              ) : (
+                <>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </>
+              )}
             </Button>
           </div>
         </div>
