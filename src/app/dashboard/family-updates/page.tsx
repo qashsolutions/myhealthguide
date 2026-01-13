@@ -16,6 +16,10 @@ export default function FamilyUpdatesPage() {
   const elderId = selectedElder?.id;
   const elderName = selectedElder?.name || 'Loved One';
 
+  // Check if user is a family member (read-only access - can view but not generate/edit/send)
+  const userAgencyRole = user?.agencies?.[0]?.role;
+  const isReadOnly = userAgencyRole === 'family_member';
+
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [reports, setReports] = useState<FamilyUpdateReport[]>([]);
@@ -170,10 +174,12 @@ export default function FamilyUpdatesPage() {
             Weekly narrative updates for family members
           </p>
         </div>
-        <Button onClick={generateNewReport} disabled={generating || loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
-          Generate New Report
-        </Button>
+        {!isReadOnly && (
+          <Button onClick={generateNewReport} disabled={generating || loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+            Generate New Report
+          </Button>
+        )}
       </div>
 
       {/* Info Card */}
@@ -185,8 +191,9 @@ export default function FamilyUpdatesPage() {
               Warm, Personal Updates
             </p>
             <p className="text-sm text-purple-800 dark:text-purple-200 mt-1">
-              These reports use a warm, conversational tone (not clinical) to keep families
-              informed. You can preview, edit, and customize each report before sending.
+              {isReadOnly
+                ? 'View weekly care updates about your loved one. These reports provide a warm, conversational summary of their care.'
+                : 'These reports use a warm, conversational tone (not clinical) to keep families informed. You can preview, edit, and customize each report before sending.'}
             </p>
           </div>
         </div>
@@ -210,13 +217,16 @@ export default function FamilyUpdatesPage() {
               No Reports Yet
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Generate your first weekly family update. The system will analyze the past 7 days of
-              medication and care data to create a warm, personalized summary.
+              {isReadOnly
+                ? 'No family updates have been shared with you yet. Check back later for updates from caregivers.'
+                : 'Generate your first weekly family update. The system will analyze the past 7 days of medication and care data to create a warm, personalized summary.'}
             </p>
-            <Button onClick={generateNewReport} disabled={generating}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
-              Generate First Report
-            </Button>
+            {!isReadOnly && (
+              <Button onClick={generateNewReport} disabled={generating}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+                Generate First Report
+              </Button>
+            )}
           </div>
         </Card>
       )}
@@ -355,7 +365,7 @@ export default function FamilyUpdatesPage() {
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                     Email Message
                   </h4>
-                  {!editMode && selectedReport.status === 'draft' && (
+                  {!isReadOnly && !editMode && selectedReport.status === 'draft' && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -399,7 +409,7 @@ export default function FamilyUpdatesPage() {
               </Card>
 
               {/* Actions */}
-              {selectedReport.status === 'draft' && !editMode && (
+              {!isReadOnly && selectedReport.status === 'draft' && !editMode && (
                 <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-4">
                   <div className="flex items-center justify-between">
                     <div>

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, Download, Calendar, Send, CheckCircle, XCircle, Clock3, AlertCircle } from 'lucide-react';
+import { Clock, Download, Calendar, Send, CheckCircle, XCircle, Clock3, AlertCircle, Lock } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { ShiftSession } from '@/types';
 import type { TimesheetSubmission } from '@/types/timesheet';
@@ -25,8 +25,10 @@ export default function TimesheetPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
-  // Check if user is agency caregiver
-  const isAgencyCaregiver = user?.agencies && user.agencies.length > 0;
+  // Check if user is agency caregiver or family member
+  const userAgencyRole = user?.agencies?.[0]?.role;
+  const isFamilyMember = userAgencyRole === 'family_member';
+  const isAgencyCaregiver = user?.agencies && user.agencies.length > 0 && !isFamilyMember;
   const agencyId = user?.agencies?.[0]?.agencyId;
 
   useEffect(() => {
@@ -207,6 +209,35 @@ export default function TimesheetPage() {
     a.download = `timesheet-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
   };
+
+  // Block access for family members
+  if (isFamilyMember) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/20">
+                <Lock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Caregiver Access Required
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                This feature is only available to agency caregivers and administrators.
+                Caregivers use this to track and submit their work hours.
+              </p>
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  If you believe you should have access, please contact your agency administrator.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

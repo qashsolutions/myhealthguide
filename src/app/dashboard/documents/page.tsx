@@ -30,6 +30,10 @@ export default function DocumentsPage() {
   const [selectedDocument, setSelectedDocument] = useState<StorageMetadata | null>(null);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
 
+  // Check if user is a family member (read-only access)
+  const userAgencyRole = user?.agencies?.[0]?.role;
+  const isReadOnly = userAgencyRole === 'family_member';
+
   useEffect(() => {
     if (user) {
       loadDocuments();
@@ -179,21 +183,25 @@ export default function DocumentsPage() {
             Manage documents for {selectedElder.name}
           </p>
         </div>
-        <label htmlFor="file-upload">
-          <Button disabled={uploading} asChild>
-            <span>
-              <Upload className="w-4 h-4 mr-2" />
-              {uploading ? 'Uploading...' : 'Upload Document'}
-            </span>
-          </Button>
-        </label>
-        <input
-          id="file-upload"
-          type="file"
-          className="hidden"
-          onChange={handleFileUpload}
-          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
-        />
+        {!isReadOnly && (
+          <>
+            <label htmlFor="file-upload">
+              <Button disabled={uploading} asChild>
+                <span>
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploading ? 'Uploading...' : 'Upload Document'}
+                </span>
+              </Button>
+            </label>
+            <input
+              id="file-upload"
+              type="file"
+              className="hidden"
+              onChange={handleFileUpload}
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
+            />
+          </>
+        )}
       </div>
 
       {error && (
@@ -290,21 +298,25 @@ export default function DocumentsPage() {
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 {selectedCategory === 'all' ? 'No documents uploaded yet' : `No ${selectedCategory.replace('_', ' ')} documents found`}
               </p>
-              <label htmlFor="file-upload-empty">
-                <Button variant="outline" asChild>
-                  <span>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Your First Document
-                  </span>
-                </Button>
-              </label>
-              <input
-                id="file-upload-empty"
-                type="file"
-                className="hidden"
-                onChange={handleFileUpload}
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
-              />
+              {!isReadOnly && (
+                <>
+                  <label htmlFor="file-upload-empty">
+                    <Button variant="outline" asChild>
+                      <span>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Your First Document
+                      </span>
+                    </Button>
+                  </label>
+                  <input
+                    id="file-upload-empty"
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
+                  />
+                </>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -342,13 +354,15 @@ export default function DocumentsPage() {
                             <Eye className="w-3 h-3 mr-1" />
                             View
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(doc)}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                          {!isReadOnly && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(doc)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
                         {canAnalyzeDocument(doc.fileType) && (
                           <Button
