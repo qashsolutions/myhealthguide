@@ -34,28 +34,27 @@ export default function SignupPage() {
       return false;
     }
 
-    // Must contain at least one letter
-    if (!/[a-zA-Z]/.test(password)) {
-      setPasswordError('Password must contain at least one letter');
+    // Must contain at least one uppercase letter
+    if (!/[A-Z]/.test(password)) {
+      setPasswordError('Password must contain at least one uppercase letter (A-Z)');
+      return false;
+    }
+
+    // Must contain at least one lowercase letter
+    if (!/[a-z]/.test(password)) {
+      setPasswordError('Password must contain at least one lowercase letter (a-z)');
       return false;
     }
 
     // Must contain at least one number
     if (!/[0-9]/.test(password)) {
-      setPasswordError('Password must contain at least one number');
+      setPasswordError('Password must contain at least one number (0-9)');
       return false;
     }
 
-    // Must contain at least 2 special characters from !@#$%
-    const specialChars = password.match(/[!@#$%]/g) || [];
-    if (specialChars.length < 2) {
-      setPasswordError('Password must contain at least 2 special characters (!@#$%)');
-      return false;
-    }
-
-    // Only allow letters, numbers, and allowed special characters
-    if (!/^[a-zA-Z0-9!@#$%]+$/.test(password)) {
-      setPasswordError('Password can only contain letters, numbers, and !@#$%');
+    // Must contain at least 1 special character
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      setPasswordError('Password must contain at least one special character');
       return false;
     }
 
@@ -110,9 +109,10 @@ export default function SignupPage() {
   // Password validation indicators
   const passwordChecks = {
     length: formData.password.length >= 8,
-    letter: /[a-zA-Z]/.test(formData.password),
+    uppercase: /[A-Z]/.test(formData.password),
+    lowercase: /[a-z]/.test(formData.password),
     number: /[0-9]/.test(formData.password),
-    special: (formData.password.match(/[!@#$%]/g) || []).length >= 2,
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password),
   };
 
   const PasswordCheck = ({ met, text }: { met: boolean; text: string }) => (
@@ -178,9 +178,10 @@ export default function SignupPage() {
                 <p className="font-medium">Password requirements:</p>
                 <ul className="space-y-1.5">
                   <PasswordCheck met={passwordChecks.length} text="At least 8 characters" />
-                  <PasswordCheck met={passwordChecks.letter} text="At least one letter (a-z, A-Z)" />
+                  <PasswordCheck met={passwordChecks.uppercase} text="At least one uppercase letter (A-Z)" />
+                  <PasswordCheck met={passwordChecks.lowercase} text="At least one lowercase letter (a-z)" />
                   <PasswordCheck met={passwordChecks.number} text="At least one number (0-9)" />
-                  <PasswordCheck met={passwordChecks.special} text="At least 2 special characters (!@#$%)" />
+                  <PasswordCheck met={passwordChecks.special} text="At least one special character" />
                 </ul>
               </div>
             </div>

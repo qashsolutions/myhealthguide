@@ -31,24 +31,23 @@ export default function FamilySignupPage() {
       return false;
     }
 
-    if (!/[a-zA-Z]/.test(password)) {
-      setPasswordError('Password must contain at least one letter');
+    if (!/[A-Z]/.test(password)) {
+      setPasswordError('Password must contain at least one uppercase letter (A-Z)');
+      return false;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setPasswordError('Password must contain at least one lowercase letter (a-z)');
       return false;
     }
 
     if (!/[0-9]/.test(password)) {
-      setPasswordError('Password must contain at least one number');
+      setPasswordError('Password must contain at least one number (0-9)');
       return false;
     }
 
-    const specialChars = password.match(/[!@#$%]/g) || [];
-    if (specialChars.length < 2) {
-      setPasswordError('Password must contain at least 2 special characters (!@#$%)');
-      return false;
-    }
-
-    if (!/^[a-zA-Z0-9!@#$%]+$/.test(password)) {
-      setPasswordError('Password can only contain letters, numbers, and !@#$%');
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      setPasswordError('Password must contain at least one special character');
       return false;
     }
 
@@ -170,14 +169,17 @@ export default function FamilySignupPage() {
                   <li className={formData.password.length >= 8 ? 'text-green-600 dark:text-green-400' : ''}>
                     At least 8 characters
                   </li>
-                  <li className={/[a-zA-Z]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
-                    At least one letter (a-z, A-Z)
+                  <li className={/[A-Z]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                    At least one uppercase letter (A-Z)
+                  </li>
+                  <li className={/[a-z]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                    At least one lowercase letter (a-z)
                   </li>
                   <li className={/[0-9]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
                     At least one number (0-9)
                   </li>
-                  <li className={(formData.password.match(/[!@#$%]/g) || []).length >= 2 ? 'text-green-600 dark:text-green-400' : ''}>
-                    At least 2 special characters (!@#$%)
+                  <li className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password) ? 'text-green-600 dark:text-green-400' : ''}>
+                    At least one special character
                   </li>
                 </ul>
               </div>

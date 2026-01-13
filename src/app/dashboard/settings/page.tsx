@@ -544,20 +544,17 @@ function SecurityActivitySettings() {
     if (password.length < 8) {
       return 'Password must be at least 8 characters long';
     }
-    if (!/[a-zA-Z]/.test(password)) {
-      return 'Password must contain at least one letter';
+    if (!/[A-Z]/.test(password)) {
+      return 'Password must contain at least one uppercase letter (A-Z)';
+    }
+    if (!/[a-z]/.test(password)) {
+      return 'Password must contain at least one lowercase letter (a-z)';
     }
     if (!/[0-9]/.test(password)) {
-      return 'Password must contain at least one number';
+      return 'Password must contain at least one number (0-9)';
     }
-    // Must contain at least 2 special characters from !@#$%
-    const specialChars = password.match(/[!@#$%]/g) || [];
-    if (specialChars.length < 2) {
-      return 'Password must contain at least 2 special characters (!@#$%)';
-    }
-    // Only allow letters, numbers, and allowed special characters
-    if (!/^[a-zA-Z0-9!@#$%]+$/.test(password)) {
-      return 'Password can only contain letters, numbers, and !@#$%';
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return 'Password must contain at least one special character';
     }
     return null;
   };
@@ -765,13 +762,13 @@ function SecurityActivitySettings() {
                   id="newPassword"
                   name="newPassword"
                   type="password"
-                  placeholder="8+ characters (a-z, A-Z, 0-9)"
+                  placeholder="8+ chars, A-Z, a-z, 0-9, special"
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
                   autoComplete="new-password"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Use letters (a-z, A-Z) and numbers (0-9) only
+                  Requires uppercase, lowercase, number, and special character
                 </p>
               </div>
               <div className="space-y-2">

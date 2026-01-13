@@ -160,7 +160,7 @@ function LoginContent() {
                 label="Password"
                 hideLabel
                 type="password"
-                placeholder="Minimum 8 characters: a-z, A-Z, 0-9, !@#$%"
+                placeholder="8+ chars: A-Z, a-z, 0-9, special"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

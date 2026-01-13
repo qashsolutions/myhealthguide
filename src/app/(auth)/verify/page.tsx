@@ -192,25 +192,28 @@ function VerifyPageContent() {
     }
   }, [authProvider, phoneVerified, recaptchaVerifier]);
 
-  // Password validation - must have 8+ chars, letters, numbers, and special characters
+  // Password validation - must have 8+ chars, uppercase, lowercase, numbers, and special character
   const validatePassword = (password: string): boolean => {
     setPasswordError('');
 
     if (password.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
+      setPasswordError('Password must be at least 8 characters long');
       return false;
     }
-    if (!/[a-zA-Z]/.test(password)) {
-      setPasswordError('Password must contain at least one letter');
+    if (!/[A-Z]/.test(password)) {
+      setPasswordError('Password must contain at least one uppercase letter (A-Z)');
+      return false;
+    }
+    if (!/[a-z]/.test(password)) {
+      setPasswordError('Password must contain at least one lowercase letter (a-z)');
       return false;
     }
     if (!/[0-9]/.test(password)) {
-      setPasswordError('Password must contain at least one number');
+      setPasswordError('Password must contain at least one number (0-9)');
       return false;
     }
-    // Require at least one special character
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      setPasswordError('Password must contain at least one special character (!@#$%)');
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      setPasswordError('Password must contain at least one special character');
       return false;
     }
     return true;
@@ -606,7 +609,7 @@ function VerifyPageContent() {
                       <Input
                         id="password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="8+ chars with letters, numbers, !@#$%"
+                        placeholder="8+ chars, A-Z, a-z, 0-9, special"
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         className="h-12 pr-10"
@@ -621,7 +624,7 @@ function VerifyPageContent() {
                       </button>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Minimum 8 characters with letters, numbers, and at least 2 special characters (!@#$%)
+                      Minimum 8 characters with uppercase (A-Z), lowercase (a-z), number (0-9), and special character
                     </p>
                   </div>
 

@@ -1082,14 +1082,17 @@ export class AuthService {
     if (newPassword.length < 8) {
       throw new Error('Password must be at least 8 characters long');
     }
-    if (!/[a-zA-Z]/.test(newPassword)) {
-      throw new Error('Password must contain at least one letter');
+    if (!/[A-Z]/.test(newPassword)) {
+      throw new Error('Password must contain at least one uppercase letter (A-Z)');
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      throw new Error('Password must contain at least one lowercase letter (a-z)');
     }
     if (!/[0-9]/.test(newPassword)) {
-      throw new Error('Password must contain at least one number');
+      throw new Error('Password must contain at least one number (0-9)');
     }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
-      throw new Error('Password must contain at least one special character (!@#$%)');
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+      throw new Error('Password must contain at least one special character');
     }
 
     // Confirm the password reset with Firebase
@@ -1108,14 +1111,17 @@ export class AuthService {
     if (newPassword.length < 8) {
       throw new Error('Password must be at least 8 characters long');
     }
-    if (!/[a-zA-Z]/.test(newPassword)) {
-      throw new Error('Password must contain at least one letter');
+    if (!/[A-Z]/.test(newPassword)) {
+      throw new Error('Password must contain at least one uppercase letter (A-Z)');
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      throw new Error('Password must contain at least one lowercase letter (a-z)');
     }
     if (!/[0-9]/.test(newPassword)) {
-      throw new Error('Password must contain at least one number');
+      throw new Error('Password must contain at least one number (0-9)');
     }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
-      throw new Error('Password must contain at least one special character (!@#$%)');
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+      throw new Error('Password must contain at least one special character');
     }
 
     // Update password in Firebase Auth

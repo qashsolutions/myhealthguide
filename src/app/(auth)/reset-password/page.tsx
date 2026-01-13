@@ -57,23 +57,21 @@ function ResetPasswordContent() {
       setError('Password must be at least 8 characters long');
       return;
     }
-    if (!/[a-zA-Z]/.test(password)) {
-      setError('Password must contain at least one letter');
+    if (!/[A-Z]/.test(password)) {
+      setError('Password must contain at least one uppercase letter (A-Z)');
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      setError('Password must contain at least one lowercase letter (a-z)');
       return;
     }
     if (!/[0-9]/.test(password)) {
-      setError('Password must contain at least one number');
+      setError('Password must contain at least one number (0-9)');
       return;
     }
-    // Must contain at least 2 special characters from !@#$%
-    const specialChars = password.match(/[!@#$%]/g) || [];
-    if (specialChars.length < 2) {
-      setError('Password must contain at least 2 special characters (!@#$%)');
-      return;
-    }
-    // Only allow letters, numbers, and allowed special characters
-    if (!/^[a-zA-Z0-9!@#$%]+$/.test(password)) {
-      setError('Password can only contain letters, numbers, and !@#$%');
+    // Must contain at least 1 special character
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      setError('Password must contain at least one special character');
       return;
     }
     if (password !== confirmPassword) {
@@ -118,10 +116,10 @@ function ResetPasswordContent() {
 
   // Password strength indicators
   const hasMinLength = password.length >= 8;
-  const hasLetter = /[a-zA-Z]/.test(password);
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
-  const specialCharCount = (password.match(/[!@#$%]/g) || []).length;
-  const hasSpecialChars = specialCharCount >= 2;
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
   const passwordsMatch = password && confirmPassword && password === confirmPassword;
 
   if (verifying) {
@@ -240,14 +238,17 @@ function ResetPasswordContent() {
               <li className={hasMinLength ? 'text-green-600' : 'text-gray-500'}>
                 {hasMinLength ? '✓' : '○'} At least 8 characters
               </li>
-              <li className={hasLetter ? 'text-green-600' : 'text-gray-500'}>
-                {hasLetter ? '✓' : '○'} At least one letter (a-z, A-Z)
+              <li className={hasUppercase ? 'text-green-600' : 'text-gray-500'}>
+                {hasUppercase ? '✓' : '○'} At least one uppercase letter (A-Z)
+              </li>
+              <li className={hasLowercase ? 'text-green-600' : 'text-gray-500'}>
+                {hasLowercase ? '✓' : '○'} At least one lowercase letter (a-z)
               </li>
               <li className={hasNumber ? 'text-green-600' : 'text-gray-500'}>
                 {hasNumber ? '✓' : '○'} At least one number (0-9)
               </li>
-              <li className={hasSpecialChars ? 'text-green-600' : 'text-gray-500'}>
-                {hasSpecialChars ? '✓' : '○'} At least 2 special characters (!@#$%)
+              <li className={hasSpecialChar ? 'text-green-600' : 'text-gray-500'}>
+                {hasSpecialChar ? '✓' : '○'} At least one special character
               </li>
             </ul>
           </div>
@@ -282,7 +283,7 @@ function ResetPasswordContent() {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !hasMinLength || !hasLetter || !hasNumber || !hasSpecialChars || !passwordsMatch}
+            disabled={loading || !hasMinLength || !hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar || !passwordsMatch}
           >
             {loading ? 'Resetting...' : 'Reset Password'}
           </Button>

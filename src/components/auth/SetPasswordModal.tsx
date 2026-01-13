@@ -33,12 +33,12 @@ export function SetPasswordModal({ open, email, onComplete }: SetPasswordModalPr
 
   // Password validation
   const hasMinLength = password.length >= 8;
-  const hasLetter = /[a-zA-Z]/.test(password);
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
-  const specialCharCount = (password.match(/[!@#$%]/g) || []).length;
-  const hasSpecialChars = specialCharCount >= 2;
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
   const passwordsMatch = password === confirmPassword && password.length > 0;
-  const isValid = hasMinLength && hasLetter && hasNumber && hasSpecialChars && passwordsMatch;
+  const isValid = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecialChar && passwordsMatch;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,17 +167,21 @@ export function SetPasswordModal({ open, email, onComplete }: SetPasswordModalPr
                 <CheckCircle2 className="w-3 h-3" />
                 At least 8 characters
               </div>
-              <div className={`flex items-center gap-2 ${hasLetter ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center gap-2 ${hasUppercase ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle2 className="w-3 h-3" />
-                At least one letter
+                At least one uppercase letter (A-Z)
+              </div>
+              <div className={`flex items-center gap-2 ${hasLowercase ? 'text-green-600' : 'text-gray-400'}`}>
+                <CheckCircle2 className="w-3 h-3" />
+                At least one lowercase letter (a-z)
               </div>
               <div className={`flex items-center gap-2 ${hasNumber ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle2 className="w-3 h-3" />
-                At least one number
+                At least one number (0-9)
               </div>
-              <div className={`flex items-center gap-2 ${hasSpecialChars ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center gap-2 ${hasSpecialChar ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle2 className="w-3 h-3" />
-                At least 2 special characters (!@#$%)
+                At least one special character
               </div>
               <div className={`flex items-center gap-2 ${passwordsMatch ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle2 className="w-3 h-3" />
