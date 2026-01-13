@@ -214,10 +214,20 @@ export class AuthService {
 
     const firebaseUser = userCredential.user;
 
-    // Update last login
+    // Force refresh the ID token to ensure Firestore has the new auth state
+    // This fixes a race condition where Firestore queries fail with permissions errors
+    // immediately after sign-in
+    await firebaseUser.getIdToken(true);
+
+    // Small delay to ensure Firestore client has the new auth state propagated
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Get user document from Firestore
     const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
     if (!userDoc.exists()) {
-      throw new Error('User document not found');
+      // Sign out the user since their account is incomplete
+      await firebaseSignOut(auth);
+      throw new Error('Your account setup is incomplete. Please contact support or sign up for a new account.');
     }
 
     const user = userDoc.data() as User;
