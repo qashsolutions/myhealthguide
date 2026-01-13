@@ -76,6 +76,8 @@ google-cloud-sdk/
 !README.md
 !features.md
 !.claude/commands/*.md
+!AGENCY_FEATURE_TEST_RESULTS.md
+!AGENCY_BUGS_FOUND.md
 
 # Firebase Extensions Credentials
 extensions/*.env
