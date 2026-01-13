@@ -73,6 +73,7 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
       const profilesSnapshot = await getDocs(profilesQuery);
 
       const caregiversData: CaregiverInfo[] = [];
+      const processedCaregiverIds = new Set<string>();
 
       // Build caregiver info from profiles (which super admin CAN read)
       for (const profileDoc of profilesSnapshot.docs) {
@@ -84,6 +85,8 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
 
         // Determine status from profile
         const status = profileData.status || 'active';
+
+        processedCaregiverIds.add(caregiverId);
 
         caregiversData.push({
           id: caregiverId,
@@ -97,6 +100,43 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
           suspendExpiresAt: profileData.suspendExpiresAt?.toDate ? profileData.suspendExpiresAt.toDate() : undefined,
           lastStatusChangeAt: profileData.updatedAt?.toDate ? profileData.updatedAt.toDate() : undefined
         });
+      }
+
+      // Also add caregivers from assignments who don't have profiles yet
+      // This ensures we show all assigned caregivers even without profile documents
+      for (const assignment of assignments) {
+        if (!processedCaregiverIds.has(assignment.caregiverId) && assignment.active) {
+          // Try to get basic user info from the users collection
+          let userName = 'Unknown';
+          let userEmail = '';
+          let userPhone = '';
+
+          try {
+            const userDoc = await getDoc(doc(db, 'users', assignment.caregiverId));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              userName = userData.displayName || userData.name || `Caregiver`;
+              userEmail = userData.email || '';
+              userPhone = userData.phoneNumber || userData.phone || '';
+            }
+          } catch {
+            // If we can't read user doc, use generic name
+            userName = `Caregiver`;
+          }
+
+          processedCaregiverIds.add(assignment.caregiverId);
+
+          caregiversData.push({
+            id: assignment.caregiverId,
+            name: userName,
+            email: userEmail,
+            phone: userPhone,
+            status: 'active',
+            role: assignment.role || 'caregiver',
+            elderCount: assignment.elderIds?.length || 0,
+            joinedAt: assignment.assignedAt instanceof Date ? assignment.assignedAt : undefined,
+          });
+        }
       }
 
       // Sort: active first, then suspended, then revoked
@@ -284,6 +324,10 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
           onOpenChange={(open) => setManageDialog({ ...manageDialog, open })}
           caregiverId={manageDialog.caregiver.id}
           caregiverName={manageDialog.caregiver.name}
+          caregiverEmail={manageDialog.caregiver.email}
+          caregiverPhone={manageDialog.caregiver.phone}
+          elderCount={manageDialog.caregiver.elderCount}
+          joinedAt={manageDialog.caregiver.joinedAt}
           currentStatus={manageDialog.caregiver.status}
           agencyId={agencyId}
           userId={userId}
@@ -303,12 +347,14 @@ interface CaregiverRowProps {
 
 function CaregiverRow({ caregiver, onManage, getStatusBadge }: CaregiverRowProps) {
   return (
-    <div className={`flex items-center justify-between p-3 rounded-lg border ${
+    <div
+      onClick={() => onManage(caregiver)}
+      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
       caregiver.status === 'active'
-        ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+        ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
         : caregiver.status === 'suspended'
-          ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
-          : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
+          ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 hover:border-amber-400'
+          : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:border-red-400'
     }`}>
       <div className="flex items-center gap-3">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -361,7 +407,12 @@ function CaregiverRow({ caregiver, onManage, getStatusBadge }: CaregiverRowProps
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <MoreVertical className="w-4 h-4" />
               <span className="sr-only">Open menu</span>
             </Button>

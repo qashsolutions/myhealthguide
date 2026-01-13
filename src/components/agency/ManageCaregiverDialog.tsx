@@ -20,7 +20,11 @@ import {
   Ban,
   UserCheck,
   Calendar,
-  Shield
+  Shield,
+  Mail,
+  Phone,
+  Users,
+  Clock
 } from 'lucide-react';
 
 type ManageAction = 'suspend' | 'revoke' | 'reactivate';
@@ -30,6 +34,10 @@ interface ManageCaregiverDialogProps {
   onOpenChange: (open: boolean) => void;
   caregiverId: string;
   caregiverName: string;
+  caregiverEmail?: string;
+  caregiverPhone?: string;
+  elderCount?: number;
+  joinedAt?: Date;
   currentStatus: 'active' | 'suspended' | 'revoked' | 'pending_approval';
   agencyId: string;
   userId: string;
@@ -41,6 +49,10 @@ export function ManageCaregiverDialog({
   onOpenChange,
   caregiverId,
   caregiverName,
+  caregiverEmail,
+  caregiverPhone,
+  elderCount,
+  joinedAt,
   currentStatus,
   agencyId,
   userId,
@@ -168,10 +180,48 @@ export function ManageCaregiverDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Current Status */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Current Status</span>
-            {getStatusBadge(currentStatus)}
+          {/* Caregiver Details Section */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <span className="text-lg font-medium text-blue-700 dark:text-blue-400">
+                  {caregiverName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 dark:text-white">{caregiverName}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  {getStatusBadge(currentStatus)}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+              {caregiverEmail && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Mail className="w-4 h-4" />
+                  <span className="truncate">{caregiverEmail}</span>
+                </div>
+              )}
+              {caregiverPhone && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Phone className="w-4 h-4" />
+                  <span>{caregiverPhone}</span>
+                </div>
+              )}
+              {elderCount !== undefined && elderCount > 0 && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Users className="w-4 h-4" />
+                  <span>{elderCount} loved one{elderCount !== 1 ? 's' : ''} assigned</span>
+                </div>
+              )}
+              {joinedAt && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Clock className="w-4 h-4" />
+                  <span>Joined {joinedAt.toLocaleDateString()}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Error Message */}
