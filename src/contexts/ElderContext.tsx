@@ -134,8 +134,10 @@ export function ElderProvider({ children }: { children: ReactNode }) {
 
     try {
       // Query caregiver_assignments collection for active assignments
+      // IMPORTANT: Filter by both caregiverId AND agencyId to ensure correct scoping
       const assignmentsQuery = query(
         collection(db, 'caregiver_assignments'),
+        where('agencyId', '==', agencyId),
         where('caregiverId', '==', caregiverId),
         where('active', '==', true)
       );
