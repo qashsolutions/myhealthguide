@@ -122,15 +122,16 @@ export async function POST(req: NextRequest) {
     };
 
     // Update the agency membership
+    // Note: Use null instead of undefined for Firestore compatibility (legacy data may have undefined values)
     const updatedAgencies = [...agencies];
     updatedAgencies[agencyMembershipIndex] = {
       ...currentMembership,
       status: newStatus,
       statusHistory: [...(currentMembership.statusHistory || []), statusHistoryEntry],
-      suspendedAt: action === 'suspend' ? new Date().toISOString() : currentMembership.suspendedAt,
+      suspendedAt: action === 'suspend' ? new Date().toISOString() : (currentMembership.suspendedAt || null),
       suspendExpiresAt: action === 'suspend' && expiresAt ? expiresAt : null,
-      revokedAt: action === 'revoke' ? new Date().toISOString() : currentMembership.revokedAt,
-      reactivatedAt: action === 'reactivate' ? new Date().toISOString() : currentMembership.reactivatedAt,
+      revokedAt: action === 'revoke' ? new Date().toISOString() : (currentMembership.revokedAt || null),
+      reactivatedAt: action === 'reactivate' ? new Date().toISOString() : (currentMembership.reactivatedAt || null),
       lastStatusChangeBy: adminUserId,
       lastStatusChangeAt: new Date().toISOString()
     };
