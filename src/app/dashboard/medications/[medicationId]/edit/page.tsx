@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
-import { isReadOnlyUser } from '@/lib/utils/getUserRole';
+import { isReadOnlyForElderCare } from '@/lib/utils/getUserRole';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { Loader2, ArrowLeft } from 'lucide-react';
@@ -24,8 +24,9 @@ export default function EditMedicationPage() {
   const { user } = useAuth();
   const { availableElders } = useElder();
 
-  // Check if user has read-only access
-  const readOnly = isReadOnlyUser(user);
+  // Check if user has read-only access for elder care data
+  // Agency Owner (super_admin) is read-only, only caregivers can edit medications
+  const readOnly = isReadOnlyForElderCare(user);
 
   const [medication, setMedication] = useState<Medication | null>(null);
   const [formData, setFormData] = useState({

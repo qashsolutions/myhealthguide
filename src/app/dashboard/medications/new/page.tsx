@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
-import { isReadOnlyUser } from '@/lib/utils/getUserRole';
+import { isReadOnlyForElderCare } from '@/lib/utils/getUserRole';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 
@@ -20,8 +20,9 @@ export default function NewMedicationPage() {
   const { user } = useAuth();
   const { selectedElder, availableElders } = useElder();
 
-  // Check if user has read-only access
-  const readOnly = isReadOnlyUser(user);
+  // Check if user has read-only access for elder care data
+  // Agency Owner (super_admin) is read-only, only caregivers can add medications
+  const readOnly = isReadOnlyForElderCare(user);
 
   // Check if user is on multi-agency plan (can have multiple active elders)
   const isMultiAgencyPlan = user?.subscriptionTier === 'multi_agency';

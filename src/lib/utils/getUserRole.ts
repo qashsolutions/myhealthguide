@@ -173,6 +173,36 @@ export function isReadOnlyUser(user: User | null): boolean {
 }
 
 /**
+ * Check if user is read-only for elder care data (medications, care logs, etc.)
+ * Agency Owners (super_admin) can manage agency but NOT elder care data
+ * Only assigned caregivers can modify elder care data
+ */
+export function isReadOnlyForElderCare(user: User | null): boolean {
+  if (!user) return true;
+
+  // Family members and agency family members are always read-only
+  if (isFamilyMember(user) || isAgencyFamilyMember(user)) {
+    return true;
+  }
+
+  // Agency Owner (super_admin) is read-only for elder care data
+  // They can manage agency (caregivers, billing) but not care data
+  if (user.agencies?.some((a) => a.role === 'super_admin')) {
+    // Check if they also have caregiver role (can happen if owner is also a caregiver)
+    const isAlsoCaregiver = user.agencies?.some((a) =>
+      a.role === 'caregiver' || a.role === 'caregiver_admin'
+    );
+    // If ONLY super_admin and not also a caregiver, they are read-only for care data
+    if (!isAlsoCaregiver) {
+      return true;
+    }
+  }
+
+  // Caregivers and caregiver_admins can modify care data
+  return false;
+}
+
+/**
  * Check if user can manage billing/subscription
  * Only the account owner can subscribe or change plans:
  * - Agency: super_admin (owner)

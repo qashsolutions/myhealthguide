@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
-import { isReadOnlyUser } from '@/lib/utils/getUserRole';
+import { isReadOnlyForElderCare } from '@/lib/utils/getUserRole';
 import { useElderDataLoader } from '@/hooks/useDataLoader';
 import { format } from 'date-fns';
 import type { Medication } from '@/types';
@@ -33,8 +33,9 @@ export default function MedicationsPage() {
   const [medicationToDelete, setMedicationToDelete] = useState<Medication | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Check if user has read-only access (family member or agency family member)
-  const readOnly = isReadOnlyUser(user);
+  // Check if user has read-only access for elder care data
+  // Agency Owner (super_admin) is read-only for care data, only caregivers can modify
+  const readOnly = isReadOnlyForElderCare(user);
 
   // Determine user's role for HIPAA audit logging
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
