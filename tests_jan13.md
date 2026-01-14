@@ -22,11 +22,12 @@
 | 5B | Remove Caregiver - Positive/Negative | 6 | COMPLETE |
 | 6A | View Elders - Positive | 10 | COMPLETE |
 | 6B | View Elders - Negative | 6 | COMPLETE |
-| 7A | Timesheet - Positive | - | PENDING |
-| 7B | Timesheet - Negative | - | PENDING |
+| 7A | Shift Management - Positive | 10 | COMPLETE |
+| 7B | Create Shift - Positive | 16 | COMPLETE |
+| 7C | Create Shift - Negative | 6 | COMPLETE |
 | 8A | Family Member RBAC | - | PENDING |
 
-**Tests Completed:** 91
+**Tests Completed:** 123
 
 ---
 
@@ -308,16 +309,115 @@
 | Test ID | Description | Result | Notes |
 |---------|-------------|--------|-------|
 | 6B.1 | NO "Edit Elder Info" button visible | PASS | Elder cards show only "View Details" |
-| 6B.2 | NO "Edit Medications" button visible | FAIL | "Add Medication" form accessible to owner |
+| 6B.2 | NO "Edit Medications" button visible | PASS | No "Add Medication" button (BUG-017 FIXED) |
 | 6B.3 | NO "Delete Elder" button visible | PASS | No delete buttons anywhere |
 | 6B.4 | NO "Add Care Log" button visible | PASS | Activity page is read-only |
-| 6B.5 | Elder data is READ-ONLY for owner | FAIL | Owner can add medications (BUG-017) |
+| 6B.5 | Elder data is READ-ONLY for owner | PASS | Direct URL shows "Access Restricted" (BUG-017 FIXED) |
 | 6B.6 | Cannot access elder from different agency | PASS | "Access Denied" for unauthorized elder IDs |
 
-**Chunk 6B Result:** 4/6 PASS (67%)
+**Chunk 6B Result:** 6/6 PASS (100%)
 
-**Bug Found:**
-- BUG-017: Agency Owner can add medications - should be read-only access
+**Bug Fixed:**
+- BUG-017: Agency Owner can add medications - FIXED with isReadOnlyForElderCare()
+
+---
+
+## SECTION 7: SHIFT MANAGEMENT
+
+### CHUNK 7A: SHIFT MANAGEMENT - POSITIVE TESTS
+
+**Status:** COMPLETE
+**Time:** Jan 14, 2026
+**Account:** Agency Owner (ramanac+owner@gmail.com)
+
+| Test ID | Description | Result | Notes |
+|---------|-------------|--------|-------|
+| 7A.1 | "Shifts/Schedule" menu visible | PASS | "Scheduling" tab in Agency Management |
+| 7A.2 | Menu item clickable | PASS | Navigates to Shift Schedule page |
+| 7A.3 | Shift management page loads | PASS | Shows calendar with stats |
+| 7A.4 | Shows calendar or list view | PASS | Week/Month toggle, calendar view |
+| 7A.5 | Shows pending shifts | PASS | "1 Pending Confirmation" counter |
+| 7A.6 | Shows assigned shifts | PASS | Shift on Jan 14 for Caregiver 1 |
+| 7A.7 | Shows completed shifts | N/A | No completed shifts in test data |
+| 7A.8 | Each shift shows date | PASS | Wed 14 visible in Week view |
+| 7A.9 | Each shift shows time | PASS | 09:00-17:00 time range shown |
+| 7A.10 | Each shift shows elder name | PASS | "→ LO-C1-1" displayed on shift card |
+| 7A.11 | Each shift shows status | PASS | Blue dot + Pending Confirmation counter |
+
+**Chunk 7A Result:** 10/10 PASS (7A.7 N/A - no test data)
+
+**Features Verified:**
+- Scheduling tab in Agency Management
+- Week/Month calendar toggle
+- Stats: Total Shifts, Total Hours, Caregivers, Pending Confirmation
+- Caregiver filter chips with color coding
+- Quick Select buttons (All Weekdays, All Weekends, etc.)
+- Shift cards show: time range, caregiver name, elder name, status indicator
+- "+ Add" and "+ New Shift" buttons for creating shifts
+
+---
+
+### CHUNK 7B: CREATE SHIFT - POSITIVE TESTS
+
+**Status:** COMPLETE
+**Time:** Jan 14, 2026
+**Account:** Agency Owner (ramanac+owner@gmail.com)
+
+| Test ID | Description | Result | Notes |
+|---------|-------------|--------|-------|
+| 7B.1 | "+ New Shift" button visible | PASS | Blue button in top right |
+| 7B.2 | Button click works | PASS | Opens Create New Shift modal |
+| 7B.3 | Create shift form opens | PASS | Modal dialog with all fields |
+| 7B.4 | Date field present | PASS | Date picker with "Date *" label |
+| 7B.5 | Date field accepts input | PASS | Pre-filled with today (01/14/2026) |
+| 7B.6 | Start time field present | PASS | "Start Time *" label with time picker |
+| 7B.7 | Start time accepts input | PASS | Shows 09:00 default |
+| 7B.8 | End time field present | PASS | "End Time *" label with time picker |
+| 7B.9 | End time accepts input | PASS | Shows 17:00 default |
+| 7B.10 | Elder dropdown present | PASS | "Loved One *" label |
+| 7B.11 | Elder dropdown shows available elders | PASS | Shows 8 elders (LO-C1-1, LO-C1-2, etc.) |
+| 7B.12 | Caregiver dropdown present | PASS | "Caregiver *" label |
+| 7B.13 | Caregiver dropdown shows caregivers | PASS | Shows 8 caregivers with status dots |
+| 7B.14 | Notes field present | PASS | "Notes (optional)" with placeholder |
+| 7B.15 | Create shift for TODAY | PASS | Successfully created with Create Shift button |
+| 7B.16 | Shift appears in list | PASS | Calendar shows 2 shifts, 16.0h total, 2 pending |
+
+**Chunk 7B Result:** 16/16 PASS (100%)
+
+**Features Verified:**
+- Create New Shift modal with complete form
+- Date defaults to today's date
+- Start/End time fields with Duration calculation (8h)
+- Loved One dropdown shows all available elders
+- Caregiver dropdown shows all caregivers with status indicators
+- Notes field optional
+- Cancel and Create Shift buttons
+- Successful shift creation updates calendar immediately
+- Stats update: Total Shifts (1→2), Total Hours (8.0h→16.0h), Pending (1→2)
+
+---
+
+### CHUNK 7C: CREATE SHIFT - NEGATIVE TESTS
+
+**Status:** COMPLETE
+**Time:** Jan 14, 2026
+**Account:** Agency Owner (ramanac+owner@gmail.com)
+
+| Test ID | Description | Result | Notes |
+|---------|-------------|--------|-------|
+| 7C.1 | Submit without date → Error shown | PASS | "Please fill in all required fields" |
+| 7C.2 | Submit without start time → Error shown | FAIL | Invalid start time (--:00) accepted |
+| 7C.3 | Submit without end time → Error shown | PASS | "End time must be after start time" |
+| 7C.4 | Submit without elder selected → Error shown | PASS | "Please fill in all required fields" |
+| 7C.5 | End time before start time → Error shown | FAIL | No validation, shift created anyway |
+| 7C.6 | Past date → Warning or error | FAIL | App crash (client-side exception) |
+
+**Chunk 7C Result:** 3/6 PASS, 3/6 FAIL (50%)
+
+**Bugs Found:**
+- BUG-018: Past date in Create Shift form causes client-side crash
+- BUG-019: Invalid/empty start time accepted without validation error
+- BUG-020: End time before start time not properly validated
 
 ---
 
@@ -332,18 +432,21 @@
 | BUG-014 | 3A | Groups/caregivers not clickable for detail view | Medium | FIXED |
 | BUG-015 | 4A | Caregiver stats shows 18 loved ones instead of 3 | Medium | FIXED |
 | BUG-016 | 4B | Firestore undefined value errors when suspending caregiver | Medium | FIXED |
-| BUG-017 | 6B | Agency Owner can add medications (should be read-only) | High | OPEN |
+| BUG-017 | 6B | Agency Owner can add medications (should be read-only) | High | FIXED |
+| BUG-018 | 7C | Past date in Create Shift causes app crash | High | FIXED |
+| BUG-019 | 7C | Invalid/empty start time accepted without validation | Medium | FIXED |
+| BUG-020 | 7C | End time before start time not properly validated | Medium | FIXED |
 
 ---
 
 ## SESSION LOG
 
 - **Start Time:** Jan 13, 2026
-- **Current Chunk:** 6B COMPLETE
-- **Next Chunk:** 7A (Timesheet - Positive)
-- **Blocker:** BUG-017 (Agency Owner can add medications)
-- **Chunks Completed:** 1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B, 6A, 6B
-- **Tests Completed:** 91
+- **Current Chunk:** 7C COMPLETE (3/6 PASS)
+- **Next Chunk:** 8A (Family Member RBAC)
+- **Blocker:** None - BUG-018, BUG-019, BUG-020 FIXED
+- **Chunks Completed:** 1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B, 6A, 6B, 7A, 7B, 7C
+- **Tests Completed:** 123
 
 **Jan 14, 2026 Update:**
 - Implemented Edit Caregiver Profile feature (was missing)
@@ -354,5 +457,28 @@
 - Verified revoke removes caregiver from Active list (10 → 9 caregivers)
 - CHUNK 6A (View Elders - Positive) - 10/10 PASS
 - Verified elder list, grouping, navigation, and RBAC restrictions
-- CHUNK 6B (View Elders - Negative) - 4/6 PASS
-- Found BUG-017: Agency Owner can add medications (should be read-only)
+- CHUNK 6B (View Elders - Negative) - 6/6 PASS (BUG-017 FIXED)
+- BUG-017 FIX: Created isReadOnlyForElderCare() function in getUserRole.ts
+- Agency Owner (super_admin) now blocked from adding/editing medications
+- Fix verified: Medications page shows no Add button, /medications/new shows "Access Restricted"
+- CHUNK 7A (Shift Management - Positive) - 10/10 PASS
+- Verified Scheduling tab in Agency Management with Week/Month calendar views
+- Shift cards display: time range, caregiver name, elder name (LO-C1-1), status indicator
+- CHUNK 7B (Create Shift - Positive) - 16/16 PASS
+- Create New Shift modal with all required fields (Date, Start/End Time, Caregiver, Loved One, Notes)
+- Elder dropdown shows 8 available elders with correct naming
+- Caregiver dropdown shows 8 caregivers with status indicators
+- Duration auto-calculated (8h for 09:00-17:00)
+- Successfully created shift, stats updated: Total Shifts 1→2, Total Hours 8.0h→16.0h, Pending 1→2
+- CHUNK 7C (Create Shift - Negative) - 3/6 PASS, 3/6 FAIL
+- BUG-018: Past date causes client-side crash (no graceful error)
+- BUG-019: Invalid/empty start time (--:00) accepted without validation
+- BUG-020: End time before start time not properly validated
+- Validation working: Missing date/elder shows "Please fill in all required fields"
+- Validation working: Empty end time shows "End time must be after start time"
+- **Bug Fixes Applied:** BUG-018, BUG-019, BUG-020 fixed in CreateShiftDialog.tsx
+  - Added isValidTime() helper for HH:MM format validation
+  - Added timeToMinutes() helper for numeric time comparison
+  - Added past date validation (cannot create shifts for past dates)
+  - Added proper time format validation
+  - Fixed end time validation using numeric comparison instead of string comparison

@@ -84,20 +84,63 @@ export function CreateShiftDialog({
     }
   };
 
+  // Helper to validate time format (HH:MM)
+  const isValidTime = (time: string): boolean => {
+    if (!time || time.length !== 5) return false;
+    const [hours, minutes] = time.split(':');
+    const h = parseInt(hours, 10);
+    const m = parseInt(minutes, 10);
+    return !isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59;
+  };
+
+  // Helper to convert time string to minutes for comparison
+  const timeToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
   const handleSubmit = async () => {
+    // Clear previous error
+    setError(null);
+
+    // Validate required fields
     if (!selectedCaregiver || !selectedElder || !date) {
       setError('Please fill in all required fields');
       return;
     }
 
-    // Validate times
-    if (startTime >= endTime) {
+    // BUG-018 FIX: Validate date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+      setError('Cannot create shifts for past dates. Please select today or a future date.');
+      return;
+    }
+
+    // BUG-019 FIX: Validate time formats
+    if (!isValidTime(startTime)) {
+      setError('Please enter a valid start time (HH:MM format)');
+      return;
+    }
+
+    if (!isValidTime(endTime)) {
+      setError('Please enter a valid end time (HH:MM format)');
+      return;
+    }
+
+    // BUG-020 FIX: Validate end time is after start time using numeric comparison
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+
+    if (endMinutes <= startMinutes) {
       setError('End time must be after start time');
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
       // Get caregiver and elder names
