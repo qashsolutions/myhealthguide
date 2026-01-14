@@ -201,6 +201,8 @@ export async function GET(request: NextRequest) {
             id: doc.id,
             ...data,
             date: shiftDate, // Return as Date, not Timestamp
+            startTime: data.startTime as string || '',
+            endTime: data.endTime as string || '',
             createdAt: data.createdAt?.toDate?.() || null,
             updatedAt: data.updatedAt?.toDate?.() || null,
           };
@@ -220,7 +222,72 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, scheduledShifts });
       }
 
-      const scheduledShift = scheduledShifts.length > 0 ? scheduledShifts[0] : null;
+      // Find the shift that matches current time window
+      // Clock-in window: 10 minutes early to 30 minutes after start time
+      // Also check if we're during or just after the shift
+      const CLOCK_IN_EARLY_MINUTES = 10;
+      const CLOCK_IN_LATE_MINUTES = 30;
+
+      const findBestShift = () => {
+        if (scheduledShifts.length === 0) return null;
+        if (scheduledShifts.length === 1) return scheduledShifts[0];
+
+        const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+
+        // Helper to parse time string "HH:MM" to minutes since midnight
+        const parseTimeToMinutes = (timeStr: string): number => {
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          return hours * 60 + minutes;
+        };
+
+        // Score shifts based on how relevant they are to current time
+        // Lower score = better match
+        const scoredShifts = scheduledShifts.map(shift => {
+          const startMinutes = parseTimeToMinutes(shift.startTime || '00:00');
+          const endMinutes = parseTimeToMinutes(shift.endTime || '23:59');
+
+          // Calculate clock-in window
+          const clockInStart = startMinutes - CLOCK_IN_EARLY_MINUTES;
+          const clockInEnd = startMinutes + CLOCK_IN_LATE_MINUTES;
+
+          let score = Infinity;
+
+          // Highest priority: currently in clock-in window
+          if (nowMinutes >= clockInStart && nowMinutes <= clockInEnd) {
+            score = 0;
+          }
+          // Second priority: currently during shift
+          else if (nowMinutes >= startMinutes && nowMinutes <= endMinutes) {
+            score = 1;
+          }
+          // Third priority: shift hasn't started yet (upcoming)
+          else if (nowMinutes < startMinutes) {
+            score = 100 + (startMinutes - nowMinutes); // Closer = lower score
+          }
+          // Fourth priority: shift already ended (past)
+          else {
+            score = 1000 + (nowMinutes - endMinutes); // More recent = lower score
+          }
+
+          return { shift, score, startMinutes };
+        });
+
+        // Sort by score (best match first), then by start time
+        scoredShifts.sort((a, b) => {
+          if (a.score !== b.score) return a.score - b.score;
+          return a.startMinutes - b.startMinutes;
+        });
+
+        console.log('[shift-handoff] Shift scoring:', scoredShifts.map(s => ({
+          id: s.shift.id,
+          startTime: s.shift.startTime,
+          score: s.score
+        })));
+
+        return scoredShifts[0]?.shift || null;
+      };
+
+      const scheduledShift = findBestShift();
       return NextResponse.json({ success: true, scheduledShift });
     }
 
