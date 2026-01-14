@@ -15,7 +15,8 @@ import {
   Mail,
   Phone,
   Clock,
-  Shield
+  Shield,
+  Pencil
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ManageCaregiverDialog } from './ManageCaregiverDialog';
+import { EditCaregiverDialog } from './EditCaregiverDialog';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { AgencyService } from '@/lib/firebase/agencies';
@@ -54,6 +56,10 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [manageDialog, setManageDialog] = useState<{
+    open: boolean;
+    caregiver: CaregiverInfo | null;
+  }>({ open: false, caregiver: null });
+  const [editDialog, setEditDialog] = useState<{
     open: boolean;
     caregiver: CaregiverInfo | null;
   }>({ open: false, caregiver: null });
@@ -168,7 +174,15 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
     setManageDialog({ open: true, caregiver });
   };
 
+  const handleEditClick = (caregiver: CaregiverInfo) => {
+    setEditDialog({ open: true, caregiver });
+  };
+
   const handleManageSuccess = () => {
+    loadCaregivers();
+  };
+
+  const handleEditSuccess = () => {
     loadCaregivers();
   };
 
@@ -286,6 +300,7 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
                         key={caregiver.id}
                         caregiver={caregiver}
                         onManage={handleManageClick}
+                        onEdit={handleEditClick}
                         getStatusBadge={getStatusBadge}
                       />
                     ))}
@@ -306,6 +321,7 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
                         key={caregiver.id}
                         caregiver={caregiver}
                         onManage={handleManageClick}
+                        onEdit={handleEditClick}
                         getStatusBadge={getStatusBadge}
                       />
                     ))}
@@ -334,6 +350,24 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
           onSuccess={handleManageSuccess}
         />
       )}
+
+      {/* Edit Profile Dialog */}
+      {editDialog.caregiver && (
+        <EditCaregiverDialog
+          open={editDialog.open}
+          onOpenChange={(open) => setEditDialog({ ...editDialog, open })}
+          caregiverId={editDialog.caregiver.id}
+          caregiverName={editDialog.caregiver.name}
+          caregiverEmail={editDialog.caregiver.email}
+          caregiverPhone={editDialog.caregiver.phone?.replace(/^\+1/, '')}
+          elderCount={editDialog.caregiver.elderCount}
+          joinedAt={editDialog.caregiver.joinedAt}
+          currentStatus={editDialog.caregiver.status}
+          agencyId={agencyId}
+          userId={userId}
+          onSuccess={handleEditSuccess}
+        />
+      )}
     </>
   );
 }
@@ -342,10 +376,11 @@ export function ActiveCaregiversSection({ agencyId, userId }: ActiveCaregiversSe
 interface CaregiverRowProps {
   caregiver: CaregiverInfo;
   onManage: (caregiver: CaregiverInfo) => void;
+  onEdit?: (caregiver: CaregiverInfo) => void;
   getStatusBadge: (status: string, suspendExpiresAt?: Date) => React.ReactNode;
 }
 
-function CaregiverRow({ caregiver, onManage, getStatusBadge }: CaregiverRowProps) {
+function CaregiverRow({ caregiver, onManage, onEdit, getStatusBadge }: CaregiverRowProps) {
   return (
     <div
       onClick={() => onManage(caregiver)}
@@ -418,7 +453,13 @@ function CaregiverRow({ caregiver, onManage, getStatusBadge }: CaregiverRowProps
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onManage(caregiver)}>
+            {onEdit && (
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(caregiver); }}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Profile
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onManage(caregiver); }}>
               <Shield className="w-4 h-4 mr-2" />
               Manage Access
             </DropdownMenuItem>
