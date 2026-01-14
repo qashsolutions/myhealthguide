@@ -151,19 +151,66 @@ export function BulkCreateShiftDialog({
   const hours = Math.floor(duration / 60);
   const minutes = duration % 60;
 
+  // Helper to validate time format (HH:MM)
+  const isValidTime = (time: string): boolean => {
+    if (!time || time.length !== 5) return false;
+    const [hoursStr, minutesStr] = time.split(':');
+    const h = parseInt(hoursStr, 10);
+    const m = parseInt(minutesStr, 10);
+    return !isNaN(h) && !isNaN(m) && h >= 0 && h <= 23 && m >= 0 && m <= 59;
+  };
+
+  // Helper to convert time string to minutes for comparison
+  const timeToMinutes = (time: string): number => {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  };
+
   const handleSubmit = async () => {
+    // Clear previous error
+    setError(null);
+
+    // Validate required fields
     if (!selectedCaregiver || !selectedElder || selectedDates.length === 0) {
       setError('Please fill in all required fields');
       return;
     }
 
-    if (startTime >= endTime) {
+    // BUG-018 FIX: Validate no past dates in selection
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const pastDates = selectedDates.filter(date => {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      return d < today;
+    });
+
+    if (pastDates.length > 0) {
+      setError(`Cannot create shifts for past dates. ${pastDates.length} date(s) in the past.`);
+      return;
+    }
+
+    // BUG-019 FIX: Validate time formats
+    if (!isValidTime(startTime)) {
+      setError('Please enter a valid start time (HH:MM format)');
+      return;
+    }
+
+    if (!isValidTime(endTime)) {
+      setError('Please enter a valid end time (HH:MM format)');
+      return;
+    }
+
+    // BUG-020 FIX: Validate end time is after start time using numeric comparison
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+
+    if (endMinutes <= startMinutes) {
       setError('End time must be after start time');
       return;
     }
 
     setLoading(true);
-    setError(null);
     setProgress(0);
     setResults([]);
     setShowResults(false);
