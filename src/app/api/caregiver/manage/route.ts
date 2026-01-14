@@ -111,9 +111,10 @@ export async function POST(req: NextRequest) {
     const newStatus = action === 'reactivate' ? 'active' : action === 'suspend' ? 'suspended' : 'revoked';
 
     // Create status history entry
+    // Note: previousStatus defaults to 'active' if not set (legacy data)
     const statusHistoryEntry = {
       status: newStatus,
-      previousStatus: currentMembership.status,
+      previousStatus: currentMembership.status || 'active',
       reason: reason || null,
       changedAt: new Date().toISOString(),
       changedBy: adminUserId,
