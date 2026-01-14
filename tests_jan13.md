@@ -482,3 +482,5 @@
   - Added past date validation (cannot create shifts for past dates)
   - Added proper time format validation
   - Fixed end time validation using numeric comparison instead of string comparison
+- **Bug Fixes Applied:** Same fixes applied to BulkCreateShiftDialog.tsx (bulk shift creation)
+  - Both single-date and multi-date shift creation now have proper validation
