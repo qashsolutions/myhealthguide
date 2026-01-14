@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
       targetUserId: caregiverId,
       performedBy: adminUserId,
       reason: reason || null,
-      previousStatus: currentMembership.status,
+      previousStatus: currentMembership.status || 'active',
       newStatus,
       expiresAt: action === 'suspend' && expiresAt ? expiresAt : null,
       metadata: {
