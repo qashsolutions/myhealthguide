@@ -28,8 +28,10 @@
 | 8A | Caregiver Login - Positive | 10 | COMPLETE |
 | 8B | Caregiver RBAC - Negative | 6 | COMPLETE |
 | 9A | Caregiver Shift Check-In | 10 | PARTIAL (5 BLOCKED) |
+| 9B | Check-In - Negative | 3 | COMPLETE |
+| 10A | Medications - Positive | 10 | PARTIAL (6 NOT IMPL) |
 
-**Tests Completed:** 144
+**Tests Completed:** 151
 
 ---
 
@@ -515,6 +517,65 @@
 
 ---
 
+### CHUNK 9B: CHECK-IN - NEGATIVE TESTS
+
+**Status:** COMPLETE
+**Time:** Jan 14, 2026
+**Account:** Caregiver 1 (ramanac+c1@gmail.com)
+
+| Test ID | Description | Result | Notes |
+|---------|-------------|--------|-------|
+| 9B.1 | Cannot check in twice (button disabled/hidden) | PASS | After clock-in, button changes to "Clock Out & Generate Handoff Note" |
+| 9B.2 | Cannot check out without checking in first | PASS | Only "Clock In (Not Available)" shown when not clocked in |
+| 9B.3 | Cannot check in to someone else's shift | PASS | Elder dropdown only shows assigned elders (LO-C1-1, LO-C1-2, LO-C1-3) |
+
+**Chunk 9B Result:** 3/3 PASS (100%)
+
+**Implementation Details:**
+- Clock In button replaced with "Clock Out & Generate Handoff Note" after successful clock-in
+- No Clock Out button visible when shift not active (prevents checkout without checkin)
+- Elder dropdown scoped to caregiver's assigned elders only
+- Switching elders shows "No Shift Scheduled" for elders without shifts
+- RBAC properly enforced at both UI and API levels
+
+---
+
+## SECTION 10: MEDICATIONS
+
+### CHUNK 10A: MEDICATIONS - POSITIVE TESTS
+
+**Status:** PARTIAL (4 PASS, 6 NOT IMPLEMENTED)
+**Time:** Jan 14, 2026
+**Account:** Caregiver 1 (ramanac+c1@gmail.com)
+
+| Test ID | Description | Result | Notes |
+|---------|-------------|--------|-------|
+| 10A.1 | Medications list visible | PASS | Daily Care > Medications tab shows list |
+| 10A.2 | Shows medication names | PASS | "Aspirin" displayed |
+| 10A.3 | Shows dosages | PASS | "81mg" displayed |
+| 10A.4 | Shows scheduled times | PASS | "8" shown (8am/8pm) |
+| 10A.5 | "Mark as Given" button visible | NOT IMPL | Button exists in MedicationCard.tsx but not used |
+| 10A.6 | Click "Mark as Given" on first medication | NOT IMPL | Component not integrated |
+| 10A.7 | Medication marked with timestamp | NOT IMPL | LogDoseModal.tsx has functionality |
+| 10A.8 | Can add notes to medication | NOT IMPL | Notes field exists in LogDoseModal |
+| 10A.9 | "Skip" option available | NOT IMPL | "Skipped" status in LogDoseModal |
+| 10A.10 | Skip requires reason field | NOT IMPL | Notes field serves as reason |
+
+**Chunk 10A Result:** 4/10 PASS, 6/10 NOT IMPLEMENTED
+
+**Technical Finding:**
+- `LogDoseModal.tsx` component exists with full functionality:
+  - "Taken" status (Mark as Given)
+  - "Missed" status
+  - "Skipped" status with description field
+  - Notes/observations field
+  - Timestamp logging
+- `MedicationCard.tsx` component has "Log Dose" button
+- **BUG-022:** Neither component is integrated into Daily Care page
+- Components are orphaned - built but not wired to UI
+
+---
+
 ## BUGS FOUND DURING TESTING
 
 | Bug ID | Chunk | Description | Severity | Status |
@@ -531,17 +592,18 @@
 | BUG-019 | 7C | Invalid/empty start time accepted without validation | Medium | ✅ VERIFIED |
 | BUG-020 | 7C | End time before start time not properly validated | Medium | ✅ VERIFIED |
 | BUG-021 | 9A | Shift Handoff API returns first shift of day, not current-time-matching shift | High | ✅ FIXED |
+| BUG-022 | 10A | MedicationCard/LogDoseModal not integrated into Daily Care page | Medium | OPEN |
 
 ---
 
 ## SESSION LOG
 
 - **Start Time:** Jan 13, 2026
-- **Current Chunk:** 9A PARTIAL (5/10 PASS, 5 BLOCKED)
-- **Next Chunk:** 9B or continue with other tests
-- **Blocker:** Shift check-in tests blocked by time (shift window passed)
-- **Chunks Completed:** 1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B, 6A, 6B, 7A, 7B, 7C, 8A, 8B, 9A
-- **Tests Completed:** 144
+- **Current Chunk:** 9B COMPLETE
+- **Next Chunk:** 10A or additional tests
+- **Blocker:** None
+- **Chunks Completed:** 1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B, 6A, 6B, 7A, 7B, 7C, 8A, 8B, 9A, 9B
+- **Tests Completed:** 147
 
 **Jan 14, 2026 Update:**
 - Implemented Edit Caregiver Profile feature (was missing)
@@ -615,3 +677,33 @@
     - Before fix: Page showed "03:00 AM - 11:00 AM" (old 09:00-17:00 UTC shift)
     - After fix: Page shows "04:00 PM - 05:30 PM" (correct current shift)
   - **Commit:** `fix: shift-handoff API now returns current time-matching shift`
+- **CHUNK 9B (Check-In - Negative Tests) - 3/3 PASS (Jan 14, 2026):**
+  - TEST 9B.1: Cannot check in twice - PASS
+    - Clicked Clock In for scheduled shift (05:45 PM - 05:59 PM)
+    - Button changed to "Clock Out & Generate Handoff Note"
+    - No second Clock In button visible - correct behavior
+  - TEST 9B.2: Cannot check out without checking in first - PASS
+    - Checked Shift Handoff page when not clocked in
+    - Only "Clock In (Not Available)" button shown
+    - No Clock Out button visible
+  - TEST 9B.3: Cannot check in to someone else's shift - PASS
+    - Elder dropdown only shows assigned elders (LO-C1-1, LO-C1-2, LO-C1-3)
+    - Other caregivers' elders NOT visible (LO-C2-1, LO-C4-1, etc.)
+    - Switching to LO-C1-2 shows "No Shift Scheduled" - confirms per-elder shift scoping
+- **CHUNK 10A (Medications - Positive Tests) - 4/10 PASS, 6/10 NOT IMPLEMENTED (Jan 14, 2026):**
+  - TEST 10A.1: Medications list visible - PASS (Daily Care page shows medications tab)
+  - TEST 10A.2: Shows medication names - PASS (Aspirin displayed)
+  - TEST 10A.3: Shows dosages - PASS (81mg displayed)
+  - TEST 10A.4: Shows scheduled times - PASS (8 displayed for 8am/8pm)
+  - TEST 10A.5: "Mark as Given" button visible - NOT IMPLEMENTED
+  - TEST 10A.6: Click "Mark as Given" on first medication - NOT IMPLEMENTED
+  - TEST 10A.7: Medication marked with timestamp - NOT IMPLEMENTED
+  - TEST 10A.8: Can add notes to medication - NOT IMPLEMENTED
+  - TEST 10A.9: "Skip" option available - NOT IMPLEMENTED
+  - TEST 10A.10: Skip requires reason field - NOT IMPLEMENTED
+  - **FINDING:** LogDoseModal.tsx and MedicationCard.tsx components exist with full functionality:
+    - Taken/Missed/Skipped status options
+    - Notes field for observations
+    - Timestamp logging
+    - BUT these components are NOT integrated into Daily Care page
+  - **BUG-022:** MedicationCard and LogDoseModal not wired to Daily Care UI

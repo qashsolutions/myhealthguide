@@ -31,6 +31,7 @@ import { MedicationService } from '@/lib/firebase/medications';
 import { SupplementService } from '@/lib/firebase/supplements';
 import { DietService } from '@/lib/firebase/diet';
 import { ReminderDialog } from '@/components/notifications/ReminderDialog';
+import { LogDoseModal } from '@/components/care/LogDoseModal';
 import type { Medication, Supplement, DietEntry } from '@/types';
 import { format, isToday } from 'date-fns';
 
@@ -55,6 +56,8 @@ function DailyCareContent() {
 
   // Dialog state
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [logDoseModalOpen, setLogDoseModalOpen] = useState(false);
+  const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);
 
   // Determine user's role (needed for ReminderDialog and write access)
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
@@ -128,6 +131,18 @@ function DailyCareContent() {
 
   const handleComparePrices = () => {
     alert('Coming Soon: Price comparison feature is under development');
+  };
+
+  // Handle opening log dose modal
+  const handleLogDose = (medication: Medication) => {
+    setSelectedMedication(medication);
+    setLogDoseModalOpen(true);
+  };
+
+  // Handle closing log dose modal
+  const handleLogDoseClose = () => {
+    setLogDoseModalOpen(false);
+    setSelectedMedication(null);
   };
 
   if (!selectedElder) {
@@ -221,7 +236,12 @@ function DailyCareContent() {
       ) : (
         <>
           {activeTab === 'medications' && (
-            <MedicationsTab medications={medications} elderId={selectedElder.id} canWrite={canWrite} />
+            <MedicationsTab
+              medications={medications}
+              elderId={selectedElder.id}
+              canWrite={canWrite}
+              onLogDose={handleLogDose}
+            />
           )}
           {activeTab === 'supplements' && (
             <SupplementsTab supplements={supplements} elderId={selectedElder.id} canWrite={canWrite} />
@@ -247,12 +267,32 @@ function DailyCareContent() {
         userRole={userRole}
         isFullyVerified={!!(user?.emailVerified && user?.phoneVerified)}
       />
+
+      {/* Log Dose Modal */}
+      {selectedMedication && (
+        <LogDoseModal
+          open={logDoseModalOpen}
+          onClose={handleLogDoseClose}
+          medication={selectedMedication}
+          elder={selectedElder}
+        />
+      )}
     </div>
   );
 }
 
 // Medications Tab Content
-function MedicationsTab({ medications, elderId, canWrite }: { medications: Medication[]; elderId: string; canWrite: boolean }) {
+function MedicationsTab({
+  medications,
+  elderId,
+  canWrite,
+  onLogDose
+}: {
+  medications: Medication[];
+  elderId: string;
+  canWrite: boolean;
+  onLogDose: (medication: Medication) => void;
+}) {
   if (medications.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -291,14 +331,25 @@ function MedicationsTab({ medications, elderId, canWrite }: { medications: Medic
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-sm text-gray-500 hidden sm:block">
                 {med.frequency?.times?.[0] || '--:--'}
               </span>
-              <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+              <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 hidden sm:flex">
                 <Check className="w-3 h-3 mr-1" />
                 Active
               </Badge>
+              {canWrite && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => onLogDose(med)}
+                  className="whitespace-nowrap"
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  Log Dose
+                </Button>
+              )}
             </div>
           </div>
         </Card>
