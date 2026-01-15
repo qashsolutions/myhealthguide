@@ -394,7 +394,8 @@ export class MedicationService {
       where('elderId', '==', elderId),
       where('groupId', '==', groupId),
       where('createdAt', '>=', Timestamp.fromDate(startOfDay)),
-      where('createdAt', '<=', Timestamp.fromDate(endOfDay))
+      where('createdAt', '<=', Timestamp.fromDate(endOfDay)),
+      orderBy('createdAt', 'desc')
     );
 
     const snapshot = await getDocs(q);
