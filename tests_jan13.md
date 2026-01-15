@@ -30,7 +30,7 @@
 | 9A | Caregiver Shift Check-In | 10 | PARTIAL (5 BLOCKED) |
 | 9B | Check-In - Negative | 3 | COMPLETE |
 | 10A | Medications - Positive | 10 | ✅ COMPLETE |
-| 10B | Medications - Negative | 3 | ✅ COMPLETE (1 PASS, 2 FAIL) |
+| 10B | Medications - Negative | 3 | ✅ COMPLETE (3/3 PASS) |
 
 **Tests Completed:** 157
 
@@ -589,11 +589,11 @@
 
 | Test ID | Description | Result | Notes |
 |---------|-------------|--------|-------|
-| 10B.1 | Cannot skip medication without reason | FAIL | Notes field marked "Optional" - allows skip without reason |
-| 10B.2 | Cannot mark same medication twice | FAIL | Modal opens fresh without warning - allows duplicate dose logging |
-| 10B.3 | Cannot edit already-given medication | PASS | No edit functionality exists - clicking "Taken" badge does nothing |
+| 10B.1 | Cannot skip medication without reason | ✅ PASS | Notes required when "Skipped" selected - error shown if empty |
+| 10B.2 | Cannot mark same medication twice | ✅ PASS | "Dose Already Logged" modal prevents re-logging - shows View button |
+| 10B.3 | Cannot edit already-given medication | ✅ PASS | No edit functionality exists - clicking "Taken" badge does nothing |
 
-**Chunk 10B Result:** 1/3 PASS, 2 FAIL
+**Chunk 10B Result:** 3/3 PASS (100%)
 
 **BUG-023 (FIXED):**
 - **Error:** "Error logging dose: Error: Unable to determine user role"
@@ -733,16 +733,20 @@
   - TEST 10A.10: Skip requires reason field - NOT IMPLEMENTED → ✅ FIXED (notes field serves as reason)
   - **BUG-022 FIXED:** Integrated LogDoseModal into Daily Care page
   - **Commit:** `fix: integrate LogDoseModal into Daily Care page (BUG-022)`
-- **CHUNK 10B (Medications - Negative Tests) - 1/3 PASS, 2 FAIL (Jan 15, 2026):**
-  - TEST 10B.1: Cannot skip medication without reason - FAIL
-    - Notes field is marked "Optional" in UI
-    - System allows skipping without entering a reason
-    - Expected: Required reason for skipped medications
-  - TEST 10B.2: Cannot mark same medication twice - FAIL
-    - Modal opens fresh without warning
-    - System allows logging duplicate doses for same medication
-  - TEST 10B.3: Cannot edit already-given medication - PASS
+- **CHUNK 10B (Medications - Negative Tests) - 3/3 PASS (Jan 15, 2026):**
+  - TEST 10B.1: Cannot skip medication without reason - ✅ PASS
+    - Label changes to "Reason for Skipping *" (required) when Skipped selected
+    - Error message: "Please provide a reason for skipping this medication"
+    - **Fix:** Added validation in LogDoseModal handleSubmit
+  - TEST 10B.2: Cannot mark same medication twice - ✅ PASS
+    - "Dose Already Logged" modal prevents re-logging
+    - Shows "Taken" badge with time and "View" button instead of "Log Dose"
+    - **Fix:** Added getTodaysDosesForElder query with orderBy to match existing index
+  - TEST 10B.3: Cannot edit already-given medication - ✅ PASS
     - No edit functionality exists for logged doses
     - Clicking "Taken" badge does nothing
   - **BUG-023 FIXED:** LogDoseModal now checks both user.groups and user.agencies for role
-    - **Commit:** `fix: LogDoseModal role detection for agency caregivers (BUG-023)`
+    - **Commits:**
+      - `fix: LogDoseModal role detection for agency caregivers (BUG-023)`
+      - `fix: medication logging validation and duplicate prevention (10B.1, 10B.2)`
+      - `fix: add orderBy to match existing Firestore index (10B.2)`
