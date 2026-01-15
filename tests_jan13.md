@@ -30,8 +30,9 @@
 | 9A | Caregiver Shift Check-In | 10 | PARTIAL (5 BLOCKED) |
 | 9B | Check-In - Negative | 3 | COMPLETE |
 | 10A | Medications - Positive | 10 | ✅ FIXED (BUG-022) |
+| 10B | Medications - Negative | 3 | BLOCKED (BUG-023) |
 
-**Tests Completed:** 151 (10A tests now passing after fix)
+**Tests Completed:** 154 (10B blocked by BUG-023)
 
 ---
 
@@ -580,6 +581,29 @@
 
 ---
 
+### CHUNK 10B: MEDICATIONS - NEGATIVE TESTS
+
+**Status:** BLOCKED (BUG-023)
+**Time:** Jan 15, 2026
+**Account:** Caregiver 1 (ramanac+c1@gmail.com)
+
+| Test ID | Description | Result | Notes |
+|---------|-------------|--------|-------|
+| 10B.1 | Cannot skip medication without reason | FAIL | Notes field marked "Optional" - allows skip without reason |
+| 10B.2 | Cannot mark same medication twice | BLOCKED | BUG-023: "Unable to determine user role" error |
+| 10B.3 | Cannot edit already-given medication | BLOCKED | BUG-023: Dose logging fails before this can be tested |
+
+**Chunk 10B Result:** 0/3 PASS, 1 FAIL, 2 BLOCKED
+
+**BUG-023 Details:**
+- **Error:** "Error logging dose: Error: Unable to determine user role"
+- **Location:** `/src/components/care/LogDoseModal.tsx` line 59
+- **Cause:** Code uses `user.groups[0]?.role` but agency caregivers have `agencies` array instead
+- **Impact:** All medication dose logging fails for agency caregivers
+- **Fix Required:** Update LogDoseModal to check both `user.groups` and `user.agencies` for role
+
+---
+
 ## BUGS FOUND DURING TESTING
 
 | Bug ID | Chunk | Description | Severity | Status |
@@ -597,6 +621,7 @@
 | BUG-020 | 7C | End time before start time not properly validated | Medium | ✅ VERIFIED |
 | BUG-021 | 9A | Shift Handoff API returns first shift of day, not current-time-matching shift | High | ✅ FIXED |
 | BUG-022 | 10A | MedicationCard/LogDoseModal not integrated into Daily Care page | Medium | ✅ FIXED |
+| BUG-023 | 10B | LogDoseModal fails for agency caregivers - "Unable to determine user role" | High | OPEN |
 
 ---
 
@@ -707,3 +732,19 @@
   - TEST 10A.10: Skip requires reason field - NOT IMPLEMENTED → ✅ FIXED (notes field serves as reason)
   - **BUG-022 FIXED:** Integrated LogDoseModal into Daily Care page
   - **Commit:** `fix: integrate LogDoseModal into Daily Care page (BUG-022)`
+- **CHUNK 10B (Medications - Negative Tests) - 0/3 PASS, 1 FAIL, 2 BLOCKED (Jan 15, 2026):**
+  - TEST 10B.1: Cannot skip medication without reason - FAIL
+    - Notes field is marked "Optional" in UI
+    - System allows skipping without entering a reason
+    - Expected: Required reason for skipped medications
+  - TEST 10B.2: Cannot mark same medication twice - BLOCKED
+    - Console error: "Error logging dose: Error: Unable to determine user role"
+    - BUG-023 discovered: LogDoseModal.tsx line 59 uses `user.groups[0]?.role`
+    - Agency caregivers have `agencies` array, not `groups` array
+    - Unable to test duplicate prevention due to this bug
+  - TEST 10B.3: Cannot edit already-given medication - BLOCKED
+    - Cannot test because dose logging fails entirely (BUG-023)
+  - **BUG-023 DISCOVERED:** LogDoseModal fails for agency caregivers
+    - Location: `/src/components/care/LogDoseModal.tsx` line 59
+    - Cause: `user.groups[0]?.role` returns undefined for agency caregivers who have `agencies` array
+    - Severity: HIGH - All medication dose logging broken for agency caregivers

@@ -56,7 +56,25 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
         }
 
         const userId = user.id;
-        const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+
+        // Check both groups (family plan) and agencies (multi-agency plan) for role
+        let userRole: 'admin' | 'caregiver' | 'member' | undefined;
+
+        // First check family plan groups
+        if (user.groups && user.groups.length > 0) {
+          userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
+        }
+
+        // If no group role, check agency membership
+        if (!userRole && user.agencies && user.agencies.length > 0) {
+          const agencyRole = user.agencies[0]?.role;
+          // Map agency roles to standard roles
+          if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') {
+            userRole = 'admin';
+          } else if (agencyRole === 'caregiver') {
+            userRole = 'caregiver';
+          }
+        }
 
         if (!userRole) {
           throw new Error('Unable to determine user role');
