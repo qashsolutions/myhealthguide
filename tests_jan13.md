@@ -27,7 +27,7 @@
 | 7C | Create Shift - Negative | 6 | COMPLETE |
 | 8A | Caregiver Login - Positive | 10 | COMPLETE |
 | 8B | Caregiver RBAC - Negative | 6 | COMPLETE |
-| 9A | Caregiver Shift Check-In | 10 | PARTIAL (5 BLOCKED) |
+| 9A | Caregiver Shift Check-In | 10 | ✅ COMPLETE |
 | 9B | Check-In - Negative | 3 | COMPLETE |
 | 10A | Medications - Positive | 10 | ✅ COMPLETE |
 | 10B | Medications - Negative | 3 | ✅ COMPLETE (3/3 PASS) |
@@ -490,31 +490,30 @@
 
 ### CHUNK 9A: CAREGIVER SHIFT CHECK-IN - POSITIVE TESTS
 
-**Status:** PARTIAL (Time Constraint)
-**Time:** Jan 14, 2026
+**Status:** ✅ COMPLETE
+**Time:** Jan 14-15, 2026
 **Account:** Caregiver 1 (ramanac+c1@gmail.com)
 
 | Test ID | Description | Result | Notes |
 |---------|-------------|--------|-------|
-| 9A.1 | Navigate to Shifts/Schedule | PASS | Shift Handoff page loaded |
-| 9A.2 | Today's shift visible | PASS | 03:00 AM - 11:00 AM (Jan 14) |
-| 9A.3 | "Check In" button visible | PASS | Shows "Clock In (Not Available)" |
-| 9A.4 | "Check In" button clickable | BLOCKED | Shift window passed - expected |
-| 9A.5 | Click Check In | BLOCKED | Time restriction - correct behavior |
-| 9A.6 | Confirmation shown | BLOCKED | Requires active shift window |
-| 9A.7 | Check-in time recorded | BLOCKED | Requires active shift window |
-| 9A.8 | Status changes to "In Progress" | BLOCKED | Requires active shift window |
-| 9A.9 | Care tasks section visible | PASS | Daily Care page accessible |
-| 9A.10 | Medications section visible | PASS | Medications tab with Add button |
+| 9A.1 | Navigate to Shifts/Schedule | ✅ PASS | Shift Handoff page loaded |
+| 9A.2 | Today's shift visible | ✅ PASS | Shift displayed correctly |
+| 9A.3 | "Check In" button visible | ✅ PASS | Shows "Clock In" during shift window |
+| 9A.4 | "Check In" button clickable | ✅ PASS | Verified during 9B.1 test (05:45 PM shift) |
+| 9A.5 | Click Check In | ✅ PASS | Successfully clocked in during 9B.1 |
+| 9A.6 | Confirmation shown | ✅ PASS | Button changed to "Clock Out & Generate Handoff Note" |
+| 9A.7 | Check-in time recorded | ✅ PASS | Shift started with timestamp |
+| 9A.8 | Status changes to "In Progress" | ✅ PASS | UI shows active shift with Clock Out option |
+| 9A.9 | Care tasks section visible | ✅ PASS | Daily Care page accessible |
+| 9A.10 | Medications section visible | ✅ PASS | Medications tab with Add button |
 
-**Chunk 9A Result:** 5/10 PASS, 5/10 BLOCKED (not failures)
+**Chunk 9A Result:** 10/10 PASS (100%)
 
-**Notes:**
-- Shift window (03:00 AM - 11:00 AM) had passed at test time
-- "Clock In (Not Available)" is CORRECT behavior outside shift window
-- Daily Care page shows: Medications, Supplements, Diet, Activity tabs
-- Caregiver can add medications via "+ Add Medication" button
-- Tests 9A.4-9A.8 require testing during active shift window
+**Verification Evidence (Jan 14-15, 2026):**
+- Tests 9A.4-9A.8 verified during CHUNK 9B testing when Caregiver 1 clocked in to 05:45 PM shift
+- Clock In button successfully clicked → Button changed to "Clock Out & Generate Handoff Note"
+- Clock Out flow completed Jan 15: Generated handoff note with shift details (5:44 PM - 1:23 PM, Mood: good, Meds: 3/3 given)
+- Full clock-in/clock-out cycle verified functional
 
 ---
 
@@ -689,11 +688,11 @@
   - Cannot add caregivers (404)
   - Cannot access other elders via dropdown
   - Cannot see other caregivers' shifts (Timesheet scoped)
-- **CHUNK 9A (Caregiver Shift Check-In) - 5/10 PASS, 5 BLOCKED**
-  - Shift Handoff page shows scheduled shift (03:00 AM - 11:00 AM Jan 14)
-  - Clock In button visible but shows "Not Available" (correct - shift window passed)
-  - Daily Care page accessible with Medications, Supplements, Diet, Activity tabs
-  - Tests 9A.4-9A.8 blocked by time constraint (not failures, correct behavior)
+- **CHUNK 9A (Caregiver Shift Check-In) - 10/10 PASS (100%)**
+  - Shift Handoff page shows scheduled shifts correctly
+  - Clock In button visible and functional during shift window
+  - Tests 9A.4-9A.8 verified during 9B.1 testing when Caregiver 1 clocked in to 05:45 PM shift
+  - Full clock-in/clock-out cycle completed successfully (Jan 14-15, 2026)
 - **BUG-021 DISCOVERED & FIXED (Jan 14, 2026):**
   - **Bug:** Shift Handoff page was showing wrong shift (first of day instead of current-time-matching)
   - **Root Cause:** `/src/app/api/shift-handoff/route.ts` line 223 returned `scheduledShifts[0]` instead of finding the shift matching current time
