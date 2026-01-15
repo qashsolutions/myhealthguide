@@ -29,10 +29,10 @@
 | 8B | Caregiver RBAC - Negative | 6 | COMPLETE |
 | 9A | Caregiver Shift Check-In | 10 | PARTIAL (5 BLOCKED) |
 | 9B | Check-In - Negative | 3 | COMPLETE |
-| 10A | Medications - Positive | 10 | ✅ FIXED (BUG-022) |
-| 10B | Medications - Negative | 3 | BLOCKED (BUG-023) |
+| 10A | Medications - Positive | 10 | ✅ COMPLETE |
+| 10B | Medications - Negative | 3 | ✅ COMPLETE (1 PASS, 2 FAIL) |
 
-**Tests Completed:** 154 (10B blocked by BUG-023)
+**Tests Completed:** 157
 
 ---
 
@@ -583,24 +583,25 @@
 
 ### CHUNK 10B: MEDICATIONS - NEGATIVE TESTS
 
-**Status:** BLOCKED (BUG-023)
+**Status:** COMPLETE
 **Time:** Jan 15, 2026
 **Account:** Caregiver 1 (ramanac+c1@gmail.com)
 
 | Test ID | Description | Result | Notes |
 |---------|-------------|--------|-------|
 | 10B.1 | Cannot skip medication without reason | FAIL | Notes field marked "Optional" - allows skip without reason |
-| 10B.2 | Cannot mark same medication twice | BLOCKED | BUG-023: "Unable to determine user role" error |
-| 10B.3 | Cannot edit already-given medication | BLOCKED | BUG-023: Dose logging fails before this can be tested |
+| 10B.2 | Cannot mark same medication twice | FAIL | Modal opens fresh without warning - allows duplicate dose logging |
+| 10B.3 | Cannot edit already-given medication | PASS | No edit functionality exists - clicking "Taken" badge does nothing |
 
-**Chunk 10B Result:** 0/3 PASS, 1 FAIL, 2 BLOCKED
+**Chunk 10B Result:** 1/3 PASS, 2 FAIL
 
-**BUG-023 Details:**
+**BUG-023 (FIXED):**
 - **Error:** "Error logging dose: Error: Unable to determine user role"
 - **Location:** `/src/components/care/LogDoseModal.tsx` line 59
-- **Cause:** Code uses `user.groups[0]?.role` but agency caregivers have `agencies` array instead
-- **Impact:** All medication dose logging fails for agency caregivers
-- **Fix Required:** Update LogDoseModal to check both `user.groups` and `user.agencies` for role
+- **Cause:** Code used `user.groups[0]?.role` but agency caregivers have `agencies` array instead
+- **Fix:** Updated LogDoseModal to check both `user.groups` and `user.agencies` for role determination
+- **Secondary Fix:** Removed undefined fields from Firestore document (notes, actualTime)
+- **Commits:** `fix: LogDoseModal role detection for agency caregivers (BUG-023)` and `fix: prevent Firestore undefined field error`
 
 ---
 
@@ -628,11 +629,11 @@
 ## SESSION LOG
 
 - **Start Time:** Jan 13, 2026
-- **Current Chunk:** 9B COMPLETE
-- **Next Chunk:** 10A or additional tests
+- **Current Chunk:** 10B COMPLETE
+- **Next Chunk:** All chunks complete - testing finished
 - **Blocker:** None
-- **Chunks Completed:** 1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B, 6A, 6B, 7A, 7B, 7C, 8A, 8B, 9A, 9B
-- **Tests Completed:** 147
+- **Chunks Completed:** 1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B, 6A, 6B, 7A, 7B, 7C, 8A, 8B, 9A, 9B, 10A, 10B
+- **Tests Completed:** 157
 
 **Jan 14, 2026 Update:**
 - Implemented Edit Caregiver Profile feature (was missing)
@@ -732,22 +733,16 @@
   - TEST 10A.10: Skip requires reason field - NOT IMPLEMENTED → ✅ FIXED (notes field serves as reason)
   - **BUG-022 FIXED:** Integrated LogDoseModal into Daily Care page
   - **Commit:** `fix: integrate LogDoseModal into Daily Care page (BUG-022)`
-- **CHUNK 10B (Medications - Negative Tests) - 0/3 PASS, 1 FAIL, 2 BLOCKED (Jan 15, 2026):**
+- **CHUNK 10B (Medications - Negative Tests) - 1/3 PASS, 2 FAIL (Jan 15, 2026):**
   - TEST 10B.1: Cannot skip medication without reason - FAIL
     - Notes field is marked "Optional" in UI
     - System allows skipping without entering a reason
     - Expected: Required reason for skipped medications
-  - TEST 10B.2: Cannot mark same medication twice - BLOCKED
-    - Console error: "Error logging dose: Error: Unable to determine user role"
-    - BUG-023 discovered: LogDoseModal.tsx line 59 uses `user.groups[0]?.role`
-    - Agency caregivers have `agencies` array, not `groups` array
-    - Unable to test duplicate prevention due to this bug
-  - TEST 10B.3: Cannot edit already-given medication - BLOCKED
-    - Cannot test because dose logging fails entirely (BUG-023)
-  - **BUG-023 DISCOVERED & FIXED:** LogDoseModal fails for agency caregivers
-    - Location: `/src/components/care/LogDoseModal.tsx` line 59
-    - Cause: `user.groups[0]?.role` returns undefined for agency caregivers who have `agencies` array
-    - Severity: HIGH - All medication dose logging broken for agency caregivers
-    - **Fix Applied:** Updated role detection to check both `user.groups` and `user.agencies`
-    - Maps agency roles (super_admin, caregiver_admin → admin; caregiver → caregiver)
+  - TEST 10B.2: Cannot mark same medication twice - FAIL
+    - Modal opens fresh without warning
+    - System allows logging duplicate doses for same medication
+  - TEST 10B.3: Cannot edit already-given medication - PASS
+    - No edit functionality exists for logged doses
+    - Clicking "Taken" badge does nothing
+  - **BUG-023 FIXED:** LogDoseModal now checks both user.groups and user.agencies for role
     - **Commit:** `fix: LogDoseModal role detection for agency caregivers (BUG-023)`

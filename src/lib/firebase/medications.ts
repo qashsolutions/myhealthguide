@@ -374,4 +374,53 @@ export class MedicationService {
 
     return logs;
   }
+
+  /**
+   * Get today's doses for an elder - used to prevent duplicate logging (FIX 10B.2)
+   */
+  static async getTodaysDosesForElder(
+    elderId: string,
+    groupId: string,
+    userId: string,
+    userRole: UserRole
+  ): Promise<MedicationLog[]> {
+    // Get start and end of today
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+    const q = query(
+      collection(db, this.LOGS),
+      where('elderId', '==', elderId),
+      where('groupId', '==', groupId),
+      where('createdAt', '>=', Timestamp.fromDate(startOfDay)),
+      where('createdAt', '<=', Timestamp.fromDate(endOfDay))
+    );
+
+    const snapshot = await getDocs(q);
+    const logs = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      scheduledTime: doc.data().scheduledTime?.toDate?.() || new Date(),
+      actualTime: doc.data().actualTime?.toDate?.() || null,
+      createdAt: doc.data().createdAt?.toDate?.() || new Date()
+    })) as MedicationLog[];
+
+    // HIPAA Audit Log: Record access for duplicate prevention check (PHI)
+    if (logs.length > 0) {
+      await logPHIAccess({
+        userId,
+        userRole,
+        groupId,
+        phiType: 'medication',
+        elderId,
+        action: 'read',
+        actionDetails: `Retrieved ${logs.length} today's medication logs for elder (duplicate check)`,
+        purpose: 'treatment',
+        method: 'web_app',
+      });
+    }
+
+    return logs;
+  }
 }

@@ -14,25 +14,47 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Clock, CheckCircle, XCircle, Ban, AlertTriangle, Info } from 'lucide-react';
 import { logMedicationDoseOfflineAware } from '@/lib/offline';
 import { useAuth } from '@/contexts/AuthContext';
+
+interface ExistingDose {
+  id: string;
+  status: 'taken' | 'missed' | 'skipped';
+  loggedAt: Date;
+  notes?: string;
+}
 
 interface LogDoseModalProps {
   open: boolean;
   onClose: () => void;
   medication: Medication;
   elder?: Elder;
+  existingDose?: ExistingDose; // If provided, shows already-logged state
   onSubmit?: (data: any) => Promise<void>;
 }
 
-export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: LogDoseModalProps) {
+export function LogDoseModal({ open, onClose, medication, elder, existingDose, onSubmit }: LogDoseModalProps) {
   const { user } = useAuth();
   const [status, setStatus] = useState<'taken' | 'missed' | 'skipped'>('taken');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if notes are required (for skipped status)
+  const notesRequired = status === 'skipped';
 
   const handleSubmit = async () => {
+    // Clear previous error
+    setError(null);
+
+    // FIX 10B.1: Validate that skipped medications have a reason
+    if (status === 'skipped' && (!notes || !notes.trim())) {
+      setError('Please provide a reason for skipping this medication');
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -141,6 +163,80 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
     }
   ];
 
+  // FIX 10B.2: If dose was already logged today, show info instead of form
+  if (existingDose) {
+    const statusLabels = {
+      taken: { label: 'Taken', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+      missed: { label: 'Missed', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+      skipped: { label: 'Skipped', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' }
+    };
+    const statusInfo = statusLabels[existingDose.status];
+
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Dose Already Logged</DialogTitle>
+            <DialogDescription>
+              This medication has already been recorded today
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Info Alert */}
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                This dose was already logged and cannot be modified.
+              </AlertDescription>
+            </Alert>
+
+            {/* Medication Info */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+              <p className="font-semibold text-gray-900 dark:text-white">
+                {medication.name}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {medication.dosage}
+              </p>
+              {elder && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  For: {elder.name}
+                </p>
+              )}
+            </div>
+
+            {/* Existing Log Details */}
+            <div className="space-y-2">
+              <Label>Recorded Status</Label>
+              <div className="flex items-center gap-2">
+                <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  at {existingDose.loggedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+
+            {existingDose.notes && (
+              <div className="space-y-2">
+                <Label>Notes</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                  {existingDose.notes}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button onClick={onClose}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -152,6 +248,14 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Medication Info */}
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
             <p className="font-semibold text-gray-900 dark:text-white">
@@ -183,7 +287,10 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setStatus(option.value)}
+                    onClick={() => {
+                      setStatus(option.value);
+                      setError(null); // Clear error when changing status
+                    }}
                     className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all ${
                       isSelected
                         ? option.color
@@ -205,17 +312,34 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Notes - Required for skipped, Optional for others */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Label htmlFor="notes">
+              {notesRequired ? (
+                <>Reason for Skipping <span className="text-red-500">*</span></>
+              ) : (
+                'Notes (Optional)'
+              )}
+            </Label>
             <Textarea
               id="notes"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any observations, side effects, or reasons for missing..."
+              onChange={(e) => {
+                setNotes(e.target.value);
+                if (error) setError(null); // Clear error when typing
+              }}
+              placeholder={notesRequired
+                ? "Please explain why this medication was skipped (e.g., doctor advised, side effects)..."
+                : "Any observations, side effects, or reasons for missing..."
+              }
               rows={3}
-              className="resize-none"
+              className={`resize-none ${notesRequired && error ? 'border-red-500 focus:ring-red-500' : ''}`}
             />
+            {notesRequired && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                A reason is required when skipping medication for safety tracking
+              </p>
+            )}
           </div>
         </div>
 

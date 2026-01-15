@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
@@ -32,7 +32,7 @@ import { SupplementService } from '@/lib/firebase/supplements';
 import { DietService } from '@/lib/firebase/diet';
 import { ReminderDialog } from '@/components/notifications/ReminderDialog';
 import { LogDoseModal } from '@/components/care/LogDoseModal';
-import type { Medication, Supplement, DietEntry } from '@/types';
+import type { Medication, Supplement, DietEntry, MedicationLog } from '@/types';
 import { format, isToday } from 'date-fns';
 
 type TabType = 'medications' | 'supplements' | 'diet' | 'activity';
@@ -58,6 +58,9 @@ function DailyCareContent() {
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [logDoseModalOpen, setLogDoseModalOpen] = useState(false);
   const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);
+
+  // FIX 10B.2: Track today's logged doses to prevent duplicates
+  const [todaysDoses, setTodaysDoses] = useState<MedicationLog[]>([]);
 
   // Determine user's role (needed for ReminderDialog and write access)
   const getUserRole = (): 'admin' | 'caregiver' | 'member' => {
@@ -104,8 +107,23 @@ function DailyCareContent() {
     errorPrefix: 'Failed to load diet entries',
   });
 
+  // FIX 10B.2: Load today's doses to prevent duplicate logging
+  const { data: fetchedTodaysDoses, loading: dosesLoading } = useElderDataLoader<MedicationLog[]>({
+    fetcher: (elder, user, role) =>
+      MedicationService.getTodaysDosesForElder(elder.id, elder.groupId, user.id, role),
+    elder: selectedElder,
+    user,
+    errorPrefix: 'Failed to load today\'s doses',
+  });
+
+  // Update todaysDoses state when fetchedTodaysDoses changes
+  // This allows the state to be refreshed after logging a dose
+  useEffect(() => {
+    setTodaysDoses(fetchedTodaysDoses);
+  }, [fetchedTodaysDoses]);
+
   // Combined loading state
-  const loading = medsLoading || suppsLoading || dietLoading;
+  const loading = medsLoading || suppsLoading || dietLoading || dosesLoading;
 
   // Change tab
   const setActiveTab = (tab: TabType) => {
@@ -133,16 +151,38 @@ function DailyCareContent() {
     alert('Coming Soon: Price comparison feature is under development');
   };
 
+  // FIX 10B.2: Find existing dose for a medication (logged today)
+  const findExistingDose = (medicationId: string) => {
+    // Combine fetchedTodaysDoses with local state (for newly logged doses)
+    const allDoses = [...todaysDoses];
+    return allDoses.find(dose => dose.medicationId === medicationId);
+  };
+
   // Handle opening log dose modal
   const handleLogDose = (medication: Medication) => {
     setSelectedMedication(medication);
     setLogDoseModalOpen(true);
   };
 
-  // Handle closing log dose modal
+  // Handle closing log dose modal - also refresh doses to prevent duplicate logging
   const handleLogDoseClose = () => {
     setLogDoseModalOpen(false);
     setSelectedMedication(null);
+
+    // FIX 10B.2: Refresh today's doses after logging
+    // The modal will have added a new dose, so we reload to ensure it's in our state
+    if (selectedElder && user) {
+      MedicationService.getTodaysDosesForElder(
+        selectedElder.id,
+        selectedElder.groupId,
+        user.id,
+        userRole
+      ).then(doses => {
+        setTodaysDoses(doses);
+      }).catch(err => {
+        console.error('Failed to refresh doses:', err);
+      });
+    }
   };
 
   if (!selectedElder) {
@@ -241,6 +281,7 @@ function DailyCareContent() {
               elderId={selectedElder.id}
               canWrite={canWrite}
               onLogDose={handleLogDose}
+              todaysDoses={todaysDoses}
             />
           )}
           {activeTab === 'supplements' && (
@@ -275,6 +316,20 @@ function DailyCareContent() {
           onClose={handleLogDoseClose}
           medication={selectedMedication}
           elder={selectedElder}
+          existingDose={(() => {
+            // FIX 10B.2: Check if dose was already logged today
+            const existing = findExistingDose(selectedMedication.id);
+            // Only count actual logged doses (taken, missed, skipped), not scheduled
+            if (existing && existing.status !== 'scheduled') {
+              return {
+                id: existing.id,
+                status: existing.status as 'taken' | 'missed' | 'skipped',
+                loggedAt: existing.createdAt,
+                notes: existing.notes
+              };
+            }
+            return undefined;
+          })()}
         />
       )}
     </div>
@@ -286,13 +341,22 @@ function MedicationsTab({
   medications,
   elderId,
   canWrite,
-  onLogDose
+  onLogDose,
+  todaysDoses
 }: {
   medications: Medication[];
   elderId: string;
   canWrite: boolean;
   onLogDose: (medication: Medication) => void;
+  todaysDoses: MedicationLog[];
 }) {
+  // FIX 10B.2: Helper to find existing dose for a medication (exclude 'scheduled' status)
+  const getDoseStatus = (medicationId: string) => {
+    return todaysDoses.find(dose =>
+      dose.medicationId === medicationId && dose.status !== 'scheduled'
+    );
+  };
+
   if (medications.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -317,43 +381,90 @@ function MedicationsTab({
 
   return (
     <div className="space-y-3">
-      {medications.map((med) => (
-        <Card key={med.id} className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                <Pill className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+      {medications.map((med) => {
+        const existingDose = getDoseStatus(med.id);
+        const isLogged = !!existingDose;
+
+        return (
+          <Card key={med.id} className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  isLogged
+                    ? existingDose.status === 'taken'
+                      ? "bg-green-100 dark:bg-green-900/30"
+                      : existingDose.status === 'skipped'
+                        ? "bg-yellow-100 dark:bg-yellow-900/30"
+                        : "bg-red-100 dark:bg-red-900/30"
+                    : "bg-blue-100 dark:bg-blue-900/30"
+                )}>
+                  <Pill className={cn(
+                    "w-5 h-5",
+                    isLogged
+                      ? existingDose.status === 'taken'
+                        ? "text-green-600 dark:text-green-400"
+                        : existingDose.status === 'skipped'
+                          ? "text-yellow-600 dark:text-yellow-400"
+                          : "text-red-600 dark:text-red-400"
+                      : "text-blue-600 dark:text-blue-400"
+                  )} />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900 dark:text-white">{med.name}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {med.dosage} • {med.frequency?.type === 'daily' ? 'Daily' : med.frequency?.type === 'weekly' ? 'Weekly' : 'As needed'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-white">{med.name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {med.dosage} • {med.frequency?.type === 'daily' ? 'Daily' : med.frequency?.type === 'weekly' ? 'Weekly' : 'As needed'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-sm text-gray-500 hidden sm:block">
-                {med.frequency?.times?.[0] || '--:--'}
-              </span>
-              <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 hidden sm:flex">
-                <Check className="w-3 h-3 mr-1" />
-                Active
-              </Badge>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="text-sm text-gray-500 hidden sm:block">
+                  {med.frequency?.times?.[0] || '--:--'}
+                </span>
+                {/* FIX 10B.2: Show logged status instead of "Active" when dose is logged */}
+                {isLogged ? (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "hidden sm:flex",
+                      existingDose.status === 'taken'
+                        ? "text-green-600 border-green-200 bg-green-50"
+                        : existingDose.status === 'skipped'
+                          ? "text-yellow-600 border-yellow-200 bg-yellow-50"
+                          : "text-red-600 border-red-200 bg-red-50"
+                    )}
+                  >
+                    <Check className="w-3 h-3 mr-1" />
+                    {existingDose.status === 'taken' ? 'Taken' : existingDose.status === 'skipped' ? 'Skipped' : 'Missed'}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 hidden sm:flex">
+                    <Check className="w-3 h-3 mr-1" />
+                    Active
+                  </Badge>
+                )}
               {canWrite && (
                 <Button
                   size="sm"
-                  variant="default"
+                  variant={isLogged ? "outline" : "default"}
                   onClick={() => onLogDose(med)}
                   className="whitespace-nowrap"
                 >
-                  <Check className="w-4 h-4 mr-1" />
-                  Log Dose
+                  {isLogged ? (
+                    <>View</>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-1" />
+                      Log Dose
+                    </>
+                  )}
                 </Button>
               )}
             </div>
           </div>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }
