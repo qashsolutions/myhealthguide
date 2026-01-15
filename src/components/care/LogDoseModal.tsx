@@ -80,18 +80,26 @@ export function LogDoseModal({ open, onClose, medication, elder, onSubmit }: Log
           throw new Error('Unable to determine user role');
         }
 
-        const result = await logMedicationDoseOfflineAware({
+        const doseData: any = {
           medicationId: medication.id,
           groupId: medication.groupId,
           elderId: medication.elderId,
           scheduledTime: new Date(),
-          actualTime: status === 'taken' ? new Date() : undefined,
           status,
-          notes: notes || undefined,
           method: 'manual',
           loggedBy: userId,
           createdAt: new Date()
-        }, userId, userRole);
+        };
+
+        // Only add optional fields if they have values (Firestore rejects undefined)
+        if (status === 'taken') {
+          doseData.actualTime = new Date();
+        }
+        if (notes && notes.trim()) {
+          doseData.notes = notes.trim();
+        }
+
+        const result = await logMedicationDoseOfflineAware(doseData, userId, userRole);
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to log medication');

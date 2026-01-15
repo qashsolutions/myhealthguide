@@ -621,7 +621,7 @@
 | BUG-020 | 7C | End time before start time not properly validated | Medium | ✅ VERIFIED |
 | BUG-021 | 9A | Shift Handoff API returns first shift of day, not current-time-matching shift | High | ✅ FIXED |
 | BUG-022 | 10A | MedicationCard/LogDoseModal not integrated into Daily Care page | Medium | ✅ FIXED |
-| BUG-023 | 10B | LogDoseModal fails for agency caregivers - "Unable to determine user role" | High | OPEN |
+| BUG-023 | 10B | LogDoseModal fails for agency caregivers - "Unable to determine user role" | High | ✅ FIXED |
 
 ---
 
@@ -744,7 +744,10 @@
     - Unable to test duplicate prevention due to this bug
   - TEST 10B.3: Cannot edit already-given medication - BLOCKED
     - Cannot test because dose logging fails entirely (BUG-023)
-  - **BUG-023 DISCOVERED:** LogDoseModal fails for agency caregivers
+  - **BUG-023 DISCOVERED & FIXED:** LogDoseModal fails for agency caregivers
     - Location: `/src/components/care/LogDoseModal.tsx` line 59
     - Cause: `user.groups[0]?.role` returns undefined for agency caregivers who have `agencies` array
     - Severity: HIGH - All medication dose logging broken for agency caregivers
+    - **Fix Applied:** Updated role detection to check both `user.groups` and `user.agencies`
+    - Maps agency roles (super_admin, caregiver_admin → admin; caregiver → caregiver)
+    - **Commit:** `fix: LogDoseModal role detection for agency caregivers (BUG-023)`
