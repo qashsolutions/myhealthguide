@@ -257,25 +257,33 @@ export async function POST(request: NextRequest) {
       }
 
       // Get pending submissions for this agency
-      const pendingQuery = await db.collection('timesheetSubmissions')
+      // Note: Using separate queries to avoid needing a composite index
+      // Query by agencyId first, then filter by status in memory
+      const submissionsQuery = await db.collection('timesheetSubmissions')
         .where('agencyId', '==', reqAgencyId)
-        .where('status', '==', 'submitted')
-        .orderBy('submittedAt', 'desc')
         .get();
 
-      const pendingSubmissions = pendingQuery.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          weekStartDate: data.weekStartDate?.toDate(),
-          weekEndDate: data.weekEndDate?.toDate(),
-          submittedAt: data.submittedAt?.toDate(),
-          reviewedAt: data.reviewedAt?.toDate(),
-          createdAt: data.createdAt?.toDate(),
-          updatedAt: data.updatedAt?.toDate(),
-        };
-      });
+      const pendingSubmissions = submissionsQuery.docs
+        .filter(doc => doc.data().status === 'submitted')
+        .map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            weekStartDate: data.weekStartDate?.toDate(),
+            weekEndDate: data.weekEndDate?.toDate(),
+            submittedAt: data.submittedAt?.toDate(),
+            reviewedAt: data.reviewedAt?.toDate(),
+            createdAt: data.createdAt?.toDate(),
+            updatedAt: data.updatedAt?.toDate(),
+          };
+        })
+        // Sort by submittedAt descending (most recent first)
+        .sort((a, b) => {
+          const aTime = a.submittedAt?.getTime() || 0;
+          const bTime = b.submittedAt?.getTime() || 0;
+          return bTime - aTime;
+        });
 
       return NextResponse.json({ success: true, submissions: pendingSubmissions });
     }
