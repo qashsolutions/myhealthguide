@@ -147,9 +147,10 @@ function DailyCareContent() {
     router.push('/dashboard/activity');
   };
 
-  const handleComparePrices = () => {
-    alert('Coming Soon: Price comparison feature is under development');
-  };
+  // DISABLED: Compare Prices feature not yet implemented
+  // const handleComparePrices = () => {
+  //   alert('Coming Soon: Price comparison feature is under development');
+  // };
 
   // FIX 10B.2: Find existing dose for a medication (logged today)
   const findExistingDose = (medicationId: string) => {
@@ -262,10 +263,12 @@ function DailyCareContent() {
           <Calendar className="w-4 h-4 mr-2" />
           View Schedule
         </Button>
+{/* DISABLED: Compare Prices feature not yet implemented
         <Button variant="outline" size="sm" onClick={handleComparePrices}>
           <Download className="w-4 h-4 mr-2" />
           Compare Prices
         </Button>
+*/}
       </div>
 
       {/* Tab Content */}
