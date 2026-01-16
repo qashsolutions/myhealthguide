@@ -338,6 +338,56 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ============= ADMIN TESTING ACTION (Reset approved to submitted) =============
+    if (action === 'resetForTesting') {
+      const { submissionId: resetSubmissionId } = body;
+
+      // Verify user is super admin
+      const userDoc = await db.collection('users').doc(authResult.userId).get();
+      const userData = userDoc.data();
+      const isSuperAdmin = userData?.agencies?.some((a: any) => a.role === 'super_admin');
+
+      if (!isSuperAdmin) {
+        return NextResponse.json({ success: false, error: 'Unauthorized - Super admin only' }, { status: 403 });
+      }
+
+      // If no submissionId provided, find the most recent approved submission
+      let targetSubmissionId = resetSubmissionId;
+      if (!targetSubmissionId) {
+        const approvedQuery = await db.collection('timesheetSubmissions')
+          .where('status', '==', 'approved')
+          .limit(10)
+          .get();
+
+        if (approvedQuery.empty) {
+          return NextResponse.json({ success: false, error: 'No approved submissions found' }, { status: 404 });
+        }
+
+        // Find most recent by submittedAt
+        const sortedDocs = approvedQuery.docs.sort((a, b) => {
+          const aTime = a.data().submittedAt?.toDate()?.getTime() || 0;
+          const bTime = b.data().submittedAt?.toDate()?.getTime() || 0;
+          return bTime - aTime;
+        });
+        targetSubmissionId = sortedDocs[0].id;
+      }
+
+      // Reset to submitted status
+      await db.collection('timesheetSubmissions').doc(targetSubmissionId).update({
+        status: 'submitted',
+        reviewedAt: null,
+        reviewedBy: null,
+        reviewerName: null,
+        reviewNotes: null,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Submission reset to submitted status for testing',
+        submissionId: targetSubmissionId
+      });
+    }
+
     return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
 
   } catch (error) {
