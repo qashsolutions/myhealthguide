@@ -4,6 +4,45 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## Custom 404 Page (Jan 17, 2026)
+
+### Issue
+Default Next.js 404 page showed only "404 | This page could not be found" with no navigation options. Users had no way to return to the app without manually changing the URL.
+
+### Solution
+Created user-friendly custom 404 page at `src/app/not-found.tsx` with:
+
+| Feature | Description |
+|---------|-------------|
+| Branding | MyHealthGuide logo |
+| Error Icon | Orange AlertCircle from Lucide |
+| Message | "The page you're looking for doesn't exist or you don't have permission to access it." |
+| Auto-redirect | 5-second countdown with redirect to /dashboard |
+| Go Back | Button to return to previous page |
+| Go to Dashboard | Primary action button |
+| Help Link | Link to Help Center |
+
+### File Created
+- `src/app/not-found.tsx`
+
+### Commit
+- `73eb367` - feat: add user-friendly 404 page with auto-redirect
+
+### Test Results
+
+| Test | Status |
+|------|--------|
+| MyHealthGuide branding displays | ✅ PASS |
+| Alert icon visible | ✅ PASS |
+| 404 error message | ✅ PASS |
+| 5-second countdown timer | ✅ PASS |
+| Auto-redirect to dashboard | ✅ PASS |
+| "Go Back" button works | ✅ PASS |
+| "Go to Dashboard" button works | ✅ PASS |
+| Help Center link present | ✅ PASS |
+
+---
+
 ## E2E Testing - Refactor 11 (Jan 12, 2026)
 
 **Reference Document:** `refactor-11.md`
