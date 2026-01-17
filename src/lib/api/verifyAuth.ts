@@ -81,16 +81,60 @@ export async function verifyAuthToken(request: NextRequest): Promise<AuthResult>
 export async function canAccessElderProfileServer(
   userId: string,
   elderId: string,
-  groupId: string
+  groupIdParam: string
 ): Promise<boolean> {
   try {
     const adminDb = getAdminDb();
 
-    console.log('[canAccessElderProfileServer] Checking access:', { userId, elderId, groupId });
+    console.log('[canAccessElderProfileServer] Checking access:', { userId, elderId, groupIdParam });
 
-    // Check if user is group admin
-    const groupDoc = await adminDb.collection('groups').doc(groupId).get();
+    // CRITICAL: First fetch the elder document to get the ACTUAL groupId
+    // This prevents access bypass via manipulated groupId parameter
+    const elderDoc = await adminDb.collection('elders').doc(elderId).get();
+    console.log('[canAccessElderProfileServer] Elder doc exists:', elderDoc.exists);
 
+    if (!elderDoc.exists) {
+      console.log('[canAccessElderProfileServer] Access DENIED - elder not found');
+      return false;
+    }
+
+    const elderData = elderDoc.data();
+    // Use the elder's ACTUAL groupId, not the one passed in (which could be wrong/manipulated)
+    const actualGroupId = elderData?.groupId;
+
+    if (!actualGroupId) {
+      console.log('[canAccessElderProfileServer] Access DENIED - elder has no groupId');
+      return false;
+    }
+
+    console.log('[canAccessElderProfileServer] Elder actual groupId:', actualGroupId, '| passed groupId:', groupIdParam);
+
+    // Check if user is primary caregiver for this elder (check first as it's definitive)
+    console.log('[canAccessElderProfileServer] Elder primaryCaregiverId:', elderData?.primaryCaregiverId, '| createdBy:', elderData?.createdBy);
+    if (elderData?.primaryCaregiverId === userId) {
+      console.log('[canAccessElderProfileServer] Access granted via primaryCaregiverId');
+      return true;
+    }
+
+    // Check if user created this elder
+    if (elderData?.createdBy === userId) {
+      console.log('[canAccessElderProfileServer] Access granted via createdBy');
+      return true;
+    }
+
+    // Check if user is an assigned caregiver via elder_access subcollection
+    try {
+      const elderAccessDoc = await adminDb.collection('users').doc(userId).collection('elder_access').doc(elderId).get();
+      if (elderAccessDoc.exists && elderAccessDoc.data()?.active) {
+        console.log('[canAccessElderProfileServer] Access granted via elder_access subcollection');
+        return true;
+      }
+    } catch (accessError) {
+      console.log('[canAccessElderProfileServer] elder_access check failed:', accessError);
+    }
+
+    // Check if user is group admin of the ELDER'S ACTUAL GROUP (not the passed-in groupId)
+    const groupDoc = await adminDb.collection('groups').doc(actualGroupId).get();
     console.log('[canAccessElderProfileServer] Group doc exists:', groupDoc.exists);
 
     if (groupDoc.exists) {
@@ -103,38 +147,24 @@ export async function canAccessElderProfileServer(
         return true;
       }
 
-      // Also check members array for admin role
+      // Also check members array for admin role or read permission
       if (groupData?.members && Array.isArray(groupData.members)) {
         const userMember = groupData.members.find((m: any) => m.userId === userId);
         console.log('[canAccessElderProfileServer] Members check - userMember:', userMember);
-        if (userMember && userMember.role === 'admin') {
-          console.log('[canAccessElderProfileServer] Access granted via members array');
+        if (userMember && (userMember.role === 'admin' || userMember.permissionLevel === 'admin')) {
+          console.log('[canAccessElderProfileServer] Access granted via members array (admin)');
+          return true;
+        }
+        // Also allow read-only members of the elder's actual group
+        if (userMember && userMember.permissionLevel === 'read') {
+          console.log('[canAccessElderProfileServer] Access granted via read-only membership');
           return true;
         }
       }
     }
 
-    // Check if user is primary caregiver for this elder (top-level elders collection)
-    const elderDoc = await adminDb.collection('elders').doc(elderId).get();
-    console.log('[canAccessElderProfileServer] Elder doc (top-level) exists:', elderDoc.exists);
-
-    if (elderDoc.exists) {
-      const elderData = elderDoc.data();
-      console.log('[canAccessElderProfileServer] Elder primaryCaregiverId:', elderData?.primaryCaregiverId, '| createdBy:', elderData?.createdBy);
-      if (elderData?.primaryCaregiverId === userId) {
-        console.log('[canAccessElderProfileServer] Access granted via primaryCaregiverId');
-        return true;
-      }
-
-      // Check if user created this elder
-      if (elderData?.createdBy === userId) {
-        console.log('[canAccessElderProfileServer] Access granted via createdBy');
-        return true;
-      }
-    }
-
-    // Also check subcollection: groups/{groupId}/elders/{elderId}
-    const elderSubDoc = await adminDb.collection('groups').doc(groupId).collection('elders').doc(elderId).get();
+    // Also check subcollection: groups/{actualGroupId}/elders/{elderId}
+    const elderSubDoc = await adminDb.collection('groups').doc(actualGroupId).collection('elders').doc(elderId).get();
     console.log('[canAccessElderProfileServer] Elder doc (subcollection) exists:', elderSubDoc.exists);
 
     if (elderSubDoc.exists) {
