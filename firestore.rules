@@ -856,6 +856,17 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
+    // ============= Cookie Consents Collection (GDPR Audit Trail) =============
+
+    match /cookieConsents/{consentId} {
+      // Anyone can create cookie consent (users may not be authenticated yet)
+      allow create: if true;
+
+      // No one can read, update, or delete (immutable audit trail)
+      // Admin access should be via Firebase Console or Admin SDK
+      allow read, update, delete: if false;
+    }
+
     // ============= Medical Feature Access Logs Collection =============
 
     match /medicalFeatureAccessLogs/{logId} {
