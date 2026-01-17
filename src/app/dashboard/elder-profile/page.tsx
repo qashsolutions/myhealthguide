@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   ShieldAlert,
   Loader2,
+  Home,
 } from 'lucide-react';
 import { canAccessElderProfile, getElderProfile } from '@/lib/firebase/elderHealthProfile';
 import { ElderProfileTab } from '@/components/elder-profile/ElderProfileTab';
@@ -47,6 +48,7 @@ export default function ElderProfilePage() {
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const [activeTab, setActiveTab] = useState(tabParam || 'profile');
+  const [accessDeniedCountdown, setAccessDeniedCountdown] = useState(5);
 
   // Determine which elder to show
   const elderId = elderIdParam || selectedElder?.id;
@@ -57,6 +59,24 @@ export default function ElderProfilePage() {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
+
+  // Auto-redirect countdown when access is denied
+  useEffect(() => {
+    if (!loading && !hasAccess && elderId && groupId) {
+      const timer = setInterval(() => {
+        setAccessDeniedCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            router.push('/dashboard');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [loading, hasAccess, elderId, groupId, router]);
 
   useEffect(() => {
     loadElderData();
@@ -121,24 +141,51 @@ export default function ElderProfilePage() {
 
   if (!hasAccess) {
     return (
-      <Card className="max-w-lg mx-auto mt-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600">
-            <ShieldAlert className="w-5 h-5" />
-            Access Denied
-          </CardTitle>
-          <CardDescription>
-            You do not have permission to view this loved one&apos;s health profile.
-            Only group admins and the primary caregiver can access this information.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" onClick={() => router.push('/dashboard')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Go Back
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <ShieldAlert className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <CardTitle className="text-xl text-red-600 dark:text-red-400">
+              Access Denied
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              You do not have permission to view this loved one&apos;s health profile.
+              Only the assigned caregiver or group admin can access this information.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Countdown */}
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800 text-center">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Redirecting to dashboard in{' '}
+                <span className="font-bold text-blue-900 dark:text-blue-100">{accessDeniedCountdown}</span>{' '}
+                {accessDeniedCountdown === 1 ? 'second' : 'seconds'}...
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => router.back()}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Back
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => router.push('/dashboard')}
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Go to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
