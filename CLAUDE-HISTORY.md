@@ -79,13 +79,44 @@ Modified both client-side and server-side authorization functions to:
 
 ### Test Results (Post-Fix)
 
+#### UI Access Tests (S1.11-S1.13)
+
 | Test | Description | Result |
 |------|-------------|--------|
 | S1.11 | C1 → Direct URL to C2's Elder | ✅ PASS - Access Denied |
 | S1.12 | C1 → Direct URL to C3's Elder | ✅ PASS - Access Denied |
 | S1.13 | C1 → Direct URL to C10's Elder | ✅ PASS - Access Denied |
 
-**Verification:** All caregivers now correctly isolated. Direct URL bypass no longer possible.
+#### Server-Side RBAC Tests (S1.14-S1.17)
+
+Tested `canAccessElderProfileServer` function directly with Firebase Admin SDK:
+
+| Test | Description | Result |
+|------|-------------|--------|
+| P1 | C1 → Own Elder LO-C1-1 | ✅ PASS - Access Granted |
+| P2 | C1 → Own Elder LO-C1-3 | ✅ PASS - Access Granted |
+| S1.14 | C1 → C2's Elder (API) | ✅ PASS - Access Denied |
+| S1.15 | C1 → C3's Elder (API) | ✅ PASS - Access Denied |
+| S1.16 | C1 → C10's Elder (API) | ✅ PASS - Access Denied |
+| S1.17 | C1 → C2's Elder (manipulated groupId) | ✅ PASS - Access Denied |
+
+#### Firestore Security Rules (S1.18-S1.20)
+
+Firestore rules use `resource.data.groupId` (elder's actual groupId from document), not passed-in parameters. Rules enforce:
+
+| Rule Check | Mechanism |
+|------------|-----------|
+| `isGroupAdmin(resource.data.groupId)` | Uses elder's actual groupId |
+| `isCaregiverAssignedToElder(elderId)` | Checks `elder_access` subcollection |
+| `canAccessGroup(resource.data.groupId)` | Verifies group membership |
+
+| Test | Description | Result |
+|------|-------------|--------|
+| S1.18 | Firestore rules use actual groupId | ✅ SECURE - By design |
+| S1.19 | elder_access subcollection check | ✅ SECURE - Must exist |
+| S1.20 | Group membership verification | ✅ SECURE - Uses resource.data |
+
+**Verification:** All caregivers now correctly isolated. Both application code AND Firestore rules prevent unauthorized access.
 
 ---
 
