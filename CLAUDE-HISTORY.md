@@ -43,6 +43,52 @@ Created user-friendly custom 404 page at `src/app/not-found.tsx` with:
 
 ---
 
+## Critical Security Fix: IDOR Vulnerability (Jan 17, 2026)
+
+### Issue
+**Severity:** CRITICAL
+
+Caregivers in Multi-Agency Plan could access other caregivers' elders via direct URL manipulation (IDOR - Insecure Direct Object Reference vulnerability).
+
+**Root Cause:** The `canAccessElderProfile` function was using the passed-in `groupId` parameter for authorization checks. When accessing an elder via direct URL, the `groupId` would fall back to the current user's own group, incorrectly granting access.
+
+### Vulnerability Details
+
+| Test | Expected | Actual (Before Fix) |
+|------|----------|---------------------|
+| C1 accessing C2's elder via direct URL | Access Denied | ❌ FULL ACCESS with Edit button |
+| C1 accessing C3's elder via direct URL | Access Denied | ❌ FULL ACCESS with Edit button |
+| C1 accessing C10's elder via direct URL | Access Denied | ❌ FULL ACCESS with Edit button |
+
+### Solution
+
+Modified both client-side and server-side authorization functions to:
+1. Fetch the elder document FIRST to get the ACTUAL `groupId` from Firestore
+2. Use the elder's actual `groupId` for all authorization checks (not the passed-in parameter)
+3. Added `elder_access` subcollection check for assigned caregivers
+
+### Files Modified
+
+| File | Function | Change |
+|------|----------|--------|
+| `src/lib/firebase/elderHealthProfile.ts` | `canAccessElderProfile` | Fetch elder's actual groupId before auth checks |
+| `src/lib/api/verifyAuth.ts` | `canAccessElderProfileServer` | Same fix for server-side API routes |
+
+### Commit
+- `838a13f` - fix: prevent IDOR vulnerability in elder profile access
+
+### Test Results (Post-Fix)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| S1.11 | C1 → Direct URL to C2's Elder | ✅ PASS - Access Denied |
+| S1.12 | C1 → Direct URL to C3's Elder | ✅ PASS - Access Denied |
+| S1.13 | C1 → Direct URL to C10's Elder | ✅ PASS - Access Denied |
+
+**Verification:** All caregivers now correctly isolated. Direct URL bypass no longer possible.
+
+---
+
 ## E2E Testing - Refactor 11 (Jan 12, 2026)
 
 **Reference Document:** `refactor-11.md`
