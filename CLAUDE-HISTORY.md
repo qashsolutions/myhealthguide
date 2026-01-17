@@ -131,6 +131,154 @@ Firestore rules use `resource.data.groupId` (elder's actual groupId from documen
 | S2.11 (UI) | C2 → C1's Elder (URL) | ✅ PASS - Blocked |
 | S2.12 (UI) | C2 → C3's Elder (URL) | ✅ PASS - Blocked |
 
+### C3 Isolation Tests (Jan 17, 2026)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| S3.1 | C3 → Own Elder (3H6yoVml2NzJ7wlG8dLw) | ✅ PASS (Access via primaryCaregiverId) |
+| S3.2 | C3 → Own Elder (BAw6UYpkO6oCMgp1WG2N) | ✅ PASS (Access via primaryCaregiverId) |
+| S3.3 | C3 → Own Elder (Gda9gCM8wv2OVw0wmG7w) | ✅ PASS (Access via primaryCaregiverId) |
+| S3.11 | C3 → C1's Elder (server) | ✅ PASS - Access Denied |
+| S3.12 | C3 → C2's Elder (server) | ✅ PASS - Access Denied |
+| S3.13 | C3 → C10's Elder (server) | ✅ PASS - Access Denied |
+
+**Total: 6/6 C3 RBAC tests passed**
+
+### C10 Isolation Tests (Jan 17, 2026)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| S10.1 | C10 → Own Elder (7IZOmv92u6mMnQdedPID) | ✅ PASS (Access via primaryCaregiverId) |
+| S10.2 | C10 → Own Elder (9Kqy3BCBDwSkub9ywSDw) | ✅ PASS (Access via primaryCaregiverId) |
+| S10.3 | C10 → Own Elder (9i4JAGoYqUlgSiVzlWKL) | ✅ PASS (Access via primaryCaregiverId) |
+| S10.11 | C10 → C1's Elder | ✅ PASS - Access Denied |
+| S10.12 | C10 → C2's Elder | ✅ PASS - Access Denied |
+| S10.13 | C10 → C3's Elder | ✅ PASS - Access Denied |
+
+**Total: 6/6 C10 RBAC tests passed**
+
+### RBAC Isolation Summary
+
+| Caregiver | Own Elders | Other's Elders | Status |
+|-----------|------------|----------------|--------|
+| C1 | ✅ Access Granted | ✅ Access Denied | SECURE |
+| C2 | ✅ Access Granted | ✅ Access Denied | SECURE |
+| C3 | ✅ Access Granted | ✅ Access Denied | SECURE |
+| C10 | ✅ Access Granted | ✅ Access Denied | SECURE |
+
+**All 24 RBAC isolation tests passed. Multi-Agency caregiver isolation verified.**
+
+### M1 Read-Only Member Tests (Jan 17, 2026)
+
+Testing C1's read-only member (ramanac+c1m1@gmail.com) access permissions.
+
+| Test | Description | Result |
+|------|-------------|--------|
+| M1.1 | M1 → C1's Elder LO-C1-1 | ✅ PASS (Read access via member_read) |
+| M1.2 | M1 → C1's Elder LO-C1-3 | ✅ PASS (Read access via member_read) |
+| M1.11 | M1 → C2's Elder | ✅ PASS - Access Denied |
+| M1.12 | M1 → C3's Elder | ✅ PASS - Access Denied |
+| M1.13 | M1 → C10's Elder | ✅ PASS - Access Denied |
+
+**Total: 5/5 M1 read-only member tests passed**
+
+### M1 Edit Permission Tests (Jan 17, 2026)
+
+Verifying M1 can VIEW but NOT EDIT elders.
+
+| Test | Description | Result |
+|------|-------------|--------|
+| R1 | M1 permission on C1-Elder-1 | ✅ PASS (canView=true, canEdit=false) |
+| R2 | C1 permission on C1-Elder-1 | ✅ PASS (canView=true, canEdit=true) |
+| R3 | M1 group permissionLevel | ✅ PASS (permissionLevel=read) |
+| R4 | C1 is group admin | ✅ PASS (adminId=true) |
+
+**Total: 4/4 M1 edit permission tests passed**
+
+**Verification:**
+- M1 (read-only member): `canView=true`, `canEdit=false`, `permissionLevel=read`
+- C1 (admin caregiver): `canView=true`, `canEdit=true`, `permissionLevel=admin`
+
+Read-only members can view elders in their assigned group but cannot edit them or access elders from other caregivers' groups.
+
+### Super Admin (Agency Owner) Tests (Jan 17, 2026)
+
+Testing agency owner (ramanac+owner@gmail.com) permissions.
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SA1 | Owner can VIEW Agency Elder 1 | ✅ PASS |
+| SA2 | Owner can VIEW Agency Elder 2 | ✅ PASS |
+| SA3 | Owner CANNOT VIEW other agency's elder | ✅ PASS (Correctly denied) |
+| SA4 | Owner CANNOT VIEW other agency's elder | ✅ PASS (Correctly denied) |
+| SA5 | Owner CANNOT EDIT Agency Elder 1 | ✅ PASS (super_admin_read_only) |
+| SA6 | Owner CANNOT EDIT Agency Elder 2 | ✅ PASS (super_admin_read_only) |
+| SA7 | Caregiver CAN EDIT their own elder | ✅ PASS (primaryCaregiverId) |
+| SA8 | Owner CAN manage agency | ✅ PASS |
+| SA9 | Caregiver CANNOT manage agency | ✅ PASS |
+
+**Total: 9/9 super_admin tests passed**
+
+**Verification:**
+- Super admin can VIEW all elders in their agency
+- Super admin is READ-ONLY for elder care data (cannot edit)
+- Super admin CANNOT view elders in other agencies
+- Super admin CAN manage agency (billing, caregivers)
+- Caregivers CAN edit their own elders
+- Caregivers CANNOT manage agency
+
+### Family Plan A Tests (Jan 17, 2026)
+
+Testing Family Plan A ($8.99/mo) user permissions: 1 elder, 1 admin, 1 read-only member.
+
+| Test | Description | Result |
+|------|-------------|--------|
+| FPA1 | A1 (Admin) can VIEW elder | ✅ PASS |
+| FPA2 | A1 (Admin) can EDIT elder | ✅ PASS (primaryCaregiverId) |
+| FPA3 | A1 (Admin) can manage group | ✅ PASS |
+| FPA4 | A2 (Member) can VIEW elder | ✅ PASS |
+| FPA5 | A2 (Member) CANNOT EDIT elder | ✅ PASS (group_member_read) |
+| FPA6 | A2 (Member) CANNOT manage group | ✅ PASS |
+| FPA7 | A1 CANNOT access Multi-Agency elder | ✅ PASS (Correctly denied) |
+| FPA8 | A2 CANNOT access Multi-Agency elder | ✅ PASS (Correctly denied) |
+
+**Total: 8/8 Family Plan A tests passed**
+
+**Verification:**
+- A1 (Admin): Can view AND edit elder, can manage group settings
+- A2 (Member): Can view but NOT edit elder, cannot manage group
+- Cross-plan isolation: Family Plan A users cannot access Multi-Agency elders
+
+### Family Plan B Tests (Jan 17, 2026)
+
+Testing Family Plan B ($18.99/mo) user permissions: 1 elder, 1 admin, 3 read-only members.
+
+| Test | Description | Result |
+|------|-------------|--------|
+| FPB1 | B1 (Admin) can VIEW elder | ✅ PASS |
+| FPB2 | B1 (Admin) can EDIT elder | ✅ PASS (primaryCaregiverId) |
+| FPB3 | B1 (Admin) can manage group | ✅ PASS |
+| FPB4a | B2 (Member) can VIEW elder | ✅ PASS |
+| FPB4b | B2 (Member) CANNOT EDIT elder | ✅ PASS (read-only) |
+| FPB4c | B2 (Member) CANNOT manage group | ✅ PASS |
+| FPB5a | B3 (Member) can VIEW elder | ✅ PASS |
+| FPB5b | B3 (Member) CANNOT EDIT elder | ✅ PASS (read-only) |
+| FPB5c | B3 (Member) CANNOT manage group | ✅ PASS |
+| FPB6a | B4 (Member) can VIEW elder | ✅ PASS |
+| FPB6b | B4 (Member) CANNOT EDIT elder | ✅ PASS (read-only) |
+| FPB6c | B4 (Member) CANNOT manage group | ✅ PASS |
+| FPB7 | B1 CANNOT access Plan A elder | ✅ PASS (denied) |
+| FPB8 | B1 CANNOT access Multi-Agency elder | ✅ PASS (denied) |
+| FPB9 | B2 CANNOT access Plan A elder | ✅ PASS (denied) |
+
+**Total: 15/15 Family Plan B tests passed**
+
+**Verification:**
+- B1 (Admin): Can view AND edit elder, can manage group settings
+- B2, B3, B4 (Members): Can view but NOT edit, cannot manage group
+- All 3 read-only member slots verified working correctly
+- Cross-plan isolation: Cannot access Family Plan A or Multi-Agency elders
+
 ---
 
 ## Access Denied Page UX Improvement (Jan 17, 2026)
@@ -166,6 +314,40 @@ Improved the Access Denied UI in `src/app/dashboard/elder-profile/page.tsx` to m
 | Auto-redirect to dashboard | ✅ PASS |
 | "Go Back" navigates to previous page | ✅ PASS |
 | "Go to Dashboard" works | ✅ PASS |
+
+---
+
+## C2 Elder Data Fix - Missing GroupId (Jan 17, 2026)
+
+### Issue
+C2's elders (LO-C2-1, LO-C2-2, LO-C2-3) were missing the `groupId` field in Firestore. While access still worked via `primaryCaregiverId`, this was inconsistent with the data model and could cause issues with group-based authorization.
+
+### Root Cause
+Elders were created before the groupId field was properly populated during creation.
+
+### Elders Fixed
+
+| Elder Name | Elder ID | Before | After |
+|------------|----------|--------|-------|
+| LO-C2-1 | XCynWmOt5KdCNp0jdgLo | groupId: NONE | groupId: 0zhj3xd3jmGZ8fWjv1Vc |
+| LO-C2-2 | K7NCfFHgUDaCN914jzxI | groupId: NONE | groupId: 0zhj3xd3jmGZ8fWjv1Vc |
+| LO-C2-3 | nbDORIinVXQSgm13dkHi | groupId: NONE | groupId: 0zhj3xd3jmGZ8fWjv1Vc |
+
+### Script Created
+- `scripts/fix-c2-elder-groupid.ts` - Finds C2's group and updates elders
+
+### Test Results (Post-Fix)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| S2.1 | C2 → Own Elder LO-C2-1 | ✅ PASS (groupId now present) |
+| S2.2 | C2 → Own Elder LO-C2-2 | ✅ PASS (groupId now present) |
+| S2.3 | C2 → Own Elder LO-C2-3 | ✅ PASS (groupId now present) |
+| S2.11 | C2 → C1's Elder | ✅ PASS - Access Denied |
+| S2.12 | C2 → C3's Elder | ✅ PASS - Access Denied |
+| S2.13 | C2 → C10's Elder | ✅ PASS - Access Denied |
+
+**Total: 6/6 C2 RBAC tests passed**
 
 ---
 
