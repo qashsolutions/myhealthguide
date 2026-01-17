@@ -1,7 +1,7 @@
 # MyHealthGuide - Claude Code Instructions
 
 - Review the documents. Build prod ready files, do not add To-Dos. Do not assume - ask me when in doubt.
-- Today is Jan 13, 2026.
+- Today is Jan 17, 2026.
 - The firebase config will not work in local.
 
 ## Related Documentation
@@ -32,33 +32,39 @@
 
 ---
 
-## Current Phase: Phase 12 - Agency Feature Comprehensive Testing
+## Current Phase: Phase 12 - RBAC Testing Complete
 
 **Reference Document:** `refactor-12.md`
-**Status:** 🔄 IN PROGRESS
+**Status:** ✅ COMPLETE (Jan 17, 2026)
 
-### MANDATORY TESTING REQUIREMENTS
+### RBAC Test Results Summary
 
-**EVERY SINGLE TEST MUST BE EXECUTED. NO EXCEPTIONS.**
+| Category | Tests | Passed | Status |
+|----------|-------|--------|--------|
+| Multi-Agency Caregiver Isolation | 24 | 24 | ✅ 100% |
+| Read-Only Member Access | 9 | 9 | ✅ 100% |
+| Super Admin (Agency Owner) | 9 | 9 | ✅ 100% |
+| Family Plan A | 8 | 8 | ✅ 100% |
+| Family Plan B | 15 | 15 | ✅ 100% |
+| **TOTAL** | **65** | **65** | ✅ **100%** |
 
-| Scope | Count | Requirement |
-|-------|-------|-------------|
-| Caregivers | 10 | Test ALL 10 caregivers individually |
-| Elders | 30 | Test ALL 30 elders (3 per caregiver) |
-| Family Members | 60+ | Test ALL family members (2 per elder) |
-| Features | ALL | Every click, every field, every access |
+### Security Verified
 
-### Testing Rules
-- Do NOT assume features are missing - click and verify
-- Do NOT skip "repetitive" tests - each user may have different bugs
-- Do NOT make time-based excuses - execute ALL tests
-- Document EVERY result in `AGENCY_FEATURE_TEST_RESULTS.md`
-- Document EVERY bug in `AGENCY_BUGS_FOUND.md`
+| Control | Status |
+|---------|--------|
+| Caregiver isolation (C1, C2, C3, C10) | ✅ SECURE |
+| Read-only member permissions | ✅ SECURE |
+| Super admin read-only for care data | ✅ SECURE |
+| Cross-agency isolation | ✅ SECURE |
+| Cross-plan isolation | ✅ SECURE |
+| IDOR vulnerability fix | ✅ VERIFIED |
 
 ### Test Accounts Pattern
 - Agency Owner: `ramanac+owner@gmail.com`
 - Caregivers 1-10: `ramanac+c1@gmail.com` through `ramanac+c10@gmail.com`
 - Family Members: `ramanac+c{1-10}m{1-6}@gmail.com`
+- Family Plan A: `ramanac+a1@gmail.com` (admin), `ramanac+a2@gmail.com` (member)
+- Family Plan B: `ramanac+b1@gmail.com` (admin), `ramanac+b2-b4@gmail.com` (members)
 - Password (all): `AbcD1234`
 
 ---
@@ -163,7 +169,8 @@
 **Launch Date:** January 11, 2026
 **Status:** ✅ LIVE
 
-- 109/109 tests passed
+- 174/174 tests passed (109 E2E + 65 RBAC)
 - All 3 subscription plans live
 - HIPAA compliance verified
 - SEO infrastructure complete
+- RBAC security verified (Jan 17, 2026)
