@@ -89,6 +89,42 @@ Modified both client-side and server-side authorization functions to:
 
 ---
 
+## Access Denied Page UX Improvement (Jan 17, 2026)
+
+### Issue
+The Access Denied page shown when a user tries to access an elder they don't have permission for was too basic - just a simple card with minimal navigation options.
+
+### Solution
+Improved the Access Denied UI in `src/app/dashboard/elder-profile/page.tsx` to match the UX pattern of the custom 404 page:
+
+| Feature | Description |
+|---------|-------------|
+| Full Header | MyHealthGuide logo and sidebar navigation visible |
+| Centered Card | Clean, centered layout with proper spacing |
+| Icon | Large red ShieldAlert icon in circular background |
+| Message | Clear explanation of why access was denied |
+| Auto-redirect | 5-second countdown with redirect to /dashboard |
+| Go Back | Button using `router.back()` for actual back navigation |
+| Go to Dashboard | Primary button with Home icon |
+| Dark Mode | Full dark mode support for all elements |
+
+### Commit
+- `b48637b` - fix: improve Access Denied page UX
+
+### Test Results
+
+| Test | Status |
+|------|--------|
+| Header and sidebar visible | ✅ PASS |
+| Red shield icon displayed | ✅ PASS |
+| Access Denied message clear | ✅ PASS |
+| 5-second countdown works | ✅ PASS |
+| Auto-redirect to dashboard | ✅ PASS |
+| "Go Back" navigates to previous page | ✅ PASS |
+| "Go to Dashboard" works | ✅ PASS |
+
+---
+
 ## E2E Testing - Refactor 11 (Jan 12, 2026)
 
 **Reference Document:** `refactor-11.md`
