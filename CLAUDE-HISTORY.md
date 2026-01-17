@@ -118,6 +118,19 @@ Firestore rules use `resource.data.groupId` (elder's actual groupId from documen
 
 **Verification:** All caregivers now correctly isolated. Both application code AND Firestore rules prevent unauthorized access.
 
+### C2 Isolation Tests
+
+| Test | Description | Result |
+|------|-------------|--------|
+| S2.1 | C2 → Own Elder LO-C2-1 | ✅ PASS (Access via primaryCaregiverId) |
+| S2.2 | C2 → Own Elder LO-C2-2 | ✅ PASS (Access via primaryCaregiverId) |
+| S2.3 | C2 → Own Elder LO-C2-3 | ✅ PASS (Access via primaryCaregiverId) |
+| S2.11 | C2 → C1's Elder (server) | ✅ PASS - Access Denied |
+| S2.12 | C2 → C3's Elder (server) | ✅ PASS - Access Denied |
+| S2.13 | C2 → C10's Elder (server) | ✅ PASS - Access Denied |
+| S2.11 (UI) | C2 → C1's Elder (URL) | ✅ PASS - Blocked |
+| S2.12 (UI) | C2 → C3's Elder (URL) | ✅ PASS - Blocked |
+
 ---
 
 ## Access Denied Page UX Improvement (Jan 17, 2026)
