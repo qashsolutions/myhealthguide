@@ -4,6 +4,66 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## Trial Duration Display Fix (Jan 17, 2026)
+
+### Issue
+The subscription settings page was displaying incorrect trial duration. All plans showed "Day X of 14" instead of the correct values:
+- Family Plan A/B: 45 days
+- Multi Agency Plan: 30 days
+
+### Root Cause
+Hardcoded `TRIAL_DURATION = 14` constant in `SubscriptionSettings.tsx` instead of using the dynamic values from the subscription service.
+
+### Solution
+Updated `src/components/subscription/SubscriptionSettings.tsx` to:
+1. Import the correct constants from subscription service
+2. Dynamically calculate trial duration based on user's subscription tier
+
+### Code Changes
+
+**Before (Bug):**
+```typescript
+// Calculate trial day (Day X of 14)
+const TRIAL_DURATION = 14;
+```
+
+**After (Fixed):**
+```typescript
+import {
+  TRIAL_DURATION_DAYS,
+  MULTI_AGENCY_TRIAL_DAYS,
+} from '@/lib/subscription';
+
+// Calculate trial day based on plan type
+// Family Plans A/B: 45 days, Multi Agency: 30 days
+const trialDuration = user?.subscriptionTier === 'multi_agency'
+  ? MULTI_AGENCY_TRIAL_DAYS
+  : TRIAL_DURATION_DAYS;
+```
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/components/subscription/SubscriptionSettings.tsx` | Dynamic trial duration calculation |
+
+### Commit
+- `fix: correct trial duration display (45 days Family, 30 days Multi Agency)`
+
+### Test Results
+
+| Test | Account | Expected | Result |
+|------|---------|----------|--------|
+| Multi Agency Plan trial | ramanac+owner@gmail.com | Day X of 30 | ✅ PASS |
+| Family Plan A trial | ramanac+a1@gmail.com | Day X of 45 | ✅ PASS |
+
+**Verification:**
+- Multi Agency Plan: Shows "Day 1 of 30" ✅
+- Family Plan A: Shows "Day 1 of 45" ✅
+- Family Plan B: Uses same logic as Plan A (45 days) ✅
+
+---
+
 ## Storage Quota & Downgrade Validation (Jan 17, 2026)
 
 ### Feature Overview
