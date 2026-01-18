@@ -11,7 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { FileText, Upload, Trash2, Eye, AlertCircle, FolderOpen, Sparkles, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileText, Upload, Trash2, Eye, AlertCircle, FolderOpen, Sparkles, X, HardDrive } from 'lucide-react';
 import { uploadFileWithQuota, deleteFileWithQuota } from '@/lib/firebase/storage';
 import { DocumentAnalysisPanel } from '@/components/documents/DocumentAnalysisPanel';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
@@ -29,6 +30,7 @@ export default function DocumentsPage() {
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | 'all'>('all');
   const [selectedDocument, setSelectedDocument] = useState<StorageMetadata | null>(null);
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
+  const [storageInfo, setStorageInfo] = useState<{ used: number; limit: number; isOverQuota: boolean } | null>(null);
 
   // Check if user is a family member (read-only access)
   const userAgencyRole = user?.agencies?.[0]?.role;
@@ -59,6 +61,9 @@ export default function DocumentsPage() {
           uploadedAt: d.uploadedAt ? new Date(d.uploadedAt) : null
         }));
         setDocuments(docs);
+        if (data.storageInfo) {
+          setStorageInfo(data.storageInfo);
+        }
       } else {
         console.error('Error loading documents:', data.error);
         setError('Failed to load documents');
@@ -186,10 +191,14 @@ export default function DocumentsPage() {
         {!isReadOnly && (
           <>
             <label htmlFor="file-upload">
-              <Button disabled={uploading} asChild>
+              <Button
+                disabled={uploading || storageInfo?.isOverQuota}
+                asChild
+                title={storageInfo?.isOverQuota ? 'Storage over limit - delete files first' : 'Upload a document'}
+              >
                 <span>
                   <Upload className="w-4 h-4 mr-2" />
-                  {uploading ? 'Uploading...' : 'Upload Document'}
+                  {uploading ? 'Uploading...' : storageInfo?.isOverQuota ? 'Storage Over Limit' : 'Upload Document'}
                 </span>
               </Button>
             </label>
@@ -198,6 +207,7 @@ export default function DocumentsPage() {
               type="file"
               className="hidden"
               onChange={handleFileUpload}
+              disabled={storageInfo?.isOverQuota}
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
             />
           </>
@@ -213,6 +223,20 @@ export default function DocumentsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Storage Over Quota Warning */}
+      {storageInfo?.isOverQuota && (
+        <Alert className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+          <HardDrive className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800 dark:text-red-200">
+            <div className="font-medium mb-1">Storage Over Limit</div>
+            <p className="text-sm">
+              You&apos;re using {formatFileSize(storageInfo.used)} of {formatFileSize(storageInfo.limit)}.
+              {' '}Delete {formatFileSize(storageInfo.used - storageInfo.limit)} of files to view or upload documents.
+            </p>
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Category Filters */}
@@ -349,7 +373,15 @@ export default function DocumentsPage() {
                             size="sm"
                             variant="outline"
                             className="flex-1"
-                            onClick={() => window.open(doc.filePath, '_blank')}
+                            disabled={storageInfo?.isOverQuota}
+                            onClick={() => {
+                              if (storageInfo?.isOverQuota) {
+                                setError('Cannot view files - storage is over limit. Please delete files first.');
+                                return;
+                              }
+                              window.open(doc.filePath, '_blank');
+                            }}
+                            title={storageInfo?.isOverQuota ? 'Storage over limit - delete files to view' : 'View document'}
                           >
                             <Eye className="w-3 h-3 mr-1" />
                             View
@@ -369,7 +401,9 @@ export default function DocumentsPage() {
                             size="sm"
                             variant="default"
                             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                            disabled={storageInfo?.isOverQuota}
                             onClick={() => handleAnalyzeDocument(doc)}
+                            title={storageInfo?.isOverQuota ? 'Storage over limit - delete files first' : 'Analyze document with AI'}
                           >
                             <Sparkles className="w-3 h-3 mr-1" />
                             Analyze with AI

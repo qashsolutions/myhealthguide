@@ -21,6 +21,13 @@ export async function GET(request: NextRequest) {
 
     const db = getAdminDb();
 
+    // Check if user is over their storage quota (blocks access after downgrade)
+    const userDoc = await db.collection('users').doc(authResult.userId).get();
+    const userData = userDoc.data();
+    const storageUsed = userData?.storageUsed || 0;
+    const storageLimit = userData?.storageLimit || 0;
+    const isOverQuota = storageLimit > 0 && storageUsed > storageLimit;
+
     // Get all files for this user - query without orderBy, sort in memory
     const filesSnap = await db.collection('storageMetadata')
       .where('userId', '==', authResult.userId)
@@ -46,7 +53,15 @@ export async function GET(request: NextRequest) {
       documents = documents.filter(doc => doc.filePath?.includes(elderId));
     }
 
-    return NextResponse.json({ success: true, documents });
+    return NextResponse.json({
+      success: true,
+      documents,
+      storageInfo: {
+        used: storageUsed,
+        limit: storageLimit,
+        isOverQuota
+      }
+    });
 
   } catch (error) {
     console.error('Error in documents API:', error);
