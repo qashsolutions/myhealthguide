@@ -4,6 +4,87 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## Storage Quota & Downgrade Validation (Jan 17, 2026)
+
+### Feature Overview
+
+Implemented storage quota enforcement and subscription downgrade validation to handle plan changes gracefully.
+
+### Storage Quota Enforcement
+
+When a user downgrades their plan (e.g., Multi Agency → Family Plan), their storage limit decreases. If they're already over the new limit, the following restrictions apply:
+
+| Action | Over Quota Behavior |
+|--------|---------------------|
+| Upload | ❌ Blocked - "Storage Over Limit" button |
+| View/Download | ❌ Blocked - Prevents viewing files |
+| Analyze with AI | ❌ Blocked - Disabled |
+| Delete | ✅ Always Enabled - Allows reducing storage |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/app/api/documents/route.ts` | Added `isOverQuota` flag to API response |
+| `src/app/dashboard/documents/page.tsx` | Added over-quota warning banner and button states |
+| `src/lib/firebase/storage.ts` | `checkStorageAccessAllowed()` function (existing) |
+| `src/lib/firebase/planLimits.ts` | `validateDowngrade()` function (existing) |
+| `src/components/subscription/DowngradeBlockedModal.tsx` | Modal showing blocking reasons |
+
+### Storage Quota Test Results (UI Simulation)
+
+| Test | Expected | Result |
+|------|----------|--------|
+| Over-quota warning banner appears | Red alert with HardDrive icon | ✅ PASS |
+| Upload button disabled when over quota | "Storage Over Limit" text, disabled | ✅ PASS |
+| View button disabled when over quota | Disabled, shows error on click | ✅ PASS |
+| Analyze with AI disabled when over quota | Disabled state | ✅ PASS |
+| Delete button always enabled | Not disabled, allows deletion | ✅ PASS |
+
+### Downgrade Validation Rules
+
+| Blocker Type | Behavior | Example |
+|--------------|----------|---------|
+| Members (Hard Block) | ❌ Must resolve before downgrade | Plan B (4 members) → Plan A (2 max) |
+| Storage (Soft Block) | ⚠️ Warning only, can proceed | 100 MB used → 25 MB limit |
+
+### Downgrade Validation Test Results (Production)
+
+| Test | User | Action | Expected | Result |
+|------|------|--------|----------|--------|
+| Downgrade blocked | ramanac+b1@gmail.com | Plan B → Plan A | Show DowngradeBlockedModal | ✅ PASS |
+| Modal content | - | - | "Remove 2 members required" message | ✅ PASS |
+| Upgrade allowed | ramanac+b1@gmail.com | Plan B → Multi Agency | Go directly to Stripe checkout | ✅ PASS |
+| Stripe checkout | - | - | Shows $55/month, correct email | ✅ PASS |
+
+### Downgrade Flow Verification
+
+**Test Account:** ramanac+b1@gmail.com (Family Plan B Admin, 4 members)
+
+1. **Downgrade to Plan A:**
+   - Clicked "Select Plan" on Family Plan A ($8.99)
+   - DowngradeBlockedModal appeared with:
+     - Red "Cannot Downgrade Yet" header
+     - "Remove 2 members required" message
+     - Link to Group Management page
+   - Result: ✅ Correctly blocked
+
+2. **Upgrade to Multi Agency:**
+   - Clicked "Select Plan" on Multi Agency Plan ($55)
+   - Immediately redirected to Stripe checkout
+   - Checkout showed correct plan and pricing
+   - Result: ✅ No blocking, direct to checkout
+
+### Storage Limits by Plan
+
+| Plan | Storage Limit |
+|------|---------------|
+| Family Plan A | 25 MB |
+| Family Plan B | 50 MB |
+| Multi Agency | 500 MB |
+
+---
+
 ## Custom 404 Page (Jan 17, 2026)
 
 ### Issue
