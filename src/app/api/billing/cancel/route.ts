@@ -52,8 +52,33 @@ export async function POST(req: NextRequest) {
     const stripeSubscriptionId = userData.stripeSubscriptionId;
     const stripeCustomerId = userData.stripeCustomerId;
     const subscriptionStartDate = convertFirestoreTimestamp(userData.subscriptionStartDate);
+    const subscriptionStatus = userData.subscriptionStatus;
+    const subscriptionTier = userData.subscriptionTier;
 
+    // Handle trial users WITHOUT a Stripe subscription
+    // These users selected a plan but haven't been charged yet
     if (!stripeSubscriptionId) {
+      // Check if this is a trial user who selected a plan
+      if (subscriptionStatus === 'trial' && subscriptionTier) {
+        // Cancel the trial - user won't be charged when trial ends
+        await adminDb.collection('users').doc(userId).update({
+          subscriptionStatus: 'canceled',
+          subscriptionTier: null,
+          canceledAt: Timestamp.now(),
+          cancelReason: reason || 'User cancelled during trial',
+          updatedAt: Timestamp.now(),
+        });
+
+        return NextResponse.json({
+          success: true,
+          cancellationType: 'trial_canceled',
+          refundIssued: false,
+          refundAmount: 0,
+          message: 'Your trial has been cancelled. You will not be charged.',
+          effectiveDate: 'immediate',
+        });
+      }
+
       return NextResponse.json(
         { error: 'No active subscription found.' },
         { status: 400 }

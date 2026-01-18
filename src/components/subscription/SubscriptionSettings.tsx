@@ -1011,7 +1011,18 @@ export function SubscriptionSettings() {
           <DialogHeader>
             <DialogTitle>Cancel Subscription</DialogTitle>
             <DialogDescription>
-              {isWithinRefundWindow ? (
+              {isSubscribedTrial && !hasPaidSubscription ? (
+                <>
+                  You are currently on a <strong>free trial</strong>.
+                  <br /><br />
+                  Cancelling will:
+                  <ul className="list-disc ml-5 mt-2">
+                    <li>Immediately end your trial</li>
+                    <li><strong>You will not be charged</strong></li>
+                    <li>Remove access to premium features</li>
+                  </ul>
+                </>
+              ) : isWithinRefundWindow ? (
                 <>
                   You are within the <strong>{PRICING.REFUND_WINDOW_DAYS}-day refund window</strong>.
                   <br /><br />
@@ -1045,7 +1056,7 @@ export function SubscriptionSettings() {
               onClick={executeCancelSubscription}
               disabled={actionLoading === 'cancel'}
             >
-              {actionLoading === 'cancel' ? 'Processing...' : 'Cancel Subscription'}
+              {actionLoading === 'cancel' ? 'Processing...' : isSubscribedTrial && !hasPaidSubscription ? 'Cancel Trial' : 'Cancel Subscription'}
             </Button>
           </DialogFooter>
         </DialogContent>

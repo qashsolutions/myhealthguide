@@ -151,6 +151,43 @@
 | 4000 0000 0000 9995 (Insufficient) | "Your credit card was declined because of insufficient funds. Try paying with a debit card instead." |
 | 4000 0000 0000 0069 (Expired) | "Your card is expired. Try a different card." |
 
+### Subscription Management Tests (SUB-4A)
+
+**Status:** ✅ COMPLETE (Jan 18, 2026)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SUB-4A.1 | View current subscription | ✅ PASS |
+| SUB-4A.2 | Shows active/trial status | ✅ PASS |
+| SUB-4A.3 | Shows next billing/trial end date | ✅ PASS |
+| SUB-4A.4 | Shows plan amount | ✅ PASS |
+| SUB-4A.5 | Cancel Subscription option visible | ✅ PASS |
+| SUB-4A.6 | Change Plan option visible | ✅ PASS |
+| SUB-4A.7 | Payment method visible | ✅ PASS |
+| SUB-4A.8 | Update Payment Method option visible | ✅ PASS |
+
+**Total: 8/8 PASS**
+
+#### Trial Subscription UI Elements Verified
+
+| Element | Display |
+|---------|---------|
+| Plan Name | "Multi Agency Plan" with blue "Trial" badge |
+| Price | "$55/loved one/month" |
+| Trial Progress | "Trial Day 1 of 30 • Ends February 16, 2026" |
+| Payment Method | "Payment Method on File" with charge notice |
+| Cancel Option | "Cancel during your trial to avoid being charged" |
+| Billing Actions | Manage Billing, Update Payment Method, View Billing History |
+
+#### Bug Fixes Applied (Jan 18, 2026)
+
+| Issue | Fix |
+|-------|-----|
+| Trial users didn't see plan name/price | Updated logic to identify subscribed trial users |
+| No Cancel option for trial users | Added cancel section with trial-specific messaging |
+| No payment method indicator | Added "Payment Method on File" display |
+| No Update Payment option | Added billing management section for trial users |
+
 ---
 
 ## Key Constraints (DO NOT MODIFY)
@@ -322,7 +359,7 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 **Launch Date:** January 11, 2026
 **Status:** ✅ LIVE
 
-- 199/199 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment)
+- 207/207 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Subscription Management)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -330,3 +367,4 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Subscription limits verified (Jan 17, 2026)
 - Storage quota & downgrade validation (Jan 18, 2026)
 - Stripe payment error handling verified (Jan 18, 2026)
+- Subscription management UI verified (Jan 18, 2026)
