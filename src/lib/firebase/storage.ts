@@ -49,11 +49,12 @@ export function getStorageLimitForTier(
 
 /**
  * Check if user has enough storage space for a new file
+ * Also blocks uploads if user is already over their storage limit (post-downgrade)
  */
 export async function checkStorageQuota(
   userId: string,
   fileSize: number
-): Promise<{ allowed: boolean; message?: string }> {
+): Promise<{ allowed: boolean; message?: string; isOverQuota?: boolean }> {
   try {
     // Get user document
     const userRef = doc(db, 'users', userId);
@@ -67,7 +68,19 @@ export async function checkStorageQuota(
     const storageUsed = userData.storageUsed || 0;
     const storageLimit = userData.storageLimit || STORAGE_LIMITS.FAMILY; // Default to family limit
 
-    // Check if adding this file would exceed the limit
+    // First check: if already over quota (e.g., after downgrade), block all uploads
+    if (storageUsed > storageLimit) {
+      const limitMB = (storageLimit / (1024 * 1024)).toFixed(0);
+      const usedMB = (storageUsed / (1024 * 1024)).toFixed(1);
+      const excessMB = ((storageUsed - storageLimit) / (1024 * 1024)).toFixed(1);
+      return {
+        allowed: false,
+        isOverQuota: true,
+        message: `Storage over limit. You're using ${usedMB} MB of ${limitMB} MB. Delete ${excessMB} MB of files to upload new content.`,
+      };
+    }
+
+    // Second check: if adding this file would exceed the limit
     if (storageUsed + fileSize > storageLimit) {
       const limitMB = (storageLimit / (1024 * 1024)).toFixed(0);
       const usedMB = (storageUsed / (1024 * 1024)).toFixed(2);
@@ -81,6 +94,51 @@ export async function checkStorageQuota(
   } catch (error) {
     console.error('Error checking storage quota:', error);
     return { allowed: false, message: 'Error checking storage quota' };
+  }
+}
+
+/**
+ * Check if user can access files (download)
+ * Blocks downloads if user is over their storage limit (post-downgrade compliance)
+ */
+export async function checkStorageAccessAllowed(
+  userId: string
+): Promise<{ allowed: boolean; message?: string; isOverQuota?: boolean }> {
+  try {
+    // Get user document
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      return { allowed: false, message: 'User not found' };
+    }
+
+    const userData = userSnap.data();
+    const storageUsed = userData.storageUsed || 0;
+    const storageLimit = userData.storageLimit || 0;
+
+    // If storage limit is 0 or not set, allow access (default behavior)
+    if (storageLimit === 0) {
+      return { allowed: true };
+    }
+
+    // Check if over quota - block access to files
+    if (storageUsed > storageLimit) {
+      const limitMB = (storageLimit / (1024 * 1024)).toFixed(0);
+      const usedMB = (storageUsed / (1024 * 1024)).toFixed(1);
+      const excessMB = ((storageUsed - storageLimit) / (1024 * 1024)).toFixed(1);
+      return {
+        allowed: false,
+        isOverQuota: true,
+        message: `Storage over limit. You're using ${usedMB} MB of ${limitMB} MB. Delete ${excessMB} MB of files to access your content.`,
+      };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    console.error('Error checking storage access:', error);
+    // On error, allow access (fail open for downloads)
+    return { allowed: true };
   }
 }
 

@@ -423,6 +423,183 @@ export interface MultiAgencyAccessStatus {
 }
 
 /**
+ * Downgrade validation result
+ */
+export interface DowngradeValidationResult {
+  allowed: boolean;
+  blockers: DowngradeBlocker[];
+}
+
+export interface DowngradeBlocker {
+  type: 'members' | 'storage';
+  currentValue: number;
+  targetLimit: number;
+  excess: number;
+  message: string;
+}
+
+/**
+ * Validate if user can downgrade to a target plan
+ * Checks member count and storage usage against target plan limits
+ */
+export async function validateDowngrade(
+  userId: string,
+  targetTier: PlanTier
+): Promise<DowngradeValidationResult> {
+  const blockers: DowngradeBlocker[] = [];
+
+  try {
+    // Get user document
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return {
+        allowed: false,
+        blockers: [{
+          type: 'members',
+          currentValue: 0,
+          targetLimit: 0,
+          excess: 0,
+          message: 'User not found',
+        }],
+      };
+    }
+
+    const userData = userDoc.data();
+
+    // Get user's groups to count members
+    const groupIds = userData.groups?.map((g: { groupId: string }) => g.groupId) || [];
+
+    // Get target plan limits
+    const targetLimits = getPlanLimits(targetTier);
+    const targetMaxMembers = targetLimits.maxMembers; // Includes admin
+    const targetStorageBytes = targetLimits.storageBytes;
+
+    // Check member count for each group
+    // For Family Plan A: maxMembers = 2 (1 admin + 1 member)
+    // For Family Plan B: maxMembers = 4 (1 admin + 3 members)
+    // Member count = total users in group (including admin)
+    for (const groupId of groupIds) {
+      const groupDoc = await getDoc(doc(db, 'groups', groupId));
+      if (!groupDoc.exists()) continue;
+
+      const groupData = groupDoc.data();
+      const currentMemberCount = groupData.memberIds?.length || 0;
+
+      // If current member count exceeds target limit, add blocker
+      if (currentMemberCount > targetMaxMembers) {
+        const excess = currentMemberCount - targetMaxMembers;
+        blockers.push({
+          type: 'members',
+          currentValue: currentMemberCount,
+          targetLimit: targetMaxMembers,
+          excess,
+          message: `You have ${currentMemberCount} members in your group. ${getTierDisplayName(targetTier)} allows only ${targetMaxMembers} members (1 admin + ${targetMaxMembers - 1} member${targetMaxMembers - 1 !== 1 ? 's' : ''}). Please remove ${excess} member${excess !== 1 ? 's' : ''} before downgrading.`,
+        });
+      }
+    }
+
+    // Note: Storage check is informational only for downgrade
+    // Storage compliance is enforced AFTER downgrade (blocking uploads/downloads)
+    // We don't block the downgrade itself based on storage
+    const currentStorageUsed = userData.storageUsed || 0;
+    if (currentStorageUsed > targetStorageBytes) {
+      const currentStorageMB = (currentStorageUsed / (1024 * 1024)).toFixed(1);
+      const targetStorageMB = (targetStorageBytes / (1024 * 1024)).toFixed(0);
+      const excessMB = ((currentStorageUsed - targetStorageBytes) / (1024 * 1024)).toFixed(1);
+
+      // This is informational - storage doesn't block downgrade
+      // but will block uploads/downloads after downgrade
+      // We still include it so the UI can warn the user
+      blockers.push({
+        type: 'storage',
+        currentValue: currentStorageUsed,
+        targetLimit: targetStorageBytes,
+        excess: currentStorageUsed - targetStorageBytes,
+        message: `You are using ${currentStorageMB} MB of storage. ${getTierDisplayName(targetTier)} allows ${targetStorageMB} MB. After downgrading, you will need to delete ${excessMB} MB of files to access your data.`,
+      });
+    }
+
+    // Only member blockers prevent downgrade
+    // Storage blockers are warnings (compliance enforced post-downgrade)
+    const memberBlockers = blockers.filter(b => b.type === 'members');
+
+    return {
+      allowed: memberBlockers.length === 0,
+      blockers,
+    };
+  } catch (error) {
+    console.error('Error validating downgrade:', error);
+    return {
+      allowed: false,
+      blockers: [{
+        type: 'members',
+        currentValue: 0,
+        targetLimit: 0,
+        excess: 0,
+        message: 'Error checking plan limits',
+      }],
+    };
+  }
+}
+
+/**
+ * Check if user's storage is over their plan limit
+ * Used to block uploads/downloads when over quota after downgrade
+ */
+export async function checkStorageCompliance(userId: string): Promise<{
+  isCompliant: boolean;
+  currentUsage: number;
+  limit: number;
+  excessBytes: number;
+  message?: string;
+}> {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return {
+        isCompliant: true,
+        currentUsage: 0,
+        limit: 0,
+        excessBytes: 0,
+      };
+    }
+
+    const userData = userDoc.data();
+    const currentUsage = userData.storageUsed || 0;
+    const limit = userData.storageLimit || 0;
+
+    if (currentUsage > limit && limit > 0) {
+      const currentMB = (currentUsage / (1024 * 1024)).toFixed(1);
+      const limitMB = (limit / (1024 * 1024)).toFixed(0);
+      const excessMB = ((currentUsage - limit) / (1024 * 1024)).toFixed(1);
+
+      return {
+        isCompliant: false,
+        currentUsage,
+        limit,
+        excessBytes: currentUsage - limit,
+        message: `You are using ${currentMB} MB of ${limitMB} MB storage. Delete ${excessMB} MB of files to regain full access.`,
+      };
+    }
+
+    return {
+      isCompliant: true,
+      currentUsage,
+      limit,
+      excessBytes: 0,
+    };
+  } catch (error) {
+    console.error('Error checking storage compliance:', error);
+    return {
+      isCompliant: true,
+      currentUsage: 0,
+      limit: 0,
+      excessBytes: 0,
+    };
+  }
+}
+
+/**
  * Check if a multi-agency super admin has access
  * Used to block dashboard access when trial expires without payment
  */

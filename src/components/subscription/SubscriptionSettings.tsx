@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { CreditCard, Calendar, AlertCircle, CheckCircle, Clock, XCircle, ArrowUp, ArrowDown, Ban, ShieldAlert } from 'lucide-react';
+import { CreditCard, Calendar, AlertCircle, CheckCircle, Clock, XCircle, ArrowUp, ArrowDown, Ban, ShieldAlert, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   PLAN_CONFIG,
@@ -24,6 +24,8 @@ import {
   type PlanTier,
 } from '@/lib/subscription';
 import { canManageBilling } from '@/lib/utils/getUserRole';
+import { validateDowngrade, type DowngradeBlocker } from '@/lib/firebase/planLimits';
+import { DowngradeBlockedModal } from './DowngradeBlockedModal';
 
 // Helper function to convert Firestore Timestamp to Date
 function convertFirestoreTimestamp(timestamp: unknown): Date | null {
@@ -100,6 +102,10 @@ export function SubscriptionSettings() {
   // Dialog states
   const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showDowngradeBlockedModal, setShowDowngradeBlockedModal] = useState(false);
+  const [downgradeBlockers, setDowngradeBlockers] = useState<DowngradeBlocker[]>([]);
+  const [downgradeTargetPlan, setDowngradeTargetPlan] = useState<string>('');
+  const [validatingDowngrade, setValidatingDowngrade] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'downgrade' | 'cancel'; plan?: PlanKey } | null>(null);
 
   // Convert Firestore timestamps to proper Date objects
@@ -207,9 +213,44 @@ export function SubscriptionSettings() {
     const changeType = getPlanChangeType(newPlan);
 
     if (changeType === 'downgrade') {
-      // Show confirmation dialog for downgrade
-      setPendingAction({ type: 'downgrade', plan: newPlan });
-      setShowDowngradeDialog(true);
+      // Validate downgrade before showing confirmation
+      setValidatingDowngrade(true);
+      setError(null);
+
+      try {
+        if (!user?.id) {
+          setError('User not found');
+          return;
+        }
+
+        const validation = await validateDowngrade(user.id, newPlan);
+
+        if (!validation.allowed) {
+          // Show blocked modal with blockers
+          setDowngradeBlockers(validation.blockers);
+          setDowngradeTargetPlan(PLANS[newPlan]?.name || newPlan);
+          setShowDowngradeBlockedModal(true);
+          return;
+        }
+
+        // Check if there are storage warnings (allowed but with warnings)
+        const storageWarnings = validation.blockers.filter(b => b.type === 'storage');
+        if (storageWarnings.length > 0) {
+          // Store warnings to show in confirmation dialog
+          setDowngradeBlockers(storageWarnings);
+        } else {
+          setDowngradeBlockers([]);
+        }
+
+        // Validation passed - show confirmation dialog
+        setPendingAction({ type: 'downgrade', plan: newPlan });
+        setShowDowngradeDialog(true);
+      } catch (err) {
+        console.error('Error validating downgrade:', err);
+        setError('Failed to validate downgrade. Please try again.');
+      } finally {
+        setValidatingDowngrade(false);
+      }
       return;
     }
 
@@ -761,10 +802,14 @@ export function SubscriptionSettings() {
                           e.stopPropagation();
                           handleChangePlan(planKey);
                         }}
-                        disabled={actionLoading === planKey}
+                        disabled={actionLoading === planKey || (validatingDowngrade && changeType === 'downgrade')}
                       >
                         {actionLoading === planKey ? (
                           'Processing...'
+                        ) : validatingDowngrade && changeType === 'downgrade' ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Checking...
+                          </>
                         ) : changeType === 'upgrade' ? (
                           <>
                             <ArrowUp className="w-4 h-4 mr-1" /> Upgrade
@@ -868,6 +913,19 @@ export function SubscriptionSettings() {
               )}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Storage Warning */}
+          {downgradeBlockers.filter(b => b.type === 'storage').length > 0 && (
+            <div className="py-2">
+              <Alert className="bg-yellow-50 border-yellow-200">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  <strong>Storage Warning:</strong> After downgrading, you will not be able to upload or download files until you reduce your storage usage to within the new plan&apos;s limit.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDowngradeDialog(false)}>
               Cancel
@@ -927,6 +985,14 @@ export function SubscriptionSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Downgrade Blocked Modal */}
+      <DowngradeBlockedModal
+        open={showDowngradeBlockedModal}
+        onOpenChange={setShowDowngradeBlockedModal}
+        targetPlanName={downgradeTargetPlan}
+        blockers={downgradeBlockers}
+      />
     </div>
   );
 }
