@@ -188,6 +188,41 @@
 | No payment method indicator | Added "Payment Method on File" display |
 | No Update Payment option | Added billing management section for trial users |
 
+### Cancel Subscription Tests (SUB-4B)
+
+**Status:** ✅ COMPLETE (Jan 18, 2026)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SUB-4B.1 | Trial cancel button shows correct messaging | ✅ PASS |
+| SUB-4B.2 | Cancel dialog shows "free trial" status | ✅ PASS |
+| SUB-4B.3 | Dialog shows "You will not be charged" | ✅ PASS |
+| SUB-4B.4 | Cancel Trial button executes cancellation | ✅ PASS |
+| SUB-4B.5 | Success message displays correctly | ✅ PASS |
+| SUB-4B.6 | Status updates to "Cancelled" | ✅ PASS |
+
+**Total: 6/6 PASS (tested on both Family Plan A and Family Plan B)**
+
+#### Trial Cancellation Flow Verified
+
+| Step | Expected | Actual |
+|------|----------|--------|
+| Cancel button text | "Cancel during your trial to avoid being charged" | ✅ Correct |
+| Cancel dialog title | "Cancel Subscription" | ✅ Correct |
+| Trial status message | "You are currently on a free trial" | ✅ Correct |
+| Cancellation effects | "You will not be charged" | ✅ Correct |
+| Confirm button | "Cancel Trial" | ✅ Correct |
+| Success message | "Your trial has been cancelled. You will not be charged." | ✅ Correct |
+| Final status | "Cancelled" with red indicator | ✅ Correct |
+
+#### Bug Fix Verified (Jan 18, 2026)
+
+| Issue | Fix Location | Status |
+|-------|--------------|--------|
+| Trial users without Stripe subscription couldn't cancel | `/api/billing/cancel/route.ts` | ✅ FIXED |
+
+The fix handles trial users who selected a plan but haven't been charged yet (no `stripeSubscriptionId`). These users can now cancel their trial without encountering the "No active subscription found" error.
+
 ---
 
 ## Key Constraints (DO NOT MODIFY)
@@ -359,7 +394,7 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 **Launch Date:** January 11, 2026
 **Status:** ✅ LIVE
 
-- 207/207 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Subscription Management)
+- 213/213 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Sub Management + 6 Cancel Sub)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -368,3 +403,4 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Storage quota & downgrade validation (Jan 18, 2026)
 - Stripe payment error handling verified (Jan 18, 2026)
 - Subscription management UI verified (Jan 18, 2026)
+- Cancel subscription for trial users verified (Jan 18, 2026)
