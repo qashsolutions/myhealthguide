@@ -65,8 +65,7 @@
 - Family Members: `ramanac+c{1-10}m{1-6}@gmail.com`
 - Family Plan A: `ramanac+a1@gmail.com` (admin), `ramanac+a2@gmail.com` (member)
 - Family Plan B: `ramanac+b1@gmail.com` (admin), `ramanac+b2-b4@gmail.com` (members)
-- Password (Agency/Caregivers): `AbcD1234`
-- Password (Family Plan A/B): `AbcD12!@`
+- Password (all accounts): `AbcD12!@`
 
 ---
 
@@ -211,6 +210,33 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 3. If storage exceeds Plan A limit → **Warning shown**, can proceed
 4. After downgrade with excess storage → Documents page shows red warning, upload/view/analyze disabled
 5. User deletes files to get under 25 MB → Access restored automatically
+
+### Storage Quota Test Results (Jan 18, 2026)
+
+**Status:** ✅ ALL TESTS PASSED (18/18)
+
+#### Backend Logic Tests (15/15)
+
+| Plan | Under Quota | Near Quota (Exceeds) | Near Quota (Fits) | Over Quota | At Exact Quota |
+|------|-------------|----------------------|-------------------|------------|----------------|
+| Family Plan A (25 MB) | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| Family Plan B (50 MB) | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| Multi Agency (500 MB) | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+
+#### UI Behavior Tests (3/3)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| Over-quota warning banner | Red alert displayed with usage info | ✅ PASS |
+| Upload button disabled | Shows "Storage Over Limit" when over quota | ✅ PASS |
+| Delete action message | Shows amount needed to delete (e.g., "Delete 1.0 MB") | ✅ PASS |
+
+#### Test Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/testStorageQuota.ts` | Automated quota enforcement tests |
+| `scripts/fixStorageLimits.ts` | Fix existing user storage limits |
 
 ---
 
