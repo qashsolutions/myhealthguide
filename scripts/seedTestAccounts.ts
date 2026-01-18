@@ -27,7 +27,7 @@ import { getFirestore, Firestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
 
 // ============= Constants =============
-const DEFAULT_PASSWORD = 'AbcD1234';
+const DEFAULT_PASSWORD = 'AbcD12!$';
 const TRIAL_DAYS = 45;
 const AGENCY_TRIAL_DAYS = 30;
 
@@ -246,7 +246,9 @@ async function createUserDocument(
     cancelAtPeriodEnd: false,
     pendingPlanChange: null,
     storageUsed: 0,
-    storageLimit: planType === 'multi_agency' ? 10737418240 : 536870912, // 10GB or 500MB
+    storageLimit: planType === 'family_a' ? 26214400 :      // 25 MB for Family Plan A
+                  planType === 'family_b' ? 52428800 :      // 50 MB for Family Plan B
+                  524288000,                                 // 500 MB for Multi Agency
     lastPasswordChange: new Date(),
     passwordExpiresAt: getTrialEndDate(75),
     passwordResetRequired: false,
