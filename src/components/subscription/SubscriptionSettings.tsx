@@ -173,6 +173,19 @@ export function SubscriptionSettings() {
       if (!user?.id) {
         throw new Error('Please sign in to subscribe to a plan.');
       }
+
+      // For trial users, validate that their current usage fits within the target plan limits
+      // This prevents users from selecting a lower-tier plan than their current usage requires
+      const validation = await validateDowngrade(user.id, planKey);
+
+      if (!validation.allowed) {
+        // Show blocked modal with blockers
+        setDowngradeBlockers(validation.blockers);
+        setDowngradeTargetPlan(plan.name || planKey);
+        setShowDowngradeBlockedModal(true);
+        setLoading(false);
+        return;
+      }
       // Stripe requires email for checkout - check if user has one
       const userEmail = user?.email?.trim();
       if (!userEmail) {
