@@ -164,11 +164,53 @@
 
 ## Subscription Plans (Quick Reference)
 
-| Plan | Price | Trial | Elders | Caregivers | Members |
-|------|-------|-------|--------|------------|---------|
-| **Plan A** (Family) | $8.99/mo | 45 days | 1 | 1 (admin) | 1 (read-only) |
-| **Plan B** (Family) | $18.99/mo | 45 days | 1 | 1 (admin) | 3 (read-only) |
-| **Plan C** (Multi Agency) | $55/elder/mo | 30 days | 3/caregiver | 10 max | 2/elder (read-only) |
+| Plan | Price | Trial | Elders | Caregivers | Members | Storage |
+|------|-------|-------|--------|------------|---------|---------|
+| **Plan A** (Family) | $8.99/mo | 45 days | 1 | 1 (admin) | 1 (read-only) | 25 MB |
+| **Plan B** (Family) | $18.99/mo | 45 days | 1 | 1 (admin) | 3 (read-only) | 50 MB |
+| **Plan C** (Multi Agency) | $55/elder/mo | 30 days | 3/caregiver | 10 max | 2/elder (read-only) | 500 MB |
+
+---
+
+## Storage Quota & Downgrade Validation
+
+**Implemented:** Jan 18, 2026
+
+### Downgrade Validation Rules
+
+| Resource | Validation | Enforcement |
+|----------|------------|-------------|
+| **Members** | Must fit target plan limit BEFORE downgrade | ❌ Hard block - must remove members first |
+| **Storage** | Warning shown if over target limit | ⚠️ Soft block - can downgrade but access blocked |
+
+### Storage Quota Enforcement (Post-Downgrade)
+
+When a user downgrades to a plan with lower storage limits and exceeds the new limit:
+
+| Action | When Under Quota | When Over Quota |
+|--------|------------------|-----------------|
+| Upload files | ✅ Allowed | ❌ Blocked |
+| View/Download files | ✅ Allowed | ❌ Blocked |
+| Analyze with AI | ✅ Allowed | ❌ Blocked |
+| **Delete files** | ✅ Allowed | ✅ **Always Allowed** |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/firebase/storage.ts` | `checkStorageQuota()`, `checkStorageAccessAllowed()` |
+| `src/lib/firebase/planLimits.ts` | `validateDowngrade()` - checks members & storage |
+| `src/app/api/documents/route.ts` | Returns `storageInfo.isOverQuota` flag |
+| `src/app/dashboard/documents/page.tsx` | UI blocking when over quota |
+| `src/components/subscription/DowngradeBlockedModal.tsx` | Modal showing downgrade blockers |
+
+### User Flow
+
+1. User on Plan B (50 MB) tries to downgrade to Plan A (25 MB)
+2. If members exceed Plan A limit → **Blocked**, must remove members first
+3. If storage exceeds Plan A limit → **Warning shown**, can proceed
+4. After downgrade with excess storage → Documents page shows red warning, upload/view/analyze disabled
+5. User deletes files to get under 25 MB → Access restored automatically
 
 ---
 
@@ -236,3 +278,4 @@
 - SEO infrastructure complete
 - RBAC security verified (Jan 17, 2026)
 - Subscription limits verified (Jan 17, 2026)
+- Storage quota & downgrade validation (Jan 18, 2026)
