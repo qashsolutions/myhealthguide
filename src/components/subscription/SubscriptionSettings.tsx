@@ -139,8 +139,12 @@ export function SubscriptionSettings() {
 
   // Distinguish between free trial (no Stripe) and subscribed trial (with Stripe)
   const hasPaidSubscription = !!user?.stripeSubscriptionId;
-  const isFreeTrialActive = user?.subscriptionStatus === 'trial' && !hasPaidSubscription && trialDaysLeft > 0;
-  const isSubscribedTrial = user?.subscriptionStatus === 'trial' && hasPaidSubscription;
+  // Check if user has selected a plan (subscriptionTier is set and not default/empty)
+  const hasSelectedPlan = !!user?.subscriptionTier && ['family', 'single_agency', 'multi_agency'].includes(user.subscriptionTier);
+  // Subscribed trial: has Stripe subscription OR has selected a plan during trial
+  const isSubscribedTrial = user?.subscriptionStatus === 'trial' && (hasPaidSubscription || hasSelectedPlan);
+  // Free trial: trial status but hasn't selected a plan yet
+  const isFreeTrialActive = user?.subscriptionStatus === 'trial' && !hasPaidSubscription && !hasSelectedPlan && trialDaysLeft > 0;
   const isExpired = user?.subscriptionStatus === 'expired';
   const isActive = user?.subscriptionStatus === 'active' || isSubscribedTrial;
   const isCanceled = user?.subscriptionStatus === 'canceled';
@@ -547,21 +551,41 @@ export function SubscriptionSettings() {
 
           {/* Active Subscription Status Display */}
           {isActive && user?.subscriptionTier && (
-            <div className={`mb-4 p-4 rounded-lg border ${cancelAtPeriodEnd ? 'bg-yellow-50 border-yellow-200' : 'bg-green-50 border-green-200'}`}>
+            <div className={`mb-4 p-4 rounded-lg border ${
+              cancelAtPeriodEnd ? 'bg-yellow-50 border-yellow-200' :
+              isSubscribedTrial ? 'bg-blue-50 border-blue-200' :
+              'bg-green-50 border-green-200'
+            }`}>
               <div className="flex items-center gap-2 mb-1">
                 {cancelAtPeriodEnd ? (
                   <Clock className="h-5 w-5 text-yellow-600" />
+                ) : isSubscribedTrial ? (
+                  <Clock className="h-5 w-5 text-blue-600" />
                 ) : (
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 )}
-                <span className={`text-xl font-semibold ${cancelAtPeriodEnd ? 'text-yellow-800' : 'text-green-800'}`}>
+                <span className={`text-xl font-semibold ${
+                  cancelAtPeriodEnd ? 'text-yellow-800' :
+                  isSubscribedTrial ? 'text-blue-800' :
+                  'text-green-800'
+                }`}>
                   {PLANS[user.subscriptionTier as keyof typeof PLANS]?.name || 'Active'}
                 </span>
+                {isSubscribedTrial && (
+                  <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Trial</span>
+                )}
               </div>
-              <p className={cancelAtPeriodEnd ? 'text-yellow-700' : 'text-green-700'}>
+              <p className={cancelAtPeriodEnd ? 'text-yellow-700' : isSubscribedTrial ? 'text-blue-700' : 'text-green-700'}>
                 ${PLANS[user.subscriptionTier as keyof typeof PLANS]?.price}/loved one/month
               </p>
-              {currentPeriodEnd && (
+              {/* Show trial info for subscribed trial users */}
+              {isSubscribedTrial && trialEndDate && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Trial Day {currentTrialDay} of {trialDuration} • Ends {format(trialEndDate, 'MMMM dd, yyyy')}
+                </p>
+              )}
+              {/* Show billing date for active (non-trial) users */}
+              {!isSubscribedTrial && currentPeriodEnd && (
                 <p className="text-sm text-gray-600 mt-1">
                   {cancelAtPeriodEnd
                     ? `Access until ${format(currentPeriodEnd, 'MMMM dd, yyyy')}`
@@ -853,7 +877,9 @@ export function SubscriptionSettings() {
           <CardHeader>
             <CardTitle className="text-gray-700">Cancel Subscription</CardTitle>
             <CardDescription>
-              {isWithinRefundWindow
+              {isSubscribedTrial
+                ? `Cancel during your trial to avoid being charged. Your access will end when the trial expires${trialEndDate ? ` on ${format(trialEndDate, 'MMMM dd, yyyy')}` : ''}.`
+                : isWithinRefundWindow
                 ? `You're within the ${PRICING.REFUND_WINDOW_DAYS}-day refund window. Cancelling now will provide a full refund.`
                 : `Cancelling will keep your access until ${currentPeriodEnd ? format(currentPeriodEnd, 'MMMM dd, yyyy') : 'end of billing period'}.`}
             </CardDescription>
@@ -880,25 +906,46 @@ export function SubscriptionSettings() {
             <CardDescription>Manage your payment methods and billing details</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={handleManageBilling}
-                disabled={loading}
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Update Payment Method
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={handleManageBilling}
-                disabled={loading}
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                View Billing History
-              </Button>
+            <div className="space-y-4">
+              {/* Payment Method Display */}
+              {(hasPaidSubscription || hasSelectedPlan) && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white rounded-md border border-gray-200">
+                      <CreditCard className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">Payment Method on File</p>
+                      <p className="text-xs text-gray-500">
+                        {isSubscribedTrial
+                          ? 'Your card will be charged when your trial ends'
+                          : 'Your card will be charged on your next billing date'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={handleManageBilling}
+                  disabled={loading}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Update Payment Method
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={handleManageBilling}
+                  disabled={loading}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  View Billing History
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

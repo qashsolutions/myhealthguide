@@ -127,6 +127,30 @@
 | Feature Access | ✅ | ✅ | ✅ |
 | Agency Features | N/A | N/A | ✅ |
 
+### Stripe Payment Error Handling Tests (SUB-3B)
+
+**Status:** ✅ COMPLETE (Jan 18, 2026)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SUB-3B.1 | Declined card (4000 0000 0000 0002) → Shows error | ✅ PASS |
+| SUB-3B.2 | Error message is user-friendly | ✅ PASS |
+| SUB-3B.3 | Can retry with different card | ✅ PASS |
+| SUB-3B.4 | Insufficient funds (4000 0000 0000 9995) → Shows error | ✅ PASS |
+| SUB-3B.5 | Expired card (4000 0000 0000 0069) → Shows error | ✅ PASS |
+| SUB-3B.6 | Back button from Stripe → Returns to app safely | ✅ PASS |
+| SUB-3B.7 | Close Stripe window → App handles gracefully | ✅ PASS |
+
+**Total: 7/7 PASS**
+
+#### Stripe Error Messages Verified
+
+| Test Card | Error Message |
+|-----------|---------------|
+| 4000 0000 0000 0002 (Declined) | "Your credit card was declined. Try paying with a debit card instead." |
+| 4000 0000 0000 9995 (Insufficient) | "Your credit card was declined because of insufficient funds. Try paying with a debit card instead." |
+| 4000 0000 0000 0069 (Expired) | "Your card is expired. Try a different card." |
+
 ---
 
 ## Key Constraints (DO NOT MODIFY)
@@ -298,10 +322,11 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 **Launch Date:** January 11, 2026
 **Status:** ✅ LIVE
 
-- 192/192 tests passed (109 E2E + 65 RBAC + 18 Subscription)
+- 199/199 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
 - RBAC security verified (Jan 17, 2026)
 - Subscription limits verified (Jan 17, 2026)
 - Storage quota & downgrade validation (Jan 18, 2026)
+- Stripe payment error handling verified (Jan 18, 2026)
