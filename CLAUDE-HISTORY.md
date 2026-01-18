@@ -64,6 +64,69 @@ const trialDuration = user?.subscriptionTier === 'multi_agency'
 
 ---
 
+## Agency Subscription NEGATIVE Tests (Jan 17, 2026)
+
+### Overview
+Verified that Agency Caregivers and Agency Members (family members of elders) CANNOT access subscription/billing functionality. Subscription management is restricted to Agency Owner only.
+
+### SUB-2B: Agency Caregiver Tests
+
+**Test Account:** ramanac+c1@gmail.com (Agency Caregiver)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SUB-2B.1 | Logout from Owner | ✅ PASS |
+| SUB-2B.2 | Login as Agency Caregiver | ✅ PASS |
+| SUB-2B.3 | Navigate to Settings | ✅ PASS |
+| SUB-2B.4 | Subscription/Billing section NOT visible | ✅ PASS (Shows "Contact Admin" only) |
+| SUB-2B.5 | No "Subscribe" button visible | ✅ PASS |
+| SUB-2B.6 | No pricing displayed | ✅ PASS |
+| SUB-2B.7 | Direct URL to /billing → Blocked | ✅ PASS (Redirected to /dashboard) |
+| SUB-2B.8 | Direct URL to /agency/subscription → Blocked | ✅ PASS (Redirected to /dashboard) |
+| SUB-2B.9 | Cannot see payment history | ✅ PASS |
+| SUB-2B.10 | Cannot modify subscription | ✅ PASS |
+
+**Total: 10/10 PASS ✅**
+
+**Behavior Verified:**
+- Caregiver sees Subscription tab in Settings BUT content shows only:
+  - "Subscription Managed by Admin"
+  - "Multi Agency Plan" (informational only)
+  - "Contact your organization's administrator" message
+- No pricing, no Subscribe buttons, no modify capability
+
+### SUB-2C: Agency Member Tests
+
+**Test Account:** ramanac+c1m1@gmail.com (Agency Member - family member of elder)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SUB-2C.1 | Logout from Caregiver | ✅ PASS |
+| SUB-2C.2 | Login as Agency Member | ✅ PASS |
+| SUB-2C.3 | Subscription section NOT visible | ✅ PASS (Shows "Contact Admin" only) |
+| SUB-2C.4 | No billing access | ✅ PASS |
+| SUB-2C.5 | No pricing visible | ✅ PASS |
+| SUB-2C.6 | Direct URL attempts blocked | ✅ PASS (Redirected to /dashboard) |
+
+**Total: 6/6 PASS ✅**
+
+**Behavior Verified:**
+- Agency Member sees same restricted Subscription view as Caregiver
+- "Subscription Managed by Admin" message with no actionable controls
+- Direct URL access to /dashboard/billing blocked (redirected)
+
+### Security Summary
+
+| Role | Subscription Tab | View Billing | Modify Subscription | Direct URL Access |
+|------|------------------|--------------|---------------------|-------------------|
+| Agency Owner | ✅ Full Access | ✅ Yes | ✅ Yes | ✅ Yes |
+| Agency Caregiver | ⚠️ Info Only | ❌ No | ❌ No | ❌ Blocked |
+| Agency Member | ⚠️ Info Only | ❌ No | ❌ No | ❌ Blocked |
+
+**All 16 Agency Subscription NEGATIVE tests passed. Subscription management correctly restricted to Agency Owner.**
+
+---
+
 ## Storage Quota & Downgrade Validation (Jan 17, 2026)
 
 ### Feature Overview
