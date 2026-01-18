@@ -223,6 +223,33 @@
 
 The fix handles trial users who selected a plan but haven't been charged yet (no `stripeSubscriptionId`). These users can now cancel their trial without encountering the "No active subscription found" error.
 
+### Stripe Billing Portal Tests (SUB-5)
+
+**Status:** ✅ COMPLETE (Jan 18, 2026)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SUB-5.1 | Manage Billing button visible for trial users | ✅ PASS |
+| SUB-5.2 | Trial user click shows "Unable to access billing portal" error | ✅ PASS (Expected) |
+| SUB-5.3 | Cancelled user sees "Choose Your Plan" (no Manage Billing) | ✅ PASS |
+| SUB-5.4 | Billing portal requires active Stripe subscription | ✅ VERIFIED |
+
+**Total: 4/4 PASS**
+
+#### Billing Portal Access Requirements
+
+| User State | Has Stripe Account | Manage Billing Button | Portal Access |
+|------------|--------------------|-----------------------|---------------|
+| Trial (new signup) | ❌ No | ✅ Visible | ❌ Error: "Unable to access billing portal" |
+| Active (paid) | ✅ Yes | ✅ Visible | ✅ Opens Stripe Portal |
+| Cancelled | ❌ Expired | ❌ Hidden | N/A - Shows "Choose Your Plan" |
+
+#### Expected Behavior Verified
+
+- **Trial users without payment**: Show "Manage Billing" button but display error when clicked (no Stripe customer account yet)
+- **Cancelled users**: Show "Choose Your Plan" pricing options instead of billing management
+- **Active subscribers**: Can access Stripe billing portal for payment method updates and invoice history
+
 ---
 
 ## Key Constraints (DO NOT MODIFY)
@@ -394,7 +421,7 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 **Launch Date:** January 11, 2026
 **Status:** ✅ LIVE
 
-- 213/213 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Sub Management + 6 Cancel Sub)
+- 217/217 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Sub Management + 6 Cancel Sub + 4 Billing Portal)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -404,3 +431,4 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Stripe payment error handling verified (Jan 18, 2026)
 - Subscription management UI verified (Jan 18, 2026)
 - Cancel subscription for trial users verified (Jan 18, 2026)
+- Stripe billing portal access verified (Jan 18, 2026)
