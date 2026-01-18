@@ -21,6 +21,8 @@ import {
   PRICING,
   CORE_FEATURES,
   getStripePriceId,
+  TRIAL_DURATION_DAYS,
+  MULTI_AGENCY_TRIAL_DAYS,
   type PlanTier,
 } from '@/lib/subscription';
 import { canManageBilling } from '@/lib/utils/getUserRole';
@@ -114,13 +116,16 @@ export function SubscriptionSettings() {
   const currentPeriodEnd = convertFirestoreTimestamp(user?.currentPeriodEnd);
   const subscriptionStartDate = convertFirestoreTimestamp(user?.subscriptionStartDate);
 
-  // Calculate trial day (Day X of 14)
-  const TRIAL_DURATION = 14;
+  // Calculate trial day based on plan type
+  // Family Plans A/B: 45 days, Multi Agency: 30 days, Free trial defaults to Family Plan A (45 days)
+  const trialDuration = user?.subscriptionTier === 'multi_agency'
+    ? MULTI_AGENCY_TRIAL_DAYS
+    : TRIAL_DURATION_DAYS;
   const trialStartDate = trialEndDate
-    ? new Date(trialEndDate.getTime() - TRIAL_DURATION * 24 * 60 * 60 * 1000)
+    ? new Date(trialEndDate.getTime() - trialDuration * 24 * 60 * 60 * 1000)
     : null;
   const currentTrialDay = trialStartDate
-    ? Math.min(TRIAL_DURATION, Math.max(1, Math.ceil((Date.now() - trialStartDate.getTime()) / (24 * 60 * 60 * 1000))))
+    ? Math.min(trialDuration, Math.max(1, Math.ceil((Date.now() - trialStartDate.getTime()) / (24 * 60 * 60 * 1000))))
     : 0;
   const trialDaysLeft = trialEndDate
     ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
@@ -532,7 +537,7 @@ export function SubscriptionSettings() {
                 <Clock className="h-5 w-5 text-blue-600" />
                 <span className="text-xl font-semibold text-blue-800">Trial</span>
               </div>
-              <p className="text-blue-700 font-medium">Day {currentTrialDay} of {TRIAL_DURATION}</p>
+              <p className="text-blue-700 font-medium">Day {currentTrialDay} of {trialDuration}</p>
               <p className="text-sm text-blue-600 mt-2">
                 Your trial ends on {trialEndDate ? format(trialEndDate, 'MMMM dd, yyyy') : 'unknown'}.
                 Subscribe now to ensure uninterrupted service.
