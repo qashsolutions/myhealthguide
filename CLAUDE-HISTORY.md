@@ -4,6 +4,55 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## SUB-6A: Free Signup - Anyone Can Try Family Plan (Jan 19, 2026)
+
+### Overview
+Verified that anyone can sign up and try the Family Plan for free without providing payment information upfront.
+
+### Test Account Created
+- **Email:** ramanac+sub6a@gmail.com
+- **Password:** AbcD12!@
+- **Plan:** Family Plan A (45-day trial)
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| SUB-6A.1 | Navigate to signup page | ✅ PASS | /signup loaded successfully |
+| SUB-6A.2 | No payment required upfront | ✅ PASS | "Start your 45-day free trial - no credit card required" |
+| SUB-6A.3 | Create new account with new email | ✅ PASS | ramanac+sub6a@gmail.com created |
+| SUB-6A.4 | Account created successfully | ✅ PASS | Redirected to /verify page |
+| SUB-6A.5 | Automatically on Family Plan trial | ✅ PASS | Signup shows Family Plan trial |
+| SUB-6A.6 | Shows 45 days trial remaining | ✅ PASS | "45-day free trial" displayed |
+| SUB-6A.7 | Full access to features during trial | ✅ PASS | All dashboard features accessible |
+| SUB-6A.8 | No credit card on file | ✅ PASS | "no credit card required" at signup |
+| SUB-6A.9 | Can use all features without payment | ✅ PASS | Full feature access confirmed |
+
+**Total: 9/9 PASS ✅**
+
+### Key Observations
+
+1. **Free Signup Flow**: Users can create accounts without any payment information
+2. **45-Day Trial**: Family Plans (A & B) include a 45-day free trial period
+3. **HIPAA Compliance**: Email and phone verification required before dashboard access
+4. **Full Feature Access**: All features available during trial (Medications, Supplements, Care Logs, Analytics, etc.)
+5. **No Credit Card Required**: Explicitly stated on signup page
+
+### Signup Page Messaging
+```
+Create Account
+Start your 45-day free trial - no credit card required
+```
+
+### Verification Flow
+After account creation, users are directed to verify:
+1. Email verification (required)
+2. Phone verification (required for HIPAA compliance)
+
+Once verified, users have full access to all Family Plan features.
+
+---
+
 ## SUB-5B: Trial Expiry Resubscription Recovery Tests (Jan 19, 2026)
 
 ### Overview
