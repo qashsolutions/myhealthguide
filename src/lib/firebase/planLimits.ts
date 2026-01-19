@@ -89,7 +89,8 @@ export async function getUserTier(userId: string): Promise<PlanTier | null> {
  * Get display name for a tier
  */
 function getTierDisplayName(tier: PlanTier): string {
-  return PLAN_CONFIG[tier].name;
+  const config = PLAN_CONFIG[tier] || PLAN_CONFIG.family;
+  return config.name;
 }
 
 /**

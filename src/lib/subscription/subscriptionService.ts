@@ -183,7 +183,7 @@ export function getPlanLimits(tier: PlanTier | null): PlanLimits {
  * Check if a tier has access to a specific feature
  */
 export function hasFeature(tier: PlanTier | null, feature: FeatureName): boolean {
-  if (!tier) {
+  if (!tier || !PLAN_CONFIG[tier]) {
     return false;
   }
   const config = PLAN_CONFIG[tier];
@@ -327,7 +327,8 @@ export function getPlanDisplayInfo(tier: PlanTier | null): { name: string; descr
     };
   }
 
-  const config = PLAN_CONFIG[tier];
+  // Get config with fallback to family plan for invalid tiers
+  const config = PLAN_CONFIG[tier] || PLAN_CONFIG.family;
   const limits = config.limits;
 
   let description: string;
