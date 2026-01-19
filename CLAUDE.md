@@ -262,6 +262,15 @@ The fix handles trial users who selected a plan but haven't been charged yet (no
 - **Cancelled users without `stripeCustomerId`**: No button shown, "Choose Your Plan" pricing options displayed
 - **Active subscribers**: "Manage Billing" button visible, full portal access
 
+#### Production Verification (Jan 19, 2026)
+
+| Test | User | Expected | Result |
+|------|------|----------|--------|
+| SUB-5.1 | Trial user (ramanac+b1) | No "Manage Billing" button | ✅ PASS - Button hidden |
+| SUB-5.4 | Cancelled user (ramanac+owner) | No billing button (no stripeCustomerId) | ✅ PASS - Only "Choose Your Plan" shown |
+
+**Verification Method:** Browser automation via Chrome extension on production (myguide.health)
+
 ---
 
 ## Key Constraints (DO NOT MODIFY)
@@ -443,4 +452,4 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Stripe payment error handling verified (Jan 18, 2026)
 - Subscription management UI verified (Jan 18, 2026)
 - Cancel subscription for trial users verified (Jan 18, 2026)
-- Billing portal button visibility fix (Jan 19, 2026)
+- Billing portal button visibility fix verified (Jan 19, 2026)
