@@ -225,30 +225,42 @@ The fix handles trial users who selected a plan but haven't been charged yet (no
 
 ### Stripe Billing Portal Tests (SUB-5)
 
-**Status:** ✅ COMPLETE (Jan 18, 2026)
+**Status:** ✅ COMPLETE (Jan 19, 2026)
 
 | Test | Description | Result |
 |------|-------------|--------|
-| SUB-5.1 | Manage Billing button visible for trial users | ✅ PASS |
-| SUB-5.2 | Trial user click shows "Unable to access billing portal" error | ✅ PASS (Expected) |
-| SUB-5.3 | Cancelled user sees "Choose Your Plan" (no Manage Billing) | ✅ PASS |
-| SUB-5.4 | Billing portal requires active Stripe subscription | ✅ VERIFIED |
+| SUB-5.1 | Manage Billing button hidden for trial users without Stripe | ✅ PASS |
+| SUB-5.2 | Trial user without stripeCustomerId sees no error | ✅ PASS |
+| SUB-5.3 | Cancelled user with stripeCustomerId sees "View Billing History" | ✅ PASS |
+| SUB-5.4 | Cancelled user without stripeCustomerId sees no billing button | ✅ PASS |
+| SUB-5.5 | Active subscribers can access Stripe billing portal | ✅ VERIFIED |
 
-**Total: 4/4 PASS**
+**Total: 5/5 PASS**
 
-#### Billing Portal Access Requirements
+#### Billing Portal Access Requirements (Updated Jan 19, 2026)
 
-| User State | Has Stripe Account | Manage Billing Button | Portal Access |
-|------------|--------------------|-----------------------|---------------|
-| Trial (new signup) | ❌ No | ✅ Visible | ❌ Error: "Unable to access billing portal" |
-| Active (paid) | ✅ Yes | ✅ Visible | ✅ Opens Stripe Portal |
-| Cancelled | ❌ Expired | ❌ Hidden | N/A - Shows "Choose Your Plan" |
+| User State | Has stripeCustomerId | Button Shown | Portal Access |
+|------------|----------------------|--------------|---------------|
+| Trial (no Stripe) | ❌ No | ❌ Hidden | N/A - No error |
+| Trial (with Stripe) | ✅ Yes | ✅ Manage Billing | ✅ Opens Stripe Portal |
+| Active (paid) | ✅ Yes | ✅ Manage Billing | ✅ Opens Stripe Portal |
+| Cancelled (had Stripe) | ✅ Yes | ✅ View Billing History | ✅ Opens Stripe Portal |
+| Cancelled (no Stripe) | ❌ No | ❌ Hidden | N/A - Shows "Choose Your Plan" |
 
-#### Expected Behavior Verified
+#### Bug Fixes Applied (Jan 19, 2026)
 
-- **Trial users without payment**: Show "Manage Billing" button but display error when clicked (no Stripe customer account yet)
-- **Cancelled users**: Show "Choose Your Plan" pricing options instead of billing management
-- **Active subscribers**: Can access Stripe billing portal for payment method updates and invoice history
+| Issue | Fix | File |
+|-------|-----|------|
+| Trial users saw error when clicking Manage Billing | Hide button if no `stripeCustomerId` | `SubscriptionSettings.tsx` |
+| Cancelled users couldn't access billing history | Show "View Billing History" button if `stripeCustomerId` exists | `SubscriptionSettings.tsx` |
+
+#### Expected Behavior (After Fix)
+
+- **Trial users without `stripeCustomerId`**: Button hidden - no error possible
+- **Trial users with `stripeCustomerId`**: "Manage Billing" button visible, opens Stripe portal
+- **Cancelled users with `stripeCustomerId`**: "View Billing History" button visible, can view past invoices
+- **Cancelled users without `stripeCustomerId`**: No button shown, "Choose Your Plan" pricing options displayed
+- **Active subscribers**: "Manage Billing" button visible, full portal access
 
 ---
 
@@ -421,7 +433,7 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 **Launch Date:** January 11, 2026
 **Status:** ✅ LIVE
 
-- 217/217 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Sub Management + 6 Cancel Sub + 4 Billing Portal)
+- 218/218 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Sub Management + 6 Cancel Sub + 5 Billing Portal)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -431,4 +443,4 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Stripe payment error handling verified (Jan 18, 2026)
 - Subscription management UI verified (Jan 18, 2026)
 - Cancel subscription for trial users verified (Jan 18, 2026)
-- Stripe billing portal access verified (Jan 18, 2026)
+- Billing portal button visibility fix (Jan 19, 2026)
