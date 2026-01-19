@@ -67,10 +67,20 @@ Comprehensive verification of all Stripe data using Stripe MCP integration tools
 | price_1SlwXMA8a2u3LccgZLpSlpUW | Family Plan B | $18.99 | recurring | month |
 | price_1SluvYA8a2u3Lccgivx0S33y | Multi-Agency | $55.00 | recurring | month |
 
-### MCP-4E: Invoices Verification
+### MCP-4E: Invoices Verification (5/5 PASS)
 
-| Invoice | Customer | Plan | Amount | Status |
-|---------|----------|------|--------|--------|
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| MCP-4E.1 | List invoices | ✅ PASS | 5 invoices returned |
+| MCP-4E.2 | All invoices paid | ✅ PASS | 5/5 paid status |
+| MCP-4E.3 | Invoice PDFs available | ✅ PASS | All have hosted_invoice_url |
+| MCP-4E.4 | Customer emails match | ✅ PASS | All 3 subscription admins |
+| MCP-4E.5 | Amounts correct | ✅ PASS | $8.99, $18.99, $55.00 |
+
+#### Invoice Details
+
+| Invoice Number | Customer | Plan | Amount | Status |
+|----------------|----------|------|--------|--------|
 | 38MHEHKQ-0001 | ramanac+owner@gmail.com | Multi-Agency | $55.00 | ✅ paid |
 | HWELU7XJ-0001 | ramanac+b1@gmail.com | Family Plan B | $18.99 | ✅ paid |
 | OMBVRSKS-0001 | ramanac+a1@gmail.com | Family Plan A | $8.99 | ✅ paid |
@@ -85,10 +95,33 @@ Comprehensive verification of all Stripe data using Stripe MCP integration tools
 | Pending | $79.67 |
 | Stripe Fees | ~$3.31 |
 
-### MCP-4G: Payment Intents Verification
+### MCP-4D: Payment Intents Verification (10/10 PASS)
 
-| Status | Count | Amount |
-|--------|-------|--------|
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| MCP-4D.1 | List payment intents | ✅ PASS | 13 payment intents returned |
+| MCP-4D.2 | Family Plan A PI exists | ✅ PASS | pi_3SrB7pA8a2u3Lccg0DooUuzC |
+| MCP-4D.3 | Family Plan A amount | ✅ PASS | 899 cents ($8.99) |
+| MCP-4D.4 | Family Plan A status | ✅ PASS | succeeded |
+| MCP-4D.5 | Family Plan B PI exists | ✅ PASS | pi_3SrM9eA8a2u3Lccg0bpplG4E |
+| MCP-4D.6 | Family Plan B amount | ✅ PASS | 1899 cents ($18.99) |
+| MCP-4D.7 | Family Plan B status | ✅ PASS | succeeded |
+| MCP-4D.8 | Multi-Agency PI exists | ✅ PASS | pi_3SrOBPA8a2u3Lccg0Nr1SBBk |
+| MCP-4D.9 | Multi-Agency amount | ✅ PASS | 5500 cents ($55.00) |
+| MCP-4D.10 | Multi-Agency status | ✅ PASS | succeeded |
+
+#### Payment Intents Summary
+
+| Plan | Payment Intent ID | Amount | Status |
+|------|-------------------|--------|--------|
+| Family Plan A | pi_3SrB7pA8a2u3Lccg0DooUuzC | $8.99 | ✅ succeeded |
+| Family Plan B | pi_3SrM9eA8a2u3Lccg0bpplG4E | $18.99 | ✅ succeeded |
+| Multi-Agency | pi_3SrOBPA8a2u3Lccg0Nr1SBBk | $55.00 | ✅ succeeded |
+
+#### All Payment Intents
+
+| Status | Count | Total Amount |
+|--------|-------|--------------|
 | Succeeded | 3 | $82.98 |
 | Failed (Test Cards) | 5 | $43.95 |
 | Canceled | 1 | $55.00 |
@@ -104,15 +137,15 @@ Comprehensive verification of all Stripe data using Stripe MCP integration tools
 
 | Category | Tests | Status |
 |----------|-------|--------|
-| Customers | 7/7 | ✅ PASS |
-| Subscriptions | 10/10 | ✅ PASS |
-| Products | 3/3 | ✅ PASS |
-| Prices | 3/3 | ✅ PASS |
-| Invoices | 3/3 | ✅ PASS |
-| Balance | Verified | ✅ PASS |
-| Payment Intents | Verified | ✅ PASS |
-| Coupons | 0 | ✅ N/A |
-| Disputes | 0 | ✅ PASS |
+| Customers (MCP-4A) | 7/7 | ✅ PASS |
+| Subscriptions (MCP-4B) | 10/10 | ✅ PASS |
+| Products & Prices (MCP-4C) | 10/10 | ✅ PASS |
+| Payment Intents (MCP-4D) | 10/10 | ✅ PASS |
+| Invoices (MCP-4E) | 5/5 | ✅ PASS |
+| Balance (MCP-4F) | Verified | ✅ PASS |
+| Coupons (MCP-4H) | 0 | ✅ N/A |
+| Disputes (MCP-4I) | 0 | ✅ PASS |
+| **TOTAL** | **42+** | ✅ **ALL PASS** |
 
 **All Stripe data verified via MCP tools** ✅
 
