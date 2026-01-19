@@ -53,6 +53,58 @@ Once verified, users have full access to all Family Plan features.
 
 ---
 
+## SUB-6B: Agency Plan Access Control - Negative Tests (Jan 19, 2026)
+
+### Overview
+Verified that new users CANNOT self-signup for Agency plan without going through the proper upgrade path. Agency plan requires an existing account and explicit upgrade.
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| SUB-6B.1 | New user cannot self-sign-up for Agency plan | ✅ PASS | Agency "Start 30-Day Free Trial" redirects logged-out users to Family Plan signup |
+| SUB-6B.2 | Agency plan requires approval/invite | ✅ PASS | Must be logged in to access Agency checkout |
+| SUB-6B.3 | No "Start Agency Trial" on public signup | ✅ PASS | Signup page shows "45-day free trial" (Family Plan only) |
+| SUB-6B.4 | Cannot access agency features without agency account | ✅ PASS | Family Plan shows "2/2 members" limit, upgrade required |
+
+**Total: 4/4 PASS ✅**
+
+### Key Findings
+
+1. **Logged-Out User Behavior**:
+   - Clicking "Start 30-Day Free Trial" on Agency plan → Redirects to `/signup`
+   - Signup page shows "45-day free trial" (Family Plan, NOT Agency)
+   - No way to directly create an Agency account
+
+2. **Logged-In User Behavior**:
+   - Clicking "Start 30-Day Free Trial" on Agency plan → Opens Stripe checkout
+   - This is the proper upgrade path from Family → Agency
+
+3. **Plan Limits Enforced**:
+   - Family Plan A: 2/2 members (1 admin + 1 member)
+   - "Upgrade for more members" link displayed
+   - Cannot exceed plan limits without upgrading
+
+4. **Agency Features Gated**:
+   - Multiple caregivers (up to 10) - Agency only
+   - Multiple loved ones (up to 30) - Agency only
+   - 500 MB storage - Agency only
+
+### Pricing Page Observations
+
+| Plan | Trial | Button Behavior (Logged Out) | Button Behavior (Logged In) |
+|------|-------|------------------------------|----------------------------|
+| Family Plan A | 45 days | → /signup (Family trial) | → Stripe checkout |
+| Family Plan B | 45 days | → /signup (Family trial) | → Stripe checkout |
+| Multi Agency | 30 days | → /signup (Family trial) | → Stripe checkout |
+
+### Security Verification
+- New users are funneled through Family Plan signup
+- Agency access requires existing account + explicit upgrade
+- Plan limits enforced in Group Management UI
+
+---
+
 ## SUB-5B: Trial Expiry Resubscription Recovery Tests (Jan 19, 2026)
 
 ### Overview
