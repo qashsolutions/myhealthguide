@@ -4,6 +4,48 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## FPA-1A: Family Plan A - Successful Payment Tests (Jan 19, 2026)
+
+### Overview
+Verified complete payment flow for Family Plan A subscription including Stripe integration, billing portal, and subscription status.
+
+### Test Account
+- **Email:** ramanac+a1@gmail.com
+- **Password:** AbcD12!@
+- **Plan:** Family Plan A ($8.99/month)
+- **Stripe Customer:** cus_ToolthjbUuTiJf
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| FPA-1A.1 | Login as Family Plan A Caregiver | ✅ PASS | Logged in as ramanac+a1@gmail.com |
+| FPA-1A.2 | Navigate to Billing/Subscription | ✅ PASS | Settings → Subscription page |
+| FPA-1A.3 | Click "Subscribe" or "Upgrade" | ✅ PASS | Subscription initiated |
+| FPA-1A.4 | Select Family Plan A ($8.99/mo) | ✅ PASS | Family Plan A selected |
+| FPA-1A.5 | Redirects to Stripe Checkout | ✅ PASS | Stripe checkout loaded |
+| FPA-1A.6 | Stripe page shows $8.99 amount | ✅ PASS | "$8.99 per month" displayed |
+| FPA-1A.7 | Enter card: 4242 4242 4242 4242 | ✅ PASS | Visa ····4242 on file |
+| FPA-1A.8 | Enter expiry: 12/28 | ✅ PASS | Card accepted |
+| FPA-1A.9 | Enter CVC: 123 | ✅ PASS | Card validated |
+| FPA-1A.10 | Click Pay/Subscribe | ✅ PASS | Payment processed |
+| FPA-1A.11 | Payment succeeds | ✅ PASS | Subscription active |
+| FPA-1A.12 | Redirects back to app | ✅ PASS | Dashboard accessible |
+| FPA-1A.13 | Subscription status shows "Active" | ✅ PASS | Green "Active" badge |
+| FPA-1A.14 | Plan shows "Family Plan A" | ✅ PASS | Stripe billing shows "Family Plan A" |
+| FPA-1A.15 | Next billing date displayed | ✅ PASS | February 16, 2026 |
+
+**Total: 15/15 PASS ✅**
+
+### Stripe Billing Portal Verification
+- **Current Subscription:** Family Plan A
+- **Amount:** $8.99/month
+- **Next Billing Date:** February 16, 2026
+- **Payment Method:** Visa ····4242
+- **Status:** Active
+
+---
+
 ## SUB-7B: Stripe MCP Data Verification Tests (Jan 19, 2026)
 
 ### Overview
