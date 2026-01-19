@@ -4,6 +4,38 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## FPA-1C: Family Plan A - Insufficient Funds Tests (Jan 19, 2026)
+
+### Overview
+Verified that insufficient funds card (Stripe test card 4000 0000 0000 9995) properly fails at checkout with specific "insufficient funds" error message.
+
+### Test Account
+- **Email:** ramanac+sub6a@gmail.com
+- **Test Card:** 4000 0000 0000 9995 (Insufficient Funds)
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| FPA-1C.1 | Navigate to subscription checkout | ✅ PASS | Stripe checkout opened |
+| FPA-1C.2 | Select Family Plan A ($8.99/mo) | ✅ PASS | Family Plan A shown |
+| FPA-1C.3 | Enter insufficient funds card: 4000 0000 0000 9995 | ✅ PASS | Card number entered |
+| FPA-1C.4 | Enter expiry: 12/28 | ✅ PASS | Expiry entered |
+| FPA-1C.5 | Enter CVC: 123 | ✅ PASS | CVC entered |
+| FPA-1C.6 | Click Pay/Subscribe | ✅ PASS | Subscribe button clicked |
+| FPA-1C.7 | Payment FAILS | ✅ PASS | Payment was declined |
+| FPA-1C.8 | Error shows "Insufficient funds" | ✅ PASS | "Your credit card was declined because of insufficient funds. Try paying with a debit card instead." |
+| FPA-1C.9 | User can try another card | ✅ PASS | Form remains editable |
+
+**Total: 9/9 PASS ✅**
+
+### Error Message Verification
+- **Error:** "Your credit card was declined because of insufficient funds. Try paying with a debit card instead."
+- **Behavior:** Card field highlighted in red, clear error message displayed
+- **Recovery:** Form allows retry with different card
+
+---
+
 ## FPA-1B: Family Plan A - Declined Card Tests (Jan 19, 2026)
 
 ### Overview
