@@ -93,6 +93,55 @@ Verified payment error handling for Multi-Agency Plan using Stripe test error ca
 
 ---
 
+## MAP-3C: Multi-Agency Plan - Only Owner Can Subscribe (Jan 19, 2026)
+
+### Overview
+Verified that only Agency Owner can access billing/subscription controls. Caregivers and Members see read-only informational view with no payment options.
+
+### Test Accounts
+- **Agency Owner:** ramanac+owner@gmail.com
+- **Agency Caregiver:** ramanac+c1@gmail.com
+- **Agency Member:** ramanac+c1m1@gmail.com
+- **Password (all):** AbcD1234
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| MAP-3C.1 | Logout from Owner | ✅ PASS | Signed out successfully |
+| MAP-3C.2 | Login as Agency CAREGIVER | ✅ PASS | Logged in as ramanac+c1@gmail.com |
+| MAP-3C.3 | Navigate to Settings | ✅ PASS | Settings page loaded |
+| MAP-3C.4 | Subscription section visible but read-only | ✅ PASS | Shows "Subscription Managed by Admin" |
+| MAP-3C.5 | No Subscribe button anywhere | ✅ PASS | Only "Contact your organization's administrator" text |
+| MAP-3C.6 | Direct URL /billing → Blocked | ✅ PASS | Redirected to /dashboard |
+| MAP-3C.7 | Direct URL /subscription → Blocked | ✅ PASS | Redirected to /dashboard |
+| MAP-3C.8 | Logout from Caregiver | ✅ PASS | Signed out successfully |
+| MAP-3C.9 | Login as Agency MEMBER | ✅ PASS | Logged in as ramanac+c1m1@gmail.com |
+| MAP-3C.10 | Subscription section visible but read-only | ✅ PASS | Shows "Subscription Managed by Admin" |
+| MAP-3C.11 | No payment options anywhere | ✅ PASS | Only informational text, no buttons |
+| MAP-3C.12 | Direct URL attempts blocked | ✅ PASS | Both /billing and /subscription redirect to /dashboard |
+
+**Total: 12/12 PASS ✅**
+
+### Caregiver/Member Subscription View
+Both Caregivers and Members see the same read-only view:
+- **Header:** "Subscription Managed by Admin"
+- **Subtitle:** "Your subscription is managed by your organization's administrator."
+- **Plan Info:** "Multi Agency Plan" with checkmark
+- **Access Note:** "You have access to all features included in your organization's plan."
+- **Contact Note:** "Contact your organization's administrator to manage subscription settings, upgrade plans, or update billing information."
+
+### Security Controls Verified
+| Control | Status |
+|---------|--------|
+| Subscribe button hidden for non-owners | ✅ SECURE |
+| Payment methods hidden for non-owners | ✅ SECURE |
+| Direct URL /billing blocked | ✅ SECURE |
+| Direct URL /subscription blocked | ✅ SECURE |
+| Informational view only (no actions) | ✅ SECURE |
+
+---
+
 ## FPB-2A: Family Plan B - Successful Payment Tests (Jan 19, 2026)
 
 ### Overview
