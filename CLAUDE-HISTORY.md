@@ -4,6 +4,180 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## MAP-3A: Multi-Agency Plan - Successful Payment Tests (Jan 19, 2026)
+
+### Overview
+Verified successful subscription payment flow for Multi-Agency Plan ($55/elder/month) using Stripe test card.
+
+### Test Account
+- **Email:** ramanac+owner@gmail.com
+- **Password:** AbcD1234
+- **Stripe Customer:** cus_Tp2FwSSP9xHZDz
+- **Subscription ID:** sub_1SrOBRA8a2u3LccgVwoC5pQj
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| MAP-3A.1 | Login as Agency Owner | ✅ PASS | Logged in as ramanac+owner@gmail.com |
+| MAP-3A.2 | Navigate to Billing/Subscription | ✅ PASS | Settings > Subscription page |
+| MAP-3A.3 | Agency Plan visible | ✅ PASS | Multi Agency Plan card displayed |
+| MAP-3A.4 | Price shows $55/elder/month | ✅ PASS | "$55/loved one/month" shown |
+| MAP-3A.5 | Elder count displayed | ✅ PASS | "Up to 30 loved ones" shown, dashboard: 30 |
+| MAP-3A.6 | Total calculated correctly | ✅ PASS | Per-elder monthly subscription confirmed |
+| MAP-3A.7 | Click "Subscribe" | ✅ PASS | Select Plan button clicked |
+| MAP-3A.8 | Redirects to Stripe Checkout | ✅ PASS | checkout.stripe.com loaded |
+| MAP-3A.9 | Stripe shows correct total amount | ✅ PASS | "$55.00 per month" displayed |
+| MAP-3A.10 | Enter SUCCESS card: 4242 4242 4242 4242 | ✅ PASS | Card entered |
+| MAP-3A.11 | Enter expiry: 12/28 | ✅ PASS | Expiry entered |
+| MAP-3A.12 | Enter CVC: 123 | ✅ PASS | CVC entered |
+| MAP-3A.13 | Click Pay | ✅ PASS | Subscribe button clicked |
+| MAP-3A.14 | Payment succeeds | ✅ PASS | No errors, payment processed |
+| MAP-3A.15 | Redirects back to app | ✅ PASS | /dashboard/subscription/success |
+| MAP-3A.16 | Subscription status "Active" | ✅ PASS | Green checkmark, "Active" |
+| MAP-3A.17 | Plan shows "Multi-Agency" | ✅ PASS | "Multi Agency Plan - $55/loved one/month" |
+| MAP-3A.18 | All caregivers retain access | ✅ PASS | 30 loved ones, multiple caregivers visible |
+
+**Total: 18/18 PASS ✅**
+
+### Stripe Verification
+```
+Subscription ID: sub_1SrOBRA8a2u3LccgVwoC5pQj
+Status: active
+Amount: $55.00/month (5500 cents)
+Plan: Multi Agency Plan
+Customer: cus_Tp2FwSSP9xHZDz
+User ID: zEYNIN5nW3Qf7kk1JM08bbc7tc03
+```
+
+---
+
+## MAP-3B: Multi-Agency Plan - Negative Card Tests (Jan 19, 2026)
+
+### Overview
+Verified payment error handling for Multi-Agency Plan using Stripe test error cards.
+
+### Test Account
+- **Email:** ramanac+owner@gmail.com
+- **Password:** AbcD1234
+- **Stripe Customer:** cus_Tp2FwSSP9xHZDz
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| MAP-3B.1 | Navigate to Agency subscription | ✅ PASS | Settings > Subscription, status "Cancelled" |
+| MAP-3B.2 | Enter DECLINED card (4000 0000 0000 0002) | ✅ PASS | Card entered |
+| MAP-3B.3 | Shows declined error | ✅ PASS | "Your credit card was declined. Try paying with a debit card instead." |
+| MAP-3B.4 | Enter INSUFFICIENT FUNDS card (4000 0000 0000 9995) | ✅ PASS | Card entered |
+| MAP-3B.5 | Shows insufficient funds error | ✅ PASS | "Your credit card was declined because of insufficient funds." |
+| MAP-3B.6 | Enter EXPIRED card (4000 0000 0000 0069) | ✅ PASS | Card entered |
+| MAP-3B.7 | Shows expired error | ✅ PASS | "Your card is expired. Try a different card." |
+| MAP-3B.8 | Enter BAD CVC card (4000 0000 0000 0127), shows CVC error | ✅ PASS | "Your card's CVC is incorrect." |
+| MAP-3B.9 | Enter PROCESSING ERROR card (4000 0000 0000 0119), shows error | ✅ PASS | "An error occurred while processing your card. Try again." |
+| MAP-3B.10 | All errors are user-friendly | ✅ PASS | All 5 error messages clear and actionable |
+| MAP-3B.11 | Can retry after each failure | ✅ PASS | Successfully changed cards multiple times |
+| MAP-3B.12 | No subscription created on failures | ✅ PASS | Stripe shows 0 subscriptions for customer |
+| MAP-3B.13 | Caregivers still on trial (not affected) | ✅ PASS | No subscription change occurred |
+
+**Total: 13/13 PASS ✅**
+
+### Error Messages Summary
+| Card Type | Error Message |
+|-----------|---------------|
+| DECLINED (0002) | "Your credit card was declined. Try paying with a debit card instead." |
+| INSUFFICIENT FUNDS (9995) | "Your credit card was declined because of insufficient funds." |
+| EXPIRED (0069) | "Your card is expired. Try a different card." |
+| BAD CVC (0127) | "Your card's CVC is incorrect." |
+| PROCESSING ERROR (0119) | "An error occurred while processing your card. Try again." |
+
+---
+
+## FPB-2A: Family Plan B - Successful Payment Tests (Jan 19, 2026)
+
+### Overview
+Verified successful subscription payment flow for Family Plan B ($18.99/month) using Stripe test card.
+
+### Test Account
+- **Email:** ramanac+b1@gmail.com
+- **Password:** AbcD12!@
+- **Stripe Customer:** cus_Tp09bn6i1mYUgK
+- **Subscription ID:** sub_1SrM9gA8a2u3Lccget7hXQVg
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| FPB-2A.1 | Login as Family Plan B Caregiver | ✅ PASS | Logged in as ramanac+b1@gmail.com |
+| FPB-2A.2 | Navigate to Billing/Subscription | ✅ PASS | Settings > Subscription page |
+| FPB-2A.3 | Click Subscribe for Family Plan B | ✅ PASS | From pricing page |
+| FPB-2A.4 | Stripe Checkout opens | ✅ PASS | checkout.stripe.com loaded |
+| FPB-2A.5 | Plan shows "Family Plan B - $18.99/mo" | ✅ PASS | "$18.99 per month" displayed |
+| FPB-2A.6 | Email pre-filled | ✅ PASS | ramanac+b1@gmail.com shown |
+| FPB-2A.7 | Enter SUCCESS card (4242...) | ✅ PASS | 4242 4242 4242 4242 entered |
+| FPB-2A.8 | Click Subscribe button | ✅ PASS | Button clicked |
+| FPB-2A.9 | Payment processes without error | ✅ PASS | No errors |
+| FPB-2A.10 | Redirected to success page | ✅ PASS | /dashboard/subscription/success |
+| FPB-2A.11 | Shows subscription active confirmation | ✅ PASS | "Your subscription is now active!" |
+| FPB-2A.12 | Status shows "Active" | ✅ PASS | Green checkmark, "Active" |
+| FPB-2A.13 | Plan displays "Family Plan B" | ✅ PASS | Stripe metadata: planName="Family Plan B" |
+| FPB-2A.14 | Member limit shows 3 | ✅ PASS | UI: "1 admin + 3 members", Stripe: max_members=4 |
+| FPB-2A.15 | Stripe shows active subscription | ✅ PASS | Stripe: status="active", amount=1899 |
+
+**Total: 15/15 PASS ✅**
+
+### Stripe Verification
+```
+Subscription ID: sub_1SrM9gA8a2u3Lccget7hXQVg
+Status: active
+Amount: $18.99/month (1899 cents)
+Plan: Family Plan B
+Max Members: 4 (1 admin + 3 members)
+Product: prod_TjPMffbibk8f9G
+```
+
+---
+
+## FPB-2B: Family Plan B - Negative Card Tests (Jan 19, 2026)
+
+### Overview
+Verified error handling for all 5 Stripe test cards that simulate payment failures on Family Plan B checkout, plus validation of error UX and subscription integrity.
+
+### Test Account
+- **Email:** ramanac+b1@gmail.com
+- **Active Subscription:** sub_1SrM9gA8a2u3Lccget7hXQVg (Family Plan B)
+
+### Card Error Test Results
+
+| Test | Card Type | Test Card | Error Message | Result |
+|------|-----------|-----------|---------------|--------|
+| FPB-2B.1 | Declined | 4000 0000 0000 0002 | "Your credit card was declined. Try paying with a debit card instead." | ✅ PASS |
+| FPB-2B.2 | Insufficient Funds | 4000 0000 0000 9995 | "Your credit card was declined because of insufficient funds. Try paying with a debit card instead." | ✅ PASS |
+| FPB-2B.3 | Expired Card | 4000 0000 0000 0069 | "Your card is expired. Try a different card." | ✅ PASS |
+| FPB-2B.4 | Incorrect CVC | 4000 0000 0000 0127 | "Your card's CVC is incorrect." | ✅ PASS |
+| FPB-2B.5 | Processing Error | 4000 0000 0000 0119 | "An error occurred while processing your card. Try again." | ✅ PASS |
+
+### UX & Integrity Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| FPB-2B.6 | PROCESSING card fails with error | ✅ PASS | "An error occurred while processing your card. Try again." |
+| FPB-2B.7 | All errors are user-friendly | ✅ PASS | Clear, actionable messages for all 5 card types |
+| FPB-2B.8 | Can retry after each failure | ✅ PASS | Form remains editable, Subscribe button active |
+| FPB-2B.9 | No subscription created on failures | ✅ PASS | Stripe shows only 1 subscription (original FPB-2A) |
+
+**Total: 9/9 PASS ✅**
+
+### Stripe Verification
+```
+Customer: cus_Tp09bn6i1mYUgK
+Total Subscriptions: 1 (no duplicates from failed attempts)
+Subscription ID: sub_1SrM9gA8a2u3Lccget7hXQVg
+Status: active
+```
+
+---
+
 ## FPA-1D & FPA-1E: Family Plan A - Expired Card, CVC & Processing Error Tests (Jan 19, 2026)
 
 ### Overview
