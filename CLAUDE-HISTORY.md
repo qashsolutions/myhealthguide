@@ -4,6 +4,41 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## FPA-1B: Family Plan A - Declined Card Tests (Jan 19, 2026)
+
+### Overview
+Verified that declined card (Stripe test card 4000 0000 0000 0002) properly fails at checkout with user-friendly error message and allows retry without creating subscription.
+
+### Test Account
+- **Email:** ramanac+sub6a@gmail.com
+- **Password:** AbcD12!@
+- **Stripe Customer:** cus_TozIu4p9hhAKRH (created, but no subscription)
+
+### Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| FPA-1B.1 | Navigate to subscription checkout | ✅ PASS | Stripe checkout opened |
+| FPA-1B.2 | Select Family Plan A ($8.99/mo) | ✅ PASS | Family Plan A shown at $8.99/month |
+| FPA-1B.3 | Enter declined card: 4000 0000 0000 0002 | ✅ PASS | Card number entered |
+| FPA-1B.4 | Enter expiry: 12/28 | ✅ PASS | Expiry entered |
+| FPA-1B.5 | Enter CVC: 123 | ✅ PASS | CVC entered |
+| FPA-1B.6 | Click Pay/Subscribe | ✅ PASS | Subscribe button clicked |
+| FPA-1B.7 | Payment FAILS | ✅ PASS | Payment was declined |
+| FPA-1B.8 | Error message displayed | ✅ PASS | "Your credit card was declined. Try paying with a debit card instead." |
+| FPA-1B.9 | Error is user-friendly | ✅ PASS | Clear message with suggestion |
+| FPA-1B.10 | Can retry with different card | ✅ PASS | Form remains editable, Subscribe button available |
+| FPA-1B.11 | Subscription NOT created | ✅ PASS | Stripe API: empty subscription list for customer |
+
+**Total: 11/11 PASS ✅**
+
+### Stripe Verification
+- **Customer Created:** cus_TozIu4p9hhAKRH
+- **Subscriptions:** None (empty array)
+- **Behavior:** Customer record created but no subscription due to declined payment
+
+---
+
 ## FPA-1A: Family Plan A - Successful Payment Tests (Jan 19, 2026)
 
 ### Overview
