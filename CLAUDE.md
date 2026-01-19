@@ -271,6 +271,51 @@ The fix handles trial users who selected a plan but haven't been charged yet (no
 
 **Verification Method:** Browser automation via Chrome extension on production (myguide.health)
 
+### Trial Expiration Tests (SUB-5A)
+
+**Status:** ✅ COMPLETE (Jan 19, 2026)
+
+Tests what happens when trial expires WITHOUT subscribing.
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SUB-5A.1 | Login with expired trial account | ✅ PASS - User authenticates successfully |
+| SUB-5A.2 | Dashboard shows trial expired message | ✅ PASS - Redirects to `/pricing?upgrade=true&reason=trial_expired` |
+| SUB-5A.3 | Cannot access medications | ✅ PASS - Redirected to pricing |
+| SUB-5A.4 | Cannot access care logs | ✅ PASS - Redirected to pricing |
+| SUB-5A.5 | Cannot access family updates | ✅ PASS - Redirected to pricing |
+| SUB-5A.6 | Cannot add new data | ✅ PASS - Cannot access any data entry pages |
+| SUB-5A.7 | Shows clear message about subscribing | ✅ PASS - Pricing page shows plan options |
+| SUB-5A.8 | Subscribe CTA prominently displayed | ✅ PASS - Pricing page with CTAs displayed |
+| SUB-5A.9 | Direct URL to /medications blocked | ✅ PASS - Redirected to pricing |
+| SUB-5A.10 | Direct URL to /care-logs blocked | ✅ PASS - Redirected to pricing |
+| SUB-5A.11 | API calls blocked at UI level | ✅ PASS - ProtectedRoute blocks all access |
+| SUB-5A.12 | Data NOT deleted (just inaccessible) | ✅ PASS - User document intact with all fields |
+
+**Total: 12/12 PASS**
+
+#### Trial Expiration Behavior Verified
+
+| Component | Behavior |
+|-----------|----------|
+| `ProtectedRoute.tsx` | Checks `subscriptionStatus === 'expired'` and redirects to pricing |
+| Redirect URL | `/pricing?upgrade=true&reason=trial_expired` |
+| User Data | Preserved in Firestore - status changes to 'expired', data remains |
+| Grace Period | 48-hour window to export data before deletion |
+
+#### Test Method
+
+| Step | Action |
+|------|--------|
+| 1 | Set test account `subscriptionStatus: 'expired'` via Firebase Admin script |
+| 2 | Log in with expired account on production |
+| 3 | Verify all dashboard routes redirect to pricing |
+| 4 | Verify data preserved in Firestore |
+| 5 | Restore account to trial status |
+
+**Test Account:** ramanac+b2@gmail.com (Family Plan B member)
+**Test Scripts:** `scripts/setTrialExpired.ts`, `scripts/restoreTrialStatus.ts`, `scripts/verifyDataPreserved.ts`
+
 ---
 
 ## Key Constraints (DO NOT MODIFY)
@@ -442,7 +487,7 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 **Launch Date:** January 11, 2026
 **Status:** ✅ LIVE
 
-- 218/218 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Sub Management + 6 Cancel Sub + 5 Billing Portal)
+- 230/230 tests passed (109 E2E + 65 RBAC + 18 Subscription + 7 Stripe Payment + 8 Sub Management + 6 Cancel Sub + 5 Billing Portal + 12 Trial Expiry)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -453,3 +498,4 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Subscription management UI verified (Jan 18, 2026)
 - Cancel subscription for trial users verified (Jan 18, 2026)
 - Billing portal button visibility fix verified (Jan 19, 2026)
+- Trial expiration blocking verified (Jan 19, 2026)
