@@ -4,6 +4,51 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## FPA-1D & FPA-1E: Family Plan A - Expired Card, CVC & Processing Error Tests (Jan 19, 2026)
+
+### Overview
+Verified error handling for expired card, incorrect CVC, and processing error test cards.
+
+### FPA-1D: Expired Card Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| FPA-1D.1 | Navigate to subscription checkout | ✅ PASS | Stripe checkout opened |
+| FPA-1D.2 | Select Family Plan A | ✅ PASS | $8.99/month shown |
+| FPA-1D.3 | Enter expired card: 4000 0000 0000 0069 | ✅ PASS | Card entered |
+| FPA-1D.4 | Enter expiry: 12/28 | ✅ PASS | Expiry entered |
+| FPA-1D.5 | Enter CVC: 123 | ✅ PASS | CVC entered |
+| FPA-1D.6 | Click Pay | ✅ PASS | Subscribe clicked |
+| FPA-1D.7 | Payment FAILS | ✅ PASS | Payment declined |
+| FPA-1D.8 | Error shows "Expired card" | ✅ PASS | "Your card is expired. Try a different card." |
+| FPA-1D.9 | User can try another card | ✅ PASS | Form editable |
+
+**FPA-1D Total: 9/9 PASS ✅**
+
+### FPA-1E: Incorrect CVC & Processing Error Test Results
+
+| Test | Description | Result | Evidence |
+|------|-------------|--------|----------|
+| FPA-1E.1 | Enter incorrect CVC card: 4000 0000 0000 0127 | ✅ PASS | Card entered |
+| FPA-1E.2 | Click Pay | ✅ PASS | Subscribe clicked |
+| FPA-1E.3 | Payment FAILS with CVC error | ✅ PASS | Payment declined |
+| FPA-1E.4 | Error message is clear | ✅ PASS | "Your card's CVC is incorrect." |
+| FPA-1E.5 | Enter processing error card: 4000 0000 0000 0119 | ✅ PASS | Card entered |
+| FPA-1E.6 | Click Pay | ✅ PASS | Subscribe clicked |
+| FPA-1E.7 | Payment FAILS with processing error | ✅ PASS | Payment declined |
+| FPA-1E.8 | Error message suggests retry | ✅ PASS | "An error occurred while processing your card. Try again." |
+
+**FPA-1E Total: 8/8 PASS ✅**
+
+### Error Messages Summary
+| Card Type | Error Message |
+|-----------|---------------|
+| Expired (0069) | "Your card is expired. Try a different card." |
+| Incorrect CVC (0127) | "Your card's CVC is incorrect." |
+| Processing Error (0119) | "An error occurred while processing your card. Try again." |
+
+---
+
 ## FPA-1C: Family Plan A - Insufficient Funds Tests (Jan 19, 2026)
 
 ### Overview
