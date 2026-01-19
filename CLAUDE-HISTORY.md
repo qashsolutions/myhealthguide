@@ -4,6 +4,66 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## SUB-5B: Trial Expiry Resubscription Recovery Tests (Jan 19, 2026)
+
+### Overview
+Verified that users with expired trials can successfully resubscribe and regain full access to their data and features.
+
+### Bug Fix Applied
+During testing, discovered a critical bug causing dashboard crash after resubscription.
+
+**Error:** `TypeError: Cannot read properties of undefined (reading 'limits')`
+
+**Root Cause:** Functions in `subscriptionService.ts` and `planLimits.ts` accessed `PLAN_CONFIG[tier]` without checking if the tier was valid (e.g., 'unknown' from webhook processing).
+
+**Fix Applied:**
+- `getPlanDisplayInfo()`: Added `|| PLAN_CONFIG.family` fallback
+- `hasFeature()`: Added `!PLAN_CONFIG[tier]` check
+- `getTierDisplayName()`: Added `|| PLAN_CONFIG.family` fallback
+
+**Commit:** `4b620d4` - fix: add defensive checks for invalid subscription tier values
+
+### Test Account
+- **Email:** ramanac+a1@gmail.com (Family Plan A Admin)
+- **Password:** AbcD12!@
+- **Initial State:** Expired trial (set via `setTrialExpired.ts` script)
+
+### Test Results
+
+| Test | Description | Result |
+|------|-------------|--------|
+| SUB-5B.1 | Subscribe button still visible (on pricing page when expired) | ✅ PASS |
+| SUB-5B.2 | Can initiate subscription (click redirects to Stripe) | ✅ PASS |
+| SUB-5B.3 | Complete Stripe payment (test card 4242424242424242) | ✅ PASS |
+| SUB-5B.4 | Access restored immediately (dashboard accessible) | ✅ PASS |
+| SUB-5B.5 | All previous data still there (Loved One A1 preserved) | ✅ PASS |
+| SUB-5B.6 | Can now access medications (Daily Care page loads) | ✅ PASS |
+| SUB-5B.7 | Can now access care logs (Activity tab accessible) | ✅ PASS |
+| SUB-5B.8 | Can add new data (Add Medication form works) | ✅ PASS |
+
+**Total: 8/8 PASS ✅**
+
+### Verification Details
+- **Subscription Status:** Active ✅
+- **Dashboard Access:** Restored ✅
+- **Loved One Data:** Preserved (Loved One A1)
+- **Manage Billing Button:** Visible ✅
+- **Add Medication Form:** Accessible and functional ✅
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/lib/subscription/subscriptionService.ts` | Added fallback to family plan for invalid tiers |
+| `src/lib/firebase/planLimits.ts` | Added fallback to family plan for invalid tiers |
+
+### Scripts Used
+- `scripts/setTrialExpired.ts` - Sets test account to expired status
+- `scripts/restoreTrialStatus.ts` - Restores account to trial status after testing
+- `scripts/verifyDataPreserved.ts` - Verifies data is not deleted during expiration
+
+---
+
 ## Trial Duration Display Fix (Jan 17, 2026)
 
 ### Issue

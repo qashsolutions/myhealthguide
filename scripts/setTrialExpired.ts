@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Test account to set as expired
-const TEST_EMAIL = 'ramanac+b2@gmail.com'; // Using b2 as it's a member account we can safely modify
+const TEST_EMAIL = 'ramanac+a1@gmail.com'; // Using a1 as it's an admin account that can resubscribe
 
 async function main() {
   // Initialize Firebase Admin
