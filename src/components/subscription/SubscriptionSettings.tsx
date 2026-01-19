@@ -139,6 +139,8 @@ export function SubscriptionSettings() {
 
   // Distinguish between free trial (no Stripe) and subscribed trial (with Stripe)
   const hasPaidSubscription = !!user?.stripeSubscriptionId;
+  // Check if user has Stripe customer ID (needed for billing portal)
+  const hasStripeCustomer = !!user?.stripeCustomerId;
   // Check if user has selected a plan (subscriptionTier is set and not default/empty)
   const hasSelectedPlan = !!user?.subscriptionTier && ['family', 'single_agency', 'multi_agency'].includes(user.subscriptionTier);
   // Subscribed trial: has Stripe subscription OR has selected a plan during trial
@@ -629,7 +631,7 @@ export function SubscriptionSettings() {
                 </div>
               )}
 
-              {!cancelAtPeriodEnd && !pendingPlanChange && (
+              {!cancelAtPeriodEnd && !pendingPlanChange && hasStripeCustomer && (
                 <div className="mt-3 flex gap-2">
                   <Button
                     variant="outline"
@@ -658,6 +660,19 @@ export function SubscriptionSettings() {
                 <p className="text-red-700">{gracePeriodHoursLeft} hours left to save your data</p>
               ) : (
                 <p className="text-red-700">Subscribe to restore access</p>
+              )}
+              {hasStripeCustomer && (
+                <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleManageBilling}
+                    disabled={loading}
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    View Billing History
+                  </Button>
+                </div>
               )}
             </div>
           )}
