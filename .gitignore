@@ -88,3 +88,4 @@ functions/.env
 
 # Firebase Admin SDK - NEVER COMMIT
 healthguide_refactor_4.md
+scripts/*.pdf
