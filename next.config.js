@@ -29,6 +29,17 @@ const nextConfig = {
         destination: '/login',
         permanent: true,
       },
+      // Old removed routes - redirect to home (these no longer exist)
+      {
+        source: '/health-qa',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/medication-check',
+        destination: '/',
+        permanent: true,
+      },
     ];
   },
   // Security headers
