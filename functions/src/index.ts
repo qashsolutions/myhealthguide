@@ -2094,6 +2094,76 @@ export const generateWeeklySummaries = functions.pubsub
 
 // ============= EMAIL TEMPLATE FUNCTIONS =============
 
+// Diet detail for email/PDF report
+interface DietDetail {
+  meal: string; // breakfast, lunch, dinner, snack
+  items: string[];
+  estimatedCalories?: number;
+  nutritionScore?: number;
+  concerns?: string[];
+  notes?: string;
+}
+
+// Caregiver note/observation for email/PDF report
+interface CaregiverNote {
+  source: string; // 'medication', 'diet', 'supplement'
+  context: string; // e.g., "Aspirin - 8:00 AM"
+  note: string;
+  timestamp?: Date;
+  isConcern?: boolean; // Flag if note contains concerning symptoms
+}
+
+// Flagged concern for prominent display
+interface FlaggedConcern {
+  type: 'symptom' | 'diet' | 'medication';
+  severity: 'amber' | 'red'; // amber = monitor, red = urgent attention
+  context: string;
+  message: string;
+}
+
+// Keywords that indicate concerning symptoms (dementia, health issues)
+const CONCERN_KEYWORDS = [
+  // Cognitive/Dementia symptoms
+  'confused', 'confusion', 'disoriented', 'forgot', 'forgetful', 'memory',
+  'recognize', 'recognition', 'agitated', 'agitation', 'wandering', 'sundowning',
+  // Physical symptoms
+  'dizzy', 'dizziness', 'fell', 'fall', 'fallen', 'weak', 'weakness',
+  'pain', 'painful', 'nausea', 'vomit', 'vomiting', 'fever', 'swelling',
+  'breathing', 'breathless', 'chest', 'headache',
+  // Behavioral changes
+  'refused', 'refusing', 'agitated', 'anxious', 'anxiety', 'restless',
+  'sleeping', 'insomnia', 'appetite', 'weight loss', 'dehydrated',
+  // Medication issues
+  'side effect', 'reaction', 'allergic', 'rash'
+];
+
+/**
+ * Detect if a note contains concerning symptoms
+ * Returns severity: 'red' for urgent, 'amber' for monitor
+ */
+function detectConcerningSympoms(note: string): { isConcern: boolean; severity: 'amber' | 'red' } {
+  const lowerNote = note.toLowerCase();
+
+  // Red flags - urgent concerns
+  const redFlags = ['fell', 'fall', 'fallen', 'chest', 'breathing', 'breathless',
+                    'allergic', 'reaction', 'fever', 'vomit', 'vomiting'];
+
+  for (const flag of redFlags) {
+    if (lowerNote.includes(flag)) {
+      return { isConcern: true, severity: 'red' };
+    }
+  }
+
+  // Amber flags - monitor
+  for (const keyword of CONCERN_KEYWORDS) {
+    if (lowerNote.includes(keyword)) {
+      return { isConcern: true, severity: 'amber' };
+    }
+  }
+
+  return { isConcern: false, severity: 'amber' };
+}
+
 interface DailyReportEmailData {
   elderName: string;
   date: string;
@@ -2105,6 +2175,12 @@ interface DailyReportEmailData {
   activeAlerts: number;
   summaryText: string;
   alertMessages?: string[];
+  // Enhanced fields for diet and notes
+  dietDetails?: DietDetail[];
+  caregiverNotes?: CaregiverNote[];
+  totalCalories?: number;
+  // Flagged concerns for prominent display
+  flaggedConcerns?: FlaggedConcern[];
 }
 
 /**
@@ -2142,6 +2218,147 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
                 <p style="margin: 8px 0 0 0; color: ${textColor}; font-size: 14px;">
                   Please check the app for details and recommended actions.
                 </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  }
+
+  // Build concerns section - prominently displayed at top
+  const amberColor = '#d97706'; // Amber-600
+  let concernsSection = '';
+  if (data.flaggedConcerns && data.flaggedConcerns.length > 0) {
+    const concernsHtml = data.flaggedConcerns.map(concern => {
+      const isRed = concern.severity === 'red';
+      const bgColorForConcern = isRed ? '#fef2f2' : '#fffbeb';
+      const borderColorForConcern = isRed ? warningColor : amberColor;
+      const textColorForConcern = isRed ? warningColor : amberColor;
+      const icon = concern.type === 'medication' ? '💊' :
+                   concern.type === 'diet' ? '🍽️' : '⚠️';
+
+      return `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColorForConcern}; border-radius: 6px; border-left: 3px solid ${borderColorForConcern};">
+              <tr>
+                <td style="padding: 10px 12px;">
+                  <p style="margin: 0; font-weight: 600; color: ${textColorForConcern}; font-size: 12px;">${icon} ${concern.context}</p>
+                  <p style="margin: 4px 0 0 0; color: ${textColor}; font-size: 13px;">${concern.message}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`;
+    }).join('');
+
+    // Determine header color based on severity of concerns
+    const hasRedConcerns = data.flaggedConcerns.some(c => c.severity === 'red');
+    const headerBgColor = hasRedConcerns ? '#fef2f2' : '#fffbeb';
+    const headerBorderColor = hasRedConcerns ? warningColor : amberColor;
+    const headerTextColor = hasRedConcerns ? warningColor : amberColor;
+
+    concernsSection = `
+      <tr>
+        <td style="padding: 0 20px 20px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${headerBgColor}; border-radius: 8px; border: 2px solid ${headerBorderColor};">
+            <tr>
+              <td style="padding: 16px;">
+                <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700; color: ${headerTextColor};">
+                  ⚠️ Concerns to Note (${data.flaggedConcerns.length})
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  ${concernsHtml}
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  }
+
+  // Build diet details section
+  let dietSection = '';
+  if (data.dietDetails && data.dietDetails.length > 0) {
+    const mealsHtml = data.dietDetails.map(meal => {
+      const calorieText = meal.estimatedCalories ? ` (~${meal.estimatedCalories} cal)` : '';
+      const scoreText = meal.nutritionScore !== undefined ? ` • Score: ${meal.nutritionScore}/100` : '';
+      const concernsHtml = meal.concerns && meal.concerns.length > 0
+        ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: ${warningColor};">⚠ ${meal.concerns.join('; ')}</p>`
+        : '';
+      return `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+            <p style="margin: 0; font-weight: 600; color: ${textColor}; font-size: 14px;">${meal.meal}${calorieText}${scoreText}</p>
+            <p style="margin: 4px 0 0 0; color: ${textMuted}; font-size: 13px;">${meal.items.join(', ')}</p>
+            ${concernsHtml}
+          </td>
+        </tr>`;
+    }).join('');
+
+    const totalCalText = data.totalCalories ? `<span style="color: ${brandColor}; font-weight: 500;">~${data.totalCalories} cal total</span>` : '';
+
+    dietSection = `
+      <tr>
+        <td style="padding: 0 20px 20px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+            <tr>
+              <td style="padding: 16px;">
+                <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: ${textColor};">
+                  🍽️ Meals & Nutrition ${totalCalText}
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  ${mealsHtml}
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  } else {
+    // Simple meals count if no detailed data
+    dietSection = `
+      <tr>
+        <td colspan="2" style="padding: 8px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+            <tr>
+              <td style="padding: 16px; text-align: center;">
+                <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.mealsLogged}</p>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px;">Meals Logged</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  }
+
+  // Build caregiver notes section
+  let notesSection = '';
+  if (data.caregiverNotes && data.caregiverNotes.length > 0) {
+    const notesHtml = data.caregiverNotes.map(note => {
+      const sourceIcon = note.source === 'medication' ? '💊' :
+                        note.source === 'diet' ? '🍽️' : '💊';
+      return `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+            <p style="margin: 0; font-weight: 600; color: ${brandColor}; font-size: 13px;">${sourceIcon} ${note.context}</p>
+            <p style="margin: 4px 0 0 0; color: ${textColor}; font-size: 13px; font-style: italic;">"${note.note}"</p>
+          </td>
+        </tr>`;
+    }).join('');
+
+    notesSection = `
+      <tr>
+        <td style="padding: 0 20px 20px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+            <tr>
+              <td style="padding: 16px;">
+                <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: ${textColor};">
+                  📝 Caregiver Notes & Observations
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  ${notesHtml}
+                </table>
               </td>
             </tr>
           </table>
@@ -2187,6 +2404,9 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
 
           ${alertSection}
 
+          <!-- Concerns Section - Prominently displayed -->
+          ${concernsSection}
+
           <!-- Stats Grid -->
           <tr>
             <td style="padding: 0 20px 20px 20px;">
@@ -2217,22 +2437,15 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
                     </table>
                   </td>
                 </tr>
-                <tr>
-                  <!-- Meals Card -->
-                  <td colspan="2" style="padding: 8px;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
-                      <tr>
-                        <td style="padding: 16px; text-align: center;">
-                          <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.mealsLogged}</p>
-                          <p style="margin: 4px 0 0 0; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px;">Meals Logged</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
               </table>
             </td>
           </tr>
+
+          <!-- Diet Details Section -->
+          ${dietSection}
+
+          <!-- Caregiver Notes Section -->
+          ${notesSection}
 
           <!-- Login Link -->
           <tr>
@@ -2367,6 +2580,67 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
         yPos += 80;
       }
 
+      // ============= CONCERNS SECTION - Prominently displayed =============
+      const amberColor = '#d97706';
+      if (data.flaggedConcerns && data.flaggedConcerns.length > 0) {
+        // Determine if there are any red (urgent) concerns
+        const hasRedConcerns = data.flaggedConcerns.some(c => c.severity === 'red');
+        const headerColor = hasRedConcerns ? warningRed : amberColor;
+        const headerBgColor = hasRedConcerns ? '#fef2f2' : '#fffbeb';
+
+        // Concerns header
+        doc.rect(50, yPos, doc.page.width - 100, 30)
+           .fill(headerBgColor);
+        doc.rect(50, yPos, doc.page.width - 100, 30)
+           .stroke(headerColor);
+
+        doc.fillColor(headerColor)
+           .fontSize(14)
+           .font('Helvetica-Bold')
+           .text(`[!] Concerns to Note (${data.flaggedConcerns.length})`, 60, yPos + 8);
+
+        yPos += 35;
+
+        // Each concern
+        for (const concern of data.flaggedConcerns) {
+          // Check if we need a new page
+          if (yPos > doc.page.height - 100) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          const isRed = concern.severity === 'red';
+          const concernColor = isRed ? warningRed : amberColor;
+          const concernBgColor = isRed ? '#fef2f2' : '#fffbeb';
+          const icon = concern.type === 'medication' ? '[Rx]' :
+                       concern.type === 'diet' ? '[Diet]' : '[!]';
+
+          // Concern box
+          const concernHeight = 45;
+          doc.rect(50, yPos, doc.page.width - 100, concernHeight)
+             .fill(concernBgColor);
+          doc.rect(50, yPos, 4, concernHeight).fill(concernColor);
+
+          // Context
+          doc.fillColor(concernColor)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(`${icon} ${concern.context}`, 60, yPos + 8);
+
+          // Message
+          doc.fillColor(textGray)
+             .fontSize(10)
+             .font('Helvetica')
+             .text(concern.message, 60, yPos + 22, {
+               width: doc.page.width - 130
+             });
+
+          yPos += concernHeight + 5;
+        }
+
+        yPos += 15;
+      }
+
       // Stats section
       doc.fillColor(textGray)
          .fontSize(18)
@@ -2393,7 +2667,7 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
          .text('MEDICATIONS', 50, yPos + 55, { width: cardWidth, align: 'center' });
 
       const medStatusColor = data.medicationsMissed > 0 ? warningRed : successGreen;
-      const medStatusText = data.medicationsMissed === 0 ? '✓ All taken' : `⚠ ${data.medicationsMissed} missed`;
+      const medStatusText = data.medicationsMissed === 0 ? 'All taken' : `* ${data.medicationsMissed} missed`;
       doc.fillColor(medStatusColor)
          .fontSize(11)
          .font('Helvetica-Bold')
@@ -2419,23 +2693,141 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
 
       yPos += 120;
 
-      // Meals card (full width)
-      doc.rect(50, yPos, doc.page.width - 100, 80).fill('#f3f4f6');
-      doc.fillColor(brandBlue)
-         .fontSize(36)
-         .font('Helvetica-Bold')
-         .text(`${data.mealsLogged}`, 50, yPos + 10, {
-           width: doc.page.width - 100,
-           align: 'center'
-         });
-      doc.fillColor(lightGray)
-         .fontSize(10)
-         .font('Helvetica')
-         .text('MEALS LOGGED', 50, yPos + 50, { width: doc.page.width - 100, align: 'center' });
+      // ============= DIET DETAILS SECTION =============
+      if (data.dietDetails && data.dietDetails.length > 0) {
+        doc.fillColor(textGray)
+           .fontSize(18)
+           .font('Helvetica-Bold')
+           .text('Meals & Nutrition', 50, yPos);
 
-      yPos += 110;
+        // Total calories if available
+        if (data.totalCalories) {
+          doc.fillColor(brandBlue)
+             .fontSize(12)
+             .font('Helvetica')
+             .text(`Total: ~${data.totalCalories} calories`, 350, yPos + 3);
+        }
+
+        yPos += 30;
+
+        for (const meal of data.dietDetails) {
+          // Check if we need a new page
+          if (yPos > doc.page.height - 150) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          // Meal header with calories
+          const calorieText = meal.estimatedCalories ? ` (~${meal.estimatedCalories} cal)` : '';
+          const scoreText = meal.nutritionScore !== undefined ? ` • Score: ${meal.nutritionScore}/100` : '';
+
+          doc.fillColor(textGray)
+             .fontSize(14)
+             .font('Helvetica-Bold')
+             .text(`${meal.meal}${calorieText}${scoreText}`, 50, yPos);
+
+          yPos += 20;
+
+          // Food items
+          if (meal.items && meal.items.length > 0) {
+            doc.fillColor(textGray)
+               .fontSize(11)
+               .font('Helvetica')
+               .text(meal.items.join(', '), 60, yPos, {
+                 width: doc.page.width - 120
+               });
+            yPos += Math.ceil(meal.items.join(', ').length / 70) * 14 + 5;
+          }
+
+          // Concerns if any
+          if (meal.concerns && meal.concerns.length > 0) {
+            doc.fillColor(warningRed)
+               .fontSize(10)
+               .font('Helvetica')
+               .text('* ' + meal.concerns.join('; '), 60, yPos, {
+                 width: doc.page.width - 120
+               });
+            yPos += 15;
+          }
+
+          yPos += 10;
+        }
+
+        yPos += 10;
+      } else {
+        // Simple meals count if no detailed data
+        doc.rect(50, yPos, doc.page.width - 100, 80).fill('#f3f4f6');
+        doc.fillColor(brandBlue)
+           .fontSize(36)
+           .font('Helvetica-Bold')
+           .text(`${data.mealsLogged}`, 50, yPos + 10, {
+             width: doc.page.width - 100,
+             align: 'center'
+           });
+        doc.fillColor(lightGray)
+           .fontSize(10)
+           .font('Helvetica')
+           .text('MEALS LOGGED', 50, yPos + 50, { width: doc.page.width - 100, align: 'center' });
+        yPos += 100;
+      }
+
+      // ============= CAREGIVER NOTES SECTION =============
+      if (data.caregiverNotes && data.caregiverNotes.length > 0) {
+        // Check if we need a new page
+        if (yPos > doc.page.height - 150) {
+          doc.addPage();
+          yPos = 50;
+        }
+
+        doc.fillColor(textGray)
+           .fontSize(18)
+           .font('Helvetica-Bold')
+           .text('Caregiver Notes & Observations', 50, yPos);
+
+        yPos += 30;
+
+        for (const note of data.caregiverNotes) {
+          // Check if we need a new page
+          if (yPos > doc.page.height - 100) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          // Source icon and context
+          const sourceIcon = note.source === 'medication' ? '[Rx]' :
+                            note.source === 'diet' ? '[Diet]' : '[Rx]';
+
+          doc.fillColor(brandBlue)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(`${sourceIcon} ${note.context}`, 50, yPos);
+
+          yPos += 16;
+
+          // Note content
+          doc.fillColor(textGray)
+             .fontSize(11)
+             .font('Helvetica')
+             .text(`"${note.note}"`, 60, yPos, {
+               width: doc.page.width - 120,
+               indent: 10
+             });
+
+          // Calculate text height dynamically
+          const noteHeight = Math.ceil(note.note.length / 65) * 14;
+          yPos += noteHeight + 15;
+        }
+
+        yPos += 10;
+      }
 
       // Footer
+      // Check if we need a new page for footer
+      if (yPos > doc.page.height - 60) {
+        doc.addPage();
+        yPos = doc.page.height - 80;
+      }
+
       doc.fillColor(lightGray)
          .fontSize(10)
          .font('Helvetica')
@@ -2595,6 +2987,168 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
         const priority = missedMeds > 0 || activeAlerts > 0 ? 'high' : 'low';
         const requiresAction = missedMeds > 0 || activeAlerts > 0;
 
+        // ============= EXTRACT DIET DETAILS =============
+        const dietDetails: DietDetail[] = [];
+        let totalCalories = 0;
+
+        for (const dietDoc of dietSnapshot.docs) {
+          const diet = dietDoc.data();
+          const mealType = diet.meal || 'meal';
+          const items = diet.items || [];
+          const aiAnalysis = diet.aiAnalysis;
+
+          const detail: DietDetail = {
+            meal: mealType.charAt(0).toUpperCase() + mealType.slice(1), // Capitalize
+            items: items,
+            notes: diet.notes
+          };
+
+          // Extract nutrition info from AI analysis if available
+          if (aiAnalysis) {
+            if (aiAnalysis.estimatedCalories) {
+              detail.estimatedCalories = aiAnalysis.estimatedCalories;
+              totalCalories += aiAnalysis.estimatedCalories;
+            }
+            if (aiAnalysis.nutritionScore !== undefined) {
+              detail.nutritionScore = aiAnalysis.nutritionScore;
+            }
+            if (aiAnalysis.concerns && aiAnalysis.concerns.length > 0) {
+              detail.concerns = aiAnalysis.concerns;
+            }
+          }
+
+          dietDetails.push(detail);
+        }
+
+        // Sort by meal order: breakfast, lunch, dinner, snack
+        const mealOrder: Record<string, number> = { 'Breakfast': 1, 'Lunch': 2, 'Dinner': 3, 'Snack': 4 };
+        dietDetails.sort((a, b) => (mealOrder[a.meal] || 5) - (mealOrder[b.meal] || 5));
+
+        // ============= EXTRACT CAREGIVER NOTES & DETECT CONCERNS =============
+        const caregiverNotes: CaregiverNote[] = [];
+        const flaggedConcerns: FlaggedConcern[] = [];
+
+        // Notes from medication logs
+        for (const medDoc of medsSnapshot.docs) {
+          const med = medDoc.data();
+          if (med.notes && med.notes.trim()) {
+            const noteText = med.notes.trim();
+            const { isConcern, severity } = detectConcerningSympoms(noteText);
+
+            caregiverNotes.push({
+              source: 'medication',
+              context: med.medicationName || 'Medication',
+              note: noteText,
+              timestamp: med.createdAt?.toDate?.() || med.actualTime?.toDate?.(),
+              isConcern
+            });
+
+            // Add to flagged concerns if concerning
+            if (isConcern) {
+              flaggedConcerns.push({
+                type: 'symptom',
+                severity,
+                context: med.medicationName || 'Medication',
+                message: noteText
+              });
+            }
+          }
+        }
+
+        // Notes from diet entries
+        for (const dietDoc of dietSnapshot.docs) {
+          const diet = dietDoc.data();
+          if (diet.notes && diet.notes.trim()) {
+            const mealType = diet.meal || 'meal';
+            const noteText = diet.notes.trim();
+            const { isConcern, severity } = detectConcerningSympoms(noteText);
+
+            caregiverNotes.push({
+              source: 'diet',
+              context: mealType.charAt(0).toUpperCase() + mealType.slice(1),
+              note: noteText,
+              timestamp: diet.createdAt?.toDate?.(),
+              isConcern
+            });
+
+            // Add to flagged concerns if concerning
+            if (isConcern) {
+              flaggedConcerns.push({
+                type: 'symptom',
+                severity,
+                context: mealType.charAt(0).toUpperCase() + mealType.slice(1),
+                message: noteText
+              });
+            }
+          }
+        }
+
+        // Notes from supplement logs
+        for (const suppDoc of supplementsSnapshot.docs) {
+          const supp = suppDoc.data();
+          if (supp.notes && supp.notes.trim()) {
+            const noteText = supp.notes.trim();
+            const { isConcern, severity } = detectConcerningSympoms(noteText);
+
+            caregiverNotes.push({
+              source: 'supplement',
+              context: supp.supplementName || 'Supplement',
+              note: noteText,
+              timestamp: supp.createdAt?.toDate?.(),
+              isConcern
+            });
+
+            // Add to flagged concerns if concerning
+            if (isConcern) {
+              flaggedConcerns.push({
+                type: 'symptom',
+                severity,
+                context: supp.supplementName || 'Supplement',
+                message: noteText
+              });
+            }
+          }
+        }
+
+        // Add diet concerns (from AI analysis) to flagged concerns
+        for (const diet of dietDetails) {
+          if (diet.concerns && diet.concerns.length > 0) {
+            for (const concern of diet.concerns) {
+              flaggedConcerns.push({
+                type: 'diet',
+                severity: 'amber',
+                context: diet.meal,
+                message: concern
+              });
+            }
+          }
+        }
+
+        // Add missed medications as concerns
+        if (missedMeds > 0) {
+          flaggedConcerns.push({
+            type: 'medication',
+            severity: missedMeds >= 2 ? 'red' : 'amber',
+            context: 'Medications',
+            message: `${missedMeds} medication${missedMeds > 1 ? 's' : ''} missed today`
+          });
+        }
+
+        // Sort flagged concerns: red first, then amber
+        flaggedConcerns.sort((a, b) => {
+          if (a.severity === 'red' && b.severity !== 'red') return -1;
+          if (a.severity !== 'red' && b.severity === 'red') return 1;
+          return 0;
+        });
+
+        // Sort notes by timestamp (newest first)
+        caregiverNotes.sort((a, b) => {
+          if (!a.timestamp && !b.timestamp) return 0;
+          if (!a.timestamp) return 1;
+          if (!b.timestamp) return -1;
+          return b.timestamp.getTime() - a.timestamp.getTime();
+        });
+
         // Store the daily note summary
         const noteRef = await admin.firestore().collection('daily_family_notes').add({
           groupId: groupId,
@@ -2627,7 +3181,13 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
           supplementsTaken,
           mealsLogged,
           activeAlerts,
-          summaryText
+          summaryText,
+          // Enhanced fields for diet and notes
+          dietDetails: dietDetails.length > 0 ? dietDetails : undefined,
+          caregiverNotes: caregiverNotes.length > 0 ? caregiverNotes : undefined,
+          totalCalories: totalCalories > 0 ? totalCalories : undefined,
+          // Flagged concerns for prominent display
+          flaggedConcerns: flaggedConcerns.length > 0 ? flaggedConcerns : undefined
         };
 
         // Create notification for each recipient

@@ -1,6 +1,6 @@
 /**
  * Test Daily Family Notes Email with PDF Attachment
- * Creates a test email with PDF attachment to verify the email template
+ * Enhanced with Diet Details and Caregiver Notes
  *
  * Usage: npx tsx scripts/testDailyFamilyNotesEmail.ts [recipientEmail]
  *
@@ -20,7 +20,31 @@ const __dirname = path.dirname(__filename);
 // Get recipient email from command line args or use default
 const recipientEmail = process.argv[2] || 'admin@myguide.health';
 
-// ============= DATA INTERFACE =============
+// ============= DATA INTERFACES =============
+
+interface DietDetail {
+  meal: string;
+  items: string[];
+  estimatedCalories?: number;
+  nutritionScore?: number;
+  concerns?: string[];
+  notes?: string;
+}
+
+interface CaregiverNote {
+  source: string;
+  context: string;
+  note: string;
+  timestamp?: Date;
+  isConcern?: boolean;
+}
+
+interface FlaggedConcern {
+  type: 'symptom' | 'diet' | 'medication';
+  severity: 'amber' | 'red';
+  context: string;
+  message: string;
+}
 
 interface DailyReportEmailData {
   elderName: string;
@@ -32,6 +56,11 @@ interface DailyReportEmailData {
   mealsLogged: number;
   activeAlerts: number;
   summaryText: string;
+  alertMessages?: string[];
+  dietDetails?: DietDetail[];
+  caregiverNotes?: CaregiverNote[];
+  totalCalories?: number;
+  flaggedConcerns?: FlaggedConcern[];
 }
 
 // ============= PDF GENERATION =============
@@ -102,7 +131,7 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
         doc.fillColor(warningRed)
            .fontSize(14)
            .font('Helvetica-Bold')
-           .text(`⚠ ${data.activeAlerts} Active Alert${data.activeAlerts > 1 ? 's' : ''}`, 70, yPos + 15);
+           .text(`[!] ${data.activeAlerts} Active Alert${data.activeAlerts > 1 ? 's' : ''}`, 70, yPos + 15);
 
         doc.fillColor(textGray)
            .fontSize(12)
@@ -110,6 +139,67 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
            .text('Please check the app for details and recommended actions.', 70, yPos + 35);
 
         yPos += 80;
+      }
+
+      // ============= CONCERNS SECTION - Prominently displayed =============
+      const amberColor = '#d97706';
+      if (data.flaggedConcerns && data.flaggedConcerns.length > 0) {
+        // Determine if there are any red (urgent) concerns
+        const hasRedConcerns = data.flaggedConcerns.some(c => c.severity === 'red');
+        const headerColor = hasRedConcerns ? warningRed : amberColor;
+        const headerBgColor = hasRedConcerns ? '#fef2f2' : '#fffbeb';
+
+        // Concerns header
+        doc.rect(50, yPos, doc.page.width - 100, 30)
+           .fill(headerBgColor);
+        doc.rect(50, yPos, doc.page.width - 100, 30)
+           .stroke(headerColor);
+
+        doc.fillColor(headerColor)
+           .fontSize(14)
+           .font('Helvetica-Bold')
+           .text(`[!] Concerns to Note (${data.flaggedConcerns.length})`, 60, yPos + 8);
+
+        yPos += 35;
+
+        // Each concern
+        for (const concern of data.flaggedConcerns) {
+          // Check if we need a new page
+          if (yPos > doc.page.height - 100) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          const isRed = concern.severity === 'red';
+          const concernColor = isRed ? warningRed : amberColor;
+          const concernBgColor = isRed ? '#fef2f2' : '#fffbeb';
+          const icon = concern.type === 'medication' ? '[Rx]' :
+                       concern.type === 'diet' ? '[Diet]' : '[!]';
+
+          // Concern box
+          const concernHeight = 45;
+          doc.rect(50, yPos, doc.page.width - 100, concernHeight)
+             .fill(concernBgColor);
+          doc.rect(50, yPos, 4, concernHeight).fill(concernColor);
+
+          // Context
+          doc.fillColor(concernColor)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(`${icon} ${concern.context}`, 60, yPos + 8);
+
+          // Message
+          doc.fillColor(textGray)
+             .fontSize(10)
+             .font('Helvetica')
+             .text(concern.message, 60, yPos + 22, {
+               width: doc.page.width - 130
+             });
+
+          yPos += concernHeight + 5;
+        }
+
+        yPos += 15;
       }
 
       // Stats section
@@ -138,7 +228,7 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
          .text('MEDICATIONS', 50, yPos + 55, { width: cardWidth, align: 'center' });
 
       const medStatusColor = data.medicationsMissed > 0 ? warningRed : successGreen;
-      const medStatusText = data.medicationsMissed === 0 ? '✓ All taken' : `⚠ ${data.medicationsMissed} missed`;
+      const medStatusText = data.medicationsMissed === 0 ? 'All taken' : `* ${data.medicationsMissed} missed`;
       doc.fillColor(medStatusColor)
          .fontSize(11)
          .font('Helvetica-Bold')
@@ -164,23 +254,141 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
 
       yPos += 120;
 
-      // Meals card (full width)
-      doc.rect(50, yPos, doc.page.width - 100, 80).fill('#f3f4f6');
-      doc.fillColor(brandBlue)
-         .fontSize(36)
-         .font('Helvetica-Bold')
-         .text(`${data.mealsLogged}`, 50, yPos + 10, {
-           width: doc.page.width - 100,
-           align: 'center'
-         });
-      doc.fillColor(lightGray)
-         .fontSize(10)
-         .font('Helvetica')
-         .text('MEALS LOGGED', 50, yPos + 50, { width: doc.page.width - 100, align: 'center' });
+      // ============= DIET DETAILS SECTION =============
+      if (data.dietDetails && data.dietDetails.length > 0) {
+        doc.fillColor(textGray)
+           .fontSize(18)
+           .font('Helvetica-Bold')
+           .text('Meals & Nutrition', 50, yPos);
 
-      yPos += 110;
+        // Total calories if available
+        if (data.totalCalories) {
+          doc.fillColor(brandBlue)
+             .fontSize(12)
+             .font('Helvetica')
+             .text(`Total: ~${data.totalCalories} calories`, 350, yPos + 3);
+        }
+
+        yPos += 30;
+
+        for (const meal of data.dietDetails) {
+          // Check if we need a new page
+          if (yPos > doc.page.height - 150) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          // Meal header with calories
+          const calorieText = meal.estimatedCalories ? ` (~${meal.estimatedCalories} cal)` : '';
+          const scoreText = meal.nutritionScore !== undefined ? ` • Score: ${meal.nutritionScore}/100` : '';
+
+          doc.fillColor(textGray)
+             .fontSize(14)
+             .font('Helvetica-Bold')
+             .text(`${meal.meal}${calorieText}${scoreText}`, 50, yPos);
+
+          yPos += 20;
+
+          // Food items
+          if (meal.items && meal.items.length > 0) {
+            doc.fillColor(textGray)
+               .fontSize(11)
+               .font('Helvetica')
+               .text(meal.items.join(', '), 60, yPos, {
+                 width: doc.page.width - 120
+               });
+            yPos += Math.ceil(meal.items.join(', ').length / 70) * 14 + 5;
+          }
+
+          // Concerns if any
+          if (meal.concerns && meal.concerns.length > 0) {
+            doc.fillColor(warningRed)
+               .fontSize(10)
+               .font('Helvetica')
+               .text('* ' + meal.concerns.join('; '), 60, yPos, {
+                 width: doc.page.width - 120
+               });
+            yPos += 15;
+          }
+
+          yPos += 10;
+        }
+
+        yPos += 10;
+      } else {
+        // Simple meals count if no detailed data
+        doc.rect(50, yPos, doc.page.width - 100, 80).fill('#f3f4f6');
+        doc.fillColor(brandBlue)
+           .fontSize(36)
+           .font('Helvetica-Bold')
+           .text(`${data.mealsLogged}`, 50, yPos + 10, {
+             width: doc.page.width - 100,
+             align: 'center'
+           });
+        doc.fillColor(lightGray)
+           .fontSize(10)
+           .font('Helvetica')
+           .text('MEALS LOGGED', 50, yPos + 50, { width: doc.page.width - 100, align: 'center' });
+        yPos += 100;
+      }
+
+      // ============= CAREGIVER NOTES SECTION =============
+      if (data.caregiverNotes && data.caregiverNotes.length > 0) {
+        // Check if we need a new page
+        if (yPos > doc.page.height - 150) {
+          doc.addPage();
+          yPos = 50;
+        }
+
+        doc.fillColor(textGray)
+           .fontSize(18)
+           .font('Helvetica-Bold')
+           .text('Caregiver Notes & Observations', 50, yPos);
+
+        yPos += 30;
+
+        for (const note of data.caregiverNotes) {
+          // Check if we need a new page
+          if (yPos > doc.page.height - 100) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          // Source icon and context
+          const sourceIcon = note.source === 'medication' ? '[Rx]' :
+                            note.source === 'diet' ? '[Diet]' : '[Rx]';
+
+          doc.fillColor(brandBlue)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(`${sourceIcon} ${note.context}`, 50, yPos);
+
+          yPos += 16;
+
+          // Note content
+          doc.fillColor(textGray)
+             .fontSize(11)
+             .font('Helvetica')
+             .text(`"${note.note}"`, 60, yPos, {
+               width: doc.page.width - 120,
+               indent: 10
+             });
+
+          // Calculate text height dynamically
+          const noteHeight = Math.ceil(note.note.length / 65) * 14;
+          yPos += noteHeight + 15;
+        }
+
+        yPos += 10;
+      }
 
       // Footer
+      // Check if we need a new page for footer
+      if (yPos > doc.page.height - 60) {
+        doc.addPage();
+        yPos = doc.page.height - 80;
+      }
+
       doc.fillColor(lightGray)
          .fontSize(10)
          .font('Helvetica')
@@ -236,6 +444,147 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
       </tr>`;
   }
 
+  // Build concerns section - prominently displayed at top
+  const amberColor = '#d97706'; // Amber-600
+  let concernsSection = '';
+  if (data.flaggedConcerns && data.flaggedConcerns.length > 0) {
+    const concernsHtml = data.flaggedConcerns.map(concern => {
+      const isRed = concern.severity === 'red';
+      const bgColorForConcern = isRed ? '#fef2f2' : '#fffbeb';
+      const borderColorForConcern = isRed ? warningColor : amberColor;
+      const textColorForConcern = isRed ? warningColor : amberColor;
+      const icon = concern.type === 'medication' ? '💊' :
+                   concern.type === 'diet' ? '🍽️' : '⚠️';
+
+      return `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColorForConcern}; border-radius: 6px; border-left: 3px solid ${borderColorForConcern};">
+              <tr>
+                <td style="padding: 10px 12px;">
+                  <p style="margin: 0; font-weight: 600; color: ${textColorForConcern}; font-size: 12px;">${icon} ${concern.context}</p>
+                  <p style="margin: 4px 0 0 0; color: ${textColor}; font-size: 13px;">${concern.message}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`;
+    }).join('');
+
+    // Determine header color based on severity of concerns
+    const hasRedConcerns = data.flaggedConcerns.some(c => c.severity === 'red');
+    const headerBgColor = hasRedConcerns ? '#fef2f2' : '#fffbeb';
+    const headerBorderColor = hasRedConcerns ? warningColor : amberColor;
+    const headerTextColor = hasRedConcerns ? warningColor : amberColor;
+
+    concernsSection = `
+      <tr>
+        <td style="padding: 0 20px 20px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${headerBgColor}; border-radius: 8px; border: 2px solid ${headerBorderColor};">
+            <tr>
+              <td style="padding: 16px;">
+                <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700; color: ${headerTextColor};">
+                  ⚠️ Concerns to Note (${data.flaggedConcerns.length})
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  ${concernsHtml}
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  }
+
+  // Build diet details section
+  let dietSection = '';
+  if (data.dietDetails && data.dietDetails.length > 0) {
+    const mealsHtml = data.dietDetails.map(meal => {
+      const calorieText = meal.estimatedCalories ? ` (~${meal.estimatedCalories} cal)` : '';
+      const scoreText = meal.nutritionScore !== undefined ? ` • Score: ${meal.nutritionScore}/100` : '';
+      const concernsHtml = meal.concerns && meal.concerns.length > 0
+        ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: ${warningColor};">⚠ ${meal.concerns.join('; ')}</p>`
+        : '';
+      return `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+            <p style="margin: 0; font-weight: 600; color: ${textColor}; font-size: 14px;">${meal.meal}${calorieText}${scoreText}</p>
+            <p style="margin: 4px 0 0 0; color: ${textMuted}; font-size: 13px;">${meal.items.join(', ')}</p>
+            ${concernsHtml}
+          </td>
+        </tr>`;
+    }).join('');
+
+    const totalCalText = data.totalCalories ? `<span style="color: ${brandColor}; font-weight: 500;">~${data.totalCalories} cal total</span>` : '';
+
+    dietSection = `
+      <tr>
+        <td style="padding: 0 20px 20px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+            <tr>
+              <td style="padding: 16px;">
+                <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: ${textColor};">
+                  🍽️ Meals & Nutrition ${totalCalText}
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  ${mealsHtml}
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  } else {
+    // Simple meals count if no detailed data
+    dietSection = `
+      <tr>
+        <td colspan="2" style="padding: 8px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+            <tr>
+              <td style="padding: 16px; text-align: center;">
+                <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.mealsLogged}</p>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px;">Meals Logged</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  }
+
+  // Build caregiver notes section
+  let notesSection = '';
+  if (data.caregiverNotes && data.caregiverNotes.length > 0) {
+    const notesHtml = data.caregiverNotes.map(note => {
+      const sourceIcon = note.source === 'medication' ? '💊' :
+                        note.source === 'diet' ? '🍽️' : '💊';
+      return `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+            <p style="margin: 0; font-weight: 600; color: ${brandColor}; font-size: 13px;">${sourceIcon} ${note.context}</p>
+            <p style="margin: 4px 0 0 0; color: ${textColor}; font-size: 13px; font-style: italic;">"${note.note}"</p>
+          </td>
+        </tr>`;
+    }).join('');
+
+    notesSection = `
+      <tr>
+        <td style="padding: 0 20px 20px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+            <tr>
+              <td style="padding: 16px;">
+                <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: ${textColor};">
+                  📝 Caregiver Notes & Observations
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  ${notesHtml}
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  }
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -274,6 +623,9 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
 
           ${alertSection}
 
+          <!-- Concerns Section - Prominently displayed -->
+          ${concernsSection}
+
           <!-- Stats Grid -->
           <tr>
             <td style="padding: 0 20px 20px 20px;">
@@ -304,22 +656,15 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
                     </table>
                   </td>
                 </tr>
-                <tr>
-                  <!-- Meals Card -->
-                  <td colspan="2" style="padding: 8px;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
-                      <tr>
-                        <td style="padding: 16px; text-align: center;">
-                          <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.mealsLogged}</p>
-                          <p style="margin: 4px 0 0 0; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px;">Meals Logged</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
               </table>
             </td>
           </tr>
+
+          <!-- Diet Details Section -->
+          ${dietSection}
+
+          <!-- Caregiver Notes Section -->
+          ${notesSection}
 
           <!-- Login Link -->
           <tr>
@@ -394,10 +739,10 @@ async function main() {
 
   const db = getFirestore(app);
 
-  console.log('=== Testing Daily Family Notes Email with PDF ===\n');
+  console.log('=== Testing Daily Family Notes Email with Enhanced PDF ===\n');
   console.log(`Recipient: ${recipientEmail}\n`);
 
-  // Create test email data
+  // Create test email data with diet details and caregiver notes
   const now = new Date();
   const formattedDate = formatDateForEmail(now);
 
@@ -410,7 +755,79 @@ async function main() {
     supplementsTaken: 2,
     mealsLogged: 3,
     activeAlerts: 1,
-    summaryText: '4/5 meds taken, 1 missed • 2 supplements • 3 meals logged'
+    summaryText: '4/5 meds taken, 1 missed • 2 supplements • 3 meals logged',
+    // Enhanced data
+    dietDetails: [
+      {
+        meal: 'Breakfast',
+        items: ['Oatmeal with honey', 'Banana', 'Green tea'],
+        estimatedCalories: 350,
+        nutritionScore: 82,
+        concerns: []
+      },
+      {
+        meal: 'Lunch',
+        items: ['Grilled chicken salad', 'Whole wheat bread', 'Orange juice'],
+        estimatedCalories: 520,
+        nutritionScore: 78,
+        concerns: ['Sodium content slightly elevated']
+      },
+      {
+        meal: 'Dinner',
+        items: ['Steamed fish', 'Brown rice', 'Steamed vegetables', 'Water'],
+        estimatedCalories: 480,
+        nutritionScore: 85,
+        concerns: []
+      }
+    ],
+    caregiverNotes: [
+      {
+        source: 'medication',
+        context: 'Metformin - 8:00 AM',
+        note: 'Mom seemed a bit confused this morning, took a few minutes to recognize the medication. This is the second time this week.',
+        timestamp: new Date()
+      },
+      {
+        source: 'medication',
+        context: 'Blood Pressure Med - 12:00 PM',
+        note: 'She complained of mild dizziness after taking this. Sat down for 10 minutes and felt better.',
+        timestamp: new Date()
+      },
+      {
+        source: 'diet',
+        context: 'Lunch',
+        note: 'Mom had a good appetite today. She finished everything on her plate which is unusual lately.',
+        timestamp: new Date()
+      }
+    ],
+    totalCalories: 1350,
+    // Flagged concerns for prominent display
+    flaggedConcerns: [
+      {
+        type: 'symptom',
+        severity: 'amber',
+        context: 'Metformin - 8:00 AM',
+        message: 'Mom seemed a bit confused this morning, took a few minutes to recognize the medication. This is the second time this week.'
+      },
+      {
+        type: 'symptom',
+        severity: 'amber',
+        context: 'Blood Pressure Med - 12:00 PM',
+        message: 'She complained of mild dizziness after taking this. Sat down for 10 minutes and felt better.'
+      },
+      {
+        type: 'diet',
+        severity: 'amber',
+        context: 'Lunch',
+        message: 'Sodium content slightly elevated'
+      },
+      {
+        type: 'medication',
+        severity: 'amber',
+        context: 'Medications',
+        message: '1 medication missed today'
+      }
+    ]
   };
 
   console.log('Test Data:');
@@ -420,10 +837,13 @@ async function main() {
   console.log(`  Supplements: ${testData.supplementsTaken}`);
   console.log(`  Meals: ${testData.mealsLogged}`);
   console.log(`  Active Alerts: ${testData.activeAlerts}`);
+  console.log(`  Total Calories: ${testData.totalCalories}`);
+  console.log(`  Caregiver Notes: ${testData.caregiverNotes?.length || 0}`);
+  console.log(`  Flagged Concerns: ${testData.flaggedConcerns?.length || 0}`);
   console.log(`  Summary: ${testData.summaryText}\n`);
 
   // Generate PDF
-  console.log('Generating PDF report...');
+  console.log('Generating PDF report with diet details and caregiver notes...');
   const pdfBuffer = await generateDailyReportPDF(testData);
   console.log(`✅ PDF generated (${pdfBuffer.length} bytes)`);
 
@@ -484,7 +904,7 @@ async function main() {
     console.log('State:', emailData.delivery.state);
 
     if (emailData.delivery.state === 'SUCCESS') {
-      console.log('✅ EMAIL WITH PDF SENT SUCCESSFULLY!');
+      console.log('✅ EMAIL WITH ENHANCED PDF SENT SUCCESSFULLY!');
       console.log('Attempts:', emailData.delivery.attempts);
       if (emailData.delivery.info?.messageId) {
         console.log('Message ID:', emailData.delivery.info.messageId);
