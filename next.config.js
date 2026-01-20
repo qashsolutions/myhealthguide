@@ -40,6 +40,17 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
+      // Legacy URL redirects (old paths that were crawled)
+      {
+        source: '/Legal/privacy-policy.html',
+        destination: '/privacy',
+        permanent: true,
+      },
+      {
+        source: '/search',
+        destination: '/',
+        permanent: true,
+      },
     ];
   },
   // Security headers
