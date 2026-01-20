@@ -1,6 +1,6 @@
 /**
- * Test Daily Family Notes Email Integration
- * Creates a test email in the mail collection to verify the email template
+ * Test Daily Family Notes Email with PDF Attachment
+ * Creates a test email with PDF attachment to verify the email template
  *
  * Usage: npx tsx scripts/testDailyFamilyNotesEmail.ts [recipientEmail]
  *
@@ -12,6 +12,7 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
+import PDFDocument from 'pdfkit';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,7 +20,7 @@ const __dirname = path.dirname(__filename);
 // Get recipient email from command line args or use default
 const recipientEmail = process.argv[2] || 'admin@myguide.health';
 
-// ============= EMAIL TEMPLATE (copied from functions/src/index.ts) =============
+// ============= DATA INTERFACE =============
 
 interface DailyReportEmailData {
   elderName: string;
@@ -32,6 +33,173 @@ interface DailyReportEmailData {
   activeAlerts: number;
   summaryText: string;
 }
+
+// ============= PDF GENERATION =============
+
+async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'LETTER',
+        margin: 50,
+        info: {
+          Title: `Daily Care Update - ${data.elderName}`,
+          Author: 'MyGuide Health',
+          Subject: `Daily care report for ${data.elderName} - ${data.date}`
+        }
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Brand colors
+      const brandBlue = '#2563eb';
+      const successGreen = '#16a34a';
+      const warningRed = '#dc2626';
+      const textGray = '#374151';
+      const lightGray = '#9ca3af';
+
+      // Header with brand color bar
+      doc.rect(0, 0, doc.page.width, 80).fill(brandBlue);
+
+      // Title
+      doc.fillColor('white')
+         .fontSize(24)
+         .font('Helvetica-Bold')
+         .text('Daily Care Update', 50, 25, { align: 'center' });
+
+      doc.fontSize(14)
+         .font('Helvetica')
+         .text(`${data.elderName} • ${data.date}`, 50, 55, { align: 'center' });
+
+      // Reset position
+      doc.fillColor(textGray);
+      let yPos = 110;
+
+      // Summary box
+      doc.rect(50, yPos, doc.page.width - 100, 50)
+         .fill('#f3f4f6');
+
+      doc.fillColor(textGray)
+         .fontSize(14)
+         .font('Helvetica')
+         .text(data.summaryText, 50, yPos + 18, {
+           align: 'center',
+           width: doc.page.width - 100
+         });
+
+      yPos += 70;
+
+      // Alert section (if any)
+      if (data.activeAlerts > 0) {
+        doc.rect(50, yPos, doc.page.width - 100, 60)
+           .fill('#fef2f2');
+
+        doc.rect(50, yPos, 4, 60).fill(warningRed);
+
+        doc.fillColor(warningRed)
+           .fontSize(14)
+           .font('Helvetica-Bold')
+           .text(`⚠ ${data.activeAlerts} Active Alert${data.activeAlerts > 1 ? 's' : ''}`, 70, yPos + 15);
+
+        doc.fillColor(textGray)
+           .fontSize(12)
+           .font('Helvetica')
+           .text('Please check the app for details and recommended actions.', 70, yPos + 35);
+
+        yPos += 80;
+      }
+
+      // Stats section
+      doc.fillColor(textGray)
+         .fontSize(18)
+         .font('Helvetica-Bold')
+         .text('Today\'s Summary', 50, yPos);
+
+      yPos += 35;
+
+      // Medications card
+      const cardWidth = (doc.page.width - 130) / 2;
+
+      // Medications
+      doc.rect(50, yPos, cardWidth, 100).fill('#f3f4f6');
+      doc.fillColor(brandBlue)
+         .fontSize(36)
+         .font('Helvetica-Bold')
+         .text(`${data.medicationsTaken}/${data.medicationsTotal}`, 50, yPos + 15, {
+           width: cardWidth,
+           align: 'center'
+         });
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('MEDICATIONS', 50, yPos + 55, { width: cardWidth, align: 'center' });
+
+      const medStatusColor = data.medicationsMissed > 0 ? warningRed : successGreen;
+      const medStatusText = data.medicationsMissed === 0 ? '✓ All taken' : `⚠ ${data.medicationsMissed} missed`;
+      doc.fillColor(medStatusColor)
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text(medStatusText, 50, yPos + 75, { width: cardWidth, align: 'center' });
+
+      // Supplements
+      doc.rect(80 + cardWidth, yPos, cardWidth, 100).fill('#f3f4f6');
+      doc.fillColor(brandBlue)
+         .fontSize(36)
+         .font('Helvetica-Bold')
+         .text(`${data.supplementsTaken}`, 80 + cardWidth, yPos + 15, {
+           width: cardWidth,
+           align: 'center'
+         });
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('SUPPLEMENTS', 80 + cardWidth, yPos + 55, { width: cardWidth, align: 'center' });
+      doc.fillColor(successGreen)
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text('Logged today', 80 + cardWidth, yPos + 75, { width: cardWidth, align: 'center' });
+
+      yPos += 120;
+
+      // Meals card (full width)
+      doc.rect(50, yPos, doc.page.width - 100, 80).fill('#f3f4f6');
+      doc.fillColor(brandBlue)
+         .fontSize(36)
+         .font('Helvetica-Bold')
+         .text(`${data.mealsLogged}`, 50, yPos + 10, {
+           width: doc.page.width - 100,
+           align: 'center'
+         });
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('MEALS LOGGED', 50, yPos + 50, { width: doc.page.width - 100, align: 'center' });
+
+      yPos += 110;
+
+      // Footer
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('Generated by MyGuide Health', 50, yPos, { align: 'center', width: doc.page.width - 100 });
+
+      doc.text('For more details, log in at www.myguide.health', 50, yPos + 15, {
+        align: 'center',
+        width: doc.page.width - 100,
+        link: 'https://www.myguide.health'
+      });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// ============= EMAIL HTML TEMPLATE =============
 
 function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
   const brandColor = '#2563eb';
@@ -153,12 +321,13 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
             </td>
           </tr>
 
-          <!-- CTA Button -->
+          <!-- Login Link -->
           <tr>
             <td style="padding: 0 20px 24px 20px; text-align: center;">
-              <a href="https://www.myguide.health/dashboard/activity" style="display: inline-block; background-color: ${brandColor}; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
-                View Full Details
-              </a>
+              <p style="margin: 0; color: ${textMuted}; font-size: 14px;">
+                See the attached PDF for the full report.<br>
+                <a href="https://www.myguide.health/dashboard/activity" style="color: ${brandColor}; text-decoration: none;">Log in to the app</a> to view more details or take action.
+              </p>
             </td>
           </tr>
 
@@ -182,6 +351,8 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
 </html>`;
 }
 
+// ============= DATE FORMATTING =============
+
 function formatDateForEmail(date: Date): string {
   const options: Intl.DateTimeFormatOptions = {
     weekday: 'long',
@@ -190,6 +361,13 @@ function formatDateForEmail(date: Date): string {
     day: 'numeric'
   };
   return date.toLocaleDateString('en-US', options);
+}
+
+function formatDateForFilename(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}${day}${year}`;
 }
 
 // ============= MAIN TEST FUNCTION =============
@@ -216,7 +394,7 @@ async function main() {
 
   const db = getFirestore(app);
 
-  console.log('=== Testing Daily Family Notes Email ===\n');
+  console.log('=== Testing Daily Family Notes Email with PDF ===\n');
   console.log(`Recipient: ${recipientEmail}\n`);
 
   // Create test email data
@@ -244,14 +422,38 @@ async function main() {
   console.log(`  Active Alerts: ${testData.activeAlerts}`);
   console.log(`  Summary: ${testData.summaryText}\n`);
 
-  // Create email document
+  // Generate PDF
+  console.log('Generating PDF report...');
+  const pdfBuffer = await generateDailyReportPDF(testData);
+  console.log(`✅ PDF generated (${pdfBuffer.length} bytes)`);
+
+  // Create filename
+  const safeElderName = testData.elderName.replace(/[^a-zA-Z0-9]/g, '');
+  const dateForFilename = formatDateForFilename(now);
+  const pdfFilename = `${safeElderName}_${dateForFilename}.pdf`;
+  console.log(`   Filename: ${pdfFilename}\n`);
+
+  // Optionally save PDF locally for inspection
+  const localPdfPath = path.join(__dirname, pdfFilename);
+  fs.writeFileSync(localPdfPath, pdfBuffer);
+  console.log(`📄 PDF saved locally: ${localPdfPath}\n`);
+
+  // Create email document with PDF attachment
   console.log('Creating email document in "mail" collection...');
 
   const emailDoc = await db.collection('mail').add({
     to: recipientEmail,
     message: {
       subject: `Daily Care Update for ${testData.elderName} - ${formattedDate}`,
-      html: generateDailyReportEmailHTML(testData)
+      html: generateDailyReportEmailHTML(testData),
+      attachments: [
+        {
+          filename: pdfFilename,
+          content: pdfBuffer.toString('base64'),
+          encoding: 'base64',
+          contentType: 'application/pdf'
+        }
+      ]
     },
     createdAt: Timestamp.now(),
     metadata: {
@@ -262,11 +464,12 @@ async function main() {
 
   console.log(`\n✅ Email document created: ${emailDoc.id}`);
   console.log(`Subject: Daily Care Update for ${testData.elderName} - ${formattedDate}`);
+  console.log(`Attachment: ${pdfFilename}`);
 
   // Wait for extension to process
-  console.log('\nWaiting 15 seconds for Trigger Email extension...');
+  console.log('\nWaiting 20 seconds for Trigger Email extension...');
 
-  for (let i = 15; i > 0; i--) {
+  for (let i = 20; i > 0; i--) {
     process.stdout.write(`\r${i} seconds remaining...`);
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
@@ -281,7 +484,7 @@ async function main() {
     console.log('State:', emailData.delivery.state);
 
     if (emailData.delivery.state === 'SUCCESS') {
-      console.log('✅ EMAIL SENT SUCCESSFULLY!');
+      console.log('✅ EMAIL WITH PDF SENT SUCCESSFULLY!');
       console.log('Attempts:', emailData.delivery.attempts);
       if (emailData.delivery.info?.messageId) {
         console.log('Message ID:', emailData.delivery.info.messageId);

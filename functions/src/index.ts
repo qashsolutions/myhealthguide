@@ -13,6 +13,7 @@
 
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import PDFDocument from 'pdfkit';
 // import { defineString } from 'firebase-functions/params';
 
 // ============= TWILIO SMS - DISABLED (Using FCM Only) =============
@@ -2233,12 +2234,13 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
             </td>
           </tr>
 
-          <!-- CTA Button -->
+          <!-- Login Link -->
           <tr>
             <td style="padding: 0 20px 24px 20px; text-align: center;">
-              <a href="https://www.myguide.health/dashboard/activity" style="display: inline-block; background-color: ${brandColor}; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
-                View Full Details
-              </a>
+              <p style="margin: 0; color: ${textMuted}; font-size: 14px;">
+                See the attached PDF for the full report.<br>
+                <a href="https://www.myguide.health/dashboard/activity" style="color: ${brandColor}; text-decoration: none;">Log in to the app</a> to view more details or take action.
+              </p>
             </td>
           </tr>
 
@@ -2273,6 +2275,183 @@ function formatDateForEmail(date: Date): string {
     day: 'numeric'
   };
   return date.toLocaleDateString('en-US', options);
+}
+
+/**
+ * Format date for PDF filename (MMDDYYYY)
+ */
+function formatDateForFilename(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}${day}${year}`;
+}
+
+/**
+ * Generate PDF report for daily family notes
+ * Returns a Buffer containing the PDF data
+ */
+async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'LETTER',
+        margin: 50,
+        info: {
+          Title: `Daily Care Update - ${data.elderName}`,
+          Author: 'MyGuide Health',
+          Subject: `Daily care report for ${data.elderName} - ${data.date}`
+        }
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Brand colors
+      const brandBlue = '#2563eb';
+      const successGreen = '#16a34a';
+      const warningRed = '#dc2626';
+      const textGray = '#374151';
+      const lightGray = '#9ca3af';
+
+      // Header with brand color bar
+      doc.rect(0, 0, doc.page.width, 80).fill(brandBlue);
+
+      // Title
+      doc.fillColor('white')
+         .fontSize(24)
+         .font('Helvetica-Bold')
+         .text('Daily Care Update', 50, 25, { align: 'center' });
+
+      doc.fontSize(14)
+         .font('Helvetica')
+         .text(`${data.elderName} • ${data.date}`, 50, 55, { align: 'center' });
+
+      // Reset position
+      doc.fillColor(textGray);
+      let yPos = 110;
+
+      // Summary box
+      doc.rect(50, yPos, doc.page.width - 100, 50)
+         .fill('#f3f4f6');
+
+      doc.fillColor(textGray)
+         .fontSize(14)
+         .font('Helvetica')
+         .text(data.summaryText, 50, yPos + 18, {
+           align: 'center',
+           width: doc.page.width - 100
+         });
+
+      yPos += 70;
+
+      // Alert section (if any)
+      if (data.activeAlerts > 0) {
+        doc.rect(50, yPos, doc.page.width - 100, 60)
+           .fill('#fef2f2');
+
+        doc.rect(50, yPos, 4, 60).fill(warningRed);
+
+        doc.fillColor(warningRed)
+           .fontSize(14)
+           .font('Helvetica-Bold')
+           .text(`⚠ ${data.activeAlerts} Active Alert${data.activeAlerts > 1 ? 's' : ''}`, 70, yPos + 15);
+
+        doc.fillColor(textGray)
+           .fontSize(12)
+           .font('Helvetica')
+           .text('Please check the app for details and recommended actions.', 70, yPos + 35);
+
+        yPos += 80;
+      }
+
+      // Stats section
+      doc.fillColor(textGray)
+         .fontSize(18)
+         .font('Helvetica-Bold')
+         .text('Today\'s Summary', 50, yPos);
+
+      yPos += 35;
+
+      // Medications card
+      const cardWidth = (doc.page.width - 130) / 2;
+
+      // Medications
+      doc.rect(50, yPos, cardWidth, 100).fill('#f3f4f6');
+      doc.fillColor(brandBlue)
+         .fontSize(36)
+         .font('Helvetica-Bold')
+         .text(`${data.medicationsTaken}/${data.medicationsTotal}`, 50, yPos + 15, {
+           width: cardWidth,
+           align: 'center'
+         });
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('MEDICATIONS', 50, yPos + 55, { width: cardWidth, align: 'center' });
+
+      const medStatusColor = data.medicationsMissed > 0 ? warningRed : successGreen;
+      const medStatusText = data.medicationsMissed === 0 ? '✓ All taken' : `⚠ ${data.medicationsMissed} missed`;
+      doc.fillColor(medStatusColor)
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text(medStatusText, 50, yPos + 75, { width: cardWidth, align: 'center' });
+
+      // Supplements
+      doc.rect(80 + cardWidth, yPos, cardWidth, 100).fill('#f3f4f6');
+      doc.fillColor(brandBlue)
+         .fontSize(36)
+         .font('Helvetica-Bold')
+         .text(`${data.supplementsTaken}`, 80 + cardWidth, yPos + 15, {
+           width: cardWidth,
+           align: 'center'
+         });
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('SUPPLEMENTS', 80 + cardWidth, yPos + 55, { width: cardWidth, align: 'center' });
+      doc.fillColor(successGreen)
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text('Logged today', 80 + cardWidth, yPos + 75, { width: cardWidth, align: 'center' });
+
+      yPos += 120;
+
+      // Meals card (full width)
+      doc.rect(50, yPos, doc.page.width - 100, 80).fill('#f3f4f6');
+      doc.fillColor(brandBlue)
+         .fontSize(36)
+         .font('Helvetica-Bold')
+         .text(`${data.mealsLogged}`, 50, yPos + 10, {
+           width: doc.page.width - 100,
+           align: 'center'
+         });
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('MEALS LOGGED', 50, yPos + 50, { width: doc.page.width - 100, align: 'center' });
+
+      yPos += 110;
+
+      // Footer
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('Generated by MyGuide Health', 50, yPos, { align: 'center', width: doc.page.width - 100 });
+
+      doc.text('For more details, log in at www.myguide.health', 50, yPos + 15, {
+        align: 'center',
+        width: doc.page.width - 100,
+        link: 'https://www.myguide.health'
+      });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
 // ============= DAILY FAMILY NOTES =============
@@ -2487,7 +2666,7 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
             createdAt: admin.firestore.Timestamp.now()
           });
 
-          // ============= SEND EMAIL VIA TRIGGER EMAIL EXTENSION =============
+          // ============= SEND EMAIL WITH PDF ATTACHMENT =============
           try {
             // Get user's email from their profile
             const userDoc = await admin.firestore()
@@ -2500,12 +2679,28 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
               const userEmail = userData?.email;
 
               if (userEmail) {
-                // Write to 'mail' collection - Firebase Trigger Email extension will send
+                // Generate PDF report
+                const pdfBuffer = await generateDailyReportPDF(emailData);
+
+                // Create filename: LovedOneName_MMDDYYYY.pdf
+                const safeElderName = elderName.replace(/[^a-zA-Z0-9]/g, '');
+                const dateForFilename = formatDateForFilename(now);
+                const pdfFilename = `${safeElderName}_${dateForFilename}.pdf`;
+
+                // Write to 'mail' collection with PDF attachment
                 await admin.firestore().collection('mail').add({
                   to: userEmail,
                   message: {
                     subject: `Daily Care Update for ${elderName} - ${formattedDate}`,
-                    html: generateDailyReportEmailHTML(emailData)
+                    html: generateDailyReportEmailHTML(emailData),
+                    attachments: [
+                      {
+                        filename: pdfFilename,
+                        content: pdfBuffer.toString('base64'),
+                        encoding: 'base64',
+                        contentType: 'application/pdf'
+                      }
+                    ]
                   },
                   createdAt: admin.firestore.Timestamp.now(),
                   metadata: {
@@ -2516,7 +2711,7 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
                     recipientId: recipientId
                   }
                 });
-                console.log(`Email queued for user ${recipientId} (${userEmail})`);
+                console.log(`Email with PDF (${pdfFilename}) queued for user ${recipientId} (${userEmail})`);
               } else {
                 console.log(`Skipping email for user ${recipientId} - no email on file`);
               }
