@@ -65,6 +65,16 @@ interface DailyReportEmailData {
 
 // ============= PDF GENERATION =============
 
+/**
+ * Generate PDF report for daily family notes
+ * Layout Order:
+ * 1. Header
+ * 2. Today's Summary cards (Medications, Supplements)
+ * 3. Concerns to Note (if any)
+ * 4. Meals Table (Breakfast, Lunch, Dinner with Score and Food Items)
+ * 5. Caregiver Notes & Observations
+ * 6. Footer
+ */
 async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
@@ -89,6 +99,7 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
       const warningRed = '#dc2626';
       const textGray = '#374151';
       const lightGray = '#9ca3af';
+      const amberColor = '#d97706';
 
       // Header with brand color bar
       doc.rect(0, 0, doc.page.width, 80).fill(brandBlue);
@@ -105,44 +116,61 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
 
       // Reset position
       doc.fillColor(textGray);
-      let yPos = 110;
+      let yPos = 100;
 
-      // Summary box
-      doc.rect(50, yPos, doc.page.width - 100, 50)
-         .fill('#f3f4f6');
-
+      // ============= TODAY'S SUMMARY CARDS (AT TOP) =============
       doc.fillColor(textGray)
-         .fontSize(14)
-         .font('Helvetica')
-         .text(data.summaryText, 50, yPos + 18, {
-           align: 'center',
-           width: doc.page.width - 100
+         .fontSize(18)
+         .font('Helvetica-Bold')
+         .text('Today\'s Summary', 50, yPos);
+
+      yPos += 30;
+
+      // Medications card
+      const cardWidth = (doc.page.width - 130) / 2;
+
+      // Medications
+      doc.rect(50, yPos, cardWidth, 100).fill('#f3f4f6');
+      doc.fillColor(brandBlue)
+         .fontSize(36)
+         .font('Helvetica-Bold')
+         .text(`${data.medicationsTaken}/${data.medicationsTotal}`, 50, yPos + 15, {
+           width: cardWidth,
+           align: 'center'
          });
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('MEDICATIONS', 50, yPos + 55, { width: cardWidth, align: 'center' });
 
-      yPos += 70;
+      const medStatusColor = data.medicationsMissed > 0 ? warningRed : successGreen;
+      const medStatusText = data.medicationsMissed === 0 ? 'All taken' : `${data.medicationsMissed} missed`;
+      doc.fillColor(medStatusColor)
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text(medStatusText, 50, yPos + 75, { width: cardWidth, align: 'center' });
 
-      // Alert section (if any)
-      if (data.activeAlerts > 0) {
-        doc.rect(50, yPos, doc.page.width - 100, 60)
-           .fill('#fef2f2');
+      // Supplements
+      doc.rect(80 + cardWidth, yPos, cardWidth, 100).fill('#f3f4f6');
+      doc.fillColor(brandBlue)
+         .fontSize(36)
+         .font('Helvetica-Bold')
+         .text(`${data.supplementsTaken}`, 80 + cardWidth, yPos + 15, {
+           width: cardWidth,
+           align: 'center'
+         });
+      doc.fillColor(lightGray)
+         .fontSize(10)
+         .font('Helvetica')
+         .text('SUPPLEMENTS', 80 + cardWidth, yPos + 55, { width: cardWidth, align: 'center' });
+      doc.fillColor(successGreen)
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text('Logged today', 80 + cardWidth, yPos + 75, { width: cardWidth, align: 'center' });
 
-        doc.rect(50, yPos, 4, 60).fill(warningRed);
+      yPos += 115;
 
-        doc.fillColor(warningRed)
-           .fontSize(14)
-           .font('Helvetica-Bold')
-           .text(`[!] ${data.activeAlerts} Active Alert${data.activeAlerts > 1 ? 's' : ''}`, 70, yPos + 15);
-
-        doc.fillColor(textGray)
-           .fontSize(12)
-           .font('Helvetica')
-           .text('Please check the app for details and recommended actions.', 70, yPos + 35);
-
-        yPos += 80;
-      }
-
-      // ============= CONCERNS SECTION - Prominently displayed =============
-      const amberColor = '#d97706';
+      // ============= CONCERNS SECTION =============
       if (data.flaggedConcerns && data.flaggedConcerns.length > 0) {
         // Determine if there are any red (urgent) concerns
         const hasRedConcerns = data.flaggedConcerns.some(c => c.severity === 'red');
@@ -202,60 +230,14 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
         yPos += 15;
       }
 
-      // Stats section
-      doc.fillColor(textGray)
-         .fontSize(18)
-         .font('Helvetica-Bold')
-         .text('Today\'s Summary', 50, yPos);
-
-      yPos += 35;
-
-      // Medications card
-      const cardWidth = (doc.page.width - 130) / 2;
-
-      // Medications
-      doc.rect(50, yPos, cardWidth, 100).fill('#f3f4f6');
-      doc.fillColor(brandBlue)
-         .fontSize(36)
-         .font('Helvetica-Bold')
-         .text(`${data.medicationsTaken}/${data.medicationsTotal}`, 50, yPos + 15, {
-           width: cardWidth,
-           align: 'center'
-         });
-      doc.fillColor(lightGray)
-         .fontSize(10)
-         .font('Helvetica')
-         .text('MEDICATIONS', 50, yPos + 55, { width: cardWidth, align: 'center' });
-
-      const medStatusColor = data.medicationsMissed > 0 ? warningRed : successGreen;
-      const medStatusText = data.medicationsMissed === 0 ? 'All taken' : `* ${data.medicationsMissed} missed`;
-      doc.fillColor(medStatusColor)
-         .fontSize(11)
-         .font('Helvetica-Bold')
-         .text(medStatusText, 50, yPos + 75, { width: cardWidth, align: 'center' });
-
-      // Supplements
-      doc.rect(80 + cardWidth, yPos, cardWidth, 100).fill('#f3f4f6');
-      doc.fillColor(brandBlue)
-         .fontSize(36)
-         .font('Helvetica-Bold')
-         .text(`${data.supplementsTaken}`, 80 + cardWidth, yPos + 15, {
-           width: cardWidth,
-           align: 'center'
-         });
-      doc.fillColor(lightGray)
-         .fontSize(10)
-         .font('Helvetica')
-         .text('SUPPLEMENTS', 80 + cardWidth, yPos + 55, { width: cardWidth, align: 'center' });
-      doc.fillColor(successGreen)
-         .fontSize(11)
-         .font('Helvetica-Bold')
-         .text('Logged today', 80 + cardWidth, yPos + 75, { width: cardWidth, align: 'center' });
-
-      yPos += 120;
-
-      // ============= DIET DETAILS SECTION =============
+      // ============= MEALS TABLE SECTION =============
       if (data.dietDetails && data.dietDetails.length > 0) {
+        // Check if we need a new page
+        if (yPos > doc.page.height - 200) {
+          doc.addPage();
+          yPos = 50;
+        }
+
         doc.fillColor(textGray)
            .fontSize(18)
            .font('Helvetica-Bold')
@@ -271,65 +253,119 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
 
         yPos += 30;
 
-        for (const meal of data.dietDetails) {
+        // Table header
+        const tableLeft = 50;
+        const tableWidth = doc.page.width - 100;
+        const colMeal = 100;      // Meal column width
+        const colScore = 60;      // Score column width
+        const colFood = tableWidth - colMeal - colScore;  // Food items column
+
+        // Header row background
+        doc.rect(tableLeft, yPos, tableWidth, 25).fill('#e5e7eb');
+
+        // Header text
+        doc.fillColor(textGray)
+           .fontSize(11)
+           .font('Helvetica-Bold')
+           .text('Meal', tableLeft + 10, yPos + 7)
+           .text('Score', tableLeft + colMeal + 10, yPos + 7)
+           .text('Food Items', tableLeft + colMeal + colScore + 10, yPos + 7);
+
+        yPos += 25;
+
+        // Table rows
+        for (let i = 0; i < data.dietDetails.length; i++) {
+          const meal = data.dietDetails[i];
+
           // Check if we need a new page
-          if (yPos > doc.page.height - 150) {
+          if (yPos > doc.page.height - 80) {
             doc.addPage();
             yPos = 50;
           }
 
-          // Meal header with calories
-          const calorieText = meal.estimatedCalories ? ` (~${meal.estimatedCalories} cal)` : '';
-          const scoreText = meal.nutritionScore !== undefined ? ` • Score: ${meal.nutritionScore}/100` : '';
+          // Calculate row height based on food items text
+          const foodText = meal.items && meal.items.length > 0 ? meal.items.join(', ') : '-';
+          const foodTextHeight = Math.max(20, Math.ceil(foodText.length / 45) * 14 + 10);
+          const rowHeight = Math.max(35, foodTextHeight);
 
+          // Alternating row background
+          if (i % 2 === 0) {
+            doc.rect(tableLeft, yPos, tableWidth, rowHeight).fill('#f9fafb');
+          } else {
+            doc.rect(tableLeft, yPos, tableWidth, rowHeight).fill('white');
+          }
+
+          // Draw row borders
+          doc.rect(tableLeft, yPos, tableWidth, rowHeight).stroke('#e5e7eb');
+
+          // Meal name with calories
+          const mealName = meal.meal || 'Meal';
           doc.fillColor(textGray)
-             .fontSize(14)
+             .fontSize(11)
              .font('Helvetica-Bold')
-             .text(`${meal.meal}${calorieText}${scoreText}`, 50, yPos);
+             .text(mealName, tableLeft + 10, yPos + 8, { width: colMeal - 15 });
 
-          yPos += 20;
+          if (meal.estimatedCalories) {
+            doc.fillColor(lightGray)
+               .fontSize(9)
+               .font('Helvetica')
+               .text(`${meal.estimatedCalories} cal`, tableLeft + 10, yPos + 22);
+          }
+
+          // Score
+          const scoreText = meal.nutritionScore !== undefined ? `${meal.nutritionScore}/100` : '-';
+          const scoreColor = meal.nutritionScore !== undefined
+            ? (meal.nutritionScore >= 70 ? successGreen : (meal.nutritionScore >= 40 ? amberColor : warningRed))
+            : lightGray;
+          doc.fillColor(scoreColor)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(scoreText, tableLeft + colMeal + 10, yPos + 12);
 
           // Food items
-          if (meal.items && meal.items.length > 0) {
-            doc.fillColor(textGray)
-               .fontSize(11)
-               .font('Helvetica')
-               .text(meal.items.join(', '), 60, yPos, {
-                 width: doc.page.width - 120
-               });
-            yPos += Math.ceil(meal.items.join(', ').length / 70) * 14 + 5;
-          }
+          doc.fillColor(textGray)
+             .fontSize(10)
+             .font('Helvetica')
+             .text(foodText, tableLeft + colMeal + colScore + 10, yPos + 8, {
+               width: colFood - 20,
+               lineGap: 2
+             });
 
-          // Concerns if any
+          yPos += rowHeight;
+
+          // Concerns row if any
           if (meal.concerns && meal.concerns.length > 0) {
+            const concernRowHeight = 25;
+            doc.rect(tableLeft, yPos, tableWidth, concernRowHeight).fill('#fef2f2');
             doc.fillColor(warningRed)
-               .fontSize(10)
+               .fontSize(9)
                .font('Helvetica')
-               .text('* ' + meal.concerns.join('; '), 60, yPos, {
-                 width: doc.page.width - 120
+               .text('* ' + meal.concerns.join('; '), tableLeft + 10, yPos + 7, {
+                 width: tableWidth - 20
                });
-            yPos += 15;
+            yPos += concernRowHeight;
           }
-
-          yPos += 10;
         }
 
-        yPos += 10;
+        yPos += 20;
       } else {
-        // Simple meals count if no detailed data
-        doc.rect(50, yPos, doc.page.width - 100, 80).fill('#f3f4f6');
-        doc.fillColor(brandBlue)
-           .fontSize(36)
+        // No diet details - show simple count
+        doc.fillColor(textGray)
+           .fontSize(18)
            .font('Helvetica-Bold')
-           .text(`${data.mealsLogged}`, 50, yPos + 10, {
+           .text('Meals & Nutrition', 50, yPos);
+
+        yPos += 30;
+
+        doc.rect(50, yPos, doc.page.width - 100, 60).fill('#f3f4f6');
+        doc.fillColor(brandBlue)
+           .fontSize(28)
+           .font('Helvetica-Bold')
+           .text(`${data.mealsLogged} meals logged`, 50, yPos + 18, {
              width: doc.page.width - 100,
              align: 'center'
            });
-        doc.fillColor(lightGray)
-           .fontSize(10)
-           .font('Helvetica')
-           .text('MEALS LOGGED', 50, yPos + 50, { width: doc.page.width - 100, align: 'center' });
-        yPos += 100;
+        yPos += 80;
       }
 
       // ============= CAREGIVER NOTES SECTION =============
