@@ -3,8 +3,10 @@
  * Handles push notifications and background tasks
  *
  * NOTIFICATION STRATEGY (Jan 2026):
- * - Currently using FCM (Firebase Cloud Messaging) ONLY for push notifications
+ * - FCM (Firebase Cloud Messaging) for push notifications
+ * - Email via Firebase Trigger Email extension (writes to 'mail' collection)
  * - FCM requires users to install the PWA and enable notifications
+ * - Email sent to users with email on file
  * - Twilio SMS integration is commented out but preserved for future use
  * - When Twilio is needed, uncomment the relevant code and configure credentials
  */
@@ -2089,12 +2091,197 @@ export const generateWeeklySummaries = functions.pubsub
     }
   });
 
+// ============= EMAIL TEMPLATE FUNCTIONS =============
+
+interface DailyReportEmailData {
+  elderName: string;
+  date: string;
+  medicationsTotal: number;
+  medicationsTaken: number;
+  medicationsMissed: number;
+  supplementsTaken: number;
+  mealsLogged: number;
+  activeAlerts: number;
+  summaryText: string;
+  alertMessages?: string[];
+}
+
+/**
+ * Generate HTML email for daily family notes
+ * Mobile-responsive with inline CSS (email clients don't support external CSS)
+ * Uses MyGuide Health brand colors
+ */
+function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
+  const brandColor = '#2563eb'; // Blue-600
+  const successColor = '#16a34a'; // Green-600
+  const warningColor = '#dc2626'; // Red-600
+  const bgColor = '#f3f4f6'; // Gray-100
+  const cardBg = '#ffffff';
+  const textColor = '#1f2937'; // Gray-800
+  const textMuted = '#6b7280'; // Gray-500
+
+  // Determine medication status color
+  const medStatusColor = data.medicationsMissed > 0 ? warningColor : successColor;
+  const medStatusText = data.medicationsMissed === 0
+    ? '✓ All medications taken'
+    : `⚠ ${data.medicationsMissed} missed`;
+
+  // Build alert section if there are active alerts
+  let alertSection = '';
+  if (data.activeAlerts > 0) {
+    alertSection = `
+      <tr>
+        <td style="padding: 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fef2f2; border-radius: 8px; border-left: 4px solid ${warningColor};">
+            <tr>
+              <td style="padding: 16px;">
+                <p style="margin: 0; color: ${warningColor}; font-weight: 600; font-size: 14px;">
+                  ⚠️ ${data.activeAlerts} Active Alert${data.activeAlerts > 1 ? 's' : ''}
+                </p>
+                <p style="margin: 8px 0 0 0; color: ${textColor}; font-size: 14px;">
+                  Please check the app for details and recommended actions.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  }
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Care Update - ${data.elderName}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: ${bgColor}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: ${cardBg}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color: ${brandColor}; padding: 24px; text-align: center;">
+              <img src="https://www.myguide.health/favicon-32x32.png" alt="MyGuide Health" style="width: 32px; height: 32px; margin-bottom: 8px;">
+              <h1 style="margin: 0; color: white; font-size: 20px; font-weight: 600;">Daily Care Update</h1>
+              <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">${data.elderName} • ${data.date}</p>
+            </td>
+          </tr>
+
+          <!-- Summary Banner -->
+          <tr>
+            <td style="padding: 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+                <tr>
+                  <td style="padding: 16px; text-align: center;">
+                    <p style="margin: 0; color: ${textColor}; font-size: 16px; font-weight: 500;">${data.summaryText}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          ${alertSection}
+
+          <!-- Stats Grid -->
+          <tr>
+            <td style="padding: 0 20px 20px 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <!-- Medications Card -->
+                  <td width="50%" style="padding: 8px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+                      <tr>
+                        <td style="padding: 16px; text-align: center;">
+                          <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.medicationsTaken}/${data.medicationsTotal}</p>
+                          <p style="margin: 4px 0 0 0; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px;">Medications</p>
+                          <p style="margin: 8px 0 0 0; font-size: 12px; color: ${medStatusColor}; font-weight: 500;">${medStatusText}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <!-- Supplements Card -->
+                  <td width="50%" style="padding: 8px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+                      <tr>
+                        <td style="padding: 16px; text-align: center;">
+                          <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.supplementsTaken}</p>
+                          <p style="margin: 4px 0 0 0; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px;">Supplements</p>
+                          <p style="margin: 8px 0 0 0; font-size: 12px; color: ${successColor}; font-weight: 500;">Logged today</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <!-- Meals Card -->
+                  <td colspan="2" style="padding: 8px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+                      <tr>
+                        <td style="padding: 16px; text-align: center;">
+                          <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.mealsLogged}</p>
+                          <p style="margin: 4px 0 0 0; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px;">Meals Logged</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td style="padding: 0 20px 24px 20px; text-align: center;">
+              <a href="https://www.myguide.health/dashboard/activity" style="display: inline-block; background-color: ${brandColor}; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                View Full Details
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px; background-color: ${bgColor}; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0; color: ${textMuted}; font-size: 12px;">
+                You're receiving this because you're a member of ${data.elderName}'s care team on MyGuide Health.
+              </p>
+              <p style="margin: 8px 0 0 0; color: ${textMuted}; font-size: 12px;">
+                <a href="https://www.myguide.health/dashboard/settings" style="color: ${brandColor}; text-decoration: none;">Manage notification preferences</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+/**
+ * Format date for email display
+ */
+function formatDateForEmail(date: Date): string {
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  };
+  return date.toLocaleDateString('en-US', options);
+}
+
 // ============= DAILY FAMILY NOTES =============
 
 /**
  * Core logic for sending daily family notes.
  * Extracted to be reusable by multiple scheduled triggers.
  * Includes duplicate prevention - skips if already sent today.
+ * Sends both FCM push notifications AND email via Trigger Email extension.
  */
 async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: boolean; notesSent: number; skipped: number; error?: string }> {
   console.log(`Starting processDailyFamilyNotes (${triggerTime} trigger)...`);
@@ -2248,6 +2435,22 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
           createdAt: admin.firestore.Timestamp.now()
         });
 
+        // Format date for email
+        const formattedDate = formatDateForEmail(now);
+
+        // Prepare email data (same for all recipients for this elder)
+        const emailData: DailyReportEmailData = {
+          elderName,
+          date: formattedDate,
+          medicationsTotal: totalMeds,
+          medicationsTaken: takenMeds,
+          medicationsMissed: missedMeds,
+          supplementsTaken,
+          mealsLogged,
+          activeAlerts,
+          summaryText
+        };
+
         // Create notification for each recipient
         for (const recipientId of allRecipients) {
           // In-app notification
@@ -2283,6 +2486,48 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
             status: 'pending',
             createdAt: admin.firestore.Timestamp.now()
           });
+
+          // ============= SEND EMAIL VIA TRIGGER EMAIL EXTENSION =============
+          try {
+            // Get user's email from their profile
+            const userDoc = await admin.firestore()
+              .collection('users')
+              .doc(recipientId)
+              .get();
+
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              const userEmail = userData?.email;
+
+              if (userEmail) {
+                // Write to 'mail' collection - Firebase Trigger Email extension will send
+                await admin.firestore().collection('mail').add({
+                  to: userEmail,
+                  message: {
+                    subject: `Daily Care Update for ${elderName} - ${formattedDate}`,
+                    html: generateDailyReportEmailHTML(emailData)
+                  },
+                  createdAt: admin.firestore.Timestamp.now(),
+                  metadata: {
+                    type: 'daily_family_note',
+                    groupId: groupId,
+                    elderId: elderId,
+                    noteId: noteRef.id,
+                    recipientId: recipientId
+                  }
+                });
+                console.log(`Email queued for user ${recipientId} (${userEmail})`);
+              } else {
+                console.log(`Skipping email for user ${recipientId} - no email on file`);
+              }
+            } else {
+              console.log(`Skipping email for user ${recipientId} - user document not found`);
+            }
+          } catch (emailError) {
+            // Log error but don't fail the entire function
+            console.error(`Error queuing email for user ${recipientId}:`, emailError);
+          }
+          // ================================================================
         }
 
         notesSent++;

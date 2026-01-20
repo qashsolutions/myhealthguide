@@ -499,3 +499,77 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Cancel subscription for trial users verified (Jan 18, 2026)
 - Billing portal button visibility fix verified (Jan 19, 2026)
 - Trial expiration blocking verified (Jan 19, 2026)
+- Daily Family Notes email integration (Jan 20, 2026)
+
+---
+
+## Daily Family Notes - Email Integration
+
+**Added:** Jan 20, 2026
+
+### Overview
+
+Daily Family Notes now sends **email** in addition to FCM push notifications via the Firebase Trigger Email extension.
+
+### How It Works
+
+1. Scheduled Cloud Function runs at 7 PM PST (with 8 PM and 9 PM fallbacks)
+2. For each elder with activity, generates a daily report
+3. For each group member:
+   - Creates in-app notification (user_notifications collection)
+   - Queues FCM push notification (fcm_notification_queue collection)
+   - **NEW:** Writes email to `mail` collection (Trigger Email extension sends it)
+
+### Email Features
+
+| Feature | Implementation |
+|---------|---------------|
+| Template | Mobile-responsive HTML with inline CSS |
+| Logo | Uses favicon-32x32.png from production URL |
+| Brand Colors | Blue (#2563eb) primary, professional styling |
+| Content | Medications (taken/missed), Supplements, Meals, Active Alerts |
+| CTA | "View Full Details" button links to /dashboard/activity |
+| Footer | Unsubscribe link to /dashboard/settings |
+
+### Email Subject Format
+
+```
+Daily Care Update for {Elder Name} - {Day, Month Date, Year}
+```
+
+Example: `Daily Care Update for Mom - Monday, January 20, 2026`
+
+### Missing Email Handling
+
+- If user has no email on file: Logs "Skipping email for user X - no email on file"
+- FCM notification still sent regardless of email status
+- Email errors are caught and logged, don't break the function
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `functions/src/index.ts` | processDailyFamilyNotes function, email template |
+| `generateDailyReportEmailHTML()` | HTML email template generator |
+| `formatDateForEmail()` | Date formatting for email subject |
+
+### Testing
+
+```bash
+# Deploy functions
+firebase deploy --only functions
+
+# Test by creating a test email document
+npx tsx scripts/testTriggerEmail.ts
+
+# Manually trigger for testing (Firebase Console > Functions > sendDailyFamilyNotes > Run)
+```
+
+### Firestore Collections
+
+| Collection | Purpose |
+|------------|---------|
+| `mail` | Email queue (Trigger Email extension reads from here) |
+| `daily_family_notes` | Stores daily note summaries |
+| `user_notifications` | In-app notifications |
+| `fcm_notification_queue` | FCM push notification queue |
