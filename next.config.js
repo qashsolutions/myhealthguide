@@ -23,6 +23,12 @@ const nextConfig = {
         destination: '/community',
         permanent: false,
       },
+      // Redirect /auth to /login (auth/action is still accessible for Firebase callbacks)
+      {
+        source: '/auth',
+        destination: '/login',
+        permanent: true,
+      },
     ];
   },
   // Security headers

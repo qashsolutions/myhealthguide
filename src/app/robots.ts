@@ -9,10 +9,17 @@ export default function robots(): MetadataRoute.Robots {
   const privateRoutes = [
     '/dashboard/',
     '/api/',
+    '/auth/',
     '/verify',
     '/verify-email',
     '/phone-login',
     '/phone-signup',
+    '/forgot-password',
+    '/reset-password',
+    '/change-password',
+    '/caregiver-signup',
+    '/caregiver-invite',
+    '/caregiver-family-invite',
   ]
 
   return {
