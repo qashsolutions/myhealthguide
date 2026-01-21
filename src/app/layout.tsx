@@ -5,6 +5,7 @@ import { Footer } from '@/components/shared/Footer';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { CookieConsent } from '@/components/cookies/CookieConsent';
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
+import { IOSInstallPrompt } from '@/components/pwa/IOSInstallPrompt';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -131,6 +132,7 @@ export default function RootLayout({
           <Footer />
           <CookieConsent />
           <ServiceWorkerRegistration />
+          <IOSInstallPrompt />
         </Providers>
       </body>
     </html>
