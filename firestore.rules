@@ -1714,9 +1714,12 @@ service cloud.firestore {
 
       // Caregivers with canInviteMembers permission can create invites
       // Validated in API route - rules just check basic auth
+      // IMPORTANT: Email is REQUIRED for family member invites
       allow create: if isSignedIn() &&
         hasActiveAccess(request.auth.uid) &&
-        request.resource.data.caregiverId == request.auth.uid;
+        request.resource.data.caregiverId == request.auth.uid &&
+        request.resource.data.email != null &&
+        request.resource.data.email.size() > 0;
 
       // Caregiver can update (cancel) their invites
       // API route updates status when family member accepts

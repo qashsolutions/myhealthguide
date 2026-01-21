@@ -200,9 +200,17 @@ export function SuperAdminFamilyOverview({ agencyId, groupId }: SuperAdminFamily
 
   const handleSendInvite = async () => {
     if (!inviteEmail.trim()) {
-      setInviteError('Please enter an email address');
+      setInviteError('Email is required to invite a family member');
       return;
     }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail.trim())) {
+      setInviteError('Please enter a valid email address');
+      return;
+    }
+
     if (!selectedCaregiverId) {
       setInviteError('Please select a caregiver');
       return;
@@ -581,7 +589,12 @@ export function SuperAdminFamilyOverview({ agencyId, groupId }: SuperAdminFamily
                     placeholder="family@example.com"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
+                    required
+                    aria-required="true"
                   />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Required for daily care updates
+                  </p>
                 </div>
 
                 <div className="space-y-2">

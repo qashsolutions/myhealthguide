@@ -105,7 +105,14 @@ export function FamilyInviteManager({ groupId, caregiverId, elderCount }: Family
 
   const handleSendInvite = async () => {
     if (!inviteEmail.trim()) {
-      setError('Please enter an email address');
+      setError('Email is required to invite a family member');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail.trim())) {
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -302,7 +309,12 @@ export function FamilyInviteManager({ groupId, caregiverId, elderCount }: Family
                         placeholder="family@example.com"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
+                        required
+                        aria-required="true"
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Required for daily care updates
+                      </p>
                     </div>
 
                     <div className="space-y-2">
