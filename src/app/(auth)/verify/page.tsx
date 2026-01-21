@@ -90,6 +90,8 @@ function VerifyPageContent() {
 
   // Lock to prevent re-processing once verification is complete (prevents flickering)
   const verificationLockRef = useRef(false);
+  // Track if redirect has been scheduled to prevent multiple redirects
+  const redirectScheduledRef = useRef(false);
 
   // Load user data on mount
   useEffect(() => {
@@ -153,14 +155,22 @@ function VerifyPageContent() {
               } catch (err) {
                 console.error('Error updating lastVerificationDate:', err);
               }
-              setTimeout(() => router.push('/dashboard'), 1000);
+              // Only schedule redirect once
+              if (!redirectScheduledRef.current) {
+                redirectScheduledRef.current = true;
+                setTimeout(() => router.push('/dashboard'), 1000);
+              }
             }
           } else {
             // Initial verification: Both must be verified
             if (emailIsVerified && phoneIsVerified) {
               // Set lock to prevent flickering from subsequent auth state changes
               verificationLockRef.current = true;
-              setTimeout(() => router.push('/dashboard'), 2000);
+              // Only schedule redirect once
+              if (!redirectScheduledRef.current) {
+                redirectScheduledRef.current = true;
+                setTimeout(() => router.push('/dashboard'), 2000);
+              }
             }
           }
         }
@@ -363,7 +373,8 @@ function VerifyPageContent() {
           await AuthService.markEmailVerified(userId);
           setEmailVerified(true);
 
-          if (phoneVerified) {
+          if (phoneVerified && !redirectScheduledRef.current) {
+            redirectScheduledRef.current = true;
             setTimeout(() => router.push('/dashboard'), 2000);
           }
         } else {
@@ -504,11 +515,13 @@ function VerifyPageContent() {
     : (emailVerified && phoneVerified);
 
   useEffect(() => {
-    if (verificationComplete) {
-      const timer = setTimeout(() => {
+    // Only schedule redirect once - don't clear timeout on re-render
+    // The cleanup was causing the redirect to never fire during rapid re-renders
+    if (verificationComplete && !redirectScheduledRef.current) {
+      redirectScheduledRef.current = true;
+      setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
-      return () => clearTimeout(timer);
     }
   }, [verificationComplete, router]);
 
