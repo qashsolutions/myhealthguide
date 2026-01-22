@@ -1031,25 +1031,31 @@ function GroupSettings() {
   const loadEldersAndRecipients = async () => {
     if (!groupId) return;
     try {
-      // Get group to access elders
-      const group = await GroupService.getGroup(groupId);
-      if (!group) return;
+      // Query elders from the elders collection (not embedded in group)
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      const eldersQuery = query(
+        collection(db, 'elders'),
+        where('groupId', '==', groupId)
+      );
+      const eldersSnapshot = await getDocs(eldersQuery);
 
-      const groupElders = group.elders || [];
-      setElders(groupElders);
+      const loadedElders: any[] = [];
+      const recipientsByElder: Record<string, any[]> = {};
+
+      eldersSnapshot.forEach((elderDoc) => {
+        const elderData = elderDoc.data();
+        loadedElders.push({ id: elderDoc.id, ...elderData });
+        // Recipients are stored directly on the elder document
+        recipientsByElder[elderDoc.id] = elderData.reportRecipients || [];
+      });
+
+      setElders(loadedElders);
+      setElderRecipients(recipientsByElder);
 
       // For Family plans with 1 elder, auto-expand that elder
-      if (groupElders.length === 1 && !isMultiAgency) {
-        setExpandedElders(new Set([groupElders[0].id]));
+      if (loadedElders.length === 1 && !isMultiAgency) {
+        setExpandedElders(new Set([loadedElders[0].id]));
       }
-
-      // Load recipients for each elder
-      const recipientsByElder: Record<string, any[]> = {};
-      for (const elder of groupElders) {
-        const recipients = await GroupService.getElderReportRecipients(groupId, elder.id);
-        recipientsByElder[elder.id] = recipients;
-      }
-      setElderRecipients(recipientsByElder);
     } catch (error) {
       console.error('Error loading elders and recipients:', error);
     }

@@ -922,7 +922,7 @@ export class GroupService {
 
   // ============= Report Recipients Management (Elder-Level) =============
   // Family members who receive daily health reports via email (no accounts needed)
-  // Recipients are stored on each Elder document, not at group level
+  // Recipients are stored directly on Elder documents in the 'elders' collection
 
   /**
    * Add a report recipient to an elder
@@ -938,24 +938,25 @@ export class GroupService {
     name?: string
   ): Promise<ReportRecipient> {
     try {
-      const group = await this.getGroup(groupId);
+      // Get the elder document directly from elders collection
+      const elderDoc = await getDoc(doc(db, 'elders', elderId));
 
-      if (!group) {
-        throw new Error('Group not found');
-      }
-
-      // Find the elder
-      const elderIndex = group.elders.findIndex(e => e.id === elderId);
-      if (elderIndex === -1) {
+      if (!elderDoc.exists()) {
         throw new Error('Loved one not found');
       }
 
-      const elder = group.elders[elderIndex];
-      const existingRecipients = elder.reportRecipients || [];
+      const elderData = elderDoc.data();
+
+      // Verify this elder belongs to the group
+      if (elderData.groupId !== groupId) {
+        throw new Error('Loved one does not belong to this group');
+      }
+
+      const existingRecipients = elderData.reportRecipients || [];
 
       // Check if email already exists for this elder
       const emailExists = existingRecipients.some(
-        r => r.email.toLowerCase() === email.toLowerCase()
+        (r: any) => r.email.toLowerCase() === email.toLowerCase()
       );
 
       if (emailExists) {
@@ -976,43 +977,21 @@ export class GroupService {
         newRecipient.name = name.trim();
       }
 
-      // Update elder's recipients array
-      const updatedRecipients = [...existingRecipients, newRecipient];
-
-      // Create updated elders array
-      const updatedElders = [...group.elders];
-      updatedElders[elderIndex] = {
-        ...elder,
-        reportRecipients: updatedRecipients
-      };
-
       // Convert to Firestore format
-      const firestoreElders = updatedElders.map(e => {
-        const elderData: Record<string, any> = { ...e };
+      const firestoreRecipient: Record<string, any> = {
+        id: newRecipient.id,
+        email: newRecipient.email,
+        addedBy: newRecipient.addedBy,
+        addedAt: Timestamp.fromDate(newRecipient.addedAt),
+        verified: false
+      };
+      if (newRecipient.name) {
+        firestoreRecipient.name = newRecipient.name;
+      }
 
-        // Convert reportRecipients to Firestore format
-        if (elderData.reportRecipients) {
-          elderData.reportRecipients = elderData.reportRecipients.map((r: ReportRecipient) => {
-            const recipient: Record<string, any> = {
-              id: r.id,
-              email: r.email,
-              addedBy: r.addedBy,
-              addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-              verified: r.verified ?? false
-            };
-            if (r.name) recipient.name = r.name;
-            if (r.verifiedAt) {
-              recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
-            }
-            return recipient;
-          });
-        }
-
-        return elderData;
-      });
-
-      await updateDoc(doc(db, 'groups', groupId), {
-        elders: firestoreElders,
+      // Update elder document with new recipient
+      await updateDoc(doc(db, 'elders', elderId), {
+        reportRecipients: [...existingRecipients, firestoreRecipient],
         updatedAt: Timestamp.now()
       });
 
@@ -1032,55 +1011,26 @@ export class GroupService {
     recipientId: string
   ): Promise<void> {
     try {
-      const group = await this.getGroup(groupId);
+      // Get the elder document directly from elders collection
+      const elderDoc = await getDoc(doc(db, 'elders', elderId));
 
-      if (!group) {
-        throw new Error('Group not found');
-      }
-
-      // Find the elder
-      const elderIndex = group.elders.findIndex(e => e.id === elderId);
-      if (elderIndex === -1) {
+      if (!elderDoc.exists()) {
         throw new Error('Loved one not found');
       }
 
-      const elder = group.elders[elderIndex];
-      const existingRecipients = elder.reportRecipients || [];
-      const updatedRecipients = existingRecipients.filter(r => r.id !== recipientId);
+      const elderData = elderDoc.data();
 
-      // Create updated elders array
-      const updatedElders = [...group.elders];
-      updatedElders[elderIndex] = {
-        ...elder,
-        reportRecipients: updatedRecipients
-      };
+      // Verify this elder belongs to the group
+      if (elderData.groupId !== groupId) {
+        throw new Error('Loved one does not belong to this group');
+      }
 
-      // Convert to Firestore format
-      const firestoreElders = updatedElders.map(e => {
-        const elderData: Record<string, any> = { ...e };
+      const existingRecipients = elderData.reportRecipients || [];
+      const updatedRecipients = existingRecipients.filter((r: any) => r.id !== recipientId);
 
-        if (elderData.reportRecipients) {
-          elderData.reportRecipients = elderData.reportRecipients.map((r: ReportRecipient) => {
-            const recipient: Record<string, any> = {
-              id: r.id,
-              email: r.email,
-              addedBy: r.addedBy,
-              addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-              verified: r.verified ?? false
-            };
-            if (r.name) recipient.name = r.name;
-            if (r.verifiedAt) {
-              recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
-            }
-            return recipient;
-          });
-        }
-
-        return elderData;
-      });
-
-      await updateDoc(doc(db, 'groups', groupId), {
-        elders: firestoreElders,
+      // Update elder document
+      await updateDoc(doc(db, 'elders', elderId), {
+        reportRecipients: updatedRecipients,
         updatedAt: Timestamp.now()
       });
     } catch (error) {
@@ -1099,21 +1049,22 @@ export class GroupService {
     updates: Partial<Pick<ReportRecipient, 'name' | 'email' | 'verified' | 'verifiedAt'>>
   ): Promise<void> {
     try {
-      const group = await this.getGroup(groupId);
+      // Get the elder document directly from elders collection
+      const elderDoc = await getDoc(doc(db, 'elders', elderId));
 
-      if (!group) {
-        throw new Error('Group not found');
-      }
-
-      // Find the elder
-      const elderIndex = group.elders.findIndex(e => e.id === elderId);
-      if (elderIndex === -1) {
+      if (!elderDoc.exists()) {
         throw new Error('Loved one not found');
       }
 
-      const elder = group.elders[elderIndex];
-      const existingRecipients = elder.reportRecipients || [];
-      const recipientIndex = existingRecipients.findIndex(r => r.id === recipientId);
+      const elderData = elderDoc.data();
+
+      // Verify this elder belongs to the group
+      if (elderData.groupId !== groupId) {
+        throw new Error('Loved one does not belong to this group');
+      }
+
+      const existingRecipients = elderData.reportRecipients || [];
+      const recipientIndex = existingRecipients.findIndex((r: any) => r.id === recipientId);
 
       if (recipientIndex === -1) {
         throw new Error('Recipient not found');
@@ -1122,7 +1073,7 @@ export class GroupService {
       // Check if new email already exists (if email is being updated)
       if (updates.email) {
         const emailExists = existingRecipients.some(
-          r => r.id !== recipientId && r.email.toLowerCase() === updates.email!.toLowerCase()
+          (r: any) => r.id !== recipientId && r.email.toLowerCase() === updates.email!.toLowerCase()
         );
 
         if (emailExists) {
@@ -1136,42 +1087,17 @@ export class GroupService {
         email: updates.email?.toLowerCase().trim() || existingRecipients[recipientIndex].email
       };
 
+      // Handle verifiedAt conversion
+      if (updates.verifiedAt && updates.verifiedAt instanceof Date) {
+        updatedRecipient.verifiedAt = Timestamp.fromDate(updates.verifiedAt);
+      }
+
       const updatedRecipients = [...existingRecipients];
       updatedRecipients[recipientIndex] = updatedRecipient;
 
-      // Create updated elders array
-      const updatedElders = [...group.elders];
-      updatedElders[elderIndex] = {
-        ...elder,
-        reportRecipients: updatedRecipients
-      };
-
-      // Convert to Firestore format
-      const firestoreElders = updatedElders.map(e => {
-        const elderData: Record<string, any> = { ...e };
-
-        if (elderData.reportRecipients) {
-          elderData.reportRecipients = elderData.reportRecipients.map((r: ReportRecipient) => {
-            const recipient: Record<string, any> = {
-              id: r.id,
-              email: r.email,
-              addedBy: r.addedBy,
-              addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-              verified: r.verified ?? false
-            };
-            if (r.name) recipient.name = r.name;
-            if (r.verifiedAt) {
-              recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
-            }
-            return recipient;
-          });
-        }
-
-        return elderData;
-      });
-
-      await updateDoc(doc(db, 'groups', groupId), {
-        elders: firestoreElders,
+      // Update elder document
+      await updateDoc(doc(db, 'elders', elderId), {
+        reportRecipients: updatedRecipients,
         updatedAt: Timestamp.now()
       });
     } catch (error) {
@@ -1188,18 +1114,21 @@ export class GroupService {
     elderId: string
   ): Promise<ReportRecipient[]> {
     try {
-      const group = await this.getGroup(groupId);
+      // Get elder document directly from elders collection
+      const elderDoc = await getDoc(doc(db, 'elders', elderId));
 
-      if (!group) {
+      if (!elderDoc.exists()) {
         return [];
       }
 
-      const elder = group.elders.find(e => e.id === elderId);
-      if (!elder) {
+      const elderData = elderDoc.data();
+
+      // Verify this elder belongs to the group
+      if (elderData.groupId !== groupId) {
         return [];
       }
 
-      return (elder.reportRecipients || []).map(r => ({
+      return (elderData.reportRecipients || []).map((r: any) => ({
         ...r,
         addedAt: toSafeDate(r.addedAt),
         verifiedAt: r.verifiedAt ? toSafeDate(r.verifiedAt) : undefined
@@ -1216,24 +1145,26 @@ export class GroupService {
    */
   static async getAllReportRecipients(groupId: string): Promise<Array<ReportRecipient & { elderId: string; elderName: string }>> {
     try {
-      const group = await this.getGroup(groupId);
-
-      if (!group) {
-        return [];
-      }
+      // Query elders from the elders collection
+      const q = query(
+        collection(db, 'elders'),
+        where('groupId', '==', groupId)
+      );
+      const eldersSnapshot = await getDocs(q);
 
       const allRecipients: Array<ReportRecipient & { elderId: string; elderName: string }> = [];
 
-      for (const elder of group.elders) {
-        const elderRecipients = (elder.reportRecipients || []).map(r => ({
+      eldersSnapshot.forEach((elderDoc) => {
+        const elderData = elderDoc.data();
+        const elderRecipients = (elderData.reportRecipients || []).map((r: any) => ({
           ...r,
-          elderId: elder.id,
-          elderName: elder.name,
+          elderId: elderDoc.id,
+          elderName: elderData.firstName || elderData.name || 'Unknown',
           addedAt: toSafeDate(r.addedAt),
           verifiedAt: r.verifiedAt ? toSafeDate(r.verifiedAt) : undefined
         }));
         allRecipients.push(...elderRecipients);
-      }
+      });
 
       return allRecipients;
     } catch (error) {
