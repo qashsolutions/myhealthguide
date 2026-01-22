@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import {
   AccessibleButton,
   AccessibleInput,
@@ -12,9 +12,35 @@ import {
   AccessiblePageWrapper,
 } from '@/components/accessibility';
 
+// Loading fallback for Suspense
+function SignupPageLoading() {
+  return (
+    <AccessiblePageWrapper title="Create Account">
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </CardContent>
+      </Card>
+    </AccessiblePageWrapper>
+  );
+}
+
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<SignupPageLoading />}>
+      <SignupPageContent />
+    </Suspense>
+  );
+}
+
+function SignupPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signUp } = useAuth();
+
+  // Check for invite code in URL (user signing up via invite link)
+  const inviteCode = searchParams.get('invite');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -87,11 +113,14 @@ export default function SignupPage() {
       await signUp(formData.email, formData.password, {
         firstName: formData.firstName,
         lastName: formData.lastName,
-        phoneNumber: ''
+        phoneNumber: '',
+        // Store invite code if user is signing up via invite link
+        // This allows verify page to skip phone verification for invited members
+        ...(inviteCode && { pendingInviteCode: inviteCode })
       });
 
-      // Redirect to dashboard (verification banner will show there)
-      router.push('/dashboard');
+      // Redirect to verify page (or dashboard - verification banner will show there)
+      router.push('/verify');
     } catch (err: any) {
       console.error('Sign up error:', err);
 

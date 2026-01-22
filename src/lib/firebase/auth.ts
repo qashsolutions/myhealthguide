@@ -33,6 +33,7 @@ export class AuthService {
       firstName: string;
       lastName: string;
       phoneNumber: string;
+      pendingInviteCode?: string; // For users signing up via invite link
     }
   ): Promise<User> {
     // Create Firebase auth user
@@ -103,7 +104,10 @@ export class AuthService {
       passwordExpiresAt: passwordExpiry, // 75 days from now
       passwordResetRequired: false,      // No reset required initially
       createdAt: now,
-      lastLoginAt: now
+      lastLoginAt: now,
+      // Store pending invite code for members signing up via invite link
+      // This allows verify page to skip phone verification for invited members
+      ...(userData.pendingInviteCode && { pendingInviteCode: userData.pendingInviteCode })
     };
 
     await setDoc(doc(db, 'users', firebaseUser.uid), user);

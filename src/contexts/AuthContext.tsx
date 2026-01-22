@@ -21,6 +21,7 @@ interface AuthContextType {
     firstName: string;
     lastName: string;
     phoneNumber: string;
+    pendingInviteCode?: string; // For users signing up via invite link
   }) => Promise<User>;
   signIn: (email: string, password: string) => Promise<User>;
   signOut: () => Promise<void>;
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firstName: string;
       lastName: string;
       phoneNumber: string;
+      pendingInviteCode?: string; // For users signing up via invite link
     }
   ): Promise<User> => {
     const newUser = await AuthService.createUser(email, password, userData);

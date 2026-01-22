@@ -128,10 +128,9 @@ function VerifyPageContent() {
           // Check if user is an invited read-only member
           // Read-only members only receive end-of-day email reports (no SMS)
           // They should skip phone verification
-          const isInvitedMember = userData.groups?.some(
-            (g: { role?: string }) => g.role === 'member'
-          ) && !userData.subscriptionTier;
-          setIsReadOnlyMember(isInvitedMember || false);
+          // Check for pendingInviteCode (set during signup via invite link)
+          const isInvitedMember = !!userData.pendingInviteCode;
+          setIsReadOnlyMember(isInvitedMember);
 
           // Only update verification states if not already verified locally
           // This prevents race conditions when auth state changes after verification
@@ -171,9 +170,9 @@ function VerifyPageContent() {
               }
             }
           } else {
-            // Initial verification: Both must be verified (unless read-only member)
-            // Read-only members only need email verification (they don't receive SMS)
-            const memberOnlyNeedsEmail = isInvitedMember && emailIsVerified;
+            // Initial verification: Both must be verified (unless invited member)
+            // Invited members (via invite code) only need email verification (they don't receive SMS)
+            const memberOnlyNeedsEmail = !!userData.pendingInviteCode && emailIsVerified;
             const bothVerified = emailIsVerified && phoneIsVerified;
 
             if (memberOnlyNeedsEmail || bothVerified) {

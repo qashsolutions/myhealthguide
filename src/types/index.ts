@@ -38,6 +38,7 @@ export interface User {
   passwordExpiresAt: Date | null; // 75 days from last change
   passwordResetRequired: boolean; // Force password reset on next login
   passwordSetupRequired?: boolean; // Caregiver needs to set password on first login
+  pendingInviteCode?: string; // Invite code for users signing up via invite link (members skip phone verification)
   createdAt: Date;
   lastLoginAt: Date;
 }
