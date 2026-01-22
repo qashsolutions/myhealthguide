@@ -434,6 +434,46 @@ function VerifyPageContent() {
           await AuthService.markEmailVerified(userId);
           setEmailVerified(true);
 
+          // Check if this is an invited member (read-only)
+          if (isReadOnlyMember) {
+            // Get user data to get the invite code
+            const userData = await AuthService.getCurrentUserData();
+            if (userData?.pendingInviteCode) {
+              verificationLockRef.current = true;
+
+              try {
+                // Accept the invite to join the admin's group
+                const result = await InviteService.acceptInvite({
+                  inviteCode: userData.pendingInviteCode,
+                  userId: auth.currentUser.uid,
+                  userName: `${userData.firstName} ${userData.lastName}`
+                });
+
+                if (result.success) {
+                  console.log('[Verify] Invite accepted, member added to group:', result.groupId);
+                  await AuthService.clearPendingInviteCode(auth.currentUser.uid);
+                  await AuthService.updateLastVerificationDate(auth.currentUser.uid);
+                } else {
+                  console.error('[Verify] Failed to accept invite:', result.error);
+                }
+
+                // Sign out the member - they don't need to be logged in
+                await signOut(auth);
+                console.log('[Verify] Member signed out after verification');
+              } catch (err) {
+                console.error('Error accepting invite:', err);
+              }
+
+              // Redirect to member-verified page
+              if (!redirectScheduledRef.current) {
+                redirectScheduledRef.current = true;
+              }
+              window.location.href = '/member-verified';
+              return;
+            }
+          }
+
+          // Regular user - redirect to dashboard if phone also verified
           if (phoneVerified && !redirectScheduledRef.current) {
             redirectScheduledRef.current = true;
             setTimeout(() => router.push('/dashboard'), 2000);
