@@ -32,7 +32,11 @@ export interface PlanValidationResult {
 
 /**
  * Get the subscription tier for a user
- * For agency super admins, checks the agency subscription tier
+ *
+ * Priority:
+ * 1. User's subscriptionTier field (for paid Family Plan users)
+ * 2. Agency tier (only for Multi-Agency plan users)
+ * 3. Trial defaults
  */
 export async function getUserTier(userId: string): Promise<PlanTier | null> {
   try {
@@ -43,23 +47,31 @@ export async function getUserTier(userId: string): Promise<PlanTier | null> {
 
     const userData = userDoc.data();
 
-    // Check if user is a super_admin of an agency - use agency tier
-    if (userData.agencies && Array.isArray(userData.agencies)) {
-      const superAdminMembership = userData.agencies.find(
-        (a: any) => a.role === 'super_admin'
-      );
+    // Priority 1: Use user's subscriptionTier for Family Plan users
+    // 'family' = Family Plan A, 'single_agency' = Family Plan B
+    if (userData.subscriptionTier === 'family' || userData.subscriptionTier === 'single_agency') {
+      return userData.subscriptionTier as PlanTier;
+    }
 
-      if (superAdminMembership) {
-        // Get the agency's subscription tier
-        const agencyDoc = await getDoc(doc(db, 'agencies', superAdminMembership.agencyId));
-        if (agencyDoc.exists()) {
-          const agencyData = agencyDoc.data();
-          // Check agency subscription tier
-          if (agencyData.subscription?.tier) {
-            return agencyData.subscription.tier as PlanTier;
+    // Priority 2: For Multi-Agency users, check agency subscription
+    if (userData.subscriptionTier === 'multi_agency') {
+      // Find agency where user is super_admin and get agency tier
+      if (userData.agencies && Array.isArray(userData.agencies)) {
+        const superAdminMembership = userData.agencies.find(
+          (a: any) => a.role === 'super_admin'
+        );
+
+        if (superAdminMembership) {
+          const agencyDoc = await getDoc(doc(db, 'agencies', superAdminMembership.agencyId));
+          if (agencyDoc.exists()) {
+            const agencyData = agencyDoc.data();
+            if (agencyData.subscription?.tier) {
+              return agencyData.subscription.tier as PlanTier;
+            }
           }
         }
       }
+      return 'multi_agency';
     }
 
     // If user has a paid subscription (stripeSubscriptionId), use their actual tier
