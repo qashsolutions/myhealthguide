@@ -1128,9 +1128,21 @@ export class AuthService {
    * @returns 'initial' if initial verification needed, 'reverify' if re-verification needed, false if no verification needed
    */
   static isReVerificationRequired(user: User): 'initial' | 'reverify' | false {
-    // Initial verification: Both email AND phone must be verified at least once
-    if (!user.emailVerified || !user.phoneVerified) {
-      return 'initial';
+    // Check if user is an invited member (has pendingInviteCode)
+    // Invited members only need email verification (they don't receive SMS)
+    const isInvitedMember = !!user.pendingInviteCode;
+
+    // Initial verification:
+    // - Admins/owners: Both email AND phone must be verified
+    // - Invited members: Only email must be verified (no phone required)
+    if (isInvitedMember) {
+      if (!user.emailVerified) {
+        return 'initial';
+      }
+    } else {
+      if (!user.emailVerified || !user.phoneVerified) {
+        return 'initial';
+      }
     }
 
     // Check if lastVerificationDate exists
