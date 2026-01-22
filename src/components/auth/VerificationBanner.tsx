@@ -20,7 +20,19 @@ export function VerificationBanner() {
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
-    if (user && (!user.emailVerified || !user.phoneVerified)) {
+    if (!user) {
+      setShowBanner(false);
+      return;
+    }
+
+    // Invited members (via invite code) only need email verification
+    // They receive end-of-day email reports, no SMS alerts
+    const isInvitedMember = !!user.pendingInviteCode;
+    const needsVerification = isInvitedMember
+      ? !user.emailVerified  // Invited members only need email
+      : (!user.emailVerified || !user.phoneVerified);  // Regular users need both
+
+    if (needsVerification) {
       const dismissedTime = localStorage.getItem('verificationBannerDismissed');
       if (dismissedTime) {
         const dismissedDate = new Date(dismissedTime);

@@ -568,7 +568,9 @@ function VerifyPageContent() {
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               {isReVerification
                 ? 'Your identity has been confirmed.'
-                : 'Your email and phone are both verified.'}
+                : isReadOnlyMember
+                  ? 'Your email is verified.'
+                  : 'Your email and phone are both verified.'}
             </p>
             <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
           </CardContent>
