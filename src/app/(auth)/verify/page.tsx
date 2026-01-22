@@ -149,9 +149,14 @@ function VerifyPageContent() {
 
           if (isReVerification) {
             // Re-verification: Only ONE method needs to be re-verified
-            // Both should already be verified from initial signup
-            // This is just a periodic check - redirect immediately if both are verified
-            if (emailIsVerified && phoneIsVerified) {
+            // Invited members only have email verified, regular users have both
+            // This is a periodic check - redirect if user has verified what they need
+            const isInvitedMember = !!userData.pendingInviteCode;
+            const canProceed = isInvitedMember
+              ? emailIsVerified  // Invited members only need email
+              : (emailIsVerified && phoneIsVerified);
+
+            if (canProceed) {
               // Set lock to prevent flickering from subsequent auth state changes
               verificationLockRef.current = true;
               // Update lastVerificationDate to prevent redirect loop
@@ -178,6 +183,15 @@ function VerifyPageContent() {
             if (memberOnlyNeedsEmail || bothVerified) {
               // Set lock to prevent flickering from subsequent auth state changes
               verificationLockRef.current = true;
+              // Update lastVerificationDate for initial verification to prevent redirect loop
+              try {
+                await AuthService.updateLastVerificationDate(firebaseUser.uid);
+                // Refresh AuthContext so ProtectedRoute sees updated lastVerificationDate
+                await refreshUser();
+                console.log('[Verify] Initial verification complete - updated lastVerificationDate');
+              } catch (err) {
+                console.error('Error updating lastVerificationDate:', err);
+              }
               // Only schedule redirect once
               if (!redirectScheduledRef.current) {
                 redirectScheduledRef.current = true;
