@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase/config';
-import { sendEmailVerification, onAuthStateChanged, reload, getAuth } from 'firebase/auth';
+import { sendEmailVerification, onAuthStateChanged, reload, getAuth, signOut } from 'firebase/auth';
 import { CheckCircle, AlertCircle, RefreshCw, Mail, Smartphone, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -201,15 +201,20 @@ function VerifyPageContent() {
                 } else {
                   console.error('[Verify] Failed to accept invite:', result.error);
                 }
+
+                // Sign out the member - they don't need to be logged in
+                // They will receive daily health reports via email
+                await signOut(auth);
+                console.log('[Verify] Member signed out after verification');
               } catch (err) {
                 console.error('Error accepting invite:', err);
               }
 
-              // Redirect invited members to landing page (they don't need dashboard access)
+              // Redirect to member-verified page (public page with success message)
               if (!redirectScheduledRef.current) {
                 redirectScheduledRef.current = true;
                 setTimeout(() => {
-                  window.location.href = 'https://www.myguide.health/?verified=member';
+                  window.location.href = '/member-verified';
                 }, 2000);
               }
             } else if (bothVerified) {
