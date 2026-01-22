@@ -1266,12 +1266,8 @@ function GroupSettings() {
                 <span className="font-medium text-gray-900 dark:text-white">
                   {planInfo.label}
                 </span>
-                {/* Show member count for Family/Single Agency, not Multi Agency */}
-                {!isMultiAgency && (
-                  <Badge variant={isTrial ? 'outline' : 'secondary'} className="text-xs">
-                    {members.length}/{maxMembers} members
-                  </Badge>
-                )}
+                {/* Member count is only shown for Multi Agency plans where it refers to caregivers */}
+                {/* For Family plans, the "Daily Report Recipients" section shows recipient limits */}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {planInfo.description}
@@ -1485,8 +1481,8 @@ function GroupSettings() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={recipient.verified ? 'default' : 'secondary'} className="text-xs">
-                        {recipient.verified ? 'Receiving Reports' : 'Pending'}
+                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        Added
                       </Badge>
                       {isGroupAdmin && (
                         <Button
@@ -1621,8 +1617,13 @@ function GroupSettings() {
       )}
 
       {/* Permission Manager (Admin Only) */}
+      {/* Hide invite code for Family plans or when Multi Agency is adding members */}
       {isGroupAdmin && (
-        <PermissionManager groupId={groupId} adminId={currentUser.id} />
+        <PermissionManager
+          groupId={groupId}
+          adminId={currentUser.id}
+          hideInviteCode={!isMultiAgency || addingType === 'member'}
+        />
       )}
 
       {/* Caregivers - Only show for Multi Agency when adding caregivers */}

@@ -13,6 +13,7 @@ import { formatInviteCodeForDisplay } from '@/lib/utils/inviteCode';
 interface PermissionManagerProps {
   groupId: string;
   adminId: string;
+  hideInviteCode?: boolean; // Hide invite code section for Family plans
 }
 
 interface MemberWithDetails extends GroupMember {
@@ -23,7 +24,7 @@ interface MemberWithDetails extends GroupMember {
   assignedElderCount?: number;
 }
 
-export function PermissionManager({ groupId, adminId }: PermissionManagerProps) {
+export function PermissionManager({ groupId, adminId, hideInviteCode = false }: PermissionManagerProps) {
   const [members, setMembers] = useState<MemberWithDetails[]>([]);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,7 +175,8 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
 
   return (
     <div className="space-y-4">
-      {/* Invite Code Card - Collapsible */}
+      {/* Invite Code Card - Collapsible (hidden for Family plans) */}
+      {!hideInviteCode && (
       <Card className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
         <CardHeader className="cursor-pointer" onClick={() => setIsInviteExpanded(!isInviteExpanded)}>
           <div className="flex items-center justify-between">
@@ -234,6 +236,7 @@ export function PermissionManager({ groupId, adminId }: PermissionManagerProps) 
         </CardContent>
         )}
       </Card>
+      )}
 
       {/* Members Permission Card - Collapsible */}
       <Card>
