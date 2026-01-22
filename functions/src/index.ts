@@ -2910,7 +2910,6 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
       const groupId = groupDoc.id;
       const memberIds: string[] = group.memberIds || [];
       const adminId = group.adminId;
-      const groupElders = group.elders || []; // Elders array with reportRecipients
 
       // Include admin in notification recipients (account-based recipients)
       const allRecipients = adminId && !memberIds.includes(adminId)
@@ -3319,10 +3318,9 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
         }
 
         // ============= SEND TO REPORT RECIPIENTS (EMAIL-ONLY FAMILY MEMBERS) =============
-        // Report recipients are stored on the elder document within the group
+        // Report recipients are stored directly on the elder document in 'elders' collection
         // They don't have accounts - just email addresses
-        const groupElder = groupElders.find((e: any) => e.id === elderId);
-        const reportRecipients = groupElder?.reportRecipients || [];
+        const reportRecipients = elder.reportRecipients || [];
 
         if (reportRecipients.length > 0) {
           console.log(`Sending to ${reportRecipients.length} report recipient(s) for elder ${elderId}`);
