@@ -82,7 +82,7 @@ export class InviteService {
         createdBy: params.createdBy,
         createdByName: params.createdByName,
         role: params.role,
-        inviteType: params.inviteType,
+        ...(params.inviteType && { inviteType: params.inviteType }),
         permissions: params.permissions,
         maxUses: params.maxUses || 5,
         currentUses: 0,

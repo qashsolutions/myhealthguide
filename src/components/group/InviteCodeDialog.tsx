@@ -17,6 +17,7 @@ interface InviteCodeDialogProps {
   groupName: string;
   userId: string;
   userName: string;
+  maxMembers?: number; // Plan limit for max members
 }
 
 export function InviteCodeDialog({
@@ -25,7 +26,8 @@ export function InviteCodeDialog({
   groupId,
   groupName,
   userId,
-  userName
+  userName,
+  maxMembers = 2
 }: InviteCodeDialogProps) {
   const [role, setRole] = useState<'admin' | 'member'>('member');
   const [maxUses, setMaxUses] = useState(5);
@@ -104,7 +106,7 @@ export function InviteCodeDialog({
         <DialogHeader>
           <DialogTitle>Invite to {groupName}</DialogTitle>
           <DialogDescription>
-            Create an invite link to add members to your group (max 4 members total)
+            Create an invite link to add members to your group (max {maxMembers} members total)
           </DialogDescription>
         </DialogHeader>
 

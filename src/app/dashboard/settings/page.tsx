@@ -1440,6 +1440,7 @@ function GroupSettings() {
         groupName={groupName}
         userId={currentUser.id}
         userName={currentUser.name}
+        maxMembers={maxMembers}
       />
     </div>
   );
