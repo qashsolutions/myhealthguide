@@ -933,6 +933,9 @@ function GroupSettings() {
   const [addingRecipient, setAddingRecipient] = useState(false);
   const [recipientError, setRecipientError] = useState('');
 
+  // Multi Agency toggle: 'caregiver' or 'member'
+  const [addingType, setAddingType] = useState<'caregiver' | 'member'>('caregiver');
+
   // Get actual user and group data from auth context
   const currentUser = {
     id: user?.id || '',
@@ -1325,7 +1328,47 @@ function GroupSettings() {
         </CardContent>
       </Card>
 
+      {/* Multi Agency Toggle: Caregiver or Member */}
+      {isMultiAgency && isGroupAdmin && (
+        <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">What would you like to add?</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {addingType === 'caregiver'
+                    ? 'Caregivers need accounts and can log data for assigned loved ones'
+                    : 'Members receive daily email reports (no account needed)'}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={addingType === 'caregiver' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAddingType('caregiver')}
+                  className={addingType === 'caregiver' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Caregiver
+                </Button>
+                <Button
+                  variant={addingType === 'member' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAddingType('member')}
+                  className={addingType === 'member' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Member
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Report Recipients Card - Family members who receive daily health reports */}
+      {/* Show for Family plans always, or for Multi Agency when adding 'member' */}
+      {(!isMultiAgency || addingType === 'member') && (
       <Card>
         <CardHeader className="cursor-pointer" onClick={() => setShowReportRecipients(!showReportRecipients)}>
           <div className="flex items-center justify-between">
@@ -1477,6 +1520,7 @@ function GroupSettings() {
           </CardContent>
         )}
       </Card>
+      )}
 
       {/* Role Permissions Card - Collapsible */}
       <Card>
@@ -1571,8 +1615,8 @@ function GroupSettings() {
         )}
       </Card>
 
-      {/* Pending Approvals Queue (Admin Only) */}
-      {isGroupAdmin && (
+      {/* Pending Approvals Queue - Only for Multi Agency when adding caregivers */}
+      {isGroupAdmin && isMultiAgency && addingType === 'caregiver' && (
         <ApprovalQueue groupId={groupId} adminId={currentUser.id} />
       )}
 
@@ -1581,8 +1625,8 @@ function GroupSettings() {
         <PermissionManager groupId={groupId} adminId={currentUser.id} />
       )}
 
-      {/* Caregivers - Only show for Multi Agency */}
-      {isMultiAgency && (
+      {/* Caregivers - Only show for Multi Agency when adding caregivers */}
+      {isMultiAgency && addingType === 'caregiver' && (
         <Card>
           <CardHeader className="cursor-pointer" onClick={() => setShowMembers(!showMembers)}>
             <div className="flex items-center justify-between">
