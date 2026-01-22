@@ -17,7 +17,7 @@ import {
   reload
 } from 'firebase/auth';
 import { auth, db } from './config';
-import { doc, setDoc, getDoc, updateDoc, query, collection, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, query, collection, where, getDocs, deleteField } from 'firebase/firestore';
 import { User } from '@/types';
 import { hashPhoneNumber, formatPhoneNumber } from '@/lib/utils/phoneUtils';
 import { GroupService } from './groups';
@@ -112,59 +112,65 @@ export class AuthService {
 
     await setDoc(doc(db, 'users', firebaseUser.uid), user);
 
-    // Create a default group for the user (Family Plan)
-    // Note: Agencies are only created when user upgrades to Multi-Agency plan
-    const trialEndDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
+    // Invited members (signing up via invite link) don't get their own group
+    // They will be added to the admin's group after email verification
+    if (!userData.pendingInviteCode) {
+      // Create a default group for the user (Family Plan)
+      // Note: Agencies are only created when user upgrades to Multi-Agency plan
+      const trialEndDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
 
-    // Create group for Family Plan
-    const group = await GroupService.createGroup({
-      name: `${userData.firstName}'s Family`,
-      type: 'family',
-      adminId: firebaseUser.uid,
-      members: [{
-        userId: firebaseUser.uid,
-        role: 'admin',
-        permissionLevel: 'admin',
-        permissions: [],
-        addedAt: new Date(),
-        addedBy: firebaseUser.uid,
-        approvalStatus: 'approved'
-      }],
-      memberIds: [firebaseUser.uid],
-      writeMemberIds: [],
-      elders: [],
-      subscription: {
-        tier: 'family',
-        status: 'trial',
-        trialEndsAt: trialEndDate,
-        currentPeriodEnd: trialEndDate,
-        stripeCustomerId: '',
-        stripeSubscriptionId: ''
-      },
-      settings: {
-        notificationRecipients: [firebaseUser.uid],
-        notificationPreferences: {
-          enabled: true,
-          frequency: 'realtime',
-          types: ['missed_doses', 'diet_alerts', 'supplement_alerts']
-        }
-      },
-      inviteCode: '',
-      inviteCodeGeneratedAt: new Date(),
-      inviteCodeGeneratedBy: firebaseUser.uid,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }, firebaseUser.uid);
+      // Create group for Family Plan
+      const group = await GroupService.createGroup({
+        name: `${userData.firstName}'s Family`,
+        type: 'family',
+        adminId: firebaseUser.uid,
+        members: [{
+          userId: firebaseUser.uid,
+          role: 'admin',
+          permissionLevel: 'admin',
+          permissions: [],
+          addedAt: new Date(),
+          addedBy: firebaseUser.uid,
+          approvalStatus: 'approved'
+        }],
+        memberIds: [firebaseUser.uid],
+        writeMemberIds: [],
+        elders: [],
+        subscription: {
+          tier: 'family',
+          status: 'trial',
+          trialEndsAt: trialEndDate,
+          currentPeriodEnd: trialEndDate,
+          stripeCustomerId: '',
+          stripeSubscriptionId: ''
+        },
+        settings: {
+          notificationRecipients: [firebaseUser.uid],
+          notificationPreferences: {
+            enabled: true,
+            frequency: 'realtime',
+            types: ['missed_doses', 'diet_alerts', 'supplement_alerts']
+          }
+        },
+        inviteCode: '',
+        inviteCodeGeneratedAt: new Date(),
+        inviteCodeGeneratedBy: firebaseUser.uid,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }, firebaseUser.uid);
 
-    // Update user with group membership only (no agency for Family Plan)
-    await updateDoc(doc(db, 'users', firebaseUser.uid), {
-      groups: [{
-        groupId: group.id,
-        role: 'admin',
-        permissionLevel: 'admin',
-        joinedAt: new Date()
-      }]
-    });
+      // Update user with group membership only (no agency for Family Plan)
+      await updateDoc(doc(db, 'users', firebaseUser.uid), {
+        groups: [{
+          groupId: group.id,
+          role: 'admin',
+          permissionLevel: 'admin',
+          joinedAt: new Date()
+        }]
+      });
+    }
+    // Note: For invited members, groups will be empty until they verify email
+    // and are added to the admin's group via InviteService.acceptInvite
 
     return user;
   }
@@ -915,6 +921,15 @@ export class AuthService {
   static async updateLastVerificationDate(userId: string): Promise<void> {
     await updateDoc(doc(db, 'users', userId), {
       lastVerificationDate: new Date()
+    });
+  }
+
+  /**
+   * Clear pending invite code after member has been added to group
+   */
+  static async clearPendingInviteCode(userId: string): Promise<void> {
+    await updateDoc(doc(db, 'users', userId), {
+      pendingInviteCode: deleteField()
     });
   }
 

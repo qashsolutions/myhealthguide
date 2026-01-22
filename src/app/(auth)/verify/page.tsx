@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuthService } from '@/lib/firebase/auth';
+import { InviteService } from '@/lib/firebase/invites';
 import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
 import { getFirebaseErrorMessage } from '@/lib/utils/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';
@@ -180,13 +181,42 @@ function VerifyPageContent() {
             const memberOnlyNeedsEmail = !!userData.pendingInviteCode && emailIsVerified;
             const bothVerified = emailIsVerified && phoneIsVerified;
 
-            if (memberOnlyNeedsEmail || bothVerified) {
-              // Set lock to prevent flickering from subsequent auth state changes
+            if (memberOnlyNeedsEmail) {
+              // Invited member verified email - add them to the admin's group
               verificationLockRef.current = true;
-              // Update lastVerificationDate for initial verification to prevent redirect loop
+
+              try {
+                // Accept the invite to join the admin's group
+                const result = await InviteService.acceptInvite({
+                  inviteCode: userData.pendingInviteCode!,
+                  userId: firebaseUser.uid,
+                  userName: `${userData.firstName} ${userData.lastName}`
+                });
+
+                if (result.success) {
+                  console.log('[Verify] Invite accepted, member added to group:', result.groupId);
+                  // Clear pendingInviteCode and update lastVerificationDate
+                  await AuthService.clearPendingInviteCode(firebaseUser.uid);
+                  await AuthService.updateLastVerificationDate(firebaseUser.uid);
+                } else {
+                  console.error('[Verify] Failed to accept invite:', result.error);
+                }
+              } catch (err) {
+                console.error('Error accepting invite:', err);
+              }
+
+              // Redirect invited members to landing page (they don't need dashboard access)
+              if (!redirectScheduledRef.current) {
+                redirectScheduledRef.current = true;
+                setTimeout(() => {
+                  window.location.href = 'https://www.myguide.health/?verified=member';
+                }, 2000);
+              }
+            } else if (bothVerified) {
+              // Regular user (admin) verified both email and phone
+              verificationLockRef.current = true;
               try {
                 await AuthService.updateLastVerificationDate(firebaseUser.uid);
-                // Refresh AuthContext so ProtectedRoute sees updated lastVerificationDate
                 await refreshUser();
                 console.log('[Verify] Initial verification complete - updated lastVerificationDate');
               } catch (err) {
@@ -546,13 +576,14 @@ function VerifyPageContent() {
   useEffect(() => {
     // Only schedule redirect once - don't clear timeout on re-render
     // The cleanup was causing the redirect to never fire during rapid re-renders
-    if (verificationComplete && !redirectScheduledRef.current) {
+    // Note: For invited members, redirect is handled in the initial verification logic above
+    if (verificationComplete && !redirectScheduledRef.current && !isReadOnlyMember) {
       redirectScheduledRef.current = true;
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
     }
-  }, [verificationComplete, router]);
+  }, [verificationComplete, router, isReadOnlyMember]);
 
   if (verificationComplete) {
     return (
@@ -569,10 +600,12 @@ function VerifyPageContent() {
               {isReVerification
                 ? 'Your identity has been confirmed.'
                 : isReadOnlyMember
-                  ? 'Your email is verified.'
+                  ? 'Your email is verified. You\'ll receive daily health reports via email.'
                   : 'Your email and phone are both verified.'}
             </p>
-            <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
+            <p className="text-sm text-gray-500">
+              {isReadOnlyMember ? 'Redirecting to homepage...' : 'Redirecting to dashboard...'}
+            </p>
           </CardContent>
         </Card>
       </div>
