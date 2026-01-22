@@ -60,6 +60,7 @@ function VerifyPageContent() {
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
   const [authProvider, setAuthProvider] = useState<'phone' | 'email' | null>(null);
+  const [isReadOnlyMember, setIsReadOnlyMember] = useState(false); // Invited members don't need phone verification
 
   // Verification status
   const [emailVerified, setEmailVerified] = useState(false);
@@ -124,6 +125,14 @@ function VerifyPageContent() {
           setUserEmail(userData.email || firebaseUser.email || '');
           setUserPhone(userData.phoneNumber || '');
 
+          // Check if user is an invited read-only member
+          // Read-only members only receive end-of-day email reports (no SMS)
+          // They should skip phone verification
+          const isInvitedMember = userData.groups?.some(
+            (g: { role?: string }) => g.role === 'member'
+          ) && !userData.subscriptionTier;
+          setIsReadOnlyMember(isInvitedMember || false);
+
           // Only update verification states if not already verified locally
           // This prevents race conditions when auth state changes after verification
           setEmailVerified(prev => prev || userData.emailVerified || false);
@@ -162,8 +171,12 @@ function VerifyPageContent() {
               }
             }
           } else {
-            // Initial verification: Both must be verified
-            if (emailIsVerified && phoneIsVerified) {
+            // Initial verification: Both must be verified (unless read-only member)
+            // Read-only members only need email verification (they don't receive SMS)
+            const memberOnlyNeedsEmail = isInvitedMember && emailIsVerified;
+            const bothVerified = emailIsVerified && phoneIsVerified;
+
+            if (memberOnlyNeedsEmail || bothVerified) {
               // Set lock to prevent flickering from subsequent auth state changes
               verificationLockRef.current = true;
               // Only schedule redirect once
@@ -508,11 +521,14 @@ function VerifyPageContent() {
   // ==========================================
 
   // Verification complete - redirect to dashboard
-  // For initial verification: both must be verified
+  // For initial verification: both must be verified (unless read-only member)
   // For re-verification: either one being re-verified is sufficient
+  // For read-only members (invited via invite code): only email is required
   const verificationComplete = isReVerification
     ? (emailVerified || phoneVerified)
-    : (emailVerified && phoneVerified);
+    : isReadOnlyMember
+      ? emailVerified  // Read-only members only need email (no SMS sent to them)
+      : (emailVerified && phoneVerified);
 
   useEffect(() => {
     // Only schedule redirect once - don't clear timeout on re-render
@@ -576,7 +592,9 @@ function VerifyPageContent() {
         <p className="text-gray-600 dark:text-gray-400">
           {isReVerification
             ? 'Choose one verification method below to continue'
-            : 'For your security and HIPAA compliance, please verify both your email and phone number'}
+            : isReadOnlyMember
+              ? 'Please verify your email address to access your group'
+              : 'For your security and HIPAA compliance, please verify both your email and phone number'}
         </p>
       </div>
 
@@ -867,7 +885,8 @@ function VerifyPageContent() {
         </CardContent>
       </Card>
 
-      {/* Phone Verification Card */}
+      {/* Phone Verification Card - Hidden for read-only members who only receive emails */}
+      {!isReadOnlyMember && (
       <Card className="border-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-2xl">
@@ -1106,6 +1125,7 @@ function VerifyPageContent() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -1127,6 +1147,8 @@ function VerifyPageContent() {
               <>Verification complete! You can now access the app.</>
             ) : isReVerification ? (
               <>Verify your identity using <strong>either</strong> email or phone to continue.</>
+            ) : isReadOnlyMember ? (
+              <>Please verify your <strong>email</strong> to access your group.</>
             ) : (
               <>Please verify <strong>both</strong> email and phone to continue. This is required for HIPAA compliance and account security.</>
             )}
