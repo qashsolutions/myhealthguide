@@ -102,18 +102,28 @@ export async function POST(req: NextRequest) {
     if (isWithinRefundWindow) {
       // CANCEL WITHIN 3 DAYS: Full refund + immediate cancellation
 
-      // Cancel the subscription immediately
-      await stripe.subscriptions.cancel(stripeSubscriptionId);
-
-      // Find the latest paid invoice for refund
+      // Find the latest paid invoice BEFORE cancelling
+      // (querying after cancellation may not return invoices for a deleted subscription)
       let refundIssued = false;
       let refundAmount = 0;
 
-      const invoices = await stripe.invoices.list({
+      let invoices = await stripe.invoices.list({
         subscription: stripeSubscriptionId,
         status: 'paid',
         limit: 1,
       });
+
+      // Fallback: query by customer ID if subscription query returns empty
+      if (invoices.data.length === 0 && stripeCustomerId) {
+        invoices = await stripe.invoices.list({
+          customer: stripeCustomerId,
+          status: 'paid',
+          limit: 1,
+        });
+      }
+
+      // Cancel the subscription
+      await stripe.subscriptions.cancel(stripeSubscriptionId);
 
       if (invoices.data.length > 0) {
         const invoice = invoices.data[0] as any;
@@ -148,6 +158,31 @@ export async function POST(req: NextRequest) {
         pendingPlanChange: null,
         updatedAt: Timestamp.now(),
       });
+
+      // Send refund confirmation email
+      if (refundIssued) {
+        const userEmail = userData.email;
+        if (userEmail) {
+          await adminDb.collection('mail').add({
+            to: userEmail,
+            message: {
+              subject: 'Your MyGuide Health Subscription Has Been Cancelled & Refunded',
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #1a1a1a;">Subscription Cancelled</h2>
+                  <p>Hi,</p>
+                  <p>Your MyGuide Health subscription has been successfully cancelled.</p>
+                  <p>A refund of <strong>$${refundAmount.toFixed(2)}</strong> has been issued to your original payment method. Please allow 5-10 business days for the refund to appear on your statement.</p>
+                  <p>You can re-subscribe at any time by visiting <a href="https://www.myguide.health/dashboard/settings">your settings page</a>.</p>
+                  <br/>
+                  <p>Thank you,<br/>The MyGuide Health Team</p>
+                </div>
+              `,
+            },
+            createdAt: Timestamp.now(),
+          });
+        }
+      }
 
       return NextResponse.json({
         success: true,
