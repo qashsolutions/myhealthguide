@@ -210,7 +210,7 @@
       ],
       "density": "SPARSE_ALL"
     },
-    {
+        {
       "collectionGroup": "diet_entries",
       "queryScope": "COLLECTION",
       "fields": [
@@ -486,7 +486,7 @@
       ],
       "density": "SPARSE_ALL"
     },
-    {
+        {
       "collectionGroup": "medication_logs",
       "queryScope": "COLLECTION",
       "fields": [
@@ -505,6 +505,29 @@
         {
           "fieldPath": "__name__",
           "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "medication_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "elderId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "groupId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "scheduledTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
         }
       ],
       "density": "SPARSE_ALL"
@@ -763,6 +786,29 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "supplement_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "elderId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "groupId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "scheduledTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+        {
       "collectionGroup": "supplement_logs",
       "queryScope": "COLLECTION",
       "fields": [
