@@ -176,7 +176,7 @@ const SEARCH_KNOWLEDGE_BASE = {
     },
     cancel_subscription: {
       title: 'How to Cancel Subscription',
-      description: 'Go to Dashboard → Settings → Subscription → Manage Subscription. You can cancel anytime. If within 7 days, you\'ll receive a full refund. (Admin only)',
+      description: 'Go to Dashboard → Settings → Subscription → Manage Subscription. You can cancel anytime. If within 3 days, you\'ll receive a full refund. (Admin only)',
       url: '/dashboard/settings',
       requiredRole: 'admin', // Only admins can manage billing
     },

@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     const isWithinRefundWindow = daysSinceStart <= PRICING.REFUND_WINDOW_DAYS;
 
     if (isWithinRefundWindow) {
-      // CANCEL WITHIN 7 DAYS: Full refund + immediate cancellation
+      // CANCEL WITHIN 3 DAYS: Full refund + immediate cancellation
 
       // Cancel the subscription immediately
       await stripe.subscriptions.cancel(stripeSubscriptionId);
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
               reason: 'requested_by_customer',
               metadata: {
                 userId,
-                cancellationReason: reason || 'User requested cancellation within 7 days',
+                cancellationReason: reason || 'User requested cancellation within 3 days',
               },
             });
 
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
       });
 
     } else {
-      // CANCEL AFTER 7 DAYS: No refund, access until end of billing period
+      // CANCEL AFTER 3 DAYS: No refund, access until end of billing period
 
       // Set subscription to cancel at period end
       const updatedSubscription = await stripe.subscriptions.update(stripeSubscriptionId, {

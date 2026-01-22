@@ -52,7 +52,7 @@ export interface UpgradePromptInfo {
 
 // ============= Constants =============
 
-export const REFUND_WINDOW_DAYS = 7;
+export const REFUND_WINDOW_DAYS = 3;
 export const BILLING_CYCLE_DAYS = 30;
 export const TRIAL_DURATION_DAYS = 45;
 export const MULTI_AGENCY_TRIAL_DAYS = 30;

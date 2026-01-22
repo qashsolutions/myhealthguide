@@ -127,7 +127,7 @@ export class ElderBillingService {
 
   /**
    * Cancel an elder subscription
-   * Handles 7-day refund window logic
+   * Handles 3-day refund window logic
    */
   static async cancelElderSubscription(params: {
     subscriptionId: string;
@@ -145,7 +145,7 @@ export class ElderBillingService {
 
     const subscriptionData = subscriptionDoc.data() as ElderSubscription;
 
-    // Check if within 7-day refund window
+    // Check if within 3-day refund window
     const createdAt = subscriptionData.createdAt as any;
     const createdDate = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
     const now = new Date();

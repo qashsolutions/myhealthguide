@@ -71,7 +71,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
         alert(
           data.refundIssued
             ? `Subscription cancelled. Refund of $${data.refundAmount} issued.`
-            : 'Subscription cancelled. No refund issued (outside 7-day window).'
+            : 'Subscription cancelled. No refund issued (outside 3-day window).'
         );
         loadBillingData();
       } else {
@@ -336,7 +336,7 @@ export function AgencyBillingDashboard({ agencyId }: AgencyBillingDashboardProps
                                   </span>
                                 ) : (
                                   <span className="text-orange-600 font-semibold">
-                                    This subscription is NOT eligible for a refund (outside 7-day window).
+                                    This subscription is NOT eligible for a refund (outside 3-day window).
                                     The full ${subscription.monthlyRate} has been charged.
                                   </span>
                                 )}

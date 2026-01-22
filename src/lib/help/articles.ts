@@ -414,7 +414,7 @@ export const helpArticles: HelpArticle[] = [
   {
     id: 'agency-billing',
     title: 'Agency Billing',
-    description: 'Per-elder billing at $30 per 31-day cycle with 7-day refund window',
+    description: 'Per-elder billing at $30 per 31-day cycle with 3-day refund window',
     value: 'Transparent pay-per-elder pricing',
     path: 'Dashboard → Agency → Billing',
     route: '/dashboard/agency',
