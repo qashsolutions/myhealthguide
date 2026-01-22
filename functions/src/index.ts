@@ -2910,13 +2910,12 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
       const groupId = groupDoc.id;
       const memberIds: string[] = group.memberIds || [];
       const adminId = group.adminId;
+      const groupElders = group.elders || []; // Elders array with reportRecipients
 
-      // Include admin in notification recipients
+      // Include admin in notification recipients (account-based recipients)
       const allRecipients = adminId && !memberIds.includes(adminId)
         ? [adminId, ...memberIds]
         : memberIds;
-
-      if (allRecipients.length === 0) continue;
 
       // Get elders in this group
       const eldersSnapshot = await admin.firestore()
@@ -3318,6 +3317,63 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
           }
           // ================================================================
         }
+
+        // ============= SEND TO REPORT RECIPIENTS (EMAIL-ONLY FAMILY MEMBERS) =============
+        // Report recipients are stored on the elder document within the group
+        // They don't have accounts - just email addresses
+        const groupElder = groupElders.find((e: any) => e.id === elderId);
+        const reportRecipients = groupElder?.reportRecipients || [];
+
+        if (reportRecipients.length > 0) {
+          console.log(`Sending to ${reportRecipients.length} report recipient(s) for elder ${elderId}`);
+
+          for (const recipient of reportRecipients) {
+            const recipientEmail = recipient.email;
+            if (!recipientEmail) continue;
+
+            try {
+              // Generate PDF report
+              const pdfBuffer = await generateDailyReportPDF(emailData);
+
+              // Create filename: LovedOneName_MMDDYYYY.pdf
+              const safeElderName = elderName.replace(/[^a-zA-Z0-9]/g, '');
+              const dateForFilename = formatDateForFilename(now);
+              const pdfFilename = `${safeElderName}_${dateForFilename}.pdf`;
+
+              // Write to 'mail' collection with PDF attachment
+              await admin.firestore().collection('mail').add({
+                to: recipientEmail,
+                message: {
+                  subject: `Daily Care Update for ${elderName} - ${formattedDate}`,
+                  html: generateDailyReportEmailHTML(emailData),
+                  attachments: [
+                    {
+                      filename: pdfFilename,
+                      content: pdfBuffer.toString('base64'),
+                      encoding: 'base64',
+                      contentType: 'application/pdf'
+                    }
+                  ]
+                },
+                createdAt: admin.firestore.Timestamp.now(),
+                metadata: {
+                  type: 'daily_family_note',
+                  groupId: groupId,
+                  elderId: elderId,
+                  noteId: noteRef.id,
+                  recipientEmail: recipientEmail,
+                  recipientName: recipient.name || null,
+                  isReportRecipient: true // Flag to identify email-only recipients
+                }
+              });
+              console.log(`Email with PDF queued for report recipient: ${recipientEmail}`);
+            } catch (emailError) {
+              // Log error but don't fail the entire function
+              console.error(`Error queuing email for report recipient ${recipientEmail}:`, emailError);
+            }
+          }
+        }
+        // ================================================================================
 
         notesSent++;
         console.log(`Sent daily note for elder ${elderId}: ${summaryText}`);

@@ -83,7 +83,6 @@ export class GroupService {
         memberIds: data.memberIds || [],
         writeMemberIds: data.writeMemberIds || [],
         elders: data.elders || [],
-        reportRecipients: data.reportRecipients || [],
         subscription: data.subscription,
         settings: data.settings,
         inviteCode: data.inviteCode || '',
@@ -482,7 +481,6 @@ export class GroupService {
           memberIds: data.memberIds || [],
           writeMemberIds: data.writeMemberIds || [],
           elders: data.elders || [],
-          reportRecipients: data.reportRecipients || [],
           subscription: data.subscription,
           settings: data.settings,
           inviteCode: data.inviteCode || '',
@@ -922,23 +920,22 @@ export class GroupService {
     }
   }
 
-  // ============= Report Recipients Management =============
+  // ============= Report Recipients Management (Elder-Level) =============
   // Family members who receive daily health reports via email (no accounts needed)
+  // Recipients are stored on each Elder document, not at group level
 
   /**
-   * Add a report recipient to the group
-   * For Family Plan A: max 1 recipient
-   * For Family Plan B: max 3 recipients
-   * For Multi Agency: 2 recipients per elder
+   * Add a report recipient to an elder
+   * For Family Plan A: max 1 recipient (single elder)
+   * For Family Plan B: max 3 recipients (single elder)
+   * For Multi Agency: max 2 recipients per elder
    */
   static async addReportRecipient(
     groupId: string,
+    elderId: string,
     email: string,
     addedBy: string,
-    options?: {
-      name?: string;
-      elderId?: string; // Required for Multi Agency
-    }
+    name?: string
   ): Promise<ReportRecipient> {
     try {
       const group = await this.getGroup(groupId);
@@ -947,26 +944,22 @@ export class GroupService {
         throw new Error('Group not found');
       }
 
-      // Check if email already exists
-      const existingRecipients = group.reportRecipients || [];
+      // Find the elder
+      const elderIndex = group.elders.findIndex(e => e.id === elderId);
+      if (elderIndex === -1) {
+        throw new Error('Loved one not found');
+      }
+
+      const elder = group.elders[elderIndex];
+      const existingRecipients = elder.reportRecipients || [];
+
+      // Check if email already exists for this elder
       const emailExists = existingRecipients.some(
         r => r.email.toLowerCase() === email.toLowerCase()
       );
 
       if (emailExists) {
-        throw new Error('This email is already a report recipient');
-      }
-
-      // Check plan limits
-      const tier = group.subscription?.tier || 'family';
-
-      if (tier === 'family') {
-        // Family Plan A: 1 recipient, Family Plan B: 3 recipients
-        // We'll check against PLAN_LIMITS on the Settings page
-        // For now, allow up to 3 for family plans
-        if (existingRecipients.length >= 3) {
-          throw new Error('Maximum recipients reached for your plan');
-        }
+        throw new Error('This email is already receiving reports for this loved one');
       }
 
       // Create new recipient (only include defined fields - Firestore rejects undefined)
@@ -978,36 +971,48 @@ export class GroupService {
         verified: false
       };
 
-      // Add optional fields only if defined
-      if (options?.name?.trim()) {
-        newRecipient.name = options.name.trim();
-      }
-      if (options?.elderId) {
-        newRecipient.elderId = options.elderId;
+      // Add optional name only if defined
+      if (name?.trim()) {
+        newRecipient.name = name.trim();
       }
 
-      // Update group with new recipient
+      // Update elder's recipients array
       const updatedRecipients = [...existingRecipients, newRecipient];
 
-      // Convert to Firestore format, filtering out undefined values
-      const firestoreRecipients = updatedRecipients.map(r => {
-        const recipient: Record<string, any> = {
-          id: r.id,
-          email: r.email,
-          addedBy: r.addedBy,
-          addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-          verified: r.verified ?? false
-        };
-        if (r.name) recipient.name = r.name;
-        if (r.elderId) recipient.elderId = r.elderId;
-        if (r.verifiedAt) {
-          recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+      // Create updated elders array
+      const updatedElders = [...group.elders];
+      updatedElders[elderIndex] = {
+        ...elder,
+        reportRecipients: updatedRecipients
+      };
+
+      // Convert to Firestore format
+      const firestoreElders = updatedElders.map(e => {
+        const elderData: Record<string, any> = { ...e };
+
+        // Convert reportRecipients to Firestore format
+        if (elderData.reportRecipients) {
+          elderData.reportRecipients = elderData.reportRecipients.map((r: ReportRecipient) => {
+            const recipient: Record<string, any> = {
+              id: r.id,
+              email: r.email,
+              addedBy: r.addedBy,
+              addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
+              verified: r.verified ?? false
+            };
+            if (r.name) recipient.name = r.name;
+            if (r.verifiedAt) {
+              recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+            }
+            return recipient;
+          });
         }
-        return recipient;
+
+        return elderData;
       });
 
       await updateDoc(doc(db, 'groups', groupId), {
-        reportRecipients: firestoreRecipients,
+        elders: firestoreElders,
         updatedAt: Timestamp.now()
       });
 
@@ -1019,10 +1024,11 @@ export class GroupService {
   }
 
   /**
-   * Remove a report recipient from the group
+   * Remove a report recipient from an elder
    */
   static async removeReportRecipient(
     groupId: string,
+    elderId: string,
     recipientId: string
   ): Promise<void> {
     try {
@@ -1032,28 +1038,49 @@ export class GroupService {
         throw new Error('Group not found');
       }
 
-      const existingRecipients = group.reportRecipients || [];
+      // Find the elder
+      const elderIndex = group.elders.findIndex(e => e.id === elderId);
+      if (elderIndex === -1) {
+        throw new Error('Loved one not found');
+      }
+
+      const elder = group.elders[elderIndex];
+      const existingRecipients = elder.reportRecipients || [];
       const updatedRecipients = existingRecipients.filter(r => r.id !== recipientId);
 
-      // Convert to Firestore format, filtering out undefined values
-      const firestoreRecipients = updatedRecipients.map(r => {
-        const recipient: Record<string, any> = {
-          id: r.id,
-          email: r.email,
-          addedBy: r.addedBy,
-          addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-          verified: r.verified ?? false
-        };
-        if (r.name) recipient.name = r.name;
-        if (r.elderId) recipient.elderId = r.elderId;
-        if (r.verifiedAt) {
-          recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+      // Create updated elders array
+      const updatedElders = [...group.elders];
+      updatedElders[elderIndex] = {
+        ...elder,
+        reportRecipients: updatedRecipients
+      };
+
+      // Convert to Firestore format
+      const firestoreElders = updatedElders.map(e => {
+        const elderData: Record<string, any> = { ...e };
+
+        if (elderData.reportRecipients) {
+          elderData.reportRecipients = elderData.reportRecipients.map((r: ReportRecipient) => {
+            const recipient: Record<string, any> = {
+              id: r.id,
+              email: r.email,
+              addedBy: r.addedBy,
+              addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
+              verified: r.verified ?? false
+            };
+            if (r.name) recipient.name = r.name;
+            if (r.verifiedAt) {
+              recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+            }
+            return recipient;
+          });
         }
-        return recipient;
+
+        return elderData;
       });
 
       await updateDoc(doc(db, 'groups', groupId), {
-        reportRecipients: firestoreRecipients,
+        elders: firestoreElders,
         updatedAt: Timestamp.now()
       });
     } catch (error) {
@@ -1067,6 +1094,7 @@ export class GroupService {
    */
   static async updateReportRecipient(
     groupId: string,
+    elderId: string,
     recipientId: string,
     updates: Partial<Pick<ReportRecipient, 'name' | 'email' | 'verified' | 'verifiedAt'>>
   ): Promise<void> {
@@ -1077,7 +1105,14 @@ export class GroupService {
         throw new Error('Group not found');
       }
 
-      const existingRecipients = group.reportRecipients || [];
+      // Find the elder
+      const elderIndex = group.elders.findIndex(e => e.id === elderId);
+      if (elderIndex === -1) {
+        throw new Error('Loved one not found');
+      }
+
+      const elder = group.elders[elderIndex];
+      const existingRecipients = elder.reportRecipients || [];
       const recipientIndex = existingRecipients.findIndex(r => r.id === recipientId);
 
       if (recipientIndex === -1) {
@@ -1091,7 +1126,7 @@ export class GroupService {
         );
 
         if (emailExists) {
-          throw new Error('This email is already a report recipient');
+          throw new Error('This email is already receiving reports for this loved one');
         }
       }
 
@@ -1104,25 +1139,39 @@ export class GroupService {
       const updatedRecipients = [...existingRecipients];
       updatedRecipients[recipientIndex] = updatedRecipient;
 
-      // Convert to Firestore format, filtering out undefined values
-      const firestoreRecipients = updatedRecipients.map(r => {
-        const recipient: Record<string, any> = {
-          id: r.id,
-          email: r.email,
-          addedBy: r.addedBy,
-          addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-          verified: r.verified ?? false
-        };
-        if (r.name) recipient.name = r.name;
-        if (r.elderId) recipient.elderId = r.elderId;
-        if (r.verifiedAt) {
-          recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+      // Create updated elders array
+      const updatedElders = [...group.elders];
+      updatedElders[elderIndex] = {
+        ...elder,
+        reportRecipients: updatedRecipients
+      };
+
+      // Convert to Firestore format
+      const firestoreElders = updatedElders.map(e => {
+        const elderData: Record<string, any> = { ...e };
+
+        if (elderData.reportRecipients) {
+          elderData.reportRecipients = elderData.reportRecipients.map((r: ReportRecipient) => {
+            const recipient: Record<string, any> = {
+              id: r.id,
+              email: r.email,
+              addedBy: r.addedBy,
+              addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
+              verified: r.verified ?? false
+            };
+            if (r.name) recipient.name = r.name;
+            if (r.verifiedAt) {
+              recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+            }
+            return recipient;
+          });
         }
-        return recipient;
+
+        return elderData;
       });
 
       await updateDoc(doc(db, 'groups', groupId), {
-        reportRecipients: firestoreRecipients,
+        elders: firestoreElders,
         updatedAt: Timestamp.now()
       });
     } catch (error) {
@@ -1132,9 +1181,12 @@ export class GroupService {
   }
 
   /**
-   * Get all report recipients for a group
+   * Get report recipients for a specific elder
    */
-  static async getReportRecipients(groupId: string): Promise<ReportRecipient[]> {
+  static async getElderReportRecipients(
+    groupId: string,
+    elderId: string
+  ): Promise<ReportRecipient[]> {
     try {
       const group = await this.getGroup(groupId);
 
@@ -1142,29 +1194,50 @@ export class GroupService {
         return [];
       }
 
-      return (group.reportRecipients || []).map(r => ({
+      const elder = group.elders.find(e => e.id === elderId);
+      if (!elder) {
+        return [];
+      }
+
+      return (elder.reportRecipients || []).map(r => ({
         ...r,
         addedAt: toSafeDate(r.addedAt),
         verifiedAt: r.verifiedAt ? toSafeDate(r.verifiedAt) : undefined
       }));
     } catch (error) {
-      console.error('Error getting report recipients:', error);
+      console.error('Error getting elder report recipients:', error);
       return [];
     }
   }
 
   /**
-   * Get report recipients for a specific elder (Multi Agency)
+   * Get all report recipients across all elders in a group
+   * Returns recipients with their associated elderId for reference
    */
-  static async getElderReportRecipients(
-    groupId: string,
-    elderId: string
-  ): Promise<ReportRecipient[]> {
+  static async getAllReportRecipients(groupId: string): Promise<Array<ReportRecipient & { elderId: string; elderName: string }>> {
     try {
-      const recipients = await this.getReportRecipients(groupId);
-      return recipients.filter(r => r.elderId === elderId);
+      const group = await this.getGroup(groupId);
+
+      if (!group) {
+        return [];
+      }
+
+      const allRecipients: Array<ReportRecipient & { elderId: string; elderName: string }> = [];
+
+      for (const elder of group.elders) {
+        const elderRecipients = (elder.reportRecipients || []).map(r => ({
+          ...r,
+          elderId: elder.id,
+          elderName: elder.name,
+          addedAt: toSafeDate(r.addedAt),
+          verifiedAt: r.verifiedAt ? toSafeDate(r.verifiedAt) : undefined
+        }));
+        allRecipients.push(...elderRecipients);
+      }
+
+      return allRecipients;
     } catch (error) {
-      console.error('Error getting elder report recipients:', error);
+      console.error('Error getting all report recipients:', error);
       return [];
     }
   }

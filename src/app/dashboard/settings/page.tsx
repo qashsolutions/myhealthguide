@@ -925,11 +925,14 @@ function GroupSettings() {
   const [showMembers, setShowMembers] = useState(true);
   const [agencyName, setAgencyName] = useState<string | null>(null);
 
-  // Report Recipients state
-  const [reportRecipients, setReportRecipients] = useState<any[]>([]);
+  // Report Recipients state (now per-elder)
+  const [elders, setElders] = useState<any[]>([]); // All elders in the group
+  const [elderRecipients, setElderRecipients] = useState<Record<string, any[]>>({}); // elderId -> recipients[]
   const [showReportRecipients, setShowReportRecipients] = useState(true);
+  const [expandedElders, setExpandedElders] = useState<Set<string>>(new Set()); // Track expanded elder sections
   const [newRecipientEmail, setNewRecipientEmail] = useState('');
   const [newRecipientName, setNewRecipientName] = useState('');
+  const [addingRecipientForElder, setAddingRecipientForElder] = useState<string | null>(null); // Which elder we're adding to
   const [addingRecipient, setAddingRecipient] = useState(false);
   const [recipientError, setRecipientError] = useState('');
 
@@ -978,7 +981,7 @@ function GroupSettings() {
   useEffect(() => {
     if (groupId) {
       loadMembers();
-      loadReportRecipients();
+      loadEldersAndRecipients();
     } else {
       setLoading(false);
     }
@@ -1025,28 +1028,49 @@ function GroupSettings() {
     }
   };
 
-  const loadReportRecipients = async () => {
+  const loadEldersAndRecipients = async () => {
     if (!groupId) return;
     try {
-      const recipients = await GroupService.getReportRecipients(groupId);
-      setReportRecipients(recipients);
+      // Get group to access elders
+      const group = await GroupService.getGroup(groupId);
+      if (!group) return;
+
+      const groupElders = group.elders || [];
+      setElders(groupElders);
+
+      // For Family plans with 1 elder, auto-expand that elder
+      if (groupElders.length === 1 && !isMultiAgency) {
+        setExpandedElders(new Set([groupElders[0].id]));
+      }
+
+      // Load recipients for each elder
+      const recipientsByElder: Record<string, any[]> = {};
+      for (const elder of groupElders) {
+        const recipients = await GroupService.getElderReportRecipients(groupId, elder.id);
+        recipientsByElder[elder.id] = recipients;
+      }
+      setElderRecipients(recipientsByElder);
     } catch (error) {
-      console.error('Error loading report recipients:', error);
+      console.error('Error loading elders and recipients:', error);
     }
   };
 
-  // Get max report recipients based on plan using centralized subscription service
-  // Plan A = 1 recipient, Plan B = 3 recipients, Multi Agency = 2 per elder
-  const getMaxReportRecipients = () => {
-    // All plans now use the centralized config
-    // Family A: 1, Family B: 3, Multi Agency: 2 (per elder)
-    return getMaxRecipientsFromService(tier);
+  // Get max report recipients per elder based on plan using centralized subscription service
+  // Plan A = 1 recipient total, Plan B = 3 recipients total, Multi Agency = 2 per elder
+  const maxRecipientsPerElder = getMaxRecipientsFromService(tier);
+
+  // Helper to check if an elder is at recipient limit
+  const isElderAtRecipientLimit = (elderId: string) => {
+    const elderRecipientsList = elderRecipients[elderId] || [];
+    return elderRecipientsList.length >= maxRecipientsPerElder;
   };
 
-  const maxReportRecipients = getMaxReportRecipients();
-  const isAtRecipientLimit = reportRecipients.length >= maxReportRecipients;
+  // Get total recipients across all elders (for display)
+  const getTotalRecipients = () => {
+    return Object.values(elderRecipients).reduce((total, list) => total + list.length, 0);
+  };
 
-  const handleAddRecipient = async () => {
+  const handleAddRecipient = async (elderId: string) => {
     if (!newRecipientEmail.trim()) {
       setRecipientError('Please enter an email address');
       return;
@@ -1059,8 +1083,8 @@ function GroupSettings() {
       return;
     }
 
-    if (isAtRecipientLimit) {
-      setRecipientError(`Maximum ${maxReportRecipients} recipients allowed for your plan`);
+    if (isElderAtRecipientLimit(elderId)) {
+      setRecipientError(`Maximum ${maxRecipientsPerElder} recipients allowed per loved one`);
       return;
     }
 
@@ -1070,17 +1094,19 @@ function GroupSettings() {
 
       await GroupService.addReportRecipient(
         groupId,
+        elderId,
         newRecipientEmail.trim(),
         currentUser.id,
-        { name: newRecipientName.trim() || undefined }
+        newRecipientName.trim() || undefined
       );
 
       // Refresh the list
-      await loadReportRecipients();
+      await loadEldersAndRecipients();
 
       // Clear form
       setNewRecipientEmail('');
       setNewRecipientName('');
+      setAddingRecipientForElder(null);
     } catch (error: any) {
       console.error('Error adding recipient:', error);
       setRecipientError(error.message || 'Failed to add recipient');
@@ -1089,14 +1115,14 @@ function GroupSettings() {
     }
   };
 
-  const handleRemoveRecipient = async (recipientId: string) => {
+  const handleRemoveRecipient = async (elderId: string, recipientId: string) => {
     if (!confirm('Remove this recipient? They will no longer receive daily health reports.')) {
       return;
     }
 
     try {
-      await GroupService.removeReportRecipient(groupId, recipientId);
-      await loadReportRecipients();
+      await GroupService.removeReportRecipient(groupId, elderId, recipientId);
+      await loadEldersAndRecipients();
     } catch (error) {
       console.error('Error removing recipient:', error);
       alert('Failed to remove recipient');
@@ -1371,7 +1397,7 @@ function GroupSettings() {
                 <Mail className="w-5 h-5" />
                 Daily Report Recipients
                 <Badge variant="secondary" className="text-xs">
-                  {reportRecipients.length}/{maxReportRecipients}
+                  {getTotalRecipients()}/{isMultiAgency ? `${maxRecipientsPerElder}/elder` : maxRecipientsPerElder}
                 </Badge>
               </CardTitle>
               <CardDescription>
@@ -1395,120 +1421,195 @@ function GroupSettings() {
               </p>
             </div>
 
-            {/* Add New Recipient Form */}
-            {isGroupAdmin && !isAtRecipientLimit && (
-              <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Add a report recipient</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="recipientEmail" className="text-xs">Email Address *</Label>
-                    <Input
-                      id="recipientEmail"
-                      type="email"
-                      placeholder="family@example.com"
-                      value={newRecipientEmail}
-                      onChange={(e) => {
-                        setNewRecipientEmail(e.target.value);
-                        setRecipientError('');
-                      }}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="recipientName" className="text-xs">Name (optional)</Label>
-                    <Input
-                      id="recipientName"
-                      type="text"
-                      placeholder="Mom, Dad, etc."
-                      value={newRecipientName}
-                      onChange={(e) => setNewRecipientName(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-                {recipientError && (
-                  <p className="text-sm text-red-600 dark:text-red-400">{recipientError}</p>
-                )}
-                <Button
-                  onClick={handleAddRecipient}
-                  disabled={addingRecipient || !newRecipientEmail.trim()}
-                  size="sm"
-                >
-                  {addingRecipient ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Recipient
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* Recipients List */}
-            {reportRecipients.length === 0 ? (
+            {/* No Elders Message */}
+            {elders.length === 0 ? (
               <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-                <Mail className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p>No report recipients added yet</p>
-                <p className="text-sm mt-1">Add family members to receive daily health updates</p>
+                <UsersIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>No loved ones added yet</p>
+                <p className="text-sm mt-1">Add a loved one first to configure report recipients</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {reportRecipients.map((recipient) => (
-                  <div
-                    key={recipient.id}
-                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                        <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {recipient.name || recipient.email}
-                        </p>
-                        {recipient.name && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {recipient.email}
-                          </p>
+              <div className="space-y-4">
+                {elders.map((elder) => {
+                  const elderRecipientsList = elderRecipients[elder.id] || [];
+                  const isExpanded = expandedElders.has(elder.id) || elders.length === 1;
+                  const isAddingForThisElder = addingRecipientForElder === elder.id;
+                  const atLimit = isElderAtRecipientLimit(elder.id);
+
+                  return (
+                    <div key={elder.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      {/* Elder Header - Clickable to expand (only for Multi-Agency with multiple elders) */}
+                      <div
+                        className={`p-3 bg-gray-50 dark:bg-gray-800 flex items-center justify-between ${elders.length > 1 ? 'cursor-pointer' : ''}`}
+                        onClick={() => {
+                          if (elders.length > 1) {
+                            setExpandedElders(prev => {
+                              const next = new Set(prev);
+                              if (next.has(elder.id)) {
+                                next.delete(elder.id);
+                              } else {
+                                next.add(elder.id);
+                              }
+                              return next;
+                            });
+                          }
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                            <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                              {elder.name?.[0]?.toUpperCase() || 'L'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">{elder.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {elderRecipientsList.length}/{maxRecipientsPerElder} recipients
+                            </p>
+                          </div>
+                        </div>
+                        {elders.length > 1 && (
+                          isExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                          )
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        Added
-                      </Badge>
-                      {isGroupAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveRecipient(recipient.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+
+                      {/* Elder Content - Recipients */}
+                      {isExpanded && (
+                        <div className="p-3 space-y-3">
+                          {/* Recipients List */}
+                          {elderRecipientsList.length === 0 ? (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                              No recipients yet
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {elderRecipientsList.map((recipient) => (
+                                <div
+                                  key={recipient.id}
+                                  className="flex items-center justify-between p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                    <div>
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                        {recipient.name || recipient.email}
+                                      </p>
+                                      {recipient.name && (
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                          {recipient.email}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {isGroupAdmin && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleRemoveRecipient(elder.id, recipient.id)}
+                                      className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Add Recipient Form */}
+                          {isGroupAdmin && !atLimit && (
+                            isAddingForThisElder ? (
+                              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <div>
+                                    <Label className="text-xs">Email *</Label>
+                                    <Input
+                                      type="email"
+                                      placeholder="family@example.com"
+                                      value={newRecipientEmail}
+                                      onChange={(e) => {
+                                        setNewRecipientEmail(e.target.value);
+                                        setRecipientError('');
+                                      }}
+                                      className="mt-1 h-8"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">Name (optional)</Label>
+                                    <Input
+                                      type="text"
+                                      placeholder="Mom, Dad, etc."
+                                      value={newRecipientName}
+                                      onChange={(e) => setNewRecipientName(e.target.value)}
+                                      className="mt-1 h-8"
+                                    />
+                                  </div>
+                                </div>
+                                {recipientError && (
+                                  <p className="text-xs text-red-600 dark:text-red-400">{recipientError}</p>
+                                )}
+                                <div className="flex gap-2">
+                                  <Button
+                                    onClick={() => handleAddRecipient(elder.id)}
+                                    disabled={addingRecipient || !newRecipientEmail.trim()}
+                                    size="sm"
+                                    className="h-7"
+                                  >
+                                    {addingRecipient ? (
+                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <Plus className="w-3 h-3 mr-1" />
+                                    )}
+                                    Add
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7"
+                                    onClick={() => {
+                                      setAddingRecipientForElder(null);
+                                      setNewRecipientEmail('');
+                                      setNewRecipientName('');
+                                      setRecipientError('');
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full h-8"
+                                onClick={() => setAddingRecipientForElder(elder.id)}
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add Recipient
+                              </Button>
+                            )
+                          )}
+
+                          {/* At Limit Message */}
+                          {atLimit && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+                              Maximum {maxRecipientsPerElder} recipients for this loved one.
+                              {!isMultiAgency && (
+                                <Link href="/dashboard/settings?tab=subscription" className="ml-1 font-medium text-blue-600">
+                                  Upgrade
+                                </Link>
+                              )}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* At Limit Message */}
-            {isAtRecipientLimit && (
-              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  {planInfo.label} limit: {maxReportRecipients} recipients.
-                  {!isMultiAgency && (
-                    <Link href="/dashboard/settings?tab=subscription" className="ml-1 font-medium text-blue-600 hover:text-blue-700">
-                      Upgrade for more
-                    </Link>
-                  )}
-                </p>
+                  );
+                })}
               </div>
             )}
           </CardContent>
