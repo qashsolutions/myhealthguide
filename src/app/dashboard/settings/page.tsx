@@ -901,7 +901,7 @@ function AISettings() {
 }
 
 // Plan member limits - now using centralized subscription service
-import { useSubscription, getMaxMembers as getMaxMembersFromService, getPlanDisplayInfo } from '@/lib/subscription';
+import { useSubscription, getMaxMembers as getMaxMembersFromService, getMaxRecipients as getMaxRecipientsFromService, getPlanDisplayInfo } from '@/lib/subscription';
 
 // Helper to get member plan info using centralized service
 function getMemberPlanInfo(tier: string | null | undefined) {
@@ -1035,14 +1035,12 @@ function GroupSettings() {
     }
   };
 
-  // Get max report recipients based on plan
+  // Get max report recipients based on plan using centralized subscription service
+  // Plan A = 1 recipient, Plan B = 3 recipients, Multi Agency = 6 per group (2 per elder)
   const getMaxReportRecipients = () => {
     if (tier === 'multi_agency') return 6; // 2 per elder, assuming max 3 elders
-    if (tier === 'single_agency') return 3;
-    // Family plans: check if Plan A or Plan B based on current subscription
-    // Plan A = 1, Plan B = 3
-    // For simplicity, we'll use maxMembers which already handles this
-    return maxMembers;
+    // For Family plans, use the centralized config (maxRecipients = maxMembers - 1)
+    return getMaxRecipientsFromService(tier);
   };
 
   const maxReportRecipients = getMaxReportRecipients();

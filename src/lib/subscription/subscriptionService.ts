@@ -84,7 +84,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
       maxElders: 1,
       maxMembers: 2,
       maxGroups: 1,
-      maxRecipients: 2,
+      maxRecipients: 1, // 1 caregiver + 1 member = 2 total, but only 1 report recipient
       storageMB: 25,
       storageBytes: 25 * 1024 * 1024,
     },
@@ -102,7 +102,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
       maxElders: 1,
       maxMembers: 4,
       maxGroups: 1,
-      maxRecipients: 4,
+      maxRecipients: 3, // 1 caregiver + 3 members = 4 total, but only 3 report recipients
       storageMB: 50,
       storageBytes: 50 * 1024 * 1024,
     },
