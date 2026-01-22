@@ -18,6 +18,7 @@ interface InviteCodeDialogProps {
   userId: string;
   userName: string;
   maxMembers?: number; // Plan limit for max members
+  inviteType?: 'caregiver' | 'member'; // Type of invite (caregiver for Multi Agency)
 }
 
 export function InviteCodeDialog({
@@ -27,8 +28,10 @@ export function InviteCodeDialog({
   groupName,
   userId,
   userName,
-  maxMembers = 2
+  maxMembers = 2,
+  inviteType = 'caregiver' // Default to caregiver for new simplified flow
 }: InviteCodeDialogProps) {
+  // For caregiver invites, role is always 'member' (caregiver role is assigned by agency)
   const [role, setRole] = useState<'admin' | 'member'>('member');
   const [maxUses, setMaxUses] = useState(5);
   const [expiresInDays, setExpiresInDays] = useState(7);
@@ -104,15 +107,30 @@ export function InviteCodeDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Invite to {groupName}</DialogTitle>
+          <DialogTitle>
+            {inviteType === 'caregiver' ? 'Invite Caregiver' : `Invite to ${groupName}`}
+          </DialogTitle>
           <DialogDescription>
-            Create an invite link to add members to your group (max {maxMembers} members total)
+            {inviteType === 'caregiver'
+              ? `Create an invite link to add a caregiver to your agency (max ${maxMembers} caregivers)`
+              : `Create an invite link to add members to your group (max ${maxMembers} members total)`
+            }
           </DialogDescription>
         </DialogHeader>
 
         {!generatedInvite ? (
           <div className="space-y-4">
-            {/* Role Selection */}
+            {/* Info Box for Caregiver Invites */}
+            {inviteType === 'caregiver' && (
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  Caregivers can view and log health data for their assigned loved ones. They will need to create an account to accept the invitation.
+                </p>
+              </div>
+            )}
+
+            {/* Role Selection - Only show for non-caregiver invites */}
+            {inviteType !== 'caregiver' && (
             <div className="space-y-2">
               <Label>Access Level</Label>
               <div className="flex gap-2">
@@ -144,6 +162,7 @@ export function InviteCodeDialog({
                 </button>
               </div>
             </div>
+            )}
 
             {/* Max Uses */}
             <div className="space-y-2">
@@ -253,7 +272,10 @@ export function InviteCodeDialog({
             {/* Info */}
             <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
               <p className="text-xs text-gray-700 dark:text-gray-300">
-                Share this link with someone to invite them to your group. They&apos;ll need to create an account or sign in to accept the invitation.
+                {inviteType === 'caregiver'
+                  ? 'Share this link with a caregiver to invite them to your agency. They\'ll need to create an account and verify their phone number to accept.'
+                  : 'Share this link with someone to invite them to your group. They\'ll need to create an account or sign in to accept the invitation.'
+                }
               </p>
             </div>
           </div>

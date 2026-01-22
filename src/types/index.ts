@@ -55,6 +55,19 @@ export interface UserPreferences {
 export type PermissionLevel = 'admin' | 'write' | 'read';
 export type UserRole = 'admin' | 'caregiver' | 'caregiver_admin' | 'super_admin';
 
+// Report Recipients - family members who receive daily health reports via email
+// These are NOT user accounts - just email addresses stored in the group
+export interface ReportRecipient {
+  id: string;           // Unique ID for this recipient
+  email: string;        // Required - where to send reports
+  name?: string;        // Optional - display name
+  elderId?: string;     // For Multi Agency - which elder this recipient is for
+  addedBy: string;      // User ID who added this recipient
+  addedAt: Date;        // When added
+  verified?: boolean;   // Email verification status
+  verifiedAt?: Date;    // When email was verified
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -65,6 +78,7 @@ export interface Group {
   memberIds: string[]; // For Firestore rules - array of user IDs for easy membership checking
   writeMemberIds: string[]; // User IDs with write permission (max 1) - for efficient Firestore rules checking
   elders: Elder[];
+  reportRecipients?: ReportRecipient[]; // Family members who receive daily email reports (no accounts needed)
   subscription: Subscription;
   settings: GroupSettings;
   inviteCode: string; // 6-digit alphanumeric (encrypted)

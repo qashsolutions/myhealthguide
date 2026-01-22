@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings, Download, Building2, LogOut } from 'lucide-react';
+import { Bell, User, Shield, CreditCard, Users as UsersIcon, History, UserPlus, Database, Sparkles, Activity, BellRing, AlertCircle, Loader2, Mail, Info, ChevronDown, ChevronUp, ArrowUpRight, Eye, Edit3, Settings, Download, Building2, LogOut, Plus, X, Send } from 'lucide-react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
@@ -925,6 +925,14 @@ function GroupSettings() {
   const [showMembers, setShowMembers] = useState(true);
   const [agencyName, setAgencyName] = useState<string | null>(null);
 
+  // Report Recipients state
+  const [reportRecipients, setReportRecipients] = useState<any[]>([]);
+  const [showReportRecipients, setShowReportRecipients] = useState(true);
+  const [newRecipientEmail, setNewRecipientEmail] = useState('');
+  const [newRecipientName, setNewRecipientName] = useState('');
+  const [addingRecipient, setAddingRecipient] = useState(false);
+  const [recipientError, setRecipientError] = useState('');
+
   // Get actual user and group data from auth context
   const currentUser = {
     id: user?.id || '',
@@ -967,6 +975,7 @@ function GroupSettings() {
   useEffect(() => {
     if (groupId) {
       loadMembers();
+      loadReportRecipients();
     } else {
       setLoading(false);
     }
@@ -1010,6 +1019,86 @@ function GroupSettings() {
       setMembers([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadReportRecipients = async () => {
+    if (!groupId) return;
+    try {
+      const recipients = await GroupService.getReportRecipients(groupId);
+      setReportRecipients(recipients);
+    } catch (error) {
+      console.error('Error loading report recipients:', error);
+    }
+  };
+
+  // Get max report recipients based on plan
+  const getMaxReportRecipients = () => {
+    if (tier === 'multi_agency') return 6; // 2 per elder, assuming max 3 elders
+    if (tier === 'single_agency') return 3;
+    // Family plans: check if Plan A or Plan B based on current subscription
+    // Plan A = 1, Plan B = 3
+    // For simplicity, we'll use maxMembers which already handles this
+    return maxMembers;
+  };
+
+  const maxReportRecipients = getMaxReportRecipients();
+  const isAtRecipientLimit = reportRecipients.length >= maxReportRecipients;
+
+  const handleAddRecipient = async () => {
+    if (!newRecipientEmail.trim()) {
+      setRecipientError('Please enter an email address');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newRecipientEmail.trim())) {
+      setRecipientError('Please enter a valid email address');
+      return;
+    }
+
+    if (isAtRecipientLimit) {
+      setRecipientError(`Maximum ${maxReportRecipients} recipients allowed for your plan`);
+      return;
+    }
+
+    try {
+      setAddingRecipient(true);
+      setRecipientError('');
+
+      await GroupService.addReportRecipient(
+        groupId,
+        newRecipientEmail.trim(),
+        currentUser.id,
+        { name: newRecipientName.trim() || undefined }
+      );
+
+      // Refresh the list
+      await loadReportRecipients();
+
+      // Clear form
+      setNewRecipientEmail('');
+      setNewRecipientName('');
+    } catch (error: any) {
+      console.error('Error adding recipient:', error);
+      setRecipientError(error.message || 'Failed to add recipient');
+    } finally {
+      setAddingRecipient(false);
+    }
+  };
+
+  const handleRemoveRecipient = async (recipientId: string) => {
+    if (!confirm('Remove this recipient? They will no longer receive daily health reports.')) {
+      return;
+    }
+
+    try {
+      await GroupService.removeReportRecipient(groupId, recipientId);
+      await loadReportRecipients();
+    } catch (error) {
+      console.error('Error removing recipient:', error);
+      alert('Failed to remove recipient');
     }
   };
 
@@ -1236,6 +1325,159 @@ function GroupSettings() {
         </CardContent>
       </Card>
 
+      {/* Report Recipients Card - Family members who receive daily health reports */}
+      <Card>
+        <CardHeader className="cursor-pointer" onClick={() => setShowReportRecipients(!showReportRecipients)}>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5" />
+                Daily Report Recipients
+                <Badge variant="secondary" className="text-xs">
+                  {reportRecipients.length}/{maxReportRecipients}
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Family members who receive daily health reports via email
+              </CardDescription>
+            </div>
+            {showReportRecipients ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </div>
+        </CardHeader>
+        {showReportRecipients && (
+          <CardContent className="space-y-4">
+            {/* Info Box */}
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <Info className="w-4 h-4 inline mr-1" />
+                Recipients will receive a daily email summary with your loved one&apos;s health updates including medications, meals, and activities. No account needed.
+              </p>
+            </div>
+
+            {/* Add New Recipient Form */}
+            {isGroupAdmin && !isAtRecipientLimit && (
+              <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Add a report recipient</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="recipientEmail" className="text-xs">Email Address *</Label>
+                    <Input
+                      id="recipientEmail"
+                      type="email"
+                      placeholder="family@example.com"
+                      value={newRecipientEmail}
+                      onChange={(e) => {
+                        setNewRecipientEmail(e.target.value);
+                        setRecipientError('');
+                      }}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="recipientName" className="text-xs">Name (optional)</Label>
+                    <Input
+                      id="recipientName"
+                      type="text"
+                      placeholder="Mom, Dad, etc."
+                      value={newRecipientName}
+                      onChange={(e) => setNewRecipientName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                {recipientError && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{recipientError}</p>
+                )}
+                <Button
+                  onClick={handleAddRecipient}
+                  disabled={addingRecipient || !newRecipientEmail.trim()}
+                  size="sm"
+                >
+                  {addingRecipient ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Recipient
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Recipients List */}
+            {reportRecipients.length === 0 ? (
+              <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+                <Mail className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>No report recipients added yet</p>
+                <p className="text-sm mt-1">Add family members to receive daily health updates</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {reportRecipients.map((recipient) => (
+                  <div
+                    key={recipient.id}
+                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {recipient.name || recipient.email}
+                        </p>
+                        {recipient.name && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {recipient.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={recipient.verified ? 'default' : 'secondary'} className="text-xs">
+                        {recipient.verified ? 'Receiving Reports' : 'Pending'}
+                      </Badge>
+                      {isGroupAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveRecipient(recipient.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* At Limit Message */}
+            {isAtRecipientLimit && (
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  {planInfo.label} limit: {maxReportRecipients} recipients.
+                  {!isMultiAgency && (
+                    <Link href="/dashboard/settings?tab=subscription" className="ml-1 font-medium text-blue-600 hover:text-blue-700">
+                      Upgrade for more
+                    </Link>
+                  )}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
       {/* Role Permissions Card - Collapsible */}
       <Card>
         <CardHeader className="cursor-pointer" onClick={() => setShowRolePermissions(!showRolePermissions)}>
@@ -1339,98 +1581,92 @@ function GroupSettings() {
         <PermissionManager groupId={groupId} adminId={currentUser.id} />
       )}
 
-      {/* Members - Collapsible */}
-      <Card>
-        <CardHeader className="cursor-pointer" onClick={() => setShowMembers(!showMembers)}>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                Group Members
-                <Badge variant="secondary" className="text-xs">
-                  {members.length}/{maxMembers}
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                Manage members and their roles
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {!isAtLimit && showMembers && (
-                <Button onClick={(e) => { e.stopPropagation(); setShowInviteDialog(true); }}>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Invite Member
-                </Button>
-              )}
-              {showMembers ? (
-                <ChevronUp className="w-5 h-5 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-500" />
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        {showMembers && (
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              Loading members...
-            </div>
-          ) : members.length === 0 ? (
-            <div className="text-center py-8">
-              <UsersIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                No members yet
-              </p>
-              <Button onClick={() => setShowInviteDialog(true)}>
-                Invite Your First Member
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {members.map((member) => (
-                <MemberCard
-                  key={member.userId}
-                  member={member}
-                  isCurrentUser={member.userId === currentUser.id}
-                  isGroupAdmin={isGroupAdmin}
-                  canManageMembers={isGroupAdmin}
-                  onUpdateRole={handleUpdateRole}
-                  onRemove={handleRemoveMember}
-                  onTransferOwnership={handleTransferOwnership}
-                />
-              ))}
-              {!isAtLimit && (
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowInviteDialog(true)}
-                    className="w-full"
-                  >
+      {/* Caregivers - Only show for Multi Agency */}
+      {isMultiAgency && (
+        <Card>
+          <CardHeader className="cursor-pointer" onClick={() => setShowMembers(!showMembers)}>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  Caregivers
+                  <Badge variant="secondary" className="text-xs">
+                    {members.length}/{maxMembers}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Manage caregivers who can log data for assigned loved ones
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {!isAtLimit && showMembers && (
+                  <Button onClick={(e) => { e.stopPropagation(); setShowInviteDialog(true); }}>
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Invite Another Member
+                    Invite Caregiver
                   </Button>
-                </div>
-              )}
-              {isAtLimit && (
-                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    {isTrial
-                      ? `Trial limit: ${maxMembers} members. Subscribe for more.`
-                      : `${planInfo.label} limit: ${maxMembers} members.`
-                    }
-                    {!isMultiAgency && (
-                      <Link href={isTrial ? '/pricing' : '/dashboard/settings?tab=subscription'} className="ml-1 font-medium text-blue-600 hover:text-blue-700">
-                        Upgrade
-                      </Link>
-                    )}
-                  </p>
-                </div>
-              )}
+                )}
+                {showMembers ? (
+                  <ChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </div>
             </div>
+          </CardHeader>
+          {showMembers && (
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                Loading caregivers...
+              </div>
+            ) : members.length === 0 ? (
+              <div className="text-center py-8">
+                <UsersIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  No caregivers yet
+                </p>
+                <Button onClick={() => setShowInviteDialog(true)}>
+                  Invite Your First Caregiver
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {members.map((member) => (
+                  <MemberCard
+                    key={member.userId}
+                    member={member}
+                    isCurrentUser={member.userId === currentUser.id}
+                    isGroupAdmin={isGroupAdmin}
+                    canManageMembers={isGroupAdmin}
+                    onUpdateRole={handleUpdateRole}
+                    onRemove={handleRemoveMember}
+                    onTransferOwnership={handleTransferOwnership}
+                  />
+                ))}
+                {!isAtLimit && (
+                  <div className="pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowInviteDialog(true)}
+                      className="w-full"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Invite Another Caregiver
+                    </Button>
+                  </div>
+                )}
+                {isAtLimit && (
+                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      Maximum {maxMembers} caregivers reached for Multi Agency plan.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
           )}
-        </CardContent>
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/* Invite Dialog */}
       <InviteCodeDialog

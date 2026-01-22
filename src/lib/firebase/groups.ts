@@ -16,7 +16,7 @@ import {
   deleteDoc
 } from 'firebase/firestore';
 import { db } from './config';
-import { Group, GroupMember, Permission, PermissionLevel, PendingApproval } from '@/types';
+import { Group, GroupMember, Permission, PermissionLevel, PendingApproval, ReportRecipient } from '@/types';
 import { generateInviteCode, encryptInviteCode, decryptInviteCode } from '@/lib/utils/inviteCode';
 import { NotificationService } from './notifications';
 import { canCreateGroup, canAddGroupMember } from './planLimits';
@@ -83,6 +83,7 @@ export class GroupService {
         memberIds: data.memberIds || [],
         writeMemberIds: data.writeMemberIds || [],
         elders: data.elders || [],
+        reportRecipients: data.reportRecipients || [],
         subscription: data.subscription,
         settings: data.settings,
         inviteCode: data.inviteCode || '',
@@ -481,6 +482,7 @@ export class GroupService {
           memberIds: data.memberIds || [],
           writeMemberIds: data.writeMemberIds || [],
           elders: data.elders || [],
+          reportRecipients: data.reportRecipients || [],
           subscription: data.subscription,
           settings: data.settings,
           inviteCode: data.inviteCode || '',
@@ -917,6 +919,208 @@ export class GroupService {
     } catch (error) {
       console.error('Error deleting approval:', error);
       throw error;
+    }
+  }
+
+  // ============= Report Recipients Management =============
+  // Family members who receive daily health reports via email (no accounts needed)
+
+  /**
+   * Add a report recipient to the group
+   * For Family Plan A: max 1 recipient
+   * For Family Plan B: max 3 recipients
+   * For Multi Agency: 2 recipients per elder
+   */
+  static async addReportRecipient(
+    groupId: string,
+    email: string,
+    addedBy: string,
+    options?: {
+      name?: string;
+      elderId?: string; // Required for Multi Agency
+    }
+  ): Promise<ReportRecipient> {
+    try {
+      const group = await this.getGroup(groupId);
+
+      if (!group) {
+        throw new Error('Group not found');
+      }
+
+      // Check if email already exists
+      const existingRecipients = group.reportRecipients || [];
+      const emailExists = existingRecipients.some(
+        r => r.email.toLowerCase() === email.toLowerCase()
+      );
+
+      if (emailExists) {
+        throw new Error('This email is already a report recipient');
+      }
+
+      // Check plan limits
+      const tier = group.subscription?.tier || 'family';
+
+      if (tier === 'family') {
+        // Family Plan A: 1 recipient, Family Plan B: 3 recipients
+        // We'll check against PLAN_LIMITS on the Settings page
+        // For now, allow up to 3 for family plans
+        if (existingRecipients.length >= 3) {
+          throw new Error('Maximum recipients reached for your plan');
+        }
+      }
+
+      // Create new recipient
+      const newRecipient: ReportRecipient = {
+        id: crypto.randomUUID(),
+        email: email.toLowerCase().trim(),
+        name: options?.name?.trim(),
+        elderId: options?.elderId,
+        addedBy,
+        addedAt: new Date(),
+        verified: false
+      };
+
+      // Update group with new recipient
+      const updatedRecipients = [...existingRecipients, newRecipient];
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        reportRecipients: updatedRecipients.map(r => ({
+          ...r,
+          addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
+          verifiedAt: r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt
+        })),
+        updatedAt: Timestamp.now()
+      });
+
+      return newRecipient;
+    } catch (error) {
+      console.error('Error adding report recipient:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove a report recipient from the group
+   */
+  static async removeReportRecipient(
+    groupId: string,
+    recipientId: string
+  ): Promise<void> {
+    try {
+      const group = await this.getGroup(groupId);
+
+      if (!group) {
+        throw new Error('Group not found');
+      }
+
+      const existingRecipients = group.reportRecipients || [];
+      const updatedRecipients = existingRecipients.filter(r => r.id !== recipientId);
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        reportRecipients: updatedRecipients.map(r => ({
+          ...r,
+          addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
+          verifiedAt: r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt
+        })),
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error removing report recipient:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a report recipient's details
+   */
+  static async updateReportRecipient(
+    groupId: string,
+    recipientId: string,
+    updates: Partial<Pick<ReportRecipient, 'name' | 'email' | 'verified' | 'verifiedAt'>>
+  ): Promise<void> {
+    try {
+      const group = await this.getGroup(groupId);
+
+      if (!group) {
+        throw new Error('Group not found');
+      }
+
+      const existingRecipients = group.reportRecipients || [];
+      const recipientIndex = existingRecipients.findIndex(r => r.id === recipientId);
+
+      if (recipientIndex === -1) {
+        throw new Error('Recipient not found');
+      }
+
+      // Check if new email already exists (if email is being updated)
+      if (updates.email) {
+        const emailExists = existingRecipients.some(
+          r => r.id !== recipientId && r.email.toLowerCase() === updates.email!.toLowerCase()
+        );
+
+        if (emailExists) {
+          throw new Error('This email is already a report recipient');
+        }
+      }
+
+      const updatedRecipient = {
+        ...existingRecipients[recipientIndex],
+        ...updates,
+        email: updates.email?.toLowerCase().trim() || existingRecipients[recipientIndex].email
+      };
+
+      const updatedRecipients = [...existingRecipients];
+      updatedRecipients[recipientIndex] = updatedRecipient;
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        reportRecipients: updatedRecipients.map(r => ({
+          ...r,
+          addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
+          verifiedAt: r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt
+        })),
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error updating report recipient:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all report recipients for a group
+   */
+  static async getReportRecipients(groupId: string): Promise<ReportRecipient[]> {
+    try {
+      const group = await this.getGroup(groupId);
+
+      if (!group) {
+        return [];
+      }
+
+      return (group.reportRecipients || []).map(r => ({
+        ...r,
+        addedAt: toSafeDate(r.addedAt),
+        verifiedAt: r.verifiedAt ? toSafeDate(r.verifiedAt) : undefined
+      }));
+    } catch (error) {
+      console.error('Error getting report recipients:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get report recipients for a specific elder (Multi Agency)
+   */
+  static async getElderReportRecipients(
+    groupId: string,
+    elderId: string
+  ): Promise<ReportRecipient[]> {
+    try {
+      const recipients = await this.getReportRecipients(groupId);
+      return recipients.filter(r => r.elderId === elderId);
+    } catch (error) {
+      console.error('Error getting elder report recipients:', error);
+      return [];
     }
   }
 }
