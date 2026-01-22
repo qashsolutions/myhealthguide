@@ -117,15 +117,15 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     priceNote: '/elder/month',
     rank: 3,
     limits: {
-      maxElders: 30,
+      maxElders: 30,                    // Total elders across agency (10 caregivers × 3 elders)
       maxMembers: 4,
       maxGroups: 10,
-      maxRecipients: 10,
+      maxRecipients: 2,                 // Per elder (family members who receive daily reports)
       storageMB: 500,
       storageBytes: 500 * 1024 * 1024,
-      maxCaregivers: 10,
-      maxEldersPerCaregiver: 3,
-      maxMembersPerCaregiver: 2,
+      maxCaregivers: 10,                // Max caregivers per agency
+      maxEldersPerCaregiver: 3,         // Each caregiver can manage up to 3 elders
+      maxMembersPerCaregiver: 2,        // Report recipients per elder
       maxMembersPerGroup: 4,
     },
     features: [

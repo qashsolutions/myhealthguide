@@ -1036,10 +1036,10 @@ function GroupSettings() {
   };
 
   // Get max report recipients based on plan using centralized subscription service
-  // Plan A = 1 recipient, Plan B = 3 recipients, Multi Agency = 6 per group (2 per elder)
+  // Plan A = 1 recipient, Plan B = 3 recipients, Multi Agency = 2 per elder
   const getMaxReportRecipients = () => {
-    if (tier === 'multi_agency') return 6; // 2 per elder, assuming max 3 elders
-    // For Family plans, use the centralized config (maxRecipients = maxMembers - 1)
+    // All plans now use the centralized config
+    // Family A: 1, Family B: 3, Multi Agency: 2 (per elder)
     return getMaxRecipientsFromService(tier);
   };
 
