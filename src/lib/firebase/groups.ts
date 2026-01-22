@@ -969,26 +969,45 @@ export class GroupService {
         }
       }
 
-      // Create new recipient
+      // Create new recipient (only include defined fields - Firestore rejects undefined)
       const newRecipient: ReportRecipient = {
         id: crypto.randomUUID(),
         email: email.toLowerCase().trim(),
-        name: options?.name?.trim(),
-        elderId: options?.elderId,
         addedBy,
         addedAt: new Date(),
         verified: false
       };
 
+      // Add optional fields only if defined
+      if (options?.name?.trim()) {
+        newRecipient.name = options.name.trim();
+      }
+      if (options?.elderId) {
+        newRecipient.elderId = options.elderId;
+      }
+
       // Update group with new recipient
       const updatedRecipients = [...existingRecipients, newRecipient];
 
-      await updateDoc(doc(db, 'groups', groupId), {
-        reportRecipients: updatedRecipients.map(r => ({
-          ...r,
+      // Convert to Firestore format, filtering out undefined values
+      const firestoreRecipients = updatedRecipients.map(r => {
+        const recipient: Record<string, any> = {
+          id: r.id,
+          email: r.email,
+          addedBy: r.addedBy,
           addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-          verifiedAt: r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt
-        })),
+          verified: r.verified ?? false
+        };
+        if (r.name) recipient.name = r.name;
+        if (r.elderId) recipient.elderId = r.elderId;
+        if (r.verifiedAt) {
+          recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+        }
+        return recipient;
+      });
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        reportRecipients: firestoreRecipients,
         updatedAt: Timestamp.now()
       });
 
@@ -1016,12 +1035,25 @@ export class GroupService {
       const existingRecipients = group.reportRecipients || [];
       const updatedRecipients = existingRecipients.filter(r => r.id !== recipientId);
 
-      await updateDoc(doc(db, 'groups', groupId), {
-        reportRecipients: updatedRecipients.map(r => ({
-          ...r,
+      // Convert to Firestore format, filtering out undefined values
+      const firestoreRecipients = updatedRecipients.map(r => {
+        const recipient: Record<string, any> = {
+          id: r.id,
+          email: r.email,
+          addedBy: r.addedBy,
           addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-          verifiedAt: r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt
-        })),
+          verified: r.verified ?? false
+        };
+        if (r.name) recipient.name = r.name;
+        if (r.elderId) recipient.elderId = r.elderId;
+        if (r.verifiedAt) {
+          recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+        }
+        return recipient;
+      });
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        reportRecipients: firestoreRecipients,
         updatedAt: Timestamp.now()
       });
     } catch (error) {
@@ -1072,12 +1104,25 @@ export class GroupService {
       const updatedRecipients = [...existingRecipients];
       updatedRecipients[recipientIndex] = updatedRecipient;
 
-      await updateDoc(doc(db, 'groups', groupId), {
-        reportRecipients: updatedRecipients.map(r => ({
-          ...r,
+      // Convert to Firestore format, filtering out undefined values
+      const firestoreRecipients = updatedRecipients.map(r => {
+        const recipient: Record<string, any> = {
+          id: r.id,
+          email: r.email,
+          addedBy: r.addedBy,
           addedAt: r.addedAt instanceof Date ? Timestamp.fromDate(r.addedAt) : r.addedAt,
-          verifiedAt: r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt
-        })),
+          verified: r.verified ?? false
+        };
+        if (r.name) recipient.name = r.name;
+        if (r.elderId) recipient.elderId = r.elderId;
+        if (r.verifiedAt) {
+          recipient.verifiedAt = r.verifiedAt instanceof Date ? Timestamp.fromDate(r.verifiedAt) : r.verifiedAt;
+        }
+        return recipient;
+      });
+
+      await updateDoc(doc(db, 'groups', groupId), {
+        reportRecipients: firestoreRecipients,
         updatedAt: Timestamp.now()
       });
     } catch (error) {
