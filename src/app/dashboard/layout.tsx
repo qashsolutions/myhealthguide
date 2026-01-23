@@ -15,6 +15,7 @@ import { MinimalHeader } from '@/components/navigation/MinimalHeader';
 import { BottomNav } from '@/components/navigation/BottomNav';
 import { IconRail } from '@/components/navigation/IconRail';
 import { MoreMenuDrawer } from '@/components/navigation/MoreMenuDrawer';
+import { TaskPriorityProvider } from '@/contexts/TaskPriorityContext';
 
 // Component that uses session tracking - must be inside ElderProvider
 function SessionTracker() {
@@ -59,6 +60,7 @@ function DashboardContent({ children }: { children: ReactNode }) {
 
   return (
     <ElderProvider>
+      <TaskPriorityProvider>
       {/* Session tracking - inside ElderProvider */}
       <SessionTracker />
 
@@ -109,6 +111,7 @@ function DashboardContent({ children }: { children: ReactNode }) {
           onClose={() => setIsMoreMenuOpen(false)}
         />
       </div>
+    </TaskPriorityProvider>
     </ElderProvider>
   );
 }
