@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, CheckCircle2, ChevronRight, Loader2, DollarSign, Clock, UserX, AlertCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, Loader2, DollarSign, Clock, UserX, AlertCircle, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,7 @@ const MULTI_AGENCY_PRICE_PER_ELDER = 55;
 interface NeedsAttentionListProps {
   elderCount: number;
   maxElders: number;
+  caregiverCount: number;
   noShowCount: number;
   unconfirmedCount: number;
   overtimeCount: number;
@@ -25,11 +26,13 @@ interface AttentionItem {
   type: 'urgent' | 'warning' | 'info';
   icon: typeof AlertTriangle;
   href: string;
+  ctaLabel: string;
 }
 
 export function NeedsAttentionList({
   elderCount,
   maxElders,
+  caregiverCount,
   noShowCount,
   unconfirmedCount,
   overtimeCount,
@@ -61,6 +64,7 @@ export function NeedsAttentionList({
       type: 'urgent',
       icon: DollarSign,
       href: '/dashboard/agency?tab=assignments',
+      ctaLabel: 'Assign Elders',
     });
   }
 
@@ -73,11 +77,11 @@ export function NeedsAttentionList({
       type: 'urgent',
       icon: UserX,
       href: '/dashboard/agency?tab=scheduling',
+      ctaLabel: 'View Schedule',
     });
   }
 
   // Priority 3: Unconfirmed shifts today (coverage gap risk)
-  // Only show unconfirmed that aren't already counted as no-shows
   const pureUnconfirmed = unconfirmedCount - noShowCount;
   if (pureUnconfirmed > 0) {
     items.push({
@@ -87,6 +91,7 @@ export function NeedsAttentionList({
       type: 'warning',
       icon: AlertCircle,
       href: '/dashboard/agency?tab=scheduling',
+      ctaLabel: 'Confirm Shifts',
     });
   }
 
@@ -99,18 +104,23 @@ export function NeedsAttentionList({
       type: 'warning',
       icon: Clock,
       href: '/dashboard/care-management',
+      ctaLabel: 'View Shifts',
     });
   }
 
   // Priority 5: Idle caregivers (underutilization)
+  // Red (urgent) when >= 20% of caregivers idle AND elders are assigned
   if (idleCaregiverCount > 0) {
+    const idlePct = caregiverCount > 0 ? (idleCaregiverCount / caregiverCount) * 100 : 0;
+    const isUrgent = idlePct >= 20 && elderCount > 0;
     items.push({
       id: 'idle-caregivers',
       message: `${idleCaregiverCount} caregiver${idleCaregiverCount !== 1 ? 's' : ''} with no shifts this week`,
-      impact: 'Underutilization',
-      type: 'info',
+      impact: isUrgent ? 'Revenue at risk — schedule now' : 'Underutilization',
+      type: isUrgent ? 'urgent' : 'info',
       icon: AlertTriangle,
       href: '/dashboard/agency?tab=scheduling',
+      ctaLabel: 'Create Schedule',
     });
   }
 
@@ -123,6 +133,7 @@ export function NeedsAttentionList({
       type: 'warning',
       icon: AlertTriangle,
       href: '/dashboard/agency?tab=scheduling',
+      ctaLabel: 'Find Replacement',
     });
   }
 
@@ -143,52 +154,106 @@ export function NeedsAttentionList({
     );
   }
 
+  // Priority CTA Banner — shows the #1 highest priority action
+  const topItem = items[0];
+  const TopIcon = topItem.icon;
+
   return (
     <div>
-      <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Needs Attention</h2>
-      <div className="space-y-2">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Card
-              key={item.id}
-              className={cn(
-                'p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800',
-                item.type === 'urgent' && 'border-red-200 dark:border-red-800',
-                item.type === 'warning' && 'border-amber-200 dark:border-amber-800'
-              )}
-              onClick={() => router.push(item.href)}
-            >
-              <div className="flex items-center gap-3">
-                <Icon
+      {/* Priority CTA Banner */}
+      <Card
+        className={cn(
+          'p-4 mb-4 cursor-pointer transition-colors',
+          topItem.type === 'urgent'
+            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30'
+            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+        )}
+        onClick={() => router.push(topItem.href)}
+      >
+        <div className="flex items-center gap-3">
+          <TopIcon
+            className={cn(
+              'w-5 h-5 shrink-0',
+              topItem.type === 'urgent' ? 'text-red-500 dark:text-red-400' : 'text-amber-500 dark:text-amber-400'
+            )}
+          />
+          <div className="flex-1 min-w-0">
+            <span className={cn(
+              'text-sm font-semibold block',
+              topItem.type === 'urgent' ? 'text-red-800 dark:text-red-200' : 'text-amber-800 dark:text-amber-200'
+            )}>
+              {topItem.message}
+            </span>
+            {topItem.impact && (
+              <span className={cn(
+                'text-xs',
+                topItem.type === 'urgent' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
+              )}>
+                {topItem.impact}
+              </span>
+            )}
+          </div>
+          <span className={cn(
+            'text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 whitespace-nowrap',
+            topItem.type === 'urgent'
+              ? 'bg-red-600 text-white'
+              : 'bg-amber-600 text-white'
+          )}>
+            {topItem.ctaLabel}
+            <ArrowRight className="w-3 h-3" />
+          </span>
+        </div>
+      </Card>
+
+      {/* Remaining alerts */}
+      {items.length > 1 && (
+        <>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Needs Attention</h2>
+          <div className="space-y-2">
+            {items.slice(1).map((item) => {
+              const Icon = item.icon;
+              return (
+                <Card
+                  key={item.id}
                   className={cn(
-                    'w-4 h-4 shrink-0',
-                    item.type === 'urgent' && 'text-red-500 dark:text-red-400',
-                    item.type === 'warning' && 'text-amber-500 dark:text-amber-400',
-                    item.type === 'info' && 'text-blue-500 dark:text-blue-400'
+                    'p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800',
+                    item.type === 'urgent' && 'border-red-200 dark:border-red-800',
+                    item.type === 'warning' && 'border-amber-200 dark:border-amber-800'
                   )}
-                />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm text-gray-700 dark:text-gray-300 block">
-                    {item.message}
-                  </span>
-                  {item.impact && (
-                    <span className={cn(
-                      'text-[11px] font-medium',
-                      item.type === 'urgent' && 'text-red-600 dark:text-red-400',
-                      item.type === 'warning' && 'text-amber-600 dark:text-amber-400',
-                      item.type === 'info' && 'text-blue-600 dark:text-blue-400'
-                    )}>
-                      {item.impact}
-                    </span>
-                  )}
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+                  onClick={() => router.push(item.href)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon
+                      className={cn(
+                        'w-4 h-4 shrink-0',
+                        item.type === 'urgent' && 'text-red-500 dark:text-red-400',
+                        item.type === 'warning' && 'text-amber-500 dark:text-amber-400',
+                        item.type === 'info' && 'text-blue-500 dark:text-blue-400'
+                      )}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-gray-700 dark:text-gray-300 block">
+                        {item.message}
+                      </span>
+                      {item.impact && (
+                        <span className={cn(
+                          'text-[11px] font-medium',
+                          item.type === 'urgent' && 'text-red-600 dark:text-red-400',
+                          item.type === 'warning' && 'text-amber-600 dark:text-amber-400',
+                          item.type === 'info' && 'text-blue-600 dark:text-blue-400'
+                        )}>
+                          {item.impact}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

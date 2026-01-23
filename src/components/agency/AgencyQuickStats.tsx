@@ -46,7 +46,7 @@ export function AgencyQuickStats({
       progressPct: (elderCount / maxElders) * 100,
     },
     {
-      label: 'Revenue',
+      label: 'Revenue/mo',
       value: `$${revenue.toLocaleString()}`,
       subValue: `/ $${maxRevenue.toLocaleString()}`,
       icon: DollarSign,

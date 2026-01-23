@@ -227,6 +227,7 @@ export function AgencyOwnerDashboard() {
       <NeedsAttentionList
         elderCount={data.elderCount}
         maxElders={data.maxElders}
+        caregiverCount={data.caregiverCount}
         noShowCount={data.noShowCount}
         unconfirmedCount={data.unconfirmedCount}
         overtimeCount={data.overtimeCount}
