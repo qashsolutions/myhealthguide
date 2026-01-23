@@ -1,84 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Users, Heart, Clock, Loader2 } from 'lucide-react';
+import { Users, Heart, DollarSign, CheckCircle2, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
-interface QuickStats {
+interface AgencyQuickStatsProps {
   caregiverCount: number;
   elderCount: number;
-  pendingSlots: number;
+  maxCaregivers: number;
+  maxElders: number;
+  revenue: number;
+  maxRevenue: number;
+  loading: boolean;
 }
 
-export function AgencyQuickStats() {
-  const { user } = useAuth();
-  const [stats, setStats] = useState<QuickStats>({ caregiverCount: 0, elderCount: 0, pendingSlots: 0 });
-  const [loading, setLoading] = useState(true);
-
-  const agencyId = user?.agencies?.[0]?.agencyId;
-
-  useEffect(() => {
-    if (!agencyId) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchStats = async () => {
-      try {
-        // Fetch active caregiver assignments
-        const assignQ = query(
-          collection(db, 'caregiver_assignments'),
-          where('agencyId', '==', agencyId),
-          where('active', '==', true)
-        );
-        const assignSnap = await getDocs(assignQ);
-
-        // Count unique caregivers (one caregiver can have multiple assignments)
-        const uniqueCaregiverIds = new Set<string>();
-        const elderIds = new Set<string>();
-        assignSnap.docs.forEach(doc => {
-          const data = doc.data();
-          if (data.caregiverId) {
-            uniqueCaregiverIds.add(data.caregiverId);
-          }
-          if (data.elderIds && Array.isArray(data.elderIds)) {
-            data.elderIds.forEach((id: string) => elderIds.add(id));
-          }
-        });
-        const caregiverCount = uniqueCaregiverIds.size;
-
-        // Fetch pending scheduled shifts
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const pendingQ = query(
-          collection(db, 'scheduledShifts'),
-          where('agencyId', '==', agencyId),
-          where('status', '==', 'scheduled')
-        );
-        const pendingSnap = await getDocs(pendingQ);
-
-        setStats({
-          caregiverCount,
-          elderCount: elderIds.size,
-          pendingSlots: pendingSnap.size,
-        });
-      } catch (error) {
-        console.error('[AgencyQuickStats] Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [agencyId]);
+export function AgencyQuickStats({
+  caregiverCount,
+  elderCount,
+  maxCaregivers,
+  maxElders,
+  revenue,
+  maxRevenue,
+  loading,
+}: AgencyQuickStatsProps) {
+  const caregiverFull = caregiverCount >= maxCaregivers;
+  const elderFull = elderCount >= maxElders;
+  const caregiverGap = maxCaregivers - caregiverCount;
+  const elderGap = maxElders - elderCount;
 
   const statCards = [
-    { label: 'Caregivers', value: stats.caregiverCount, icon: Users, color: 'blue' },
-    { label: 'Loved Ones', value: stats.elderCount, icon: Heart, color: 'rose' },
-    { label: 'Pending', value: stats.pendingSlots, icon: Clock, color: 'amber' },
+    {
+      label: 'Caregivers',
+      value: `${caregiverCount}/${maxCaregivers}`,
+      icon: caregiverFull ? CheckCircle2 : Users,
+      isFull: caregiverFull,
+      gap: caregiverGap,
+      progressPct: (caregiverCount / maxCaregivers) * 100,
+    },
+    {
+      label: 'Loved Ones',
+      value: `${elderCount}/${maxElders}`,
+      icon: elderFull ? CheckCircle2 : Heart,
+      isFull: elderFull,
+      gap: elderGap,
+      progressPct: (elderCount / maxElders) * 100,
+    },
+    {
+      label: 'Revenue',
+      value: `$${revenue.toLocaleString()}`,
+      subValue: `/ $${maxRevenue.toLocaleString()}`,
+      icon: DollarSign,
+      isFull: revenue >= maxRevenue,
+      gap: 0,
+      progressPct: (revenue / maxRevenue) * 100,
+    },
   ];
 
   return (
@@ -86,14 +61,55 @@ export function AgencyQuickStats() {
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.label} className="p-3 relative">
-            <Icon className={`w-4 h-4 absolute top-2 right-2 text-${stat.color}-400 dark:text-${stat.color}-500 opacity-60`} />
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
-              {loading ? <Loader2 className="w-5 h-5 animate-spin text-gray-400" /> : stat.value}
+          <Card key={stat.label} className="p-3 relative overflow-hidden">
+            {/* Progress bar background */}
+            <div
+              className={cn(
+                'absolute bottom-0 left-0 h-1 transition-all',
+                stat.isFull ? 'bg-green-400 dark:bg-green-500' : 'bg-blue-200 dark:bg-blue-800'
+              )}
+              style={{ width: `${Math.min(stat.progressPct, 100)}%` }}
+            />
+
+            <div className="flex items-start justify-between mb-1">
+              <Icon
+                className={cn(
+                  'w-4 h-4',
+                  stat.isFull
+                    ? 'text-green-500 dark:text-green-400'
+                    : 'text-gray-400 dark:text-gray-500'
+                )}
+              />
+              {stat.isFull && (
+                <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/40 px-1.5 py-0.5 rounded">
+                  Full
+                </span>
+              )}
             </div>
+
+            <div className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              ) : (
+                stat.value
+              )}
+            </div>
+
+            {!loading && stat.subValue && (
+              <div className="text-[10px] text-gray-400 dark:text-gray-500">
+                {stat.subValue}
+              </div>
+            )}
+
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {stat.label}
             </div>
+
+            {!loading && !stat.isFull && stat.gap > 0 && (
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                {stat.gap} slot{stat.gap !== 1 ? 's' : ''} open
+              </div>
+            )}
           </Card>
         );
       })}
