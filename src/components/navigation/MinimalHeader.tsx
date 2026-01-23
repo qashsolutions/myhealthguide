@@ -6,12 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
@@ -20,7 +17,7 @@ import { PendingSyncIndicator } from '@/components/PendingSyncIndicator';
 
 export function MinimalHeader() {
   const router = useRouter();
-  const { signOut, user } = useAuth();
+  const { user } = useAuth();
   const { isMultiAgency } = useSubscription();
 
   const {
@@ -31,19 +28,6 @@ export function MinimalHeader() {
     dismiss,
   } = useNotifications(user?.id);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.push('/login');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  };
-
-  const userInitials = user
-    ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
-    : '';
-
   // Get agency name if multi-agency
   const agencyName = isMultiAgency && user?.agencies?.[0]
     ? (user.agencies[0] as any).agencyName || null
@@ -53,8 +37,8 @@ export function MinimalHeader() {
     <header className="sticky top-0 z-30 h-12 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm flex items-center justify-between px-4 lg:px-5">
       {/* Left: Logo + Agency Badge */}
       <div className="flex items-center gap-2">
-        <span className="text-base font-semibold text-blue-700 dark:text-blue-400 tracking-tight">
-          MyGuide
+        <span className="text-base tracking-tight">
+          <span className="font-bold text-gray-900 dark:text-white">MyHealth</span><span className="font-light text-blue-600 dark:text-blue-400">Guide</span>
         </span>
         {agencyName && (
           <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
@@ -63,7 +47,7 @@ export function MinimalHeader() {
         )}
       </div>
 
-      {/* Right: Status indicators + Bell + Avatar */}
+      {/* Right: Status indicators + Bell */}
       <div className="flex items-center gap-2">
         <PendingSyncIndicator />
         <OfflineIndicator />
@@ -136,32 +120,6 @@ export function MinimalHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User Avatar */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="relative h-8 w-8 rounded-full p-0"
-              aria-label="User menu"
-            >
-              <Avatar className="h-7 w-7">
-                <AvatarImage src={user?.profileImage} alt="Profile" />
-                <AvatarFallback className="text-[10px] font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   );

@@ -8,7 +8,6 @@ import {
   MessageCircle,
   AlertTriangle,
   Calendar,
-  Settings,
   Menu,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +15,13 @@ import { useSubscription } from '@/lib/subscription';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Tooltip,
   TooltipContent,
@@ -31,7 +37,7 @@ interface IconRailProps {
 export function IconRail({ onMoreClick }: IconRailProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isMultiAgency } = useSubscription();
   const userIsSuperAdmin = isSuperAdmin(user);
   const { unreadCount } = useNotifications(user?.id);
@@ -69,11 +75,6 @@ export function IconRail({ onMoreClick }: IconRailProps) {
         className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 w-14 flex-col items-center bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 py-4"
         aria-label="Navigation rail"
       >
-        {/* Logo */}
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 mb-6">
-          <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">MG</span>
-        </div>
-
         {/* Nav Items */}
         <nav className="flex-1 flex flex-col items-center gap-2">
           {navItems.map((item) => {
@@ -136,47 +137,41 @@ export function IconRail({ onMoreClick }: IconRailProps) {
           </TooltipContent>
         </Tooltip>
 
-        {/* Settings */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href="/dashboard/settings"
-              className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-lg transition-colors mb-3',
-                isActive('/dashboard/settings')
-                  ? 'bg-blue-50 dark:bg-blue-900/40'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-              )}
-              aria-label="Settings"
+        {/* Avatar - entry point for Profile/Settings/Sign Out */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex items-center justify-center rounded-full hover:ring-2 hover:ring-blue-200 dark:hover:ring-blue-800 transition-all"
+              aria-label="User menu"
             >
-              <Settings
-                className={cn(
-                  'w-5 h-5',
-                  isActive('/dashboard/settings')
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-500 dark:text-gray-400'
-                )}
-              />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="text-sm">
-            Settings
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Avatar */}
-        <button
-          onClick={() => router.push('/dashboard/settings')}
-          className="flex items-center justify-center"
-          aria-label="Profile"
-        >
-          <Avatar className="w-7 h-7">
-            <AvatarImage src={user?.profileImage} alt="Profile" />
-            <AvatarFallback className="text-[10px] font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
-        </button>
+              <Avatar className="w-7 h-7">
+                <AvatarImage src={user?.profileImage} alt="Profile" />
+                <AvatarFallback className="text-[10px] font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end" className="w-40">
+            <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={async () => {
+              try {
+                await signOut();
+                router.push('/login');
+              } catch (error) {
+                console.error('Sign out error:', error);
+              }
+            }}>
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </aside>
     </TooltipProvider>
   );
