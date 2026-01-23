@@ -29,6 +29,7 @@ import { DayProgress } from '@/components/dashboard/DayProgress';
 import { ElderTabSelector } from '@/components/agency/ElderTabSelector';
 import { ShiftInfoBar } from '@/components/agency/ShiftInfoBar';
 import { isAgencyCaregiver } from '@/lib/utils/getUserRole';
+import { useSubscription } from '@/lib/subscription';
 
 // Check if user can add elders based on their role
 function canUserAddElders(user: any): boolean {
@@ -64,6 +65,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { availableElders, setSelectedElder, selectedElder, isLoading: eldersLoading } = useElder();
+  const { limits } = useSubscription();
 
   // Feature tracking
   useFeatureTracking('overview');
@@ -206,7 +208,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <TimeToggle value={timePeriod} onChange={setTimePeriod} />
-          {canUserAddElders(user) && (
+          {canUserAddElders(user) && availableElders.length < limits.maxElders && (
             <Link href="/dashboard/elders/new" className="hidden sm:block">
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
