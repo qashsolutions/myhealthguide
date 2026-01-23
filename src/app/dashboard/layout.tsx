@@ -1,8 +1,6 @@
 'use client';
 
-import { ReactNode, useState, useEffect, useRef, useCallback } from 'react';
-import { Sidebar } from '@/components/shared/Sidebar';
-import { DashboardHeader } from '@/components/shared/DashboardHeader';
+import { ReactNode, useState, useEffect } from 'react';
 import { VerificationBanner } from '@/components/auth/VerificationBanner';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { FCMProvider } from '@/components/notifications/FCMProvider';
@@ -13,6 +11,10 @@ import { SetPasswordModal } from '@/components/auth/SetPasswordModal';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { ContinueSessionDialog } from '@/components/session/ContinueSessionDialog';
 import { useSessionTracking } from '@/hooks/useSessionTracking';
+import { MinimalHeader } from '@/components/navigation/MinimalHeader';
+import { BottomNav } from '@/components/navigation/BottomNav';
+import { IconRail } from '@/components/navigation/IconRail';
+import { MoreMenuDrawer } from '@/components/navigation/MoreMenuDrawer';
 
 // Component that uses session tracking - must be inside ElderProvider
 function SessionTracker() {
@@ -22,11 +24,11 @@ function SessionTracker() {
 
 // Inner component that can access auth context
 function DashboardContent({ children }: { children: ReactNode }) {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const { hasPendingApproval, pendingAgencies } = useCaregiverApprovalStatus(user);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pendingAgencyName, setPendingAgencyName] = useState<string | undefined>(undefined);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   // Check if user needs to set password (caregiver first login)
   useEffect(() => {
@@ -34,19 +36,6 @@ function DashboardContent({ children }: { children: ReactNode }) {
       setShowPasswordModal(true);
     }
   }, [user?.passwordSetupRequired]);
-
-  // Use ref to track initialization and prevent re-running
-  const initializedRef = useRef(false);
-
-  // Auto-open sidebar on desktop only on initial mount
-  useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-
-    if (window.innerWidth >= 1024) {
-      setIsSidebarOpen(true);
-    }
-  }, []);
 
   // Fetch agency name for pending approval message
   useEffect(() => {
@@ -68,19 +57,11 @@ function DashboardContent({ children }: { children: ReactNode }) {
     }
   }, [hasPendingApproval, pendingAgencies]);
 
-  // Memoize callbacks to prevent unnecessary re-renders
-  const handleSidebarClose = useCallback(() => {
-    setIsSidebarOpen(false);
-  }, []);
-
-  const handleMenuClick = useCallback(() => {
-    setIsSidebarOpen(prev => !prev);
-  }, []);
-
   return (
     <ElderProvider>
       {/* Session tracking - inside ElderProvider */}
       <SessionTracker />
+
       {/* Password setup modal for caregivers on first login */}
       {showPasswordModal && user?.email && (
         <SetPasswordModal
@@ -95,15 +76,16 @@ function DashboardContent({ children }: { children: ReactNode }) {
 
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
         <FCMProvider />
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={handleSidebarClose}
-        />
-        <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
-          <DashboardHeader onMenuClick={handleMenuClick} />
+
+        {/* Desktop/Tablet: Icon Rail */}
+        <IconRail onMoreClick={() => setIsMoreMenuOpen(true)} />
+
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col overflow-hidden w-full lg:pl-14">
+          <MinimalHeader />
           <VerificationBanner />
           <main className="flex-1 overflow-y-auto">
-            <div className="p-4 sm:p-6 min-h-full">
+            <div className="p-4 sm:p-6 pb-20 lg:pb-6 min-h-full">
               {hasPendingApproval ? (
                 <div className="max-w-lg mx-auto mt-8">
                   <CaregiverApprovalBlocker
@@ -117,6 +99,15 @@ function DashboardContent({ children }: { children: ReactNode }) {
             </div>
           </main>
         </div>
+
+        {/* Mobile: Bottom Navigation */}
+        <BottomNav onMoreClick={() => setIsMoreMenuOpen(true)} />
+
+        {/* More Menu Drawer */}
+        <MoreMenuDrawer
+          isOpen={isMoreMenuOpen}
+          onClose={() => setIsMoreMenuOpen(false)}
+        />
       </div>
     </ElderProvider>
   );

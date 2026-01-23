@@ -1,0 +1,183 @@
+'use client';
+
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Home,
+  BarChart3,
+  MessageCircle,
+  AlertTriangle,
+  Calendar,
+  Settings,
+  Menu,
+} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/lib/subscription';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
+import { useNotifications } from '@/hooks/useNotifications';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+
+interface IconRailProps {
+  onMoreClick: () => void;
+}
+
+export function IconRail({ onMoreClick }: IconRailProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { isMultiAgency } = useSubscription();
+  const userIsSuperAdmin = isSuperAdmin(user);
+  const { unreadCount } = useNotifications(user?.id);
+
+  const isActive = (path: string) => {
+    if (path === '/dashboard') return pathname === '/dashboard';
+    return pathname === path || pathname.startsWith(path + '/');
+  };
+
+  const userInitials = user
+    ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
+    : '';
+
+  // Build nav items
+  const navItems: { href: string; icon: React.ElementType; label: string; badge?: number }[] = [
+    { href: '/dashboard', icon: Home, label: 'Home' },
+  ];
+
+  if (isMultiAgency) {
+    navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });
+  }
+
+  navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+  navItems.push({ href: '/dashboard/ask-ai', icon: MessageCircle, label: 'Ask AI' });
+  navItems.push({
+    href: '/dashboard/safety-alerts',
+    icon: AlertTriangle,
+    label: 'Alerts',
+    badge: unreadCount > 0 ? unreadCount : undefined,
+  });
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <aside
+        className="hidden lg:flex fixed left-0 top-0 bottom-0 z-40 w-14 flex-col items-center bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 py-4"
+        aria-label="Navigation rail"
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 mb-6">
+          <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">MG</span>
+        </div>
+
+        {/* Nav Items */}
+        <nav className="flex-1 flex flex-col items-center gap-2">
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            const Icon = item.icon;
+
+            return (
+              <Tooltip key={item.href}>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'relative flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
+                      active
+                        ? 'bg-blue-50 dark:bg-blue-900/40'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    )}
+                    aria-label={item.label}
+                    aria-current={active ? 'page' : undefined}
+                  >
+                    <Icon
+                      className={cn(
+                        'w-5 h-5',
+                        active
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : 'text-gray-500 dark:text-gray-400'
+                      )}
+                    />
+                    {item.badge && (
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-[9px] font-semibold text-white">
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </span>
+                    )}
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-sm">
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </nav>
+
+        {/* Divider */}
+        <div className="w-6 h-px bg-gray-200 dark:bg-gray-700 my-2" />
+
+        {/* More */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onMoreClick}
+              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-2"
+              aria-label="More options"
+            >
+              <Menu className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="text-sm">
+            More
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Settings */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/dashboard/settings"
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-lg transition-colors mb-3',
+                isActive('/dashboard/settings')
+                  ? 'bg-blue-50 dark:bg-blue-900/40'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+              )}
+              aria-label="Settings"
+            >
+              <Settings
+                className={cn(
+                  'w-5 h-5',
+                  isActive('/dashboard/settings')
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                )}
+              />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="text-sm">
+            Settings
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Avatar */}
+        <button
+          onClick={() => router.push('/dashboard/settings')}
+          className="flex items-center justify-center"
+          aria-label="Profile"
+        >
+          <Avatar className="w-7 h-7">
+            <AvatarImage src={user?.profileImage} alt="Profile" />
+            <AvatarFallback className="text-[10px] font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+              {userInitials}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </aside>
+    </TooltipProvider>
+  );
+}
