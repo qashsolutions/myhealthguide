@@ -24,6 +24,8 @@ import { Elder } from '@/types';
 import Link from 'next/link';
 import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCardGrid';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
+import { PriorityCard } from '@/components/dashboard/PriorityCard';
+import { DayProgress } from '@/components/dashboard/DayProgress';
 
 // Check if user can add elders based on their role
 function canUserAddElders(user: any): boolean {
@@ -211,6 +213,14 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Priority Card + Day Progress (Today view only) */}
+      {timePeriod === 'today' && selectedElder && (
+        <div className="space-y-3">
+          <PriorityCard />
+          <DayProgress />
+        </div>
+      )}
 
       {/* Error Banner */}
       {statsError && (
