@@ -62,7 +62,7 @@ export function ManageActionGrid({
     <div>
       <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Manage</h2>
       <TooltipProvider delayDuration={300}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-3">
           {actions.map((action) => {
             const Icon = action.icon;
             return (
@@ -72,7 +72,7 @@ export function ManageActionGrid({
                     className={cn(
                       'w-12 h-12 rounded-xl flex items-center justify-center transition-colors border',
                       action.disabled
-                        ? 'opacity-40 cursor-not-allowed bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
+                        ? 'cursor-not-allowed bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-500'
                         : 'cursor-pointer bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
                     )}
                     onClick={() => {
@@ -84,7 +84,7 @@ export function ManageActionGrid({
                       className={cn(
                         'w-5 h-5',
                         action.disabled
-                          ? 'text-gray-300 dark:text-gray-600'
+                          ? 'text-gray-400 dark:text-gray-500'
                           : 'text-gray-600 dark:text-gray-400'
                       )}
                     />
