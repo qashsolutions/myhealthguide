@@ -419,13 +419,13 @@ export const onMedicationLogCreated = functions.firestore
         return null;
       }
 
-      // Get member IDs from the group, excluding the user who logged
-      const memberIds: string[] = (groupData.memberIds || []).filter(
-        (id: string) => id !== logData.loggedBy
+      // Get notification recipients (agency-aware: only today's assigned caregiver)
+      const memberIds: string[] = await getNotificationRecipients(
+        groupId, groupData, logData.elderId, logData.loggedBy
       );
 
       if (memberIds.length === 0) {
-        console.log('No other members in group to notify');
+        console.log('No relevant members to notify');
         return null;
       }
 
@@ -640,13 +640,13 @@ export const onSupplementLogCreated = functions.firestore
       const groupData = groupDoc.data();
       if (!groupData) return null;
 
-      // Get member IDs excluding the logger
-      const memberIds: string[] = (groupData.memberIds || []).filter(
-        (id: string) => id !== logData.loggedBy
+      // Get notification recipients (agency-aware: only today's assigned caregiver)
+      const memberIds: string[] = await getNotificationRecipients(
+        groupId, groupData, logData.elderId, logData.loggedBy
       );
 
       if (memberIds.length === 0) {
-        console.log('No other members in group to notify');
+        console.log('No relevant members to notify');
         return null;
       }
 
@@ -987,6 +987,97 @@ async function removeInvalidToken(token: string, userIds: string[]): Promise<voi
       console.error(`Error removing token from user ${userId}:`, error);
     }
   }
+}
+
+/**
+ * Helper: Get notification recipient user IDs for a specific elder in a group
+ *
+ * For FAMILY groups: Returns all memberIds (standard behavior)
+ * For AGENCY groups: Returns only the caregiver(s) scheduled for this elder TODAY
+ *   plus the group admin (agency owner)
+ *
+ * This ensures agency caregivers only receive notifications for elders
+ * they are actively assigned to work with on a given day.
+ */
+async function getNotificationRecipients(
+  groupId: string,
+  groupData: any,
+  elderId: string,
+  excludeUserId?: string
+): Promise<string[]> {
+  const groupType = groupData.type || 'family';
+
+  if (groupType === 'family') {
+    // Family plan: all members get notifications
+    const memberIds: string[] = groupData.memberIds || [];
+    return excludeUserId
+      ? memberIds.filter((id: string) => id !== excludeUserId)
+      : memberIds;
+  }
+
+  // Agency plan: only today's assigned caregiver(s) + admin
+  const recipients = new Set<string>();
+
+  // Always include the group admin (agency owner)
+  if (groupData.adminId) {
+    recipients.add(groupData.adminId);
+  }
+
+  // Query today's scheduled shifts for this elder
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  try {
+    const shiftsSnapshot = await admin.firestore()
+      .collection('scheduledShifts')
+      .where('elderId', '==', elderId)
+      .where('status', 'in', ['scheduled', 'confirmed', 'in_progress'])
+      .where('date', '>=', admin.firestore.Timestamp.fromDate(todayStart))
+      .where('date', '<=', admin.firestore.Timestamp.fromDate(todayEnd))
+      .get();
+
+    for (const shiftDoc of shiftsSnapshot.docs) {
+      const shift = shiftDoc.data();
+      if (shift.caregiverId) {
+        recipients.add(shift.caregiverId);
+      }
+    }
+  } catch (error) {
+    console.error('Error querying scheduled shifts for notifications:', error);
+    // Fallback: if shift query fails, include all members to avoid missing notifications
+    const memberIds: string[] = groupData.memberIds || [];
+    memberIds.forEach((id: string) => recipients.add(id));
+  }
+
+  // Also check active shift sessions (caregiver currently clocked in for this elder)
+  try {
+    const sessionsSnapshot = await admin.firestore()
+      .collection('shiftSessions')
+      .where('elderId', '==', elderId)
+      .where('status', '==', 'active')
+      .get();
+
+    for (const sessionDoc of sessionsSnapshot.docs) {
+      const session = sessionDoc.data();
+      if (session.caregiverId) {
+        recipients.add(session.caregiverId);
+      }
+    }
+  } catch (error) {
+    console.error('Error querying shift sessions for notifications:', error);
+  }
+
+  // Remove the excluded user (e.g., the person who logged the action)
+  if (excludeUserId) {
+    recipients.delete(excludeUserId);
+  }
+
+  const result = Array.from(recipients);
+  console.log(`Agency notification recipients for elder ${elderId}: ${result.length} users`);
+  return result;
 }
 
 // ============= AI HEALTH MONITORING SCHEDULED JOBS =============
@@ -3457,3 +3548,711 @@ export const sendDailyFamilyNotes9PM = functions
   .onRun(async (context) => {
     return processDailyFamilyNotes('9PM-fallback');
   });
+
+// ============= DIET ENTRY NOTIFICATION TRIGGER =============
+
+/**
+ * Send FCM notification when a diet entry is created
+ *
+ * Trigger: Firestore onCreate in 'diet_entries' collection
+ *
+ * Flow:
+ * 1. Get diet entry data (groupId, elderId, loggedBy, meal)
+ * 2. Get group → memberIds (exclude loggedBy)
+ * 3. Fetch elderName, loggerName
+ * 4. Collect FCM tokens from members
+ * 5. Send via sendEachForMulticast
+ * 6. Clean up invalid tokens
+ */
+export const onDietEntryCreated = functions.firestore
+  .document('diet_entries/{entryId}')
+  .onCreate(async (snapshot, context) => {
+    try {
+      const entryData = snapshot.data();
+      const entryId = context.params.entryId;
+
+      console.log('New diet entry:', {
+        id: entryId,
+        meal: entryData.meal,
+        groupId: entryData.groupId,
+        elderId: entryData.elderId,
+        loggedBy: entryData.loggedBy
+      });
+
+      const groupId = entryData.groupId;
+      if (!groupId) {
+        console.error('No groupId found in diet entry');
+        return null;
+      }
+
+      // Get group document
+      const groupDoc = await admin.firestore().collection('groups').doc(groupId).get();
+      if (!groupDoc.exists) {
+        console.error('Group not found:', groupId);
+        return null;
+      }
+
+      const groupData = groupDoc.data();
+      if (!groupData) return null;
+
+      // Get notification recipients (agency-aware: only today's assigned caregiver)
+      const memberIds: string[] = await getNotificationRecipients(
+        groupId, groupData, entryData.elderId, entryData.loggedBy
+      );
+
+      if (memberIds.length === 0) {
+        console.log('No relevant members to notify');
+        return null;
+      }
+
+      // Get elder name
+      let elderName = 'care recipient';
+      if (entryData.elderId) {
+        const elderDoc = await admin.firestore()
+          .collection('elders')
+          .doc(entryData.elderId)
+          .get();
+        if (elderDoc.exists) {
+          elderName = elderDoc.data()?.firstName || elderName;
+        }
+      }
+
+      // Get logger name
+      let loggerName = 'A caregiver';
+      if (entryData.loggedBy) {
+        const userDoc = await admin.firestore()
+          .collection('users')
+          .doc(entryData.loggedBy)
+          .get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          loggerName = userData?.firstName || userData?.email?.split('@')[0] || loggerName;
+        }
+      }
+
+      // Format meal type for display
+      const mealType = entryData.meal
+        ? entryData.meal.charAt(0).toUpperCase() + entryData.meal.slice(1)
+        : 'Meal';
+
+      // Collect FCM tokens
+      const tokens: string[] = [];
+      for (const memberId of memberIds) {
+        try {
+          const userDoc = await admin.firestore().collection('users').doc(memberId).get();
+          if (userDoc.exists) {
+            const userTokens = userDoc.data()?.fcmTokens || [];
+            if (Array.isArray(userTokens)) {
+              tokens.push(...userTokens);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching user ${memberId}:`, error);
+        }
+      }
+
+      if (tokens.length === 0) {
+        console.log('No FCM tokens found for other group members');
+        return null;
+      }
+
+      const title = '🍽️ Meal Logged';
+      const body = `${loggerName} logged ${mealType} for ${elderName}`;
+
+      const payload: admin.messaging.MulticastMessage = {
+        tokens,
+        notification: { title, body },
+        data: {
+          type: 'diet_entry_created',
+          entryId,
+          meal: entryData.meal || '',
+          groupId,
+          elderId: entryData.elderId || '',
+          url: '/dashboard/activity'
+        },
+        webpush: {
+          fcmOptions: { link: '/dashboard/activity' },
+          notification: {
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            tag: `diet-entry-${entryId}`
+          }
+        }
+      };
+
+      const response = await admin.messaging().sendEachForMulticast(payload);
+
+      console.log('Diet entry notification sent:', {
+        successCount: response.successCount,
+        failureCount: response.failureCount
+      });
+
+      // Handle invalid tokens
+      if (response.failureCount > 0) {
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success &&
+            (resp.error?.code === 'messaging/invalid-registration-token' ||
+             resp.error?.code === 'messaging/registration-token-not-registered')) {
+            removeInvalidToken(tokens[idx], memberIds).catch(err =>
+              console.error('Error removing invalid token:', err)
+            );
+          }
+        });
+      }
+
+      return { success: true, successCount: response.successCount };
+    } catch (error) {
+      console.error('Error in onDietEntryCreated:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+// ============= SHIFT NOTIFICATION SCHEDULED FUNCTIONS =============
+
+/**
+ * Scheduled Job: Check for upcoming shifts and notify caregivers
+ * Runs every 30 minutes
+ *
+ * Flow:
+ * 1. Get current time, calculate 30-min window
+ * 2. Query scheduledShifts where status = 'scheduled' and date = today
+ * 3. For each shift, check if startTime is within next 30 minutes
+ * 4. Skip if reminderSent flag is already set
+ * 5. Send FCM notification to assigned caregiver
+ * 6. Set reminderSent: true on the shift doc
+ */
+export const checkUpcomingShifts = functions.pubsub
+  .schedule('0,30 * * * *') // Every 30 minutes
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting checkUpcomingShifts job...');
+
+    try {
+      const now = new Date();
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(now);
+      todayEnd.setHours(23, 59, 59, 999);
+
+      // Query scheduled shifts for today
+      const shiftsSnapshot = await admin.firestore()
+        .collection('scheduledShifts')
+        .where('status', '==', 'scheduled')
+        .where('date', '>=', admin.firestore.Timestamp.fromDate(todayStart))
+        .where('date', '<=', admin.firestore.Timestamp.fromDate(todayEnd))
+        .get();
+
+      let notifiedCount = 0;
+
+      for (const shiftDoc of shiftsSnapshot.docs) {
+        const shift = shiftDoc.data();
+
+        // Skip if already notified
+        if (shift.reminderSent) continue;
+
+        // Parse startTime (HH:MM format) to today's date
+        const startTimeParts = (shift.startTime || '').split(':');
+        if (startTimeParts.length !== 2) continue;
+
+        const shiftStartHour = parseInt(startTimeParts[0], 10);
+        const shiftStartMin = parseInt(startTimeParts[1], 10);
+        if (isNaN(shiftStartHour) || isNaN(shiftStartMin)) continue;
+
+        const shiftStartDate = new Date(now);
+        shiftStartDate.setHours(shiftStartHour, shiftStartMin, 0, 0);
+
+        // Check if shift starts within the next 30 minutes
+        const diffMs = shiftStartDate.getTime() - now.getTime();
+        const diffMinutes = diffMs / (1000 * 60);
+
+        if (diffMinutes > 0 && diffMinutes <= 30) {
+          // Get caregiver's FCM tokens
+          const caregiverId = shift.caregiverId;
+          if (!caregiverId) continue;
+
+          const userDoc = await admin.firestore().collection('users').doc(caregiverId).get();
+          if (!userDoc.exists) continue;
+
+          const fcmTokens = userDoc.data()?.fcmTokens || [];
+          if (!Array.isArray(fcmTokens) || fcmTokens.length === 0) {
+            console.log(`No FCM tokens for caregiver ${caregiverId}`);
+            continue;
+          }
+
+          const elderName = shift.elderName || 'care recipient';
+          const startTime = shift.startTime || '';
+
+          const payload: admin.messaging.MulticastMessage = {
+            tokens: fcmTokens,
+            notification: {
+              title: '⏰ Shift Starting Soon',
+              body: `Your shift for ${elderName} starts at ${startTime}`
+            },
+            data: {
+              type: 'shift_reminder',
+              shiftId: shiftDoc.id,
+              elderName,
+              startTime,
+              url: '/dashboard/schedule'
+            },
+            webpush: {
+              fcmOptions: { link: '/dashboard/schedule' },
+              notification: {
+                icon: '/icon-192x192.png',
+                badge: '/icon-192x192.png',
+                tag: `shift-reminder-${shiftDoc.id}`,
+                requireInteraction: true
+              }
+            }
+          };
+
+          try {
+            const response = await admin.messaging().sendEachForMulticast(payload);
+            console.log(`Shift reminder sent for shift ${shiftDoc.id}:`, {
+              successCount: response.successCount,
+              failureCount: response.failureCount
+            });
+
+            // Handle invalid tokens
+            if (response.failureCount > 0) {
+              response.responses.forEach((resp, idx) => {
+                if (!resp.success &&
+                  (resp.error?.code === 'messaging/invalid-registration-token' ||
+                   resp.error?.code === 'messaging/registration-token-not-registered')) {
+                  removeInvalidToken(fcmTokens[idx], [caregiverId]).catch(err =>
+                    console.error('Error removing invalid token:', err)
+                  );
+                }
+              });
+            }
+
+            // Mark as notified
+            await shiftDoc.ref.update({ reminderSent: true });
+            notifiedCount++;
+          } catch (sendError) {
+            console.error(`Failed to send shift reminder for ${shiftDoc.id}:`, sendError);
+          }
+        }
+      }
+
+      console.log(`Sent ${notifiedCount} shift reminders`);
+      return { success: true, notifiedCount };
+    } catch (error) {
+      console.error('Error in checkUpcomingShifts:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+/**
+ * Scheduled Job: Check for overdue/overtime shifts
+ * Runs every hour
+ *
+ * Flow:
+ * 1. Query shiftSessions where status = 'active'
+ * 2. Check if duration exceeds plannedDuration + 60min (or 10h if no planned duration)
+ * 3. Skip if overtimeNotified flag is already set
+ * 4. Send FCM to caregiver + agency super_admin
+ * 5. Set overtimeNotified: true on the session
+ */
+export const checkOverdueShifts = functions.pubsub
+  .schedule('0 * * * *') // Every hour
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting checkOverdueShifts job...');
+
+    try {
+      const now = new Date();
+
+      // Query active shift sessions
+      const sessionsSnapshot = await admin.firestore()
+        .collection('shiftSessions')
+        .where('status', '==', 'active')
+        .get();
+
+      let notifiedCount = 0;
+
+      for (const sessionDoc of sessionsSnapshot.docs) {
+        const session = sessionDoc.data();
+
+        // Skip if already notified
+        if (session.overtimeNotified) continue;
+
+        // Calculate elapsed time
+        const startTime = session.startTime?.toDate ? session.startTime.toDate() : new Date(session.startTime);
+        const elapsedMs = now.getTime() - startTime.getTime();
+        const elapsedMinutes = elapsedMs / (1000 * 60);
+        const elapsedHours = Math.round(elapsedMinutes / 60 * 10) / 10;
+
+        // Determine overtime threshold
+        const plannedDuration = session.plannedDuration || 0; // minutes
+        const threshold = plannedDuration > 0
+          ? plannedDuration + 60 // planned + 60 min buffer
+          : 600; // 10 hours if no planned duration
+
+        if (elapsedMinutes < threshold) continue;
+
+        // Get elder name
+        let elderName = 'care recipient';
+        if (session.elderId) {
+          const elderDoc = await admin.firestore()
+            .collection('elders')
+            .doc(session.elderId)
+            .get();
+          if (elderDoc.exists) {
+            elderName = elderDoc.data()?.firstName || elderName;
+          }
+        }
+
+        // Collect tokens: caregiver + agency admin
+        const tokensToNotify: string[] = [];
+        const userIdsToNotify: string[] = [];
+
+        // Caregiver tokens
+        if (session.caregiverId) {
+          userIdsToNotify.push(session.caregiverId);
+          const caregiverDoc = await admin.firestore()
+            .collection('users')
+            .doc(session.caregiverId)
+            .get();
+          if (caregiverDoc.exists) {
+            const caregiverTokens = caregiverDoc.data()?.fcmTokens || [];
+            if (Array.isArray(caregiverTokens)) {
+              tokensToNotify.push(...caregiverTokens);
+            }
+          }
+        }
+
+        // Agency admin tokens (find super_admin for this agency)
+        if (session.agencyId) {
+          const adminSnapshot = await admin.firestore()
+            .collection('users')
+            .where('agencyId', '==', session.agencyId)
+            .where('role', '==', 'super_admin')
+            .limit(1)
+            .get();
+
+          if (!adminSnapshot.empty) {
+            const adminDoc = adminSnapshot.docs[0];
+            userIdsToNotify.push(adminDoc.id);
+            const adminTokens = adminDoc.data()?.fcmTokens || [];
+            if (Array.isArray(adminTokens)) {
+              tokensToNotify.push(...adminTokens);
+            }
+          }
+        }
+
+        if (tokensToNotify.length === 0) {
+          console.log(`No FCM tokens for overtime notification (session ${sessionDoc.id})`);
+          continue;
+        }
+
+        const payload: admin.messaging.MulticastMessage = {
+          tokens: tokensToNotify,
+          notification: {
+            title: '⚠️ Shift Overtime',
+            body: `Your shift for ${elderName} has been active for ${elapsedHours}h. Remember to clock out.`
+          },
+          data: {
+            type: 'shift_overtime',
+            sessionId: sessionDoc.id,
+            elderId: session.elderId || '',
+            elapsedHours: elapsedHours.toString(),
+            url: '/dashboard/schedule'
+          },
+          webpush: {
+            fcmOptions: { link: '/dashboard/schedule' },
+            notification: {
+              icon: '/icon-192x192.png',
+              badge: '/icon-192x192.png',
+              tag: `shift-overtime-${sessionDoc.id}`,
+              requireInteraction: true
+            }
+          }
+        };
+
+        try {
+          const response = await admin.messaging().sendEachForMulticast(payload);
+          console.log(`Overtime notification sent for session ${sessionDoc.id}:`, {
+            successCount: response.successCount,
+            failureCount: response.failureCount
+          });
+
+          // Handle invalid tokens
+          if (response.failureCount > 0) {
+            response.responses.forEach((resp, idx) => {
+              if (!resp.success &&
+                (resp.error?.code === 'messaging/invalid-registration-token' ||
+                 resp.error?.code === 'messaging/registration-token-not-registered')) {
+                removeInvalidToken(tokensToNotify[idx], userIdsToNotify).catch(err =>
+                  console.error('Error removing invalid token:', err)
+                );
+              }
+            });
+          }
+
+          // Mark as notified
+          await sessionDoc.ref.update({ overtimeNotified: true });
+          notifiedCount++;
+        } catch (sendError) {
+          console.error(`Failed to send overtime notification for ${sessionDoc.id}:`, sendError);
+        }
+      }
+
+      console.log(`Sent ${notifiedCount} overtime notifications`);
+      return { success: true, notifiedCount };
+    } catch (error) {
+      console.error('Error in checkOverdueShifts:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+// ============= OVERDUE MEDICATION NOTIFICATIONS =============
+
+/**
+ * Scheduled Job: Check for overdue medications (15-45 min window)
+ * Runs at :15 and :45 each hour (offset from detectMissedDoses at :00)
+ *
+ * More timely than detectMissedDoses (which checks 1-2 hours back).
+ * This catches medications 15-45 minutes overdue and sends immediate FCM.
+ *
+ * Flow:
+ * 1. Get current time, calculate 15-45 min ago window
+ * 2. For each active group → elders → active medications:
+ *    - Check if any scheduled time falls in the 15-45 min ago window
+ *    - Check if a log exists for that dose (±30 min match)
+ *    - If no log → medication is overdue
+ * 3. Send FCM directly to group members
+ * 4. Create user_notifications entry
+ * 5. Deduplicate via existing notifications check
+ */
+export const checkOverdueMedications = functions.pubsub
+  .schedule('15,45 * * * *') // At :15 and :45 each hour
+  .timeZone('America/Los_Angeles')
+  .onRun(async (context) => {
+    console.log('Starting checkOverdueMedications job...');
+
+    try {
+      const now = new Date();
+      const fifteenMinAgo = new Date(now.getTime() - 15 * 60 * 1000);
+      const fortyFiveMinAgo = new Date(now.getTime() - 45 * 60 * 1000);
+
+      // Get all active groups
+      const groupsSnapshot = await admin.firestore()
+        .collection('groups')
+        .get();
+
+      let totalOverdue = 0;
+
+      for (const groupDoc of groupsSnapshot.docs) {
+        const group = groupDoc.data();
+        const groupId = groupDoc.id;
+        const memberIds: string[] = group.memberIds || [];
+
+        if (memberIds.length === 0) continue;
+
+        // Get elders in this group
+        const eldersSnapshot = await admin.firestore()
+          .collection('elders')
+          .where('groupId', '==', groupId)
+          .get();
+
+        for (const elderDoc of eldersSnapshot.docs) {
+          const elder = elderDoc.data();
+          const elderId = elderDoc.id;
+          const elderName = elder.firstName || 'Elder';
+
+          // Get active medications for this elder
+          const medsSnapshot = await admin.firestore()
+            .collection('medications')
+            .where('groupId', '==', groupId)
+            .where('elderId', '==', elderId)
+            .where('status', '==', 'active')
+            .get();
+
+          for (const medDoc of medsSnapshot.docs) {
+            const med = medDoc.data();
+            const medId = medDoc.id;
+            const medicationName = med.name || 'Medication';
+
+            // Get scheduled times from frequency
+            const scheduledTimes = med.frequency?.times || [];
+
+            for (const timeStr of scheduledTimes) {
+              const scheduledDate = parseTimeToDate(timeStr, now);
+              if (!scheduledDate) continue;
+
+              // Check if this time falls in the 15-45 min ago window
+              if (scheduledDate < fifteenMinAgo && scheduledDate >= fortyFiveMinAgo) {
+                // Check if a log exists for this dose (±30 min match)
+                const windowStart = new Date(scheduledDate.getTime() - 30 * 60 * 1000);
+                const windowEnd = new Date(scheduledDate.getTime() + 30 * 60 * 1000);
+
+                const logsSnapshot = await admin.firestore()
+                  .collection('medication_logs')
+                  .where('groupId', '==', groupId)
+                  .where('elderId', '==', elderId)
+                  .where('medicationId', '==', medId)
+                  .where('scheduledTime', '>=', admin.firestore.Timestamp.fromDate(windowStart))
+                  .where('scheduledTime', '<=', admin.firestore.Timestamp.fromDate(windowEnd))
+                  .limit(1)
+                  .get();
+
+                if (!logsSnapshot.empty) continue; // Dose was logged
+
+                // Deduplicate: check if notification already sent for this dose today
+                const todayStart = new Date(now);
+                todayStart.setHours(0, 0, 0, 0);
+
+                const existingNotif = await admin.firestore()
+                  .collection('user_notifications')
+                  .where('groupId', '==', groupId)
+                  .where('elderId', '==', elderId)
+                  .where('type', '==', 'overdue_medication')
+                  .where('data.medicationId', '==', medId)
+                  .where('data.scheduledTime', '==', timeStr)
+                  .where('createdAt', '>=', admin.firestore.Timestamp.fromDate(todayStart))
+                  .limit(1)
+                  .get();
+
+                if (!existingNotif.empty) continue; // Already notified
+
+                // Format time for display
+                const formattedTime = formatTimeForDisplay(timeStr);
+
+                // Get agency-aware recipients for this elder
+                const recipientIds = await getNotificationRecipients(
+                  groupId, group, elderId
+                );
+
+                // Collect FCM tokens from recipients
+                const tokens: string[] = [];
+                for (const memberId of recipientIds) {
+                  try {
+                    const userDoc = await admin.firestore().collection('users').doc(memberId).get();
+                    if (userDoc.exists) {
+                      const userTokens = userDoc.data()?.fcmTokens || [];
+                      if (Array.isArray(userTokens)) {
+                        tokens.push(...userTokens);
+                      }
+                    }
+                  } catch (error) {
+                    console.error(`Error fetching user ${memberId}:`, error);
+                  }
+                }
+
+                if (tokens.length > 0) {
+                  const payload: admin.messaging.MulticastMessage = {
+                    tokens,
+                    notification: {
+                      title: '⏰ Medication Overdue',
+                      body: `${medicationName} for ${elderName} was due at ${formattedTime}`
+                    },
+                    data: {
+                      type: 'overdue_medication',
+                      medicationId: medId,
+                      medicationName,
+                      elderId,
+                      groupId,
+                      scheduledTime: timeStr,
+                      url: '/dashboard/medications'
+                    },
+                    webpush: {
+                      fcmOptions: { link: '/dashboard/medications' },
+                      notification: {
+                        icon: '/icon-192x192.png',
+                        badge: '/icon-192x192.png',
+                        tag: `overdue-med-${medId}-${timeStr.replace(':', '')}`,
+                        requireInteraction: true
+                      }
+                    }
+                  };
+
+                  try {
+                    const response = await admin.messaging().sendEachForMulticast(payload);
+                    console.log(`Overdue medication notification sent for ${medicationName}:`, {
+                      successCount: response.successCount,
+                      failureCount: response.failureCount
+                    });
+
+                    // Handle invalid tokens
+                    if (response.failureCount > 0) {
+                      response.responses.forEach((resp, idx) => {
+                        if (!resp.success &&
+                          (resp.error?.code === 'messaging/invalid-registration-token' ||
+                           resp.error?.code === 'messaging/registration-token-not-registered')) {
+                          removeInvalidToken(tokens[idx], recipientIds).catch(err =>
+                            console.error('Error removing invalid token:', err)
+                          );
+                        }
+                      });
+                    }
+                  } catch (sendError) {
+                    console.error(`Failed to send overdue notification for ${medicationName}:`, sendError);
+                  }
+                }
+
+                // Create user_notification for the group admin
+                const adminId = group.adminId;
+                if (adminId) {
+                  await admin.firestore().collection('user_notifications').add({
+                    userId: adminId,
+                    groupId,
+                    elderId,
+                    type: 'overdue_medication',
+                    title: 'Medication Overdue',
+                    message: `${medicationName} for ${elderName} was due at ${formattedTime}`,
+                    priority: 'high',
+                    actionUrl: `/dashboard/medications?elder=${elderId}`,
+                    read: false,
+                    dismissed: false,
+                    actionRequired: true,
+                    expiresAt: null,
+                    data: {
+                      medicationId: medId,
+                      scheduledTime: timeStr
+                    },
+                    createdAt: admin.firestore.Timestamp.now()
+                  });
+                }
+
+                totalOverdue++;
+              }
+            }
+          }
+        }
+      }
+
+      console.log(`Detected ${totalOverdue} overdue medications`);
+      return { success: true, overdueCount: totalOverdue };
+    } catch (error) {
+      console.error('Error in checkOverdueMedications:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+/**
+ * Helper: Format time string for user-friendly display
+ */
+function formatTimeForDisplay(timeStr: string): string {
+  try {
+    const lowerTime = timeStr.toLowerCase().trim();
+
+    // Already in 12-hour format
+    if (lowerTime.includes('am') || lowerTime.includes('pm')) {
+      return timeStr.trim();
+    }
+
+    // Convert 24-hour to 12-hour
+    const parts = timeStr.split(':');
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1] || '00';
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+
+    if (hours === 0) hours = 12;
+    else if (hours > 12) hours -= 12;
+
+    return `${hours}:${minutes} ${ampm}`;
+  } catch {
+    return timeStr;
+  }
+}
