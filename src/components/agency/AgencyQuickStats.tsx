@@ -28,23 +28,27 @@ export function AgencyQuickStats() {
 
     const fetchStats = async () => {
       try {
-        // Fetch caregiver assignments count
+        // Fetch active caregiver assignments
         const assignQ = query(
           collection(db, 'caregiver_assignments'),
           where('agencyId', '==', agencyId),
-          where('status', '==', 'active')
+          where('active', '==', true)
         );
         const assignSnap = await getDocs(assignQ);
-        const caregiverCount = assignSnap.size;
 
-        // Count unique elders across all assignments
+        // Count unique caregivers (one caregiver can have multiple assignments)
+        const uniqueCaregiverIds = new Set<string>();
         const elderIds = new Set<string>();
         assignSnap.docs.forEach(doc => {
           const data = doc.data();
+          if (data.caregiverId) {
+            uniqueCaregiverIds.add(data.caregiverId);
+          }
           if (data.elderIds && Array.isArray(data.elderIds)) {
             data.elderIds.forEach((id: string) => elderIds.add(id));
           }
         });
+        const caregiverCount = uniqueCaregiverIds.size;
 
         // Fetch pending scheduled shifts
         const today = new Date();
