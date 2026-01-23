@@ -34,6 +34,14 @@ function parseTime24(timeStr: string): { hours: number; minutes: number } {
   return { hours: h || 0, minutes: m || 0 };
 }
 
+function formatOverdue(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 function getUserRole(user: any): 'admin' | 'caregiver' | 'member' {
   if (!user) return 'member';
   const agencyRole = user.agencies?.[0]?.role;
@@ -246,7 +254,7 @@ export function PriorityCard() {
             <>
               <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
               <span className="text-sm font-semibold text-red-700 dark:text-red-300 uppercase tracking-wide">
-                Overdue — {task.overdueMinutes} min late
+                Overdue — {formatOverdue(task.overdueMinutes || 0)} late
               </span>
             </>
           ) : isDueNow ? (
