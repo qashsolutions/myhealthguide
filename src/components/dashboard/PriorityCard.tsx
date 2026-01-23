@@ -17,7 +17,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTaskPriority } from '@/hooks/useTaskPriority';
 import { logMedicationDoseOfflineAware } from '@/lib/offline';
 import { SupplementService } from '@/lib/firebase/supplements';
+import { useSuggestions } from '@/hooks/useSuggestions';
+import { SuggestionBanner } from '@/components/dashboard/SuggestionBanner';
 import type { PrioritizedTask } from '@/lib/prioritization/taskPriorityEngine';
+import type { TriggerAction } from '@/lib/suggestions/suggestionEngine';
 
 function formatTime12h(time24: string): string {
   const { hours, minutes } = parseTime24(time24);
@@ -44,6 +47,7 @@ function getUserRole(user: any): 'admin' | 'caregiver' | 'member' {
 export function PriorityCard() {
   const { user } = useAuth();
   const { nextTask, tasks, completedCount, totalCount, refreshPriorities, isLoading } = useTaskPriority();
+  const { suggestions, visible: suggestionsVisible, triggerSuggestion, dismissSuggestions } = useSuggestions();
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -101,6 +105,8 @@ export function PriorityCard() {
 
       showFeedback(`${task.name} logged at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`, 'success');
       await refreshPriorities();
+      const action: TriggerAction = task.type === 'medication' ? 'LOG_MEDICATION' : 'LOG_SUPPLEMENT';
+      triggerSuggestion(action);
     } catch (error) {
       console.error('[PriorityCard] Error logging task:', error);
       showFeedback('Failed to log. Please try again.', 'error');
@@ -155,6 +161,8 @@ export function PriorityCard() {
 
       showFeedback(`${task.name} skipped`, 'success');
       await refreshPriorities();
+      const action: TriggerAction = task.type === 'medication' ? 'LOG_MEDICATION' : 'LOG_SUPPLEMENT';
+      triggerSuggestion(action);
     } catch (error) {
       console.error('[PriorityCard] Error skipping task:', error);
       showFeedback('Failed to skip. Please try again.', 'error');
@@ -324,6 +332,14 @@ export function PriorityCard() {
           </div>
         )}
       </Card>
+
+      {/* Auto-suggest banner */}
+      <SuggestionBanner
+        suggestions={suggestions}
+        visible={suggestionsVisible}
+        onDismiss={dismissSuggestions}
+        onSelect={dismissSuggestions}
+      />
     </div>
   );
 }
