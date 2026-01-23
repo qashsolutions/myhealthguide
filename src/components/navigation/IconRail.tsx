@@ -10,6 +10,9 @@ import {
   Calendar,
   Menu,
   Bell,
+  Users,
+  Heart,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
@@ -60,23 +63,40 @@ export function IconRail({ onMoreClick }: IconRailProps) {
     ? `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`
     : '';
 
-  // Build nav items
+  // Build nav items based on role
   const navItems: { href: string; icon: React.ElementType; label: string; badge?: number }[] = [
     { href: '/dashboard', icon: Home, label: 'Home' },
   ];
 
-  if (isMultiAgency) {
+  if (isMultiAgency && userIsSuperAdmin) {
+    // Agency Owner: Home, Team, Schedule, Elders, Reports, Timesheets
+    navItems.push({ href: '/dashboard/care-management', icon: Users, label: 'Team' });
+    navItems.push({ href: '/dashboard/agency', icon: Calendar, label: 'Schedule' });
+    navItems.push({ href: '/dashboard/elders', icon: Heart, label: 'Elders' });
+    navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+    navItems.push({ href: '/dashboard/timesheet', icon: Clock, label: 'Timesheets' });
+  } else if (isMultiAgency) {
+    // Agency Caregiver: Home, Schedule, Reports, Ask AI, Alerts
     navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });
+    navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+    navItems.push({ href: '/dashboard/ask-ai', icon: MessageCircle, label: 'Ask AI' });
+    navItems.push({
+      href: '/dashboard/safety-alerts',
+      icon: AlertTriangle,
+      label: 'Alerts',
+      badge: unreadCount > 0 ? unreadCount : undefined,
+    });
+  } else {
+    // Family Plan: Home, Reports, Ask AI, Alerts
+    navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+    navItems.push({ href: '/dashboard/ask-ai', icon: MessageCircle, label: 'Ask AI' });
+    navItems.push({
+      href: '/dashboard/safety-alerts',
+      icon: AlertTriangle,
+      label: 'Alerts',
+      badge: unreadCount > 0 ? unreadCount : undefined,
+    });
   }
-
-  navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
-  navItems.push({ href: '/dashboard/ask-ai', icon: MessageCircle, label: 'Ask AI' });
-  navItems.push({
-    href: '/dashboard/safety-alerts',
-    icon: AlertTriangle,
-    label: 'Alerts',
-    badge: unreadCount > 0 ? unreadCount : undefined,
-  });
 
   return (
     <TooltipProvider delayDuration={200}>

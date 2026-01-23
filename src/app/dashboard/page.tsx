@@ -26,6 +26,10 @@ import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCard
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { PriorityCard } from '@/components/dashboard/PriorityCard';
 import { DayProgress } from '@/components/dashboard/DayProgress';
+import { VoiceInputArea } from '@/components/dashboard/VoiceInputArea';
+import { SuggestionChips } from '@/components/dashboard/SuggestionChips';
+import { HomeGreeting } from '@/components/dashboard/HomeGreeting';
+import { AgencyOwnerDashboard } from '@/components/dashboard/AgencyOwnerDashboard';
 import { ElderTabSelector } from '@/components/agency/ElderTabSelector';
 import { ShiftInfoBar } from '@/components/agency/ShiftInfoBar';
 import { isAgencyCaregiver } from '@/lib/utils/getUserRole';
@@ -65,7 +69,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { availableElders, setSelectedElder, selectedElder, isLoading: eldersLoading } = useElder();
-  const { limits } = useSubscription();
+  const { limits, isMultiAgency } = useSubscription();
 
   // Feature tracking
   useFeatureTracking('overview');
@@ -164,6 +168,11 @@ export default function DashboardPage() {
     );
   }
 
+  // Agency Owner gets a completely different dashboard
+  if (isMultiAgency && isMultiAgencySuperAdmin) {
+    return <AgencyOwnerDashboard />;
+  }
+
   // Aggregate stats from dashboard data or show zeros
   const aggregate = dashboardData?.aggregate || {
     totalElders: availableElders.length,
@@ -195,17 +204,18 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Overview
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {timePeriod === 'today'
-              ? (user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome to your caregiving dashboard')
-              : `${timePeriod === 'week' ? 'Weekly' : 'Monthly'} summary${selectedElder ? ` for ${selectedElder.name}` : ''}`
-            }
-          </p>
-        </div>
+        {timePeriod === 'today' ? (
+          <HomeGreeting />
+        ) : (
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Overview
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              {`${timePeriod === 'week' ? 'Weekly' : 'Monthly'} summary${selectedElder ? ` for ${selectedElder.name}` : ''}`}
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-3">
           <TimeToggle value={timePeriod} onChange={setTimePeriod} />
           {canUserAddElders(user) && availableElders.length < limits.maxElders && (
@@ -232,6 +242,8 @@ export default function DashboardPage() {
           <PriorityCard />
           <DayProgress />
           {isAgencyCaregiver(user) && <ShiftInfoBar />}
+          <VoiceInputArea />
+          <SuggestionChips isMultiAgency={isMultiAgency} />
         </div>
       )}
 
