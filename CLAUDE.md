@@ -1,7 +1,7 @@
 # MyHealthGuide - Claude Code Instructions
 
 - Review the documents. Build prod ready files, do not add To-Dos. Do not assume - ask me when in doubt.
-- Today is Jan 17, 2026.
+- Today is Jan 22, 2026.
 - The firebase config will not work in local.
 
 ## Related Documentation
@@ -10,6 +10,10 @@
 |------|----------|
 | `CLAUDE-ARCHITECTURE.md` | Technical systems (AI, Auth, Firestore, Navigation, Testing) |
 | `CLAUDE-HISTORY.md` | Completed phases, changelogs, test results |
+| `docs/Jan22_UpdatePrompt_v1.md` | Phase 14 UI/UX Overhaul - original implementation spec |
+| `docs/Jan22_UpdatedPrompt_v2.md` | Phase 14 UI/UX Overhaul - enhanced spec with context |
+| `docs/mockups/` | SVG mockups for Phase 14 navigation redesign |
+| `docs/PERMISSION_SYSTEM.md` | Permission system documentation |
 
 ---
 
@@ -500,6 +504,7 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Billing portal button visibility fix verified (Jan 19, 2026)
 - Trial expiration blocking verified (Jan 19, 2026)
 - Daily Family Notes email integration (Jan 20, 2026)
+- UI/UX Overhaul - Claude.ai-inspired navigation (Jan 22, 2026)
 
 ---
 
@@ -573,3 +578,82 @@ npx tsx scripts/testTriggerEmail.ts
 | `daily_family_notes` | Stores daily note summaries |
 | `user_notifications` | In-app notifications |
 | `fcm_notification_queue` | FCM push notification queue |
+
+---
+
+## Phase 14 - UI/UX Overhaul (Claude.ai-Inspired Navigation)
+
+**Added:** Jan 22, 2026
+**Reference Documents:** `docs/Jan22_UpdatePrompt_v1.md`, `docs/Jan22_UpdatedPrompt_v2.md`
+**Design Mockups:** `docs/mockups/` (5 SVG files)
+**Status:** ✅ COMPLETE
+
+### Overview
+
+Complete navigation and dashboard redesign inspired by Claude.ai's minimal UI pattern. Replaces the traditional sidebar + header with a responsive icon rail (desktop) and bottom nav (mobile), adds a task priority engine, auto-suggestions, and agency-specific views.
+
+### Phases Completed
+
+| Phase | Description | Key Files |
+|-------|-------------|-----------|
+| 1 | Navigation Layout | BottomNav, IconRail, MinimalHeader, MoreMenuDrawer, layout.tsx |
+| 2 | Task Prioritization Engine | taskPriorityEngine, TaskPriorityContext, useTaskPriority |
+| 3 | Priority Card UI | PriorityCard, DayProgress |
+| 4 | Auto-Suggest System | suggestionEngine, useSuggestions, SuggestionBanner |
+| 5 | Agency Views | ElderTabSelector, ShiftInfoBar |
+
+### New Files Created (14 total)
+
+| File | Purpose |
+|------|---------|
+| `src/components/navigation/BottomNav.tsx` | Mobile bottom navigation (role-based items) |
+| `src/components/navigation/IconRail.tsx` | 56px desktop left rail with tooltips |
+| `src/components/navigation/MinimalHeader.tsx` | 48px sticky header with notifications/avatar |
+| `src/components/navigation/MoreMenuDrawer.tsx` | Bottom sheet (mobile) / side panel (desktop) |
+| `src/lib/prioritization/taskPriorityEngine.ts` | Task status calculation and prioritization logic |
+| `src/contexts/TaskPriorityContext.tsx` | React context providing prioritized task data |
+| `src/hooks/useTaskPriority.ts` | Consumer hooks for task priority state |
+| `src/components/dashboard/PriorityCard.tsx` | Hero card showing next/overdue task with actions |
+| `src/components/dashboard/DayProgress.tsx` | Horizontal progress bar with completion stats |
+| `src/lib/suggestions/suggestionEngine.ts` | Context-based suggestion rules engine |
+| `src/hooks/useSuggestions.ts` | Suggestion visibility and trigger management |
+| `src/components/dashboard/SuggestionBanner.tsx` | Chip-style suggestion UI with dismiss |
+| `src/components/agency/ElderTabSelector.tsx` | Horizontal scrollable tabs for elder switching |
+| `src/components/agency/ShiftInfoBar.tsx` | Active shift timer with ending-soon warning |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/app/dashboard/layout.tsx` | Replaced Sidebar/DashboardHeader with new nav, added TaskPriorityProvider |
+| `src/app/dashboard/page.tsx` | Added PriorityCard, DayProgress, ElderTabSelector, ShiftInfoBar |
+
+### Architecture Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Client-side only (no Firestore schema changes) | Preserves existing data layer, zero migration risk |
+| Offline-aware medication logging | Uses existing `logMedicationDoseOfflineAware` |
+| ±30min log matching window | Prevents duplicate logging for same scheduled time |
+| ±15min due window | Task is "due now" within 15 minutes of scheduled time |
+| Role-based navigation items | Different nav for Family, Caregiver, Owner roles |
+| No toast library | Inline feedback to avoid new dependency |
+| 60-second refresh interval | Balances freshness with Firestore read efficiency |
+
+### Navigation by Role
+
+| Role | Bottom Nav Items | Icon Rail Items |
+|------|-----------------|-----------------|
+| Family (Plan A/B) | Home, Reports, Ask AI, More | Home, Reports, Medications, Supplements, Care Logs, Ask AI |
+| Agency Caregiver | Home, Schedule, Reports, Ask AI, More | Home, Schedule, Reports, Medications, Supplements, Care Logs, Ask AI |
+| Agency Owner | Home, Team, Schedule, Reports, More | Home, Team, Schedule, Reports, Analytics, Timesheets |
+
+### Task Priority States
+
+| Status | Criteria | Visual |
+|--------|----------|--------|
+| `overdue` | >15min past scheduled time, no log | Red card with alert icon |
+| `due_now` | Within ±15min of scheduled time | Blue card with clock icon |
+| `upcoming` | Scheduled later today | Gray card, no action buttons |
+| `completed` | Log found within ±30min window | Hidden from priority card |
+| `skipped` | Skip log found | Hidden from priority card |
