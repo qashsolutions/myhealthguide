@@ -41,7 +41,7 @@ export function AgencyQuickStats({
     {
       label: 'Coverage',
       value: `${coverageRatePct}%`,
-      subValue: 'Shifts covered (week)',
+      subValue: 'Shifts covered (7d)',
       icon: Shield,
       status: coverageGood ? 'good' : coverageRatePct >= 50 ? 'warn' : 'bad',
     },
@@ -66,17 +66,15 @@ export function AgencyQuickStats({
   };
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-3 gap-2">
       {statCards.map((stat) => {
         const Icon = stat.icon;
         const colors = statusColors[stat.status as keyof typeof statusColors];
         return (
-          <Card key={stat.label} className="p-3 relative overflow-hidden">
-            <div className="flex items-start justify-between mb-1">
-              <Icon className={cn('w-4 h-4', colors.icon)} />
-            </div>
+          <Card key={stat.label} className="p-2 relative overflow-hidden">
+            <Icon className={cn('w-3.5 h-3.5 mb-0.5', colors.icon)} />
 
-            <div className={cn('text-lg font-bold leading-tight', colors.value)}>
+            <div className={cn('text-lg font-bold leading-none', colors.value)}>
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
               ) : (
@@ -85,17 +83,16 @@ export function AgencyQuickStats({
             </div>
 
             {!loading && stat.subValue && (
-              <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight mt-0.5">
                 {stat.subValue}
               </div>
             )}
 
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">
+            <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
               {stat.label}
             </div>
 
-            {/* Status bar */}
-            <div className={cn('absolute bottom-0 left-0 w-full h-1', colors.bar)} />
+            <div className={cn('absolute bottom-0 left-0 w-full h-0.5', colors.bar)} />
           </Card>
         );
       })}

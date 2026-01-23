@@ -108,11 +108,10 @@ export function AgencyOwnerDashboard() {
       let unconfirmedCount = 0;
       let noShowCount = 0;
 
-      // Week bounds for coverage and burnout
+      // Rolling 7-day window for coverage and burnout
       const weekStart = new Date(today);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 7);
+      weekStart.setDate(weekStart.getDate() - 7);
+      const weekEnd = new Date(tomorrow);
 
       // Track shifts per caregiver this week for burnout
       const caregiverWeekShifts: Record<string, number> = {};
@@ -161,10 +160,11 @@ export function AgencyOwnerDashboard() {
         }
       });
 
-      // Coverage rate (this week)
+      // Coverage rate (rolling 7d)
+      // If no shifts scheduled but caregivers/elders exist, that's 0% coverage
       const coverageRatePct = weekTotalShifts > 0
         ? Math.round((weekCoveredShifts / weekTotalShifts) * 100)
-        : 100;
+        : (caregiverCount > 0 && elderCount > 0 ? 0 : 100);
 
       // Burnout risk: caregivers with > 6 shifts this week
       let burnoutRiskCount = 0;
@@ -299,15 +299,15 @@ export function AgencyOwnerDashboard() {
         coverageRatePct={data.coverageRatePct}
         loading={data.loading}
       />
+      <TodaysShiftsList
+        shifts={data.todayShifts}
+        loading={data.loading}
+      />
       <ManageActionGrid
         caregiverCount={data.caregiverCount}
         elderCount={data.elderCount}
         maxCaregivers={data.maxCaregivers}
         maxElders={data.maxElders}
-      />
-      <TodaysShiftsList
-        shifts={data.todayShifts}
-        loading={data.loading}
       />
     </div>
   );

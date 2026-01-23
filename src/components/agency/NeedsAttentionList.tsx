@@ -144,7 +144,7 @@ export function NeedsAttentionList({
   if (coverageRatePct < 80) {
     items.push({
       id: 'coverage-gap',
-      message: `Weekly coverage at ${coverageRatePct}% — shifts not confirmed`,
+      message: `Coverage at ${coverageRatePct}% — shifts not confirmed (7d)`,
       impact: coverageRatePct < 50 ? 'Critical coverage gap' : 'Coverage below target',
       type: coverageRatePct < 50 ? 'urgent' : 'warning',
       icon: AlertCircle,
@@ -160,7 +160,7 @@ export function NeedsAttentionList({
     const isUrgent = idlePct >= 20 && elderCount > 0;
     items.push({
       id: 'idle-caregivers',
-      message: `${idleCaregiverCount} caregiver${idleCaregiverCount !== 1 ? 's' : ''} with no shifts this week`,
+      message: `${idleCaregiverCount} caregiver${idleCaregiverCount !== 1 ? 's' : ''} with no shifts (7d)`,
       impact: isUrgent ? 'Revenue at risk — schedule now' : 'Underutilization',
       type: isUrgent ? 'urgent' : 'info',
       icon: AlertTriangle,
