@@ -20,8 +20,16 @@ export function VoiceInputArea({ placeholder = 'Say or type what happened...' }:
   const recognitionRef = useRef<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Clean up recognition on unmount
+  // Initialize SpeechRecognition once on mount
   useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognitionRef.current = recognition;
+    }
     return () => {
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch {}
@@ -53,25 +61,15 @@ export function VoiceInputArea({ placeholder = 'Say or type what happened...' }:
   }, [router]);
 
   const startListening = useCallback(() => {
-    // Check for Speech Recognition API support
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = recognitionRef.current;
 
-    if (!SpeechRecognition) {
+    if (!recognition) {
       setState('error');
       setTimeout(() => setState('idle'), 3000);
       return;
     }
 
     try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        setState('listening');
-      };
-
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         handleCommand(transcript);
@@ -83,18 +81,17 @@ export function VoiceInputArea({ placeholder = 'Say or type what happened...' }:
       };
 
       recognition.onend = () => {
-        if (state === 'listening') {
-          setState('idle');
-        }
+        setState((prev) => prev === 'listening' ? 'idle' : prev);
       };
 
-      recognitionRef.current = recognition;
+      // Set state immediately for instant visual feedback
+      setState('listening');
       recognition.start();
     } catch {
       setState('error');
       setTimeout(() => setState('idle'), 3000);
     }
-  }, [handleCommand, state]);
+  }, [handleCommand]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {

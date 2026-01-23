@@ -18,22 +18,47 @@ import {
   Heart,
   Loader2,
   Leaf,
-  Utensils
+  Utensils,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import { Elder } from '@/types';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCardGrid';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { PriorityCard } from '@/components/dashboard/PriorityCard';
 import { DayProgress } from '@/components/dashboard/DayProgress';
-import { VoiceInputArea } from '@/components/dashboard/VoiceInputArea';
-import { SuggestionChips } from '@/components/dashboard/SuggestionChips';
-import { HomeGreeting } from '@/components/dashboard/HomeGreeting';
-import { AgencyOwnerDashboard } from '@/components/dashboard/AgencyOwnerDashboard';
 import { ElderTabSelector } from '@/components/agency/ElderTabSelector';
 import { ShiftInfoBar } from '@/components/agency/ShiftInfoBar';
 import { isAgencyCaregiver } from '@/lib/utils/getUserRole';
 import { useSubscription } from '@/lib/subscription';
+
+// Dynamic imports - only loaded when needed (agency components not bundled for family users)
+const AgencyOwnerDashboard = dynamic(
+  () => import('@/components/dashboard/AgencyOwnerDashboard').then(mod => ({ default: mod.AgencyOwnerDashboard })),
+  { loading: () => <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div> }
+);
+const VoiceInputArea = dynamic(
+  () => import('@/components/dashboard/VoiceInputArea').then(mod => ({ default: mod.VoiceInputArea })),
+  { ssr: false }
+);
+const SuggestionChips = dynamic(
+  () => import('@/components/dashboard/SuggestionChips').then(mod => ({ default: mod.SuggestionChips })),
+  { ssr: false }
+);
+const HomeGreeting = dynamic(
+  () => import('@/components/dashboard/HomeGreeting').then(mod => ({ default: mod.HomeGreeting })),
+  { ssr: false }
+);
+
+function getGreetingPrefix(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  if (hour >= 17 && hour < 21) return 'Good evening';
+  return 'Good night';
+}
 
 // Check if user can add elders based on their role
 function canUserAddElders(user: any): boolean {
@@ -79,6 +104,10 @@ export default function DashboardPage() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
 
+  // Family dashboard: collapsible sections (deferred loading)
+  const [statsExpanded, setStatsExpanded] = useState(false);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+
   // Check if user is multi-agency super admin using the helper function
   const isMultiAgencySuperAdmin = isSuperAdmin(user);
   const agencyId = user?.agencies?.find(
@@ -113,9 +142,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!eldersLoading) {
-      fetchDashboardStats();
+      // Agency users: fetch immediately (existing behavior)
+      // Family users: defer until stats or summary section is expanded
+      if (isMultiAgency || statsExpanded || summaryExpanded) {
+        fetchDashboardStats();
+      }
     }
-  }, [eldersLoading, fetchDashboardStats]);
+  }, [eldersLoading, fetchDashboardStats, isMultiAgency, statsExpanded, summaryExpanded]);
 
   // Get stats for a specific elder
   const getElderStats = (elderId: string): ElderDashboardStats | null => {
@@ -171,6 +204,239 @@ export default function DashboardPage() {
   // Agency Owner gets a completely different dashboard
   if (isMultiAgency && isMultiAgencySuperAdmin) {
     return <AgencyOwnerDashboard />;
+  }
+
+  // Family Plan A/B: simplified action-focused dashboard
+  if (!isMultiAgency) {
+    const familyAggregate = dashboardData?.aggregate || {
+      totalElders: availableElders.length,
+      totalActiveMedications: 0,
+      totalActiveSupplements: 0,
+      averageMedicationCompliance: 0,
+      averageSupplementCompliance: 0,
+      totalMealsLoggedToday: 0
+    };
+
+    const familyTotalMedLogs = dashboardData?.elderStats.reduce(
+      (sum, e) => sum + e.medicationCompliance.total, 0
+    ) || 0;
+    const familyTotalSuppLogs = dashboardData?.elderStats.reduce(
+      (sum, e) => sum + e.supplementCompliance.total, 0
+    ) || 0;
+    const familyTotalLogs = familyTotalMedLogs + familyTotalSuppLogs;
+    const familyCombinedCompliance = familyTotalLogs > 0
+      ? Math.round(
+          (familyAggregate.averageMedicationCompliance * familyTotalMedLogs +
+           familyAggregate.averageSupplementCompliance * familyTotalSuppLogs) / familyTotalLogs
+        )
+      : 0;
+
+    // No elders → Getting Started (same as before)
+    if (availableElders.length === 0) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              {getGreetingPrefix()}, {user?.firstName || ''}
+            </h1>
+          </div>
+          <Card className="p-8">
+            <div className="text-center max-w-2xl mx-auto">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Welcome to MyHealthGuide!
+              </h3>
+              {canUserAddElders(user) ? (
+                <>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Get started by adding your first loved one. You&apos;ll be able to track medications,
+                    diet, and activities - and we&apos;ll help you spot anything that needs attention.
+                  </p>
+                  <Link href="/dashboard/elders/new">
+                    <Button size="lg">
+                      <Plus className="w-5 h-5 mr-2" />
+                      Add Your First Loved One
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  No loved ones have been added yet. Contact your plan admin to get started.
+                </p>
+              )}
+            </div>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-5">
+        {/* Greeting */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              {getGreetingPrefix()}, {user?.firstName || ''}
+            </h1>
+            {selectedElder && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                Caring for {selectedElder.name}
+              </p>
+            )}
+          </div>
+          {canUserAddElders(user) && availableElders.length < limits.maxElders && (
+            <Link href="/dashboard/elders/new">
+              <Button size="sm" variant="outline">
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+            </Link>
+          )}
+        </div>
+
+        {/* Priority Card + Day Progress */}
+        {selectedElder && (
+          <div className="space-y-3">
+            {availableElders.length > 1 && (
+              <ElderTabSelector
+                elders={availableElders}
+                selectedElderId={selectedElder.id}
+                onSelect={(elder) => setSelectedElder(elder)}
+              />
+            )}
+            <PriorityCard />
+            <DayProgress />
+          </div>
+        )}
+
+        {/* Quick Action Grid - 4 core actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/dashboard/daily-care?tab=medications">
+            <Card className="p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                  <Pill className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <span className="font-medium text-gray-900 dark:text-white text-sm">Medications</span>
+              </div>
+            </Card>
+          </Link>
+          <Link href="/dashboard/daily-care?tab=supplements">
+            <Card className="p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
+                  <Leaf className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <span className="font-medium text-gray-900 dark:text-white text-sm">Supplements</span>
+              </div>
+            </Card>
+          </Link>
+          <Link href="/dashboard/daily-care?tab=diet">
+            <Card className="p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+                  <Utensils className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <span className="font-medium text-gray-900 dark:text-white text-sm">Diet</span>
+              </div>
+            </Card>
+          </Link>
+          <Link href="/dashboard/notes/new">
+            <Card className="p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <span className="font-medium text-gray-900 dark:text-white text-sm">Notes</span>
+              </div>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Collapsible: View Stats */}
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setStatsExpanded(!statsExpanded)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <span>View Stats</span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${statsExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          {statsExpanded && (
+            <div className="px-4 pb-4 pt-1">
+              {statsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Medications</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{familyAggregate.totalActiveMedications}</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Supplements</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{familyAggregate.totalActiveSupplements}</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Compliance</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {familyCombinedCompliance > 0 ? `${familyCombinedCompliance}%` : '--'}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Meals Today</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{familyAggregate.totalMealsLoggedToday}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Collapsible: Weekly/Monthly Summary */}
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setSummaryExpanded(!summaryExpanded)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <span>Weekly / Monthly Summary</span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${summaryExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          {summaryExpanded && (
+            <div className="px-4 pb-4 pt-1">
+              <div className="mb-3">
+                <TimeToggle value={timePeriod === 'today' ? 'week' : timePeriod} onChange={setTimePeriod} />
+              </div>
+              {statsLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                </div>
+              ) : (
+                <WeeklySummaryPanel
+                  period={timePeriod === 'today' ? 'week' : timePeriod}
+                  stats={{
+                    medicationsTaken: dashboardData?.elderStats.reduce((sum, e) => sum + e.medicationCompliance.taken, 0) || 0,
+                    medicationsTotal: dashboardData?.elderStats.reduce((sum, e) => sum + e.medicationCompliance.total, 0) || 0,
+                    supplementsTaken: dashboardData?.elderStats.reduce((sum, e) => sum + e.supplementCompliance.taken, 0) || 0,
+                    supplementsTotal: dashboardData?.elderStats.reduce((sum, e) => sum + e.supplementCompliance.total, 0) || 0,
+                    mealsLogged: familyAggregate.totalMealsLoggedToday * ((timePeriod === 'today' ? 'week' : timePeriod) === 'week' ? 7 : 30),
+                    mealsExpected: availableElders.length * 3 * ((timePeriod === 'today' ? 'week' : timePeriod) === 'week' ? 7 : 30),
+                    compliancePercentage: familyCombinedCompliance,
+                    missedDoses: dashboardData?.elderStats.reduce((sum, e) => sum + e.medicationCompliance.missed, 0) || 0,
+                    activityLogs: dashboardData?.elderStats.reduce((sum, e) => sum + e.recentLogsCount, 0) || 0,
+                    safetyAlerts: 0,
+                    careScore: familyCombinedCompliance >= 90 ? 'A+' : familyCombinedCompliance >= 80 ? 'A' : familyCombinedCompliance >= 70 ? 'B' : familyCombinedCompliance >= 60 ? 'C' : 'D',
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   // Aggregate stats from dashboard data or show zeros

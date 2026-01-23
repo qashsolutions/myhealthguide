@@ -149,30 +149,29 @@ export function VoiceRecordButton({
     if (isRecording) {
       stopRecording();
     } else {
-      // Check if we have permission first
-      if (permissionStatus === 'granted') {
-        console.log('[VoiceRecordButton] Permission granted, starting recording');
-        startRecording();
-      } else if (consentStatus === 'denied' || permissionStatus === 'denied') {
-        console.log('[VoiceRecordButton] Permission denied');
+      if (consentStatus === 'denied' || permissionStatus === 'denied') {
+        console.log('[VoiceRecordButton] Permission or consent denied');
         if (onError) {
           onError(new Error('Microphone access was denied. To enable voice input:\n\n1. Click the lock/info icon in your browser address bar\n2. Find "Microphone" and change it to "Allow"\n3. Refresh the page and try again\n\nOr simply type your question instead.'));
         }
+      } else if (consentStatus === 'consented' && permissionStatus === 'granted') {
+        console.log('[VoiceRecordButton] Consent and permission granted, starting recording');
+        startRecording();
       } else {
-        // Request permission (will show consent dialog if needed)
-        console.log('[VoiceRecordButton] Requesting permission, setting pendingStart');
+        // Need consent and/or browser permission - show consent dialog first
+        console.log('[VoiceRecordButton] Requesting consent/permission, setting pendingStart');
         setPendingStart(true);
         requestPermission();
       }
     }
   };
 
-  // Auto-start recording when permission is granted after user requested it
+  // Auto-start recording when both consent and permission are granted after user requested it
   useEffect(() => {
     console.log('[VoiceRecordButton] Permission/consent changed - permissionStatus:', permissionStatus, 'consentStatus:', consentStatus, 'pendingStart:', pendingStart);
 
-    if (pendingStart && permissionStatus === 'granted') {
-      console.log('[VoiceRecordButton] Auto-starting recording after permission granted');
+    if (pendingStart && permissionStatus === 'granted' && consentStatus === 'consented') {
+      console.log('[VoiceRecordButton] Auto-starting recording after consent and permission granted');
       // Small delay to ensure dialog has closed
       const timer = setTimeout(() => {
         if (!isRecording && !isProcessing) {
@@ -183,7 +182,7 @@ export function VoiceRecordButton({
       return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permissionStatus, pendingStart]);
+  }, [permissionStatus, consentStatus, pendingStart]);
 
   const effectiveIsRecording = externalIsRecording ?? isRecording;
   const isCheckingPermission = permissionStatus === 'checking';
