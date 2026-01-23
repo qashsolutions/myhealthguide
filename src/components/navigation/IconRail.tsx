@@ -9,11 +9,14 @@ import {
   AlertTriangle,
   Calendar,
   Menu,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { useNotifications } from '@/hooks/useNotifications';
+import { Button } from '@/components/ui/button';
+import { NotificationItem } from '@/components/notifications/NotificationItem';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -40,7 +43,13 @@ export function IconRail({ onMoreClick }: IconRailProps) {
   const { user, signOut } = useAuth();
   const { isMultiAgency } = useSubscription();
   const userIsSuperAdmin = isSuperAdmin(user);
-  const { unreadCount } = useNotifications(user?.id);
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    dismiss,
+  } = useNotifications(user?.id);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return pathname === '/dashboard';
@@ -136,6 +145,68 @@ export function IconRail({ onMoreClick }: IconRailProps) {
             More
           </TooltipContent>
         </Tooltip>
+
+        {/* Notifications Bell */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="relative flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-2"
+              aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+            >
+              <Bell className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-[9px] font-semibold text-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end" className="w-80 p-0">
+            <div className="flex items-center justify-between p-3 border-b">
+              <span className="font-semibold text-sm">Notifications</span>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7 text-blue-600 hover:text-blue-700"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    markAllAsRead();
+                  }}
+                >
+                  Mark all read
+                </Button>
+              )}
+            </div>
+            {notifications.length === 0 ? (
+              <div className="py-6 text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">No notifications</p>
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.slice(0, 8).map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                    onMarkRead={() => notification.id && markAsRead(notification.id)}
+                    onDismiss={() => notification.id && dismiss(notification.id)}
+                    compact
+                  />
+                ))}
+              </div>
+            )}
+            <div className="border-t p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-gray-600 dark:text-gray-400"
+                onClick={() => router.push('/dashboard/settings?tab=notifications')}
+              >
+                Notification Settings
+              </Button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Avatar - entry point for Profile/Settings/Sign Out */}
         <DropdownMenu>
