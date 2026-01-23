@@ -1,93 +1,82 @@
 'use client';
 
-import { Users, Heart, DollarSign, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertTriangle, Activity, Shield, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface AgencyQuickStatsProps {
+  burnoutRiskCount: number;
+  careQualityPct: number;
+  coverageRatePct: number;
   caregiverCount: number;
-  elderCount: number;
-  maxCaregivers: number;
-  maxElders: number;
-  revenue: number;
-  maxRevenue: number;
   loading: boolean;
 }
 
 export function AgencyQuickStats({
+  burnoutRiskCount,
+  careQualityPct,
+  coverageRatePct,
   caregiverCount,
-  elderCount,
-  maxCaregivers,
-  maxElders,
-  revenue,
-  maxRevenue,
   loading,
 }: AgencyQuickStatsProps) {
-  const caregiverFull = caregiverCount >= maxCaregivers;
-  const elderFull = elderCount >= maxElders;
-  const caregiverGap = maxCaregivers - caregiverCount;
-  const elderGap = maxElders - elderCount;
+  const burnoutOk = burnoutRiskCount === 0;
+  const qualityGood = careQualityPct >= 90;
+  const coverageGood = coverageRatePct >= 80;
 
   const statCards = [
     {
-      label: 'Caregivers',
-      value: `${caregiverCount}/${maxCaregivers}`,
-      icon: caregiverFull ? CheckCircle2 : Users,
-      isFull: caregiverFull,
-      gap: caregiverGap,
-      progressPct: (caregiverCount / maxCaregivers) * 100,
+      label: 'Burnout Risk',
+      value: burnoutOk ? 'None' : `${burnoutRiskCount} at risk`,
+      subValue: burnoutOk ? `${caregiverCount} caregivers healthy` : `of ${caregiverCount} caregivers`,
+      icon: AlertTriangle,
+      status: burnoutOk ? 'good' : 'bad',
     },
     {
-      label: 'Loved Ones',
-      value: `${elderCount}/${maxElders}`,
-      icon: elderFull ? CheckCircle2 : Heart,
-      isFull: elderFull,
-      gap: elderGap,
-      progressPct: (elderCount / maxElders) * 100,
+      label: 'Care Quality',
+      value: `${careQualityPct}%`,
+      subValue: 'Med adherence (7d)',
+      icon: Activity,
+      status: qualityGood ? 'good' : careQualityPct >= 75 ? 'warn' : 'bad',
     },
     {
-      label: 'Revenue/mo',
-      value: `$${revenue.toLocaleString()}`,
-      subValue: `/ $${maxRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      isFull: revenue >= maxRevenue,
-      gap: 0,
-      progressPct: (revenue / maxRevenue) * 100,
+      label: 'Coverage',
+      value: `${coverageRatePct}%`,
+      subValue: 'Shifts covered (week)',
+      icon: Shield,
+      status: coverageGood ? 'good' : coverageRatePct >= 50 ? 'warn' : 'bad',
     },
   ];
+
+  const statusColors = {
+    good: {
+      icon: 'text-green-500 dark:text-green-400',
+      value: 'text-green-700 dark:text-green-300',
+      bar: 'bg-green-400 dark:bg-green-500',
+    },
+    warn: {
+      icon: 'text-amber-500 dark:text-amber-400',
+      value: 'text-amber-700 dark:text-amber-300',
+      bar: 'bg-amber-400 dark:bg-amber-500',
+    },
+    bad: {
+      icon: 'text-red-500 dark:text-red-400',
+      value: 'text-red-700 dark:text-red-300',
+      bar: 'bg-red-400 dark:bg-red-500',
+    },
+  };
 
   return (
     <div className="grid grid-cols-3 gap-3">
       {statCards.map((stat) => {
         const Icon = stat.icon;
+        const colors = statusColors[stat.status as keyof typeof statusColors];
         return (
           <Card key={stat.label} className="p-3 relative overflow-hidden">
-            {/* Progress bar background */}
-            <div
-              className={cn(
-                'absolute bottom-0 left-0 h-1 transition-all',
-                stat.isFull ? 'bg-green-400 dark:bg-green-500' : 'bg-blue-200 dark:bg-blue-800'
-              )}
-              style={{ width: `${Math.min(stat.progressPct, 100)}%` }}
-            />
-
             <div className="flex items-start justify-between mb-1">
-              <Icon
-                className={cn(
-                  'w-4 h-4',
-                  stat.isFull
-                    ? 'text-green-500 dark:text-green-400'
-                    : 'text-gray-400 dark:text-gray-500'
-                )}
-              />
-              {stat.isFull && (
-                <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/40 px-1.5 py-0.5 rounded">
-                  Full
-                </span>
-              )}
+              <Icon className={cn('w-4 h-4', colors.icon)} />
             </div>
 
-            <div className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+            <div className={cn('text-lg font-bold leading-tight', colors.value)}>
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
               ) : (
@@ -96,20 +85,17 @@ export function AgencyQuickStats({
             </div>
 
             {!loading && stat.subValue && (
-              <div className="text-[10px] text-gray-400 dark:text-gray-500">
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                 {stat.subValue}
               </div>
             )}
 
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">
               {stat.label}
             </div>
 
-            {!loading && !stat.isFull && stat.gap > 0 && (
-              <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
-                {stat.gap} slot{stat.gap !== 1 ? 's' : ''} open
-              </div>
-            )}
+            {/* Status bar */}
+            <div className={cn('absolute bottom-0 left-0 w-full h-1', colors.bar)} />
           </Card>
         );
       })}

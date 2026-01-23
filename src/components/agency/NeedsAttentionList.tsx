@@ -16,6 +16,9 @@ interface NeedsAttentionListProps {
   overtimeCount: number;
   idleCaregiverCount: number;
   replacementNeededCount: number;
+  burnoutRiskCount: number;
+  careQualityPct: number;
+  coverageRatePct: number;
   loading: boolean;
 }
 
@@ -38,6 +41,9 @@ export function NeedsAttentionList({
   overtimeCount,
   idleCaregiverCount,
   replacementNeededCount,
+  burnoutRiskCount,
+  careQualityPct,
+  coverageRatePct,
   loading,
 }: NeedsAttentionListProps) {
   const router = useRouter();
@@ -50,8 +56,21 @@ export function NeedsAttentionList({
     );
   }
 
-  // Build items ordered by revenue impact priority
+  // Build items ordered by impact priority
   const items: AttentionItem[] = [];
+
+  // Priority 0: Burnout Risk (staff retention — highest cost)
+  if (burnoutRiskCount > 0) {
+    items.push({
+      id: 'burnout-risk',
+      message: `${burnoutRiskCount} caregiver${burnoutRiskCount !== 1 ? 's' : ''} at burnout risk`,
+      impact: 'Retention risk — review workload',
+      type: 'urgent',
+      icon: AlertTriangle,
+      href: '/dashboard/care-management',
+      ctaLabel: 'Review Workload',
+    });
+  }
 
   // Priority 1: Unfilled elder slots (direct revenue loss)
   const unfilledElders = maxElders - elderCount;
@@ -105,6 +124,32 @@ export function NeedsAttentionList({
       icon: Clock,
       href: '/dashboard/care-management',
       ctaLabel: 'View Shifts',
+    });
+  }
+
+  // Priority 4b: Care Quality declining
+  if (careQualityPct < 90) {
+    items.push({
+      id: 'care-quality',
+      message: `Care quality at ${careQualityPct}% — medication adherence dropping`,
+      impact: careQualityPct < 75 ? 'Client safety concern' : 'Service quality declining',
+      type: careQualityPct < 75 ? 'urgent' : 'warning',
+      icon: AlertCircle,
+      href: '/dashboard/medications',
+      ctaLabel: 'View Adherence',
+    });
+  }
+
+  // Priority 4c: Coverage gaps this week
+  if (coverageRatePct < 80) {
+    items.push({
+      id: 'coverage-gap',
+      message: `Weekly coverage at ${coverageRatePct}% — shifts not confirmed`,
+      impact: coverageRatePct < 50 ? 'Critical coverage gap' : 'Coverage below target',
+      type: coverageRatePct < 50 ? 'urgent' : 'warning',
+      icon: AlertCircle,
+      href: '/dashboard/agency?tab=scheduling',
+      ctaLabel: 'Fix Coverage',
     });
   }
 

@@ -12,7 +12,6 @@ import { TodaysShiftsList } from '@/components/agency/TodaysShiftsList';
 
 const MAX_CAREGIVERS = 10;
 const MAX_ELDERS_TOTAL = 30;
-const MULTI_AGENCY_PRICE_PER_ELDER = 55;
 const REFRESH_INTERVAL_MS = 60_000;
 
 export interface AgencyDashboardData {
@@ -20,8 +19,11 @@ export interface AgencyDashboardData {
   elderCount: number;
   maxCaregivers: number;
   maxElders: number;
-  revenue: number;
-  maxRevenue: number;
+  // New insight cards
+  burnoutRiskCount: number;
+  careQualityPct: number;
+  coverageRatePct: number;
+  // Shifts
   todayShifts: TodayShift[];
   unconfirmedCount: number;
   noShowCount: number;
@@ -47,8 +49,9 @@ export function AgencyOwnerDashboard() {
     elderCount: 0,
     maxCaregivers: MAX_CAREGIVERS,
     maxElders: MAX_ELDERS_TOTAL,
-    revenue: 0,
-    maxRevenue: MAX_ELDERS_TOTAL * MULTI_AGENCY_PRICE_PER_ELDER,
+    burnoutRiskCount: 0,
+    careQualityPct: 100,
+    coverageRatePct: 0,
     todayShifts: [],
     unconfirmedCount: 0,
     noShowCount: 0,
@@ -67,7 +70,13 @@ export function AgencyOwnerDashboard() {
     }
 
     try {
-      // 1. Caregiver assignments → caregiverCount, elderCount
+      const now = new Date();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // 1. Caregiver assignments → caregiverCount, elderCount, elderIds
       const assignQ = query(
         collection(db, 'caregiver_assignments'),
         where('agencyId', '==', agencyId),
@@ -87,29 +96,37 @@ export function AgencyOwnerDashboard() {
 
       const caregiverCount = uniqueCaregiverIds.size;
       const elderCount = elderIds.size;
-      const revenue = elderCount * MULTI_AGENCY_PRICE_PER_ELDER;
 
-      // 2. Today's scheduled shifts
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
+      // 2. Scheduled shifts (all)
       const shiftsQ = query(
         collection(db, 'scheduledShifts'),
         where('agencyId', '==', agencyId)
       );
       const shiftsSnap = await getDocs(shiftsQ);
 
-      const now = new Date();
       const todayShifts: TodayShift[] = [];
       let unconfirmedCount = 0;
       let noShowCount = 0;
+
+      // Week bounds for coverage and burnout
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      // Track shifts per caregiver this week for burnout
+      const caregiverWeekShifts: Record<string, number> = {};
+      const caregiversWithShiftsThisWeek = new Set<string>();
+
+      // Track this week's completed vs total for coverage
+      let weekTotalShifts = 0;
+      let weekCoveredShifts = 0;
 
       shiftsSnap.docs.forEach(doc => {
         const d = doc.data();
         const shiftDate = d.date instanceof Timestamp ? d.date.toDate() : new Date(d.date);
 
+        // Today's shifts
         if (shiftDate >= today && shiftDate < tomorrow) {
           todayShifts.push({
             id: doc.id,
@@ -122,18 +139,40 @@ export function AgencyOwnerDashboard() {
 
           if (d.status === 'scheduled') {
             unconfirmedCount++;
-            // No-show: shift start time has passed but still unconfirmed
             const [startH, startM] = (d.startTime || '09:00').split(':').map(Number);
             const shiftStart = new Date(today);
             shiftStart.setHours(startH, startM, 0, 0);
-            if (now > shiftStart) {
-              noShowCount++;
+            if (now > shiftStart) noShowCount++;
+          }
+        }
+
+        // This week's shifts for coverage and burnout
+        if (shiftDate >= weekStart && shiftDate < weekEnd) {
+          if (d.status !== 'cancelled') {
+            weekTotalShifts++;
+            if (['confirmed', 'in_progress', 'completed'].includes(d.status)) {
+              weekCoveredShifts++;
             }
+          }
+          if (d.caregiverId) {
+            caregiversWithShiftsThisWeek.add(d.caregiverId);
+            caregiverWeekShifts[d.caregiverId] = (caregiverWeekShifts[d.caregiverId] || 0) + 1;
           }
         }
       });
 
-      // 3. Active shift sessions (overtime check)
+      // Coverage rate (this week)
+      const coverageRatePct = weekTotalShifts > 0
+        ? Math.round((weekCoveredShifts / weekTotalShifts) * 100)
+        : 100;
+
+      // Burnout risk: caregivers with > 6 shifts this week
+      let burnoutRiskCount = 0;
+      Object.values(caregiverWeekShifts).forEach(count => {
+        if (count > 6) burnoutRiskCount++;
+      });
+
+      // 3. Active shift sessions (overtime + burnout from hours)
       let overtimeCount = 0;
       try {
         const sessionsQ = query(
@@ -145,37 +184,60 @@ export function AgencyOwnerDashboard() {
         sessionsSnap.docs.forEach(doc => {
           const d = doc.data();
           const clockIn = d.clockInTime instanceof Timestamp ? d.clockInTime.toDate() : new Date(d.clockInTime);
-          const elapsed = (now.getTime() - clockIn.getTime()) / (1000 * 60); // minutes
-          const planned = d.plannedDurationMinutes || 480; // default 8 hours
+          const elapsed = (now.getTime() - clockIn.getTime()) / (1000 * 60);
+          const planned = d.plannedDurationMinutes || 480;
           if (elapsed > planned + 60) {
             overtimeCount++;
+            // Also count toward burnout
+            if (d.caregiverId && !Object.keys(caregiverWeekShifts).includes(d.caregiverId)) {
+              burnoutRiskCount++;
+            }
           }
         });
       } catch {
         // shiftSessions collection may not exist yet
       }
 
-      // 4. Week coverage - find idle caregivers
-      const weekStart = new Date(today);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 7);
+      // 4. Care quality: medication adherence for agency elders (last 7 days)
+      let careQualityPct = 100;
+      const elderIdArray = Array.from(elderIds);
+      if (elderIdArray.length > 0) {
+        try {
+          const sevenDaysAgo = new Date(today);
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      const caregiversWithShiftsThisWeek = new Set<string>();
-      shiftsSnap.docs.forEach(doc => {
-        const d = doc.data();
-        const shiftDate = d.date instanceof Timestamp ? d.date.toDate() : new Date(d.date);
-        if (shiftDate >= weekStart && shiftDate < weekEnd && d.caregiverId) {
-          caregiversWithShiftsThisWeek.add(d.caregiverId);
+          // Query medication logs for agency elders (batch max 30)
+          const medLogQ = query(
+            collection(db, 'medication_logs'),
+            where('elderId', 'in', elderIdArray.slice(0, 30))
+          );
+          const medLogSnap = await getDocs(medLogQ);
+
+          let takenCount = 0;
+          let totalLogs = 0;
+          medLogSnap.docs.forEach(doc => {
+            const d = doc.data();
+            const logDate = d.createdAt instanceof Timestamp ? d.createdAt.toDate() : new Date(d.createdAt);
+            if (logDate >= sevenDaysAgo) {
+              totalLogs++;
+              if (d.status === 'taken') takenCount++;
+            }
+          });
+
+          if (totalLogs > 0) {
+            careQualityPct = Math.round((takenCount / totalLogs) * 100);
+          }
+        } catch {
+          // medication_logs may not exist or have access issues
         }
-      });
+      }
 
+      // 5. Idle caregivers
       const idleCaregiverCount = Math.max(0, caregiverCount - caregiversWithShiftsThisWeek.size);
 
-      // 5. Tomorrow's cancelled shifts (replacement needed)
+      // 6. Tomorrow's cancelled shifts
       const dayAfterTomorrow = new Date(tomorrow);
       dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
-
       let replacementNeededCount = 0;
       shiftsSnap.docs.forEach(doc => {
         const d = doc.data();
@@ -190,8 +252,9 @@ export function AgencyOwnerDashboard() {
         elderCount,
         maxCaregivers: MAX_CAREGIVERS,
         maxElders: MAX_ELDERS_TOTAL,
-        revenue,
-        maxRevenue: MAX_ELDERS_TOTAL * MULTI_AGENCY_PRICE_PER_ELDER,
+        burnoutRiskCount,
+        careQualityPct,
+        coverageRatePct,
         todayShifts,
         unconfirmedCount,
         noShowCount,
@@ -216,12 +279,10 @@ export function AgencyOwnerDashboard() {
     <div className="flex flex-col gap-6 max-w-2xl mx-auto">
       <AgencyGreeting />
       <AgencyQuickStats
+        burnoutRiskCount={data.burnoutRiskCount}
+        careQualityPct={data.careQualityPct}
+        coverageRatePct={data.coverageRatePct}
         caregiverCount={data.caregiverCount}
-        elderCount={data.elderCount}
-        maxCaregivers={data.maxCaregivers}
-        maxElders={data.maxElders}
-        revenue={data.revenue}
-        maxRevenue={data.maxRevenue}
         loading={data.loading}
       />
       <NeedsAttentionList
@@ -233,6 +294,9 @@ export function AgencyOwnerDashboard() {
         overtimeCount={data.overtimeCount}
         idleCaregiverCount={data.idleCaregiverCount}
         replacementNeededCount={data.replacementNeededCount}
+        burnoutRiskCount={data.burnoutRiskCount}
+        careQualityPct={data.careQualityPct}
+        coverageRatePct={data.coverageRatePct}
         loading={data.loading}
       />
       <ManageActionGrid
