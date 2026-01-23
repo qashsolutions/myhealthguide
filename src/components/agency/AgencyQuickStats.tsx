@@ -65,7 +65,15 @@ export function AgencyQuickStats({
     },
   };
 
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const fmt = (d: Date) =>
+    `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}/${d.getFullYear()}`;
+
   return (
+    <div>
     <div className="grid grid-cols-3 gap-2">
       {statCards.map((stat) => {
         const Icon = stat.icon;
@@ -96,6 +104,12 @@ export function AgencyQuickStats({
           </Card>
         );
       })}
+    </div>
+    {!loading && (
+      <p className="text-[11px] text-gray-400 dark:text-gray-500 italic text-right mt-1">
+        {fmt(sevenDaysAgo)} – {fmt(now)}
+      </p>
+    )}
     </div>
   );
 }
