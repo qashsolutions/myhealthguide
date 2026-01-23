@@ -26,6 +26,9 @@ import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCard
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { PriorityCard } from '@/components/dashboard/PriorityCard';
 import { DayProgress } from '@/components/dashboard/DayProgress';
+import { ElderTabSelector } from '@/components/agency/ElderTabSelector';
+import { ShiftInfoBar } from '@/components/agency/ShiftInfoBar';
+import { isAgencyCaregiver } from '@/lib/utils/getUserRole';
 
 // Check if user can add elders based on their role
 function canUserAddElders(user: any): boolean {
@@ -214,11 +217,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Priority Card + Day Progress (Today view only) */}
+      {/* Elder Tab Selector + Priority Card + Day Progress + Shift Info (Today view only) */}
       {timePeriod === 'today' && selectedElder && (
         <div className="space-y-3">
+          {availableElders.length > 1 && (
+            <ElderTabSelector
+              elders={availableElders}
+              selectedElderId={selectedElder.id}
+              onSelect={(elder) => setSelectedElder(elder)}
+            />
+          )}
           <PriorityCard />
           <DayProgress />
+          {isAgencyCaregiver(user) && <ShiftInfoBar />}
         </div>
       )}
 
