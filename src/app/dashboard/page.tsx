@@ -24,33 +24,18 @@ import {
 } from 'lucide-react';
 import { Elder } from '@/types';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCardGrid';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { PriorityCard } from '@/components/dashboard/PriorityCard';
 import { DayProgress } from '@/components/dashboard/DayProgress';
+import { VoiceInputArea } from '@/components/dashboard/VoiceInputArea';
+import { SuggestionChips } from '@/components/dashboard/SuggestionChips';
+import { HomeGreeting } from '@/components/dashboard/HomeGreeting';
+import { AgencyOwnerDashboard } from '@/components/dashboard/AgencyOwnerDashboard';
 import { ElderTabSelector } from '@/components/agency/ElderTabSelector';
 import { ShiftInfoBar } from '@/components/agency/ShiftInfoBar';
 import { isAgencyCaregiver } from '@/lib/utils/getUserRole';
 import { useSubscription } from '@/lib/subscription';
-
-// Dynamic imports - only loaded when needed (agency components not bundled for family users)
-const AgencyOwnerDashboard = dynamic(
-  () => import('@/components/dashboard/AgencyOwnerDashboard').then(mod => ({ default: mod.AgencyOwnerDashboard })),
-  { loading: () => <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div> }
-);
-const VoiceInputArea = dynamic(
-  () => import('@/components/dashboard/VoiceInputArea').then(mod => ({ default: mod.VoiceInputArea })),
-  { ssr: false }
-);
-const SuggestionChips = dynamic(
-  () => import('@/components/dashboard/SuggestionChips').then(mod => ({ default: mod.SuggestionChips })),
-  { ssr: false }
-);
-const HomeGreeting = dynamic(
-  () => import('@/components/dashboard/HomeGreeting').then(mod => ({ default: mod.HomeGreeting })),
-  { ssr: false }
-);
 
 function getGreetingPrefix(): string {
   const hour = new Date().getHours();
