@@ -275,6 +275,21 @@ export function AgencyOwnerDashboard() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  // Determine if CTA already covers scheduling (hide empty TodaysShifts if so)
+  const ctaCoversScheduling = !data.loading && data.todayShifts.length === 0 && (() => {
+    // Mirror NeedsAttentionList priority to find top item's rootCause
+    if (data.burnoutRiskCount > 0) return false; // burnout
+    if (data.maxElders - data.elderCount > 0) return false; // capacity
+    if (data.noShowCount > 0) return true; // scheduling
+    if (data.unconfirmedCount - data.noShowCount > 0) return true; // scheduling
+    if (data.overtimeCount > 0) return false; // burnout
+    if (data.careQualityPct < 90) return false; // quality
+    if (data.coverageRatePct < 80) return true; // scheduling
+    if (data.idleCaregiverCount > 0) return true; // scheduling
+    if (data.replacementNeededCount > 0) return true; // scheduling
+    return false;
+  })();
+
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto">
       <AgencyGreeting />
@@ -299,10 +314,12 @@ export function AgencyOwnerDashboard() {
         coverageRatePct={data.coverageRatePct}
         loading={data.loading}
       />
-      <TodaysShiftsList
-        shifts={data.todayShifts}
-        loading={data.loading}
-      />
+      {!ctaCoversScheduling && (
+        <TodaysShiftsList
+          shifts={data.todayShifts}
+          loading={data.loading}
+        />
+      )}
       <ManageActionGrid
         caregiverCount={data.caregiverCount}
         elderCount={data.elderCount}

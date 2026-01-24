@@ -22,6 +22,8 @@ interface NeedsAttentionListProps {
   loading: boolean;
 }
 
+type RootCause = 'scheduling' | 'burnout' | 'capacity' | 'quality';
+
 interface AttentionItem {
   id: string;
   message: string;
@@ -30,6 +32,7 @@ interface AttentionItem {
   icon: typeof AlertTriangle;
   href: string;
   ctaLabel: string;
+  rootCause: RootCause;
 }
 
 export function NeedsAttentionList({
@@ -69,6 +72,7 @@ export function NeedsAttentionList({
       icon: AlertTriangle,
       href: '/dashboard/care-management',
       ctaLabel: 'Review Workload',
+      rootCause: 'burnout',
     });
   }
 
@@ -84,6 +88,7 @@ export function NeedsAttentionList({
       icon: DollarSign,
       href: '/dashboard/agency?tab=assignments',
       ctaLabel: 'Assign Elders',
+      rootCause: 'capacity',
     });
   }
 
@@ -97,6 +102,7 @@ export function NeedsAttentionList({
       icon: UserX,
       href: '/dashboard/agency?tab=scheduling',
       ctaLabel: 'View Schedule',
+      rootCause: 'scheduling',
     });
   }
 
@@ -111,6 +117,7 @@ export function NeedsAttentionList({
       icon: AlertCircle,
       href: '/dashboard/agency?tab=scheduling',
       ctaLabel: 'Confirm Shifts',
+      rootCause: 'scheduling',
     });
   }
 
@@ -124,6 +131,7 @@ export function NeedsAttentionList({
       icon: Clock,
       href: '/dashboard/care-management',
       ctaLabel: 'View Shifts',
+      rootCause: 'burnout',
     });
   }
 
@@ -137,6 +145,7 @@ export function NeedsAttentionList({
       icon: AlertCircle,
       href: '/dashboard/medications',
       ctaLabel: 'View Adherence',
+      rootCause: 'quality',
     });
   }
 
@@ -150,6 +159,7 @@ export function NeedsAttentionList({
       icon: AlertCircle,
       href: '/dashboard/agency?tab=scheduling',
       ctaLabel: 'Fix Coverage',
+      rootCause: 'scheduling',
     });
   }
 
@@ -166,6 +176,7 @@ export function NeedsAttentionList({
       icon: AlertTriangle,
       href: '/dashboard/agency?tab=scheduling',
       ctaLabel: 'Create Schedule',
+      rootCause: 'scheduling',
     });
   }
 
@@ -179,6 +190,7 @@ export function NeedsAttentionList({
       icon: AlertTriangle,
       href: '/dashboard/agency?tab=scheduling',
       ctaLabel: 'Find Replacement',
+      rootCause: 'scheduling',
     });
   }
 
@@ -202,6 +214,9 @@ export function NeedsAttentionList({
   // Priority CTA Banner — shows the #1 highest priority action
   const topItem = items[0];
   const TopIcon = topItem.icon;
+
+  // Smart dedup: suppress items sharing the same root cause as the CTA
+  const remainingItems = items.slice(1).filter(item => item.rootCause !== topItem.rootCause);
 
   return (
     <div>
@@ -250,12 +265,12 @@ export function NeedsAttentionList({
         </div>
       </Card>
 
-      {/* Remaining alerts */}
-      {items.length > 1 && (
+      {/* Remaining alerts (deduped — same root cause as CTA suppressed) */}
+      {remainingItems.length > 0 && (
         <>
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Needs Attention</h2>
           <div className="space-y-2">
-            {items.slice(1).map((item) => {
+            {remainingItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Card
