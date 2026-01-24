@@ -14,6 +14,7 @@ import {
   doc,
   updateDoc,
   getDoc,
+  getDocs,
   serverTimestamp
 } from 'firebase/firestore';
 import {
@@ -37,8 +38,10 @@ import {
   Zap,
   X,
   Check,
-  Loader2
+  Loader2,
+  Plus
 } from 'lucide-react';
+import { createScheduledShift, createCascadeShift } from '@/lib/firebase/scheduleShifts';
 import { cn } from '@/lib/utils';
 import type { ScheduledShift } from '@/types';
 
@@ -111,6 +114,28 @@ export default function AgencySchedulePage() {
   const [loadingCaregivers, setLoadingCaregivers] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
+
+  // Phase 4: Create Shift state
+  const [showCreateSheet, setShowCreateSheet] = useState(false);
+  const [elders, setElders] = useState<{ id: string; name: string; groupId: string }[]>([]);
+  const [loadingElders, setLoadingElders] = useState(false);
+  const [creatingShift, setCreatingShift] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    date: format(new Date(), 'yyyy-MM-dd'),
+    startTime: '09:00',
+    endTime: '17:00',
+    elderId: '',
+    elderName: '',
+    elderGroupId: '',
+    assignmentMode: 'direct' as 'direct' | 'cascade',
+    caregiverId: '',
+    caregiverName: '',
+    repeatMode: 'none' as 'none' | 'daily' | 'weekdays' | 'custom',
+    customDays: [] as number[],
+    notes: ''
+  });
 
   const userAgency = user?.agencies?.[0];
   const agencyId = userAgency?.agencyId;
@@ -203,6 +228,188 @@ export default function AgencySchedulePage() {
       setAssigning(false);
     }
   }, [selectedShift, closeAssignSheet]);
+
+  // Fetch elders for agency
+  const fetchElders = useCallback(async () => {
+    if (!agencyId) return;
+    setLoadingElders(true);
+    try {
+      const agencyDoc = await getDoc(doc(db, 'agencies', agencyId));
+      if (!agencyDoc.exists()) {
+        setLoadingElders(false);
+        return;
+      }
+      const groupIds: string[] = agencyDoc.data()?.groupIds || [];
+      const allElders: { id: string; name: string; groupId: string }[] = [];
+
+      for (const gId of groupIds) {
+        const elderQuery = query(
+          collection(db, 'elders'),
+          where('groupId', '==', gId)
+        );
+        const snap = await getDocs(elderQuery);
+        snap.docs.forEach(d => {
+          const data = d.data();
+          if (!data.archived) {
+            allElders.push({
+              id: d.id,
+              name: data.name || data.preferredName || 'Unknown',
+              groupId: gId
+            });
+          }
+        });
+      }
+      setElders(allElders);
+    } catch (err) {
+      console.error('Error fetching elders:', err);
+    } finally {
+      setLoadingElders(false);
+    }
+  }, [agencyId]);
+
+  // Open create sheet
+  const openCreateSheet = useCallback(() => {
+    setShowCreateSheet(true);
+    setCreateError(null);
+    setCreateSuccess(false);
+    setCreateForm(prev => ({
+      ...prev,
+      date: format(selectedDate, 'yyyy-MM-dd')
+    }));
+    if (elders.length === 0) fetchElders();
+    if (caregivers.length === 0) fetchCaregivers();
+  }, [selectedDate, elders.length, caregivers.length, fetchElders, fetchCaregivers]);
+
+  // Close create sheet
+  const closeCreateSheet = useCallback(() => {
+    setShowCreateSheet(false);
+    setCreateError(null);
+    setCreateSuccess(false);
+  }, []);
+
+  // Handle create shift submission
+  const handleCreateShift = useCallback(async () => {
+    if (!agencyId || !user?.id) return;
+
+    // Validate
+    if (!createForm.elderId) {
+      setCreateError('Please select a Loved One.');
+      return;
+    }
+    if (!createForm.date) {
+      setCreateError('Please select a date.');
+      return;
+    }
+    if (createForm.startTime >= createForm.endTime) {
+      setCreateError('End time must be after start time.');
+      return;
+    }
+    if (createForm.assignmentMode === 'direct' && !createForm.caregiverId) {
+      setCreateError('Please select a caregiver for Direct Assign.');
+      return;
+    }
+
+    setCreatingShift(true);
+    setCreateError(null);
+
+    try {
+      // Determine dates to create shifts for
+      const baseDates: Date[] = [];
+      const baseDate = startOfDay(new Date(createForm.date + 'T00:00:00'));
+
+      if (createForm.repeatMode === 'none') {
+        baseDates.push(baseDate);
+      } else {
+        // Generate dates for next 4 weeks
+        const end = addDays(baseDate, 27);
+        let current = baseDate;
+        while (current <= end) {
+          const dow = current.getDay();
+          if (createForm.repeatMode === 'daily') {
+            baseDates.push(new Date(current));
+          } else if (createForm.repeatMode === 'weekdays') {
+            if (dow >= 1 && dow <= 5) baseDates.push(new Date(current));
+          } else if (createForm.repeatMode === 'custom') {
+            if (createForm.customDays.includes(dow)) baseDates.push(new Date(current));
+          }
+          current = addDays(current, 1);
+        }
+      }
+
+      let successCount = 0;
+      let lastError = '';
+
+      for (const shiftDate of baseDates) {
+        let result: { success: boolean; error?: string };
+
+        if (createForm.assignmentMode === 'cascade') {
+          result = await createCascadeShift(
+            agencyId,
+            createForm.elderGroupId,
+            createForm.elderId,
+            createForm.elderName,
+            shiftDate,
+            createForm.startTime,
+            createForm.endTime,
+            createForm.notes || undefined,
+            user.id,
+            createForm.caregiverId || undefined,
+            user.id
+          );
+        } else {
+          result = await createScheduledShift(
+            agencyId,
+            createForm.elderGroupId,
+            createForm.elderId,
+            createForm.elderName,
+            createForm.caregiverId,
+            createForm.caregiverName,
+            shiftDate,
+            createForm.startTime,
+            createForm.endTime,
+            createForm.notes || undefined,
+            user.id,
+            baseDates.length > 1,
+            baseDates.length > 1 ? `recurring_${Date.now()}` : undefined
+          );
+        }
+
+        if (result.success) {
+          successCount++;
+        } else {
+          lastError = result.error || 'Unknown error';
+        }
+      }
+
+      if (successCount > 0) {
+        setCreateSuccess(true);
+        // Reset form
+        setCreateForm({
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          startTime: '09:00',
+          endTime: '17:00',
+          elderId: '',
+          elderName: '',
+          elderGroupId: '',
+          assignmentMode: 'direct',
+          caregiverId: '',
+          caregiverName: '',
+          repeatMode: 'none',
+          customDays: [],
+          notes: ''
+        });
+        // Auto-close after brief delay
+        setTimeout(() => closeCreateSheet(), 1200);
+      } else {
+        setCreateError(lastError || 'Failed to create shift.');
+      }
+    } catch (err: any) {
+      console.error('Error creating shift:', err);
+      setCreateError(err.message || 'Failed to create shift.');
+    } finally {
+      setCreatingShift(false);
+    }
+  }, [agencyId, user?.id, createForm, selectedDate, closeCreateSheet]);
 
   // Real-time listener for shifts
   useEffect(() => {
@@ -661,6 +868,297 @@ export default function AgencySchedulePage() {
           </div>
         )}
       </div>
+
+      {/* Phase 4: FAB - Create Shift (SuperAdmin only) */}
+      {userIsSuperAdmin && (
+        <button
+          onClick={openCreateSheet}
+          className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-30 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-lg flex items-center justify-center transition-all"
+          aria-label="Create shift"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Phase 4: Create Shift Bottom Sheet */}
+      {showCreateSheet && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            onClick={closeCreateSheet}
+          />
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-200">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                New Shift
+              </h2>
+              <button
+                onClick={closeCreateSheet}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              {/* Success message */}
+              {createSuccess && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-400">
+                  <Check className="w-4 h-4" />
+                  Shift created successfully!
+                </div>
+              )}
+
+              {/* Error message */}
+              {createError && (
+                <div className="px-3 py-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-400">
+                  {createError}
+                </div>
+              )}
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={createForm.date}
+                  onChange={e => setCreateForm(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                />
+              </div>
+
+              {/* Time row */}
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start
+                  </label>
+                  <input
+                    type="time"
+                    value={createForm.startTime}
+                    onChange={e => setCreateForm(prev => ({ ...prev, startTime: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End
+                  </label>
+                  <input
+                    type="time"
+                    value={createForm.endTime}
+                    onChange={e => setCreateForm(prev => ({ ...prev, endTime: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Elder picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Loved One <span className="text-red-500">*</span>
+                </label>
+                {loadingElders ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <span className="text-sm text-gray-500">Loading...</span>
+                  </div>
+                ) : (
+                  <select
+                    value={createForm.elderId}
+                    onChange={e => {
+                      const elder = elders.find(el => el.id === e.target.value);
+                      setCreateForm(prev => ({
+                        ...prev,
+                        elderId: e.target.value,
+                        elderName: elder?.name || '',
+                        elderGroupId: elder?.groupId || ''
+                      }));
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">Select loved one...</option>
+                    {elders.map(elder => (
+                      <option key={elder.id} value={elder.id}>{elder.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Assignment Mode Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Assignment
+                </label>
+                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm(prev => ({ ...prev, assignmentMode: 'direct' }))}
+                    className={cn(
+                      'flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                      createForm.assignmentMode === 'direct'
+                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400'
+                    )}
+                  >
+                    Direct Assign
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm(prev => ({ ...prev, assignmentMode: 'cascade' }))}
+                    className={cn(
+                      'flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                      createForm.assignmentMode === 'cascade'
+                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400'
+                    )}
+                  >
+                    Auto-Assign
+                  </button>
+                </div>
+              </div>
+
+              {/* Caregiver picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {createForm.assignmentMode === 'cascade' ? 'Preferred Caregiver (optional)' : 'Caregiver'}
+                  {createForm.assignmentMode === 'direct' && <span className="text-red-500"> *</span>}
+                </label>
+                {loadingCaregivers ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <span className="text-sm text-gray-500">Loading...</span>
+                  </div>
+                ) : (
+                  <select
+                    value={createForm.caregiverId}
+                    onChange={e => {
+                      const cg = caregivers.find(c => c.id === e.target.value);
+                      setCreateForm(prev => ({
+                        ...prev,
+                        caregiverId: e.target.value,
+                        caregiverName: cg?.name || ''
+                      }));
+                    }}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                  >
+                    <option value="">
+                      {createForm.assignmentMode === 'cascade' ? 'None (auto-rank)' : 'Select caregiver...'}
+                    </option>
+                    {caregivers.map(cg => (
+                      <option key={cg.id} value={cg.id}>{cg.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Repeat options */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Repeat
+                </label>
+                <select
+                  value={createForm.repeatMode}
+                  onChange={e => setCreateForm(prev => ({
+                    ...prev,
+                    repeatMode: e.target.value as any,
+                    customDays: []
+                  }))}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                >
+                  <option value="none">No repeat</option>
+                  <option value="daily">Daily (next 4 weeks)</option>
+                  <option value="weekdays">Weekdays (next 4 weeks)</option>
+                  <option value="custom">Custom days (next 4 weeks)</option>
+                </select>
+
+                {/* Custom day checkboxes */}
+                {createForm.repeatMode === 'custom' && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => {
+                          setCreateForm(prev => ({
+                            ...prev,
+                            customDays: prev.customDays.includes(idx)
+                              ? prev.customDays.filter(d => d !== idx)
+                              : [...prev.customDays, idx]
+                          }));
+                        }}
+                        className={cn(
+                          'px-3 py-1.5 text-xs font-medium rounded-full transition-colors',
+                          createForm.customDays.includes(idx)
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        )}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes (optional)
+                </label>
+                <textarea
+                  value={createForm.notes}
+                  onChange={e => setCreateForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Any special instructions..."
+                  rows={2}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Submit button */}
+            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={handleCreateShift}
+                disabled={creatingShift || createSuccess}
+                className={cn(
+                  'w-full py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2',
+                  creatingShift || createSuccess
+                    ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white'
+                )}
+              >
+                {creatingShift ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : createSuccess ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Created!
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Create Shift{createForm.repeatMode !== 'none' ? 's' : ''}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Phase 2: Assignment Bottom Sheet */}
       {showAssignSheet && selectedShift && (
