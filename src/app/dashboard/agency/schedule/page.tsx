@@ -594,9 +594,9 @@ export default function AgencySchedulePage() {
       .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
   }, [shifts, selectedDate]);
 
-  // Count shifts needing assignment
+  // Count shifts needing assignment (offered shifts are being handled by cascade)
   const needsAssignmentCount = dayShifts.filter(
-    s => s.status === 'unfilled' || s.status === 'offered' || !s.caregiverId
+    s => s.status === 'unfilled' || (!s.caregiverId && s.status !== 'offered')
   ).length;
 
   // Week view data
@@ -633,9 +633,9 @@ export default function AgencySchedulePage() {
     setSelectedDate(addDays(today, daysUntilSaturday));
   };
 
-  // Check if a shift needs assignment
+  // Check if a shift needs manual assignment (offered shifts are handled by cascade)
   const needsAssignment = (shift: ScheduledShift) => {
-    return shift.status === 'unfilled' || shift.status === 'offered' || !shift.caregiverId;
+    return shift.status === 'unfilled' || (!shift.caregiverId && shift.status !== 'offered');
   };
 
   if (!isMultiAgency) {
@@ -920,7 +920,7 @@ export default function AgencySchedulePage() {
                   <div
                     className={cn(
                       'flex-1 rounded-xl p-3.5 border transition-colors',
-                      isUnassigned
+                      (isUnassigned || shift.status === 'offered')
                         ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
                         : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                     )}
@@ -929,7 +929,7 @@ export default function AgencySchedulePage() {
                     <div className="flex items-center justify-between mb-2">
                       <p className={cn(
                         'text-xs font-semibold',
-                        isUnassigned
+                        (isUnassigned || shift.status === 'offered')
                           ? 'text-amber-700 dark:text-amber-400'
                           : 'text-gray-500 dark:text-gray-400'
                       )}>
