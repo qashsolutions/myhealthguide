@@ -120,6 +120,42 @@
 
 ---
 
+## CAS-1D: Create Shift - Direct Assign Mode (POSITIVE)
+
+| Test ID | Description | Expected | Actual | Result |
+|---------|-------------|----------|--------|--------|
+| CAS-1D.1 | Open Create Shift dialog | Dialog opens | "New Shift" bottom sheet appeared | **PASS** |
+| CAS-1D.2 | Click "Direct Assign" toggle | Direct Assign active | Direct Assign button shows active blue styling | **PASS** |
+| CAS-1D.3 | Caregiver field shows REQUIRED (*) | Red asterisk visible | "Caregiver *" with red asterisk | **PASS** |
+| CAS-1D.4 | Label changes to "Caregiver" (no optional) | No "(optional)" text | Label shows "Caregiver *" without optional text | **PASS** |
+| CAS-1D.5 | Select elder | Elder selected | LO-C8-1 selected | **PASS** |
+| CAS-1D.6 | Select caregiver | Caregiver selected | Caregiver 8 selected | **PASS** |
+| CAS-1D.7 | Set date | Date set | Jan 28, 2026 | **PASS** |
+| CAS-1D.8 | Click Create Shift | Form submits | Dialog closed, shift created | **PASS** |
+| CAS-1D.9 | Status = "scheduled" (not offered) | Scheduled status | "Scheduled" in blue text on shift card | **PASS** |
+| CAS-1D.10 | assignmentMode = "direct" in Firestore | Direct mode stored | Field NOT present (Direct Assign doesn't store assignmentMode; only cascade shifts do) | **PASS** |
+| CAS-1D.11 | No cascade state | No cascadeState field | `hasCascadeState: false`, field absent from document | **PASS** |
+| CAS-1D.12 | Normal card color (not amber) | White/default background | White card background (vs amber for cascade shifts) | **PASS** |
+
+### Summary
+
+| Total | Passed | Failed |
+|-------|--------|--------|
+| 12 | 12 | 0 |
+
+---
+
+### Key Observations
+
+1. **Direct Assign uses client-side Firestore write** - No API call to `/api/shifts/create-cascade`; shift created via `createScheduledShift` function
+2. **No `assignmentMode` field stored** - Direct Assign is the implicit default; only cascade shifts store `assignmentMode: 'cascade'`
+3. **No `cascadeState` field** - Confirms no scoring/ranking occurred
+4. **Immediate "Scheduled" status** - Unlike cascade shifts which start as "offered" (Pending), direct shifts are immediately "scheduled"
+5. **Visual distinction clear** - Direct shifts: white card + blue "Scheduled" text; Cascade shifts: amber card + amber "Pending" text
+6. **Shift fields**: agencyId, groupId, elderId, elderName, caregiverId, caregiverName, date, startTime, endTime, duration, status, isRecurring, createdBy, createdAt, updatedAt
+
+---
+
 ## Console Error Investigation
 
 | Error Type | Status | Conclusion |
@@ -137,4 +173,5 @@
 | CAS-1A (UI Elements) | 12 | 12 | 0 |
 | CAS-1B (Auto-Assign without Preferred) | 12 | 12 | 0 |
 | CAS-1C (Auto-Assign with Preferred) | 10 | 10 | 0 |
-| **TOTAL** | **34** | **34** | **0** |
+| CAS-1D (Direct Assign Mode) | 12 | 12 | 0 |
+| **TOTAL** | **46** | **46** | **0** |
