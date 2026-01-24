@@ -83,6 +83,12 @@ export function MonthCalendarView({
     return caregiver?.color || DEFAULT_SHIFT_COLOR;
   };
 
+  // Get resolved name for a shift's caregiver
+  const getCaregiverName = (shift: ScheduledShift): string => {
+    const caregiver = caregivers.find(c => c.id === shift.caregiverId);
+    return caregiver?.name || shift.caregiverName || `Caregiver ${shift.caregiverId?.substring(0, 6)}`;
+  };
+
   // Generate calendar days for the month (including padding days from prev/next months)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
@@ -319,7 +325,7 @@ export function MonthCalendarView({
                             key={shiftIdx}
                             className={`text-[10px] ${color.bg} ${color.text} rounded px-1 truncate`}
                           >
-                            {shift.startTime} {shift.caregiverName?.split(' ')[0]}
+                            {shift.startTime} {getCaregiverName(shift).split(' ')[0]}
                           </div>
                         );
                       })}
