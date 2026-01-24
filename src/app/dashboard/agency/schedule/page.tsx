@@ -39,7 +39,9 @@ import {
   X,
   Check,
   Loader2,
-  Plus
+  Plus,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { createScheduledShift, createCascadeShift } from '@/lib/firebase/scheduleShifts';
 import { cn } from '@/lib/utils';
@@ -134,6 +136,26 @@ export default function AgencySchedulePage() {
     caregiverName: '',
     repeatMode: 'none' as 'none' | 'daily' | 'weekdays' | 'custom',
     customDays: [] as number[],
+    notes: ''
+  });
+
+  // Phase 5: Edit/Delete Shift state
+  const [showEditSheet, setShowEditSheet] = useState(false);
+  const [editingShift, setEditingShift] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editForm, setEditForm] = useState({
+    shiftId: '',
+    date: '',
+    startTime: '09:00',
+    endTime: '17:00',
+    elderId: '',
+    elderName: '',
+    elderGroupId: '',
+    caregiverId: '',
+    caregiverName: '',
     notes: ''
   });
 
@@ -410,6 +432,104 @@ export default function AgencySchedulePage() {
       setCreatingShift(false);
     }
   }, [agencyId, user?.id, createForm, selectedDate, closeCreateSheet]);
+
+  // Phase 5: Open edit sheet with shift data
+  const openEditSheet = useCallback((shift: ScheduledShift) => {
+    setEditForm({
+      shiftId: shift.id,
+      date: shift.date ? format(shift.date, 'yyyy-MM-dd') : '',
+      startTime: shift.startTime || '09:00',
+      endTime: shift.endTime || '17:00',
+      elderId: shift.elderId || '',
+      elderName: shift.elderName || '',
+      elderGroupId: shift.groupId || '',
+      caregiverId: shift.caregiverId || '',
+      caregiverName: shift.caregiverName || '',
+      notes: shift.notes || ''
+    });
+    setShowEditSheet(true);
+    setEditError(null);
+    setEditSuccess(false);
+    setConfirmDelete(false);
+    if (elders.length === 0) fetchElders();
+    if (caregivers.length === 0) fetchCaregivers();
+  }, [elders.length, caregivers.length, fetchElders, fetchCaregivers]);
+
+  const closeEditSheet = useCallback(() => {
+    setShowEditSheet(false);
+    setEditError(null);
+    setEditSuccess(false);
+    setConfirmDelete(false);
+  }, []);
+
+  // Save edited shift
+  const handleSaveEdit = useCallback(async () => {
+    if (!editForm.shiftId) return;
+
+    if (!editForm.elderId) {
+      setEditError('Please select a Loved One.');
+      return;
+    }
+    if (editForm.startTime >= editForm.endTime) {
+      setEditError('End time must be after start time.');
+      return;
+    }
+
+    setEditingShift(true);
+    setEditError(null);
+
+    try {
+      const shiftRef = doc(db, 'scheduledShifts', editForm.shiftId);
+      const [sh, sm] = editForm.startTime.split(':').map(Number);
+      const [eh, em] = editForm.endTime.split(':').map(Number);
+      const duration = (eh * 60 + em) - (sh * 60 + sm);
+
+      await updateDoc(shiftRef, {
+        date: startOfDay(new Date(editForm.date + 'T00:00:00')),
+        startTime: editForm.startTime,
+        endTime: editForm.endTime,
+        duration,
+        elderId: editForm.elderId,
+        elderName: editForm.elderName,
+        groupId: editForm.elderGroupId,
+        caregiverId: editForm.caregiverId,
+        caregiverName: editForm.caregiverName,
+        notes: editForm.notes || '',
+        updatedAt: serverTimestamp()
+      });
+
+      setEditSuccess(true);
+      setTimeout(() => closeEditSheet(), 1200);
+    } catch (err: any) {
+      console.error('Error updating shift:', err);
+      setEditError(err.message || 'Failed to update shift.');
+    } finally {
+      setEditingShift(false);
+    }
+  }, [editForm, closeEditSheet]);
+
+  // Delete (cancel) shift
+  const handleDeleteShift = useCallback(async () => {
+    if (!editForm.shiftId) return;
+
+    setDeleting(true);
+    setEditError(null);
+
+    try {
+      const shiftRef = doc(db, 'scheduledShifts', editForm.shiftId);
+      await updateDoc(shiftRef, {
+        status: 'cancelled',
+        cancelledAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      closeEditSheet();
+    } catch (err: any) {
+      console.error('Error deleting shift:', err);
+      setEditError(err.message || 'Failed to delete shift.');
+    } finally {
+      setDeleting(false);
+    }
+  }, [editForm.shiftId, closeEditSheet]);
 
   // Real-time listener for shifts
   useEffect(() => {
@@ -805,15 +925,29 @@ export default function AgencySchedulePage() {
                         : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                     )}
                   >
-                    {/* Time range */}
-                    <p className={cn(
-                      'text-xs font-semibold mb-2',
-                      isUnassigned
-                        ? 'text-amber-700 dark:text-amber-400'
-                        : 'text-gray-500 dark:text-gray-400'
-                    )}>
-                      {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
-                    </p>
+                    {/* Time range + Edit icon */}
+                    <div className="flex items-center justify-between mb-2">
+                      <p className={cn(
+                        'text-xs font-semibold',
+                        isUnassigned
+                          ? 'text-amber-700 dark:text-amber-400'
+                          : 'text-gray-500 dark:text-gray-400'
+                      )}>
+                        {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
+                      </p>
+                      {userIsSuperAdmin && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditSheet(shift);
+                          }}
+                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          aria-label="Edit shift"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        </button>
+                      )}
+                    </div>
 
                     {/* Elder info */}
                     <div className="flex items-center gap-2 mb-2">
@@ -1153,6 +1287,219 @@ export default function AgencySchedulePage() {
                     <Plus className="w-4 h-4" />
                     Create Shift{createForm.repeatMode !== 'none' ? 's' : ''}
                   </>
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Phase 5: Edit Shift Bottom Sheet */}
+      {showEditSheet && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            onClick={closeEditSheet}
+          />
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-200">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Edit Shift
+              </h2>
+              <button
+                onClick={closeEditSheet}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+              {/* Success message */}
+              {editSuccess && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-400">
+                  <Check className="w-4 h-4" />
+                  Shift updated successfully!
+                </div>
+              )}
+
+              {/* Error message */}
+              {editError && (
+                <div className="px-3 py-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-400">
+                  {editError}
+                </div>
+              )}
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={editForm.date}
+                  onChange={e => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                />
+              </div>
+
+              {/* Time row */}
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start
+                  </label>
+                  <input
+                    type="time"
+                    value={editForm.startTime}
+                    onChange={e => setEditForm(prev => ({ ...prev, startTime: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End
+                  </label>
+                  <input
+                    type="time"
+                    value={editForm.endTime}
+                    onChange={e => setEditForm(prev => ({ ...prev, endTime: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Elder picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Loved One <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={editForm.elderId}
+                  onChange={e => {
+                    const elder = elders.find(el => el.id === e.target.value);
+                    setEditForm(prev => ({
+                      ...prev,
+                      elderId: e.target.value,
+                      elderName: elder?.name || '',
+                      elderGroupId: elder?.groupId || ''
+                    }));
+                  }}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                >
+                  <option value="">Select loved one...</option>
+                  {elders.map(elder => (
+                    <option key={elder.id} value={elder.id}>{elder.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Caregiver picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Caregiver
+                </label>
+                <select
+                  value={editForm.caregiverId}
+                  onChange={e => {
+                    const cg = caregivers.find(c => c.id === e.target.value);
+                    setEditForm(prev => ({
+                      ...prev,
+                      caregiverId: e.target.value,
+                      caregiverName: cg?.name || ''
+                    }));
+                  }}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                >
+                  <option value="">Unassigned</option>
+                  {caregivers.map(cg => (
+                    <option key={cg.id} value={cg.id}>{cg.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Any special instructions..."
+                  rows={2}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm resize-none"
+                />
+              </div>
+
+              {/* Delete section */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                {!confirmDelete ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Shift
+                  </button>
+                ) : (
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+                    <p className="text-sm text-red-700 dark:text-red-400 mb-2">
+                      Are you sure? This will cancel the shift.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleDeleteShift}
+                        disabled={deleting}
+                        className="flex-1 py-2 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium flex items-center justify-center gap-1.5"
+                      >
+                        {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        {deleting ? 'Deleting...' : 'Yes, Delete'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        className="flex-1 py-2 px-3 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Save button */}
+            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={handleSaveEdit}
+                disabled={editingShift || editSuccess}
+                className={cn(
+                  'w-full py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2',
+                  editingShift || editSuccess
+                    ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white'
+                )}
+              >
+                {editingShift ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : editSuccess ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Saved!
+                  </>
+                ) : (
+                  'Save Changes'
                 )}
               </button>
             </div>
