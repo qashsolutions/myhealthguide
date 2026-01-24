@@ -14,6 +14,8 @@ export type NotificationType =
   | 'shift_cancelled'       // Caregiver: shift cancelled
   | 'shift_reminder'        // Caregiver: shift in 2 hours
   | 'shift_swap_request'    // Caregiver: someone wants to swap
+  | 'shift_offer'           // Caregiver: shift available, accept/decline
+  | 'shift_unfilled'        // Owner: no one accepted cascade shift
   | 'refill_needed'         // Medication running low
   | 'emergency_pattern';    // Critical health pattern detected
 
@@ -40,6 +42,7 @@ export interface UserNotification {
   // Metadata
   sourceCollection?: string; // Original source (for reference)
   sourceId?: string;         // Original document ID
+  data?: Record<string, any>; // Extra payload (e.g. shiftId, offerExpiresAt)
   expiresAt?: Timestamp | null;
   createdAt: Timestamp;
 }
@@ -55,5 +58,6 @@ export interface CreateNotificationParams {
   actionUrl?: string;
   sourceCollection?: string;
   sourceId?: string;
+  data?: Record<string, any>;
   expiresAt?: Date;
 }

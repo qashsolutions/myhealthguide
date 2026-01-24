@@ -23,10 +23,12 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { AlertTriangle, Clock, Calendar, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Clock, Calendar, CheckCircle, Users, UserCheck } from 'lucide-react';
 import { format, getDay } from 'date-fns';
-import { createScheduledShift } from '@/lib/firebase/scheduleShifts';
+import { createScheduledShift, createCascadeShift } from '@/lib/firebase/scheduleShifts';
 import type { Elder } from '@/types';
+
+type AssignmentMode = 'cascade' | 'direct';
 
 interface CaregiverInfo {
   id: string;
@@ -67,6 +69,7 @@ export function BulkCreateShiftDialog({
   onClearSelection,
   preSelectedCaregiverId
 }: BulkCreateShiftDialogProps) {
+  const [assignmentMode, setAssignmentMode] = useState<AssignmentMode>('cascade');
   const [selectedCaregiver, setSelectedCaregiver] = useState<string>('');
   const [selectedElder, setSelectedElder] = useState<string>('');
   const [startTime, setStartTime] = useState('09:00');
@@ -170,8 +173,12 @@ export function BulkCreateShiftDialog({
     // Clear previous error
     setError(null);
 
-    // Validate required fields
-    if (!selectedCaregiver || !selectedElder || selectedDates.length === 0) {
+    // Validate required fields (caregiver optional in cascade mode)
+    if (assignmentMode === 'direct' && !selectedCaregiver) {
+      setError('Please select a caregiver for direct assignment');
+      return;
+    }
+    if (!selectedElder || selectedDates.length === 0) {
       setError('Please fill in all required fields');
       return;
     }
@@ -215,35 +222,59 @@ export function BulkCreateShiftDialog({
     setResults([]);
     setShowResults(false);
 
-    const caregiver = caregivers.find(c => c.id === selectedCaregiver);
     const elder = elders.find(e => e.id === selectedElder);
+    if (!elder) {
+      setError('Invalid loved one selection');
+      setLoading(false);
+      return;
+    }
 
-    if (!caregiver || !elder) {
-      setError('Invalid caregiver or elder selection');
+    const caregiver = assignmentMode === 'direct' ? caregivers.find(c => c.id === selectedCaregiver) : null;
+    if (assignmentMode === 'direct' && !caregiver) {
+      setError('Invalid caregiver selection');
       setLoading(false);
       return;
     }
 
     const creationResults: CreationResult[] = [];
+    const preferredId = selectedCaregiver && selectedCaregiver !== 'none' ? selectedCaregiver : undefined;
 
     for (let i = 0; i < sortedDates.length; i++) {
       const date = sortedDates[i];
 
       try {
-        const result = await createScheduledShift(
-          agencyId,
-          elder.groupId || groupId,
-          elder.id!,
-          elder.name,
-          selectedCaregiver,
-          caregiver.name,
-          date,
-          startTime,
-          endTime,
-          notes || undefined,
-          userId,
-          false
-        );
+        let result: { success: boolean; shiftId?: string; error?: string };
+
+        if (assignmentMode === 'cascade') {
+          result = await createCascadeShift(
+            agencyId,
+            elder.groupId || groupId,
+            elder.id!,
+            elder.name,
+            date,
+            startTime,
+            endTime,
+            notes || undefined,
+            userId,
+            preferredId,
+            userId
+          );
+        } else {
+          result = await createScheduledShift(
+            agencyId,
+            elder.groupId || groupId,
+            elder.id!,
+            elder.name,
+            selectedCaregiver,
+            caregiver!.name,
+            date,
+            startTime,
+            endTime,
+            notes || undefined,
+            userId,
+            false
+          );
+        }
 
         creationResults.push({
           date,
@@ -269,7 +300,7 @@ export function BulkCreateShiftDialog({
     if (successCount > 0) {
       // Store details for success message
       setCreatedShiftDetails({
-        caregiverName: caregiver.name,
+        caregiverName: assignmentMode === 'cascade' ? 'Auto-Assigned' : caregiver!.name,
         elderName: elder.name,
         startTime,
         endTime,
@@ -282,6 +313,7 @@ export function BulkCreateShiftDialog({
   const handleClose = () => {
     if (!loading) {
       // Reset form
+      setAssignmentMode('cascade');
       setSelectedCaregiver(preSelectedCaregiverId || '');
       setSelectedElder('');
       setStartTime('09:00');
@@ -398,14 +430,58 @@ export function BulkCreateShiftDialog({
               </p>
             </div>
 
+            {/* Assignment Mode Toggle */}
+            <div className="space-y-2">
+              <Label className="text-xs text-gray-500 uppercase tracking-wide">Assignment Mode</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignmentMode('cascade')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                    assignmentMode === 'cascade'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="font-medium">Auto-Assign</div>
+                    <div className="text-xs text-gray-500">Recommended</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssignmentMode('direct')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                    assignmentMode === 'direct'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="font-medium">Direct Assign</div>
+                    <div className="text-xs text-gray-500">Pick caregiver</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Caregiver Selection */}
             <div className="space-y-2">
-              <Label>Caregiver *</Label>
+              <Label>
+                {assignmentMode === 'cascade' ? 'Preferred First (optional)' : 'Caregiver *'}
+              </Label>
               <Select value={selectedCaregiver} onValueChange={setSelectedCaregiver} disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select caregiver" />
+                  <SelectValue placeholder={assignmentMode === 'cascade' ? 'None — system picks best fit' : 'Select caregiver'} />
                 </SelectTrigger>
                 <SelectContent>
+                  {assignmentMode === 'cascade' && (
+                    <SelectItem value="none">
+                      <span className="text-gray-500">None — system picks best fit</span>
+                    </SelectItem>
+                  )}
                   {caregivers.map(c => (
                     <SelectItem key={c.id} value={c.id}>
                       <div className="flex items-center gap-2">
@@ -416,6 +492,9 @@ export function BulkCreateShiftDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {assignmentMode === 'cascade' && (
+                <p className="text-xs text-gray-500">Each date gets its own independent cascade offer.</p>
+              )}
             </div>
 
             {/* Elder Selection */}

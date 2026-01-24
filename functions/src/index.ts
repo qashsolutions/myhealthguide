@@ -27,6 +27,9 @@ import PDFDocument from 'pdfkit';
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 
+// ============= SHIFT OFFER TIMEOUT =============
+export { processShiftOfferTimeouts } from './shiftOfferTimeout';
+
 // ============= SCHEDULED FUNCTIONS =============
 
 /**

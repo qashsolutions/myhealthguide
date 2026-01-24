@@ -52,6 +52,8 @@ export function IconRail({ onMoreClick }: IconRailProps) {
     markAsRead,
     markAllAsRead,
     dismiss,
+    acceptShiftOffer,
+    declineShiftOffer,
   } = useNotifications(user?.id);
 
   const isActive = (path: string) => {
@@ -210,6 +212,8 @@ export function IconRail({ onMoreClick }: IconRailProps) {
                     notification={notification}
                     onMarkRead={() => notification.id && markAsRead(notification.id)}
                     onDismiss={() => notification.id && dismiss(notification.id)}
+                    onAcceptShiftOffer={acceptShiftOffer}
+                    onDeclineShiftOffer={declineShiftOffer}
                     compact
                   />
                 ))}

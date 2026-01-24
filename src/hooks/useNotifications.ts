@@ -15,6 +15,7 @@ import {
   markAllNotificationsAsRead,
   dismissNotification
 } from '@/lib/notifications/userNotifications';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import { UserNotification } from '@/lib/notifications/types';
 
 interface UseNotificationsReturn {
@@ -25,6 +26,8 @@ interface UseNotificationsReturn {
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   dismiss: (notificationId: string) => Promise<void>;
+  acceptShiftOffer: (notificationId: string, shiftId: string) => Promise<void>;
+  declineShiftOffer: (notificationId: string, shiftId: string, reason?: string) => Promise<void>;
   refresh: () => void;
 }
 
@@ -96,6 +99,58 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
     }
   }, []);
 
+  // Accept a shift offer
+  const acceptShiftOffer = useCallback(async (notificationId: string, shiftId: string) => {
+    try {
+      const response = await authenticatedFetch('/api/shift-offer/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shiftId })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to accept shift offer');
+      }
+
+      // Mark notification as read
+      await markNotificationAsRead(notificationId);
+      setNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+    } catch (err: any) {
+      console.error('Error accepting shift offer:', err);
+      setError(err.message || 'Failed to accept shift offer');
+      throw err;
+    }
+  }, []);
+
+  // Decline a shift offer
+  const declineShiftOffer = useCallback(async (notificationId: string, shiftId: string, reason?: string) => {
+    try {
+      const response = await authenticatedFetch('/api/shift-offer/decline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shiftId, reason })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to decline shift offer');
+      }
+
+      // Mark notification as read
+      await markNotificationAsRead(notificationId);
+      setNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+    } catch (err: any) {
+      console.error('Error declining shift offer:', err);
+      setError(err.message || 'Failed to decline shift offer');
+      throw err;
+    }
+  }, []);
+
   // Manual refresh
   const refresh = useCallback(() => {
     setRefreshKey(prev => prev + 1);
@@ -109,6 +164,8 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
     markAsRead,
     markAllAsRead,
     dismiss,
+    acceptShiftOffer,
+    declineShiftOffer,
     refresh
   };
 }

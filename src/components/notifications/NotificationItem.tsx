@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { useState } from 'react';
 import {
   UserPlus,
   Pill,
@@ -15,6 +16,8 @@ import {
   AlertOctagon,
   Bell,
   X,
+  Hand,
+  CalendarOff,
   LucideIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +33,8 @@ const notificationIcons: Record<NotificationType, LucideIcon> = {
   shift_cancelled: CalendarX,
   shift_reminder: Clock,
   shift_swap_request: ArrowLeftRight,
+  shift_offer: Hand,
+  shift_unfilled: CalendarOff,
   refill_needed: Package,
   emergency_pattern: AlertOctagon
 };
@@ -45,6 +50,8 @@ interface NotificationItemProps {
   notification: UserNotification;
   onMarkRead: () => void;
   onDismiss: () => void;
+  onAcceptShiftOffer?: (notificationId: string, shiftId: string) => Promise<void>;
+  onDeclineShiftOffer?: (notificationId: string, shiftId: string) => Promise<void>;
   compact?: boolean;
 }
 
@@ -52,11 +59,14 @@ export function NotificationItem({
   notification,
   onMarkRead,
   onDismiss,
+  onAcceptShiftOffer,
+  onDeclineShiftOffer,
   compact = false
 }: NotificationItemProps) {
   const router = useRouter();
   const Icon = notificationIcons[notification.type] || Bell;
   const styles = priorityStyles[notification.priority];
+  const [offerLoading, setOfferLoading] = useState(false);
 
   const handleClick = () => {
     if (!notification.read) {
@@ -122,11 +132,50 @@ export function NotificationItem({
       </div>
 
       {/* Action required badge */}
-      {notification.actionRequired && !notification.read && (
+      {notification.actionRequired && !notification.read && notification.type !== 'shift_offer' && (
         <div className="mt-2 ml-11">
           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
             Action Required
           </span>
+        </div>
+      )}
+
+      {/* Accept/Decline buttons for shift offers */}
+      {notification.type === 'shift_offer' && !notification.read && notification.data?.shiftId && (
+        <div className="mt-2 ml-11 flex gap-2">
+          <Button
+            size="sm"
+            disabled={offerLoading}
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (!onAcceptShiftOffer) return;
+              setOfferLoading(true);
+              try {
+                await onAcceptShiftOffer(notification.id!, notification.data!.shiftId);
+              } finally {
+                setOfferLoading(false);
+              }
+            }}
+          >
+            {offerLoading ? 'Processing...' : 'Accept'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={offerLoading}
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (!onDeclineShiftOffer) return;
+              setOfferLoading(true);
+              try {
+                await onDeclineShiftOffer(notification.id!, notification.data!.shiftId);
+              } finally {
+                setOfferLoading(false);
+              }
+            }}
+          >
+            Decline
+          </Button>
         </div>
       )}
     </div>

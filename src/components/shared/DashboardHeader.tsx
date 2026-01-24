@@ -41,7 +41,9 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
     loading: notificationsLoading,
     markAsRead,
     markAllAsRead,
-    dismiss
+    dismiss,
+    acceptShiftOffer,
+    declineShiftOffer
   } = useNotifications(user?.id);
 
   const handleSignOut = async () => {
@@ -196,6 +198,8 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                     notification={notification}
                     onMarkRead={() => notification.id && markAsRead(notification.id)}
                     onDismiss={() => notification.id && dismiss(notification.id)}
+                    onAcceptShiftOffer={acceptShiftOffer}
+                    onDeclineShiftOffer={declineShiftOffer}
                     compact
                   />
                 ))}

@@ -428,12 +428,14 @@ export function ShiftSchedulingCalendar({
 
   const getShiftStatusColor = (status: ScheduledShift['status']) => {
     switch (status) {
+      case 'offered': return 'bg-amber-400';
       case 'scheduled': return 'bg-blue-500';
       case 'confirmed': return 'bg-green-500';
       case 'in_progress': return 'bg-yellow-500';
       case 'completed': return 'bg-gray-400';
       case 'cancelled': return 'bg-red-500';
       case 'no_show': return 'bg-red-700';
+      case 'unfilled': return 'bg-red-300';
       default: return 'bg-gray-500';
     }
   };
@@ -443,7 +445,7 @@ export function ShiftSchedulingCalendar({
     const totalShifts = filteredShifts.length;
     const totalHours = filteredShifts.reduce((sum, s) => sum + (s.duration || 0) / 60, 0);
     const uniqueCaregiversCount = new Set(filteredShifts.map(s => s.caregiverId)).size;
-    const pendingConfirmation = filteredShifts.filter(s => s.status === 'scheduled').length;
+    const pendingConfirmation = filteredShifts.filter(s => s.status === 'scheduled' || s.status === 'offered' || s.status === 'unfilled').length;
 
     return { totalShifts, totalHours, uniqueCaregiversCount, pendingConfirmation };
   }, [filteredShifts]);
@@ -722,7 +724,16 @@ export function ShiftSchedulingCalendar({
                               <div className={`w-2 h-2 rounded-full ${getShiftStatusColor(shift.status)}`} />
                             </div>
                             <div className="text-gray-600 dark:text-gray-400 truncate">
-                              {shift.caregiverName}
+                              {shift.status === 'unfilled' ? (
+                                <span className="text-red-600 font-medium">Unfilled</span>
+                              ) : (
+                                <>
+                                  {shift.caregiverName}
+                                  {shift.status === 'offered' && (
+                                    <span className="text-amber-600 ml-1">(Pending)</span>
+                                  )}
+                                </>
+                              )}
                             </div>
                             <div className="text-gray-500 dark:text-gray-500 truncate text-[10px]">
                               → {shift.elderName}

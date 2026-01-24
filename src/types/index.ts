@@ -1313,6 +1313,26 @@ export interface BurnoutFactor {
 
 // ============= Schedule/Calendar Types =============
 
+export interface CascadeCandidate {
+  caregiverId: string;
+  caregiverName: string;
+  score: number;
+}
+
+export interface CascadeOfferRecord {
+  caregiverId: string;
+  response: 'pending' | 'accepted' | 'declined' | 'timed_out';
+  respondedAt?: Date;
+}
+
+export interface CascadeState {
+  preferredCaregiverId?: string;
+  rankedCandidates: CascadeCandidate[];
+  currentOfferIndex: number;
+  currentOfferExpiresAt?: Date;
+  offerHistory: CascadeOfferRecord[];
+}
+
 export interface ScheduledShift {
   id: string;
   agencyId: string;
@@ -1325,8 +1345,10 @@ export interface ScheduledShift {
   startTime: string; // "09:00" format
   endTime: string; // "17:00" format
   duration: number; // Minutes
-  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  status: 'offered' | 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'unfilled';
   notes?: string;
+  assignmentMode?: 'direct' | 'cascade';
+  cascadeState?: CascadeState;
   isRecurring: boolean; // Part of a recurring schedule
   recurringScheduleId?: string; // Link to RecurringSchedule
   shiftSessionId?: string; // Linked to actual ShiftSession when clocked in

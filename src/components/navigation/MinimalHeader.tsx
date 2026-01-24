@@ -26,6 +26,8 @@ export function MinimalHeader() {
     markAsRead,
     markAllAsRead,
     dismiss,
+    acceptShiftOffer,
+    declineShiftOffer,
   } = useNotifications(user?.id);
 
   // Get agency name if multi-agency
@@ -102,6 +104,8 @@ export function MinimalHeader() {
                       notification={notification}
                       onMarkRead={() => notification.id && markAsRead(notification.id)}
                       onDismiss={() => notification.id && dismiss(notification.id)}
+                      onAcceptShiftOffer={acceptShiftOffer}
+                      onDeclineShiftOffer={declineShiftOffer}
                       compact
                     />
                   ))}

@@ -43,6 +43,7 @@ export async function createUserNotification(params: CreateNotificationParams): 
       actionUrl: params.actionUrl || null,
       sourceCollection: params.sourceCollection || null,
       sourceId: params.sourceId || null,
+      data: params.data || null,
       read: false,
       dismissed: false,
       actionRequired: params.priority === 'high' || params.priority === 'critical',
