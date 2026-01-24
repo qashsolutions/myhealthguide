@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { checkScheduleConflicts } from './scheduleShifts';
 import { AgencyService } from './agencies';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { CascadeCandidate, CaregiverAssignment, Elder } from '@/types';
 import { startOfWeek, endOfWeek } from 'date-fns';
 
@@ -45,30 +46,25 @@ export async function rankCaregiversForShift(
 
   if (activeCaregiverIds.size === 0) return [];
 
-  // 4. Get caregiver names
+  // 4. Get caregiver names via API (uses Firebase Admin to read user docs)
   const caregiverNames = new Map<string, string>();
-  for (const assignment of assignments) {
-    if (!caregiverNames.has(assignment.caregiverId)) {
-      caregiverNames.set(assignment.caregiverId, assignment.caregiverId);
-    }
-  }
-
-  // Fetch real names from shifts or user docs
   try {
-    const shiftsQuery = query(
-      collection(db, 'scheduledShifts'),
-      where('agencyId', '==', agencyId),
-      where('status', 'in', ['completed', 'scheduled', 'confirmed', 'in_progress'])
-    );
-    const shiftsSnap = await getDocs(shiftsQuery);
-    shiftsSnap.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.caregiverId && data.caregiverName) {
-        caregiverNames.set(data.caregiverId, data.caregiverName);
-      }
+    const response = await authenticatedFetch('/api/agency/caregiver-names', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userIds: Array.from(activeCaregiverIds),
+        agencyId
+      })
     });
+    const data = await response.json();
+    if (data.success && data.names) {
+      Object.entries(data.names).forEach(([id, name]) => {
+        caregiverNames.set(id, name as string);
+      });
+    }
   } catch (err) {
-    console.error('Error fetching caregiver names from shifts:', err);
+    console.error('Error fetching caregiver names:', err);
   }
 
   // 5. Score each caregiver

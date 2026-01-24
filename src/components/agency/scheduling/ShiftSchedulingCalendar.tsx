@@ -180,7 +180,10 @@ export function ShiftSchedulingCalendar({
 
       uniqueCaregiverIds.forEach(caregiverId => {
         const shiftWithName = shiftsData.find(s => s.caregiverId === caregiverId && s.caregiverName);
-        const name = shiftWithName?.caregiverName || caregiverNames.get(caregiverId) || `Caregiver ${caregiverId.substring(0, 6)}`;
+        const storedName = shiftWithName?.caregiverName;
+        // Prefer API-fetched name; only use stored name if it doesn't look like a raw UID (20+ chars with no spaces)
+        const isStoredNameLikelyUID = storedName && storedName.length >= 20 && !storedName.includes(' ');
+        const name = caregiverNames.get(caregiverId) || (!isStoredNameLikelyUID && storedName) || `Caregiver ${caregiverId.substring(0, 6)}`;
 
         caregiverInfos.push({
           id: caregiverId,
@@ -223,6 +226,11 @@ export function ShiftSchedulingCalendar({
   const getCaregiverColor = (caregiverId: string) => {
     const caregiver = caregivers.find(c => c.id === caregiverId);
     return caregiver?.color || CAREGIVER_COLORS[0];
+  };
+
+  const getCaregiverName = (shift: ScheduledShift) => {
+    const caregiver = caregivers.find(c => c.id === shift.caregiverId);
+    return caregiver?.name || shift.caregiverName || `Caregiver ${shift.caregiverId?.substring(0, 6)}`;
   };
 
   // Week view navigation
@@ -330,7 +338,7 @@ export function ShiftSchedulingCalendar({
         shift.startTime,
         shift.endTime,
         ((shift.duration || 0) / 60).toFixed(1),
-        shift.caregiverName,
+        getCaregiverName(shift),
         shift.elderName,
         shift.status,
         shift.notes || ''
@@ -399,7 +407,7 @@ export function ShiftSchedulingCalendar({
               <tr>
                 <td>${format(new Date(shift.date), 'EEE, MMM d')}</td>
                 <td>${shift.startTime} - ${shift.endTime}</td>
-                <td>${shift.caregiverName}</td>
+                <td>${getCaregiverName(shift)}</td>
                 <td>${shift.elderName}</td>
                 <td><span class="status status-${shift.status}">${shift.status}</span></td>
               </tr>
@@ -728,7 +736,7 @@ export function ShiftSchedulingCalendar({
                                 <span className="text-red-600 font-medium">Unfilled</span>
                               ) : (
                                 <>
-                                  {shift.caregiverName}
+                                  {getCaregiverName(shift)}
                                   {shift.status === 'offered' && (
                                     <span className="text-amber-600 ml-1">(Pending)</span>
                                   )}
