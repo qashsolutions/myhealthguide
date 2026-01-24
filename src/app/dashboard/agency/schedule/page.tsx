@@ -22,7 +22,11 @@ import {
   subDays,
   isSameDay,
   isToday,
-  startOfDay
+  startOfDay,
+  startOfWeek,
+  addWeeks,
+  subWeeks,
+  eachDayOfInterval
 } from 'date-fns';
 import {
   ChevronLeft,
@@ -268,9 +272,29 @@ export default function AgencySchedulePage() {
     s => s.status === 'unfilled' || s.status === 'offered' || !s.caregiverId
   ).length;
 
+  // Week view data
+  const weekStart = useMemo(() => startOfWeek(selectedDate, { weekStartsOn: 0 }), [selectedDate]);
+  const weekDays = useMemo(() => {
+    const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
+    return days.map(day => {
+      const dayFilteredShifts = shifts
+        .filter(s => s.date && isSameDay(s.date, day) && s.status !== 'cancelled');
+      const totalShifts = dayFilteredShifts.length;
+      const filledShifts = dayFilteredShifts.filter(s => s.caregiverId && s.status !== 'unfilled' && s.status !== 'offered').length;
+      const unfilledShifts = totalShifts - filledShifts;
+      const totalHours = dayFilteredShifts.reduce((sum, s) => {
+        if (!s.startTime || !s.endTime) return sum;
+        const [sh, sm] = s.startTime.split(':').map(Number);
+        const [eh, em] = s.endTime.split(':').map(Number);
+        return sum + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+      }, 0);
+      return { date: day, totalShifts, filledShifts, unfilledShifts, totalHours };
+    });
+  }, [weekStart, shifts]);
+
   // Navigation handlers
-  const goToPrevDay = () => setSelectedDate(prev => subDays(prev, 1));
-  const goToNextDay = () => setSelectedDate(prev => addDays(prev, 1));
+  const goToPrevDay = () => setSelectedDate(prev => viewMode === 'week' ? subWeeks(prev, 1) : subDays(prev, 1));
+  const goToNextDay = () => setSelectedDate(prev => viewMode === 'week' ? addWeeks(prev, 1) : addDays(prev, 1));
   const goToToday = () => setSelectedDate(startOfDay(new Date()));
   const goToTomorrow = () => setSelectedDate(addDays(startOfDay(new Date()), 1));
 
@@ -340,72 +364,187 @@ export default function AgencySchedulePage() {
           <button
             onClick={goToPrevDay}
             className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100"
-            aria-label="Previous day"
+            aria-label={viewMode === 'week' ? 'Previous week' : 'Previous day'}
           >
             <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
 
           <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {isToday(selectedDate)
-                ? `Today, ${format(selectedDate, 'MMMM d')}`
-                : format(selectedDate, 'EEEE, MMMM d')}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}
-              {needsAssignmentCount > 0 && (
-                <span className="text-amber-600 dark:text-amber-400">
-                  {' '}&bull; {needsAssignmentCount} need{needsAssignmentCount !== 1 ? '' : 's'} assignment
-                </span>
-              )}
-            </p>
+            {viewMode === 'week' ? (
+              <>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d')}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {weekDays.reduce((s, d) => s + d.totalShifts, 0)} shifts
+                  {weekDays.reduce((s, d) => s + d.unfilledShifts, 0) > 0 && (
+                    <span className="text-amber-600 dark:text-amber-400">
+                      {' '}&bull; {weekDays.reduce((s, d) => s + d.unfilledShifts, 0)} unfilled
+                    </span>
+                  )}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {isToday(selectedDate)
+                    ? `Today, ${format(selectedDate, 'MMMM d')}`
+                    : format(selectedDate, 'EEEE, MMMM d')}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}
+                  {needsAssignmentCount > 0 && (
+                    <span className="text-amber-600 dark:text-amber-400">
+                      {' '}&bull; {needsAssignmentCount} need{needsAssignmentCount !== 1 ? '' : 's'} assignment
+                    </span>
+                  )}
+                </p>
+              </>
+            )}
           </div>
 
           <button
             onClick={goToNextDay}
             className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100"
-            aria-label="Next day"
+            aria-label={viewMode === 'week' ? 'Next week' : 'Next day'}
           >
             <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
 
-        {/* Quick navigation chips */}
-        <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
-          <button
-            onClick={goToToday}
-            className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors',
-              isToday(selectedDate)
-                ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            )}
-          >
-            Today
-          </button>
-          <button
-            onClick={goToTomorrow}
-            className={cn(
-              'px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors',
-              isSameDay(selectedDate, addDays(startOfDay(new Date()), 1))
-                ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            )}
-          >
-            Tomorrow
-          </button>
-          <button
-            onClick={goToWeekend}
-            className="px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            This Weekend
-          </button>
-        </div>
+        {/* Quick navigation chips (day mode only) */}
+        {viewMode === 'day' && (
+          <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
+            <button
+              onClick={goToToday}
+              className={cn(
+                'px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors',
+                isToday(selectedDate)
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              )}
+            >
+              Today
+            </button>
+            <button
+              onClick={goToTomorrow}
+              className={cn(
+                'px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors',
+                isSameDay(selectedDate, addDays(startOfDay(new Date()), 1))
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              )}
+            >
+              Tomorrow
+            </button>
+            <button
+              onClick={goToWeekend}
+              className="px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              This Weekend
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}
       <div className="px-4 pt-4">
-        {loading ? (
+        {viewMode === 'week' ? (
+          // Week View: 7 day cards
+          loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                <div key={i} className="animate-pulse bg-gray-100 dark:bg-gray-800 rounded-xl h-20" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {weekDays.map(({ date, totalShifts, filledShifts, unfilledShifts, totalHours }) => {
+                const today = isToday(date);
+                const hasUnfilled = unfilledShifts > 0;
+                const allFilled = totalShifts > 0 && unfilledShifts === 0;
+
+                return (
+                  <button
+                    key={date.toISOString()}
+                    onClick={() => {
+                      setSelectedDate(date);
+                      setViewMode('day');
+                    }}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border text-left transition-colors active:scale-[0.99]',
+                      today
+                        ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
+                        : hasUnfilled
+                          ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                    )}
+                  >
+                    {/* Day number + name */}
+                    <div className="w-12 flex-shrink-0 text-center">
+                      <p className={cn(
+                        'text-2xl font-bold',
+                        today
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : 'text-gray-900 dark:text-gray-100'
+                      )}>
+                        {format(date, 'd')}
+                      </p>
+                      <p className={cn(
+                        'text-xs font-medium',
+                        today
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : 'text-gray-500 dark:text-gray-400'
+                      )}>
+                        {format(date, 'EEE')}
+                      </p>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex-1 min-w-0">
+                      {totalShifts === 0 ? (
+                        <p className="text-sm text-gray-400 dark:text-gray-500">No shifts</p>
+                      ) : (
+                        <>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {totalShifts} shift{totalShifts !== 1 ? 's' : ''}
+                            <span className="text-gray-400 dark:text-gray-500"> &bull; </span>
+                            <span className="text-gray-500 dark:text-gray-400">{totalHours.toFixed(1)}h</span>
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {filledShifts > 0 && (
+                              <span className="text-xs text-green-700 dark:text-green-400 font-medium">
+                                {filledShifts} filled
+                              </span>
+                            )}
+                            {unfilledShifts > 0 && (
+                              <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                                {unfilledShifts} unfilled
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Status indicator */}
+                    <div className="flex-shrink-0">
+                      {totalShifts === 0 ? (
+                        <div className="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-600" />
+                      ) : allFilled ? (
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                      ) : hasUnfilled ? (
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                      ) : null}
+                    </div>
+
+                    <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          )
+        ) : loading ? (
           // Loading skeleton
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
