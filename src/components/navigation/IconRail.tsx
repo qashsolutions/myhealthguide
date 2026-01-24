@@ -73,7 +73,7 @@ export function IconRail({ onMoreClick }: IconRailProps) {
   if (isMultiAgency && userIsSuperAdmin) {
     // Agency Owner: Home, Team, Schedule, Elders, Reports, Timesheets
     navItems.push({ href: '/dashboard/care-management', icon: Users, label: 'Team' });
-    navItems.push({ href: '/dashboard/agency', icon: Calendar, label: 'Schedule' });
+    navItems.push({ href: '/dashboard/agency/schedule', icon: Calendar, label: 'Schedule' });
     navItems.push({ href: '/dashboard/elders', icon: Heart, label: 'Elders' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
     navItems.push({ href: '/dashboard/timesheet', icon: Clock, label: 'Timesheets' });

@@ -39,7 +39,7 @@ export function BottomNav({ onMoreClick }: BottomNavProps) {
   if (isMultiAgency && userIsSuperAdmin) {
     // Agency Owner: Home, Team, Schedule, Reports, More
     navItems.push({ href: '/dashboard/care-management', icon: Users, label: 'Team' });
-    navItems.push({ href: '/dashboard/agency', icon: Calendar, label: 'Schedule' });
+    navItems.push({ href: '/dashboard/agency/schedule', icon: Calendar, label: 'Schedule' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
   } else if (isMultiAgency) {
     // Agency Caregiver: Home, Schedule, Reports, Ask AI, More
