@@ -156,6 +156,50 @@
 
 ---
 
+## CAS-1E: Create Shift - Negative/Validation Tests
+
+| Test ID | Description | Expected | Actual | Result |
+|---------|-------------|----------|--------|--------|
+| CAS-1E.1 | Auto-Assign without selecting elder | Error shown | "Please select a Loved One." red banner | **PASS** |
+| CAS-1E.2 | Auto-Assign without date | Error shown | "Please select a date." red banner | **PASS** |
+| CAS-1E.3 | Auto-Assign without times (both empty) | Error shown | "End time must be after start time." red banner | **PASS** |
+| CAS-1E.4 | Direct Assign without selecting caregiver | Error shown | "Please select a caregiver for Direct Assign." red banner | **PASS** |
+| CAS-1E.5 | End time before start time (17:00→09:00) | Error shown | "End time must be after start time." red banner | **PASS** |
+| CAS-1E.6 | Past date (Dec 1, 2025) | Error or warning shown | No validation - shift created on past date (API 200) | **FAIL** |
+| CAS-1E.7 | Auto-Assign when no caregivers available | Handled gracefully | Code creates shift with status "unfilled" (verified via code review) | **PASS** |
+
+### Summary
+
+| Total | Passed | Failed |
+|-------|--------|--------|
+| 7 | 6 | 1 |
+
+---
+
+### Bug Found: BUG-3 - No Past Date Validation
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | Medium |
+| **Test Case** | CAS-1E.6 |
+| **Expected** | Error or warning when creating shift for a past date |
+| **Actual** | Shift created successfully on Dec 1, 2025 with no validation error |
+| **Impact** | Owner can accidentally create shifts in the past, triggering cascade offers for past dates |
+| **Fix Location** | Client: `schedule/page.tsx` (form validation), Server: `create-cascade/route.ts` (API validation) |
+| **Suggested Fix** | Add `if (shiftDate < today) return error('Cannot create shifts in the past')` |
+
+---
+
+### Key Observations
+
+1. **Validation order**: Elder → Date → Times → Caregiver (in Direct Assign mode)
+2. **Error display**: Red banner at top of dialog with descriptive message
+3. **Empty times**: Treated as "end before start" rather than "times required" (functionally correct)
+4. **No caregivers fallback**: API creates shift with `status: 'unfilled'`, empty caregiver, and empty rankedCandidates array
+5. **Past date gap**: No client-side or server-side validation prevents creating shifts in the past
+
+---
+
 ## Console Error Investigation
 
 | Error Type | Status | Conclusion |
@@ -174,4 +218,5 @@
 | CAS-1B (Auto-Assign without Preferred) | 12 | 12 | 0 |
 | CAS-1C (Auto-Assign with Preferred) | 10 | 10 | 0 |
 | CAS-1D (Direct Assign Mode) | 12 | 12 | 0 |
-| **TOTAL** | **46** | **46** | **0** |
+| CAS-1E (Negative/Validation Tests) | 7 | 6 | 1 |
+| **TOTAL** | **53** | **52** | **1** |

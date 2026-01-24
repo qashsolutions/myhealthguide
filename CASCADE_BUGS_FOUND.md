@@ -37,9 +37,25 @@
 
 ---
 
+## BUG-3: No Validation for Past Dates in Create Shift
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | Medium |
+| **Test Case** | CAS-1E.6 |
+| **Expected** | Error or warning when creating a shift for a past date |
+| **Actual** | Shift created successfully on Dec 1, 2025 (past) with no validation error, API returned 200 |
+| **Client File** | `src/app/dashboard/agency/schedule/page.tsx` |
+| **Server File** | `src/app/api/shifts/create-cascade/route.ts` |
+| **Fix** | Add date validation: `if (shiftDate < todayStart) return error('Cannot create shifts in the past')` |
+| **Impact** | Owner can accidentally schedule shifts in the past, triggering cascade offers for past dates |
+
+---
+
 ## Summary
 
 | Bug ID | Severity | Status | Guardrail Safe |
 |--------|----------|--------|----------------|
-| BUG-1 | Medium | DOCUMENTED | Yes (UI-only change) |
-| BUG-2 | Low | DOCUMENTED | Yes (UI-only change) |
+| BUG-1 | Medium | FIXED | Yes (UI-only change) |
+| BUG-2 | Low | FIXED | Yes (UI-only change) |
+| BUG-3 | Medium | DOCUMENTED | Yes (validation addition) |
