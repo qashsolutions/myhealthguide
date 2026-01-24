@@ -152,7 +152,9 @@ export function ShiftSchedulingCalendar({
 
       // Also add caregivers from shifts
       shiftsData.forEach(shift => {
-        uniqueCaregiverIds.add(shift.caregiverId);
+        if (shift.caregiverId) {
+          uniqueCaregiverIds.add(shift.caregiverId);
+        }
       });
 
       // Fetch actual caregiver names via API
