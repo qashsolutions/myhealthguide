@@ -90,7 +90,7 @@ export function ManageActionGrid({
                     />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">
+                <TooltipContent side="top">
                   {action.tooltip}
                 </TooltipContent>
               </Tooltip>
