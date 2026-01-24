@@ -28,6 +28,8 @@ import { CaregiverEldersCardGrid } from '@/components/agency/CaregiverEldersCard
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { PriorityCard } from '@/components/dashboard/PriorityCard';
 import { DayProgress } from '@/components/dashboard/DayProgress';
+import { useTaskPriority } from '@/hooks/useTaskPriority';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { VoiceInputArea } from '@/components/dashboard/VoiceInputArea';
 import { SuggestionChips } from '@/components/dashboard/SuggestionChips';
 import { HomeGreeting } from '@/components/dashboard/HomeGreeting';
@@ -80,6 +82,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { availableElders, setSelectedElder, selectedElder, isLoading: eldersLoading } = useElder();
   const { limits, isMultiAgency } = useSubscription();
+  const { tasks: priorityTasks } = useTaskPriority();
 
   // Feature tracking
   useFeatureTracking('overview');
@@ -296,49 +299,40 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Quick Action Grid - 4 core actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/dashboard/daily-care?tab=medications">
-            <Card className="p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                  <Pill className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white text-sm">Medications</span>
-              </div>
-            </Card>
-          </Link>
-          <Link href="/dashboard/daily-care?tab=supplements">
-            <Card className="p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-                  <Leaf className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white text-sm">Supplements</span>
-              </div>
-            </Card>
-          </Link>
-          <Link href="/dashboard/daily-care?tab=diet">
-            <Card className="p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
-                  <Utensils className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white text-sm">Diet</span>
-              </div>
-            </Card>
-          </Link>
-          <Link href="/dashboard/notes/new">
-            <Card className="p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white text-sm">Notes</span>
-              </div>
-            </Card>
-          </Link>
-        </div>
+        {/* Quick Action Icons */}
+        <TooltipProvider delayDuration={300}>
+          <div className="flex items-center justify-center gap-3">
+            {(() => {
+              const hasOverdueMeds = priorityTasks.some(t => t.type === 'medication' && t.status === 'overdue');
+              const hasDueNowMeds = priorityTasks.some(t => t.type === 'medication' && t.status === 'due_now');
+              const hasOverdueSupps = priorityTasks.some(t => t.type === 'supplement' && t.status === 'overdue');
+              const hasDueNowSupps = priorityTasks.some(t => t.type === 'supplement' && t.status === 'due_now');
+
+              const actions = [
+                { href: '/dashboard/daily-care?tab=medications', label: 'Medications', icon: Pill, iconColor: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-50 dark:bg-green-900/20', borderColor: 'border-green-200 dark:border-green-800', badge: hasOverdueMeds ? 'red' : hasDueNowMeds ? 'blue' : null },
+                { href: '/dashboard/daily-care?tab=supplements', label: 'Supplements', icon: Leaf, iconColor: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-amber-200 dark:border-amber-800', badge: hasOverdueSupps ? 'red' : hasDueNowSupps ? 'blue' : null },
+                { href: '/dashboard/daily-care?tab=diet', label: 'Diet', icon: Utensils, iconColor: 'text-orange-600 dark:text-orange-400', bgColor: 'bg-orange-50 dark:bg-orange-900/20', borderColor: 'border-orange-200 dark:border-orange-800', badge: null },
+                { href: '/dashboard/notes/new', label: 'Notes', icon: FileText, iconColor: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-200 dark:border-blue-800', badge: null },
+              ];
+
+              return actions.map((action) => (
+                <Tooltip key={action.href}>
+                  <TooltipTrigger asChild>
+                    <Link href={action.href}>
+                      <button className={`relative w-12 h-12 rounded-xl flex items-center justify-center border-2 ${action.borderColor} ${action.bgColor} hover:shadow-md transition-all`}>
+                        <action.icon className={`w-5 h-5 ${action.iconColor}`} />
+                        {action.badge && (
+                          <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ${action.badge === 'red' ? 'bg-red-500' : 'bg-blue-500'}`} />
+                        )}
+                      </button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>{action.label}</TooltipContent>
+                </Tooltip>
+              ));
+            })()}
+          </div>
+        </TooltipProvider>
 
         {/* Collapsible: View Stats */}
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">

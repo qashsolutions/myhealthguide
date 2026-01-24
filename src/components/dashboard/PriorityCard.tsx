@@ -2,10 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
-  Pill,
-  Leaf,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -222,7 +219,6 @@ export function PriorityCard() {
   const task = nextTask;
   const isOverdue = task.status === 'overdue';
   const isDueNow = task.status === 'due_now';
-  const TaskIcon = task.type === 'medication' ? Pill : Leaf;
 
   return (
     <div className="relative">
@@ -240,106 +236,82 @@ export function PriorityCard() {
         </div>
       )}
 
-      <Card
+      {/* CTA Banner style */}
+      <div
         className={cn(
-          'p-5 transition-colors',
-          isOverdue && 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-900/20',
-          isDueNow && 'border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/20',
-          !isOverdue && !isDueNow && 'border-gray-200 dark:border-gray-700'
+          'rounded-lg border px-4 py-3 transition-colors',
+          isOverdue && 'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20',
+          isDueNow && 'border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20',
+          !isOverdue && !isDueNow && 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
         )}
       >
-        {/* Status label */}
-        <div className="flex items-center gap-2 mb-3">
-          {isOverdue ? (
-            <>
-              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-              <span className="text-sm font-semibold text-red-700 dark:text-red-300 uppercase tracking-wide">
-                Overdue — {formatOverdue(task.overdueMinutes || 0)} late
-              </span>
-            </>
-          ) : isDueNow ? (
-            <>
-              <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">
-                Due Now
-              </span>
-            </>
-          ) : (
-            <>
-              <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Next up in {Math.round((task.scheduledDate.getTime() - Date.now()) / 60000)} min
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* Task info */}
-        <div className="flex items-start gap-3 mb-3">
-          <div
-            className={cn(
-              'flex items-center justify-center w-10 h-10 rounded-xl shrink-0',
-              isOverdue && 'bg-red-100 dark:bg-red-900/40',
-              isDueNow && 'bg-blue-100 dark:bg-blue-900/40',
-              !isOverdue && !isDueNow && 'bg-gray-100 dark:bg-gray-800'
-            )}
-          >
-            <TaskIcon
-              className={cn(
-                'w-5 h-5',
-                isOverdue && 'text-red-600 dark:text-red-400',
-                isDueNow && 'text-blue-600 dark:text-blue-400',
-                !isOverdue && !isDueNow && 'text-gray-500 dark:text-gray-400'
-              )}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white leading-tight">
-              {task.name} {task.dosage && <span className="font-normal text-gray-500 dark:text-gray-400">{task.dosage}</span>}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              for {task.elderName} — {isOverdue ? 'was due' : 'due'} at {formatTime12h(task.scheduledTime)}
-            </p>
-            {task.instructions && (
-              <p className="text-sm italic text-gray-500 dark:text-gray-400 mt-1">
-                &ldquo;{task.instructions}&rdquo;
+        {/* Overdue / Due Now: compact CTA with inline action */}
+        {(isOverdue || isDueNow) ? (
+          <div className="flex items-center gap-3">
+            {/* Status icon + text */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                {isOverdue ? (
+                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+                ) : (
+                  <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                )}
+                <span className={cn(
+                  'font-semibold text-sm truncate',
+                  isOverdue ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'
+                )}>
+                  {task.name} {task.dosage || ''}
+                </span>
+                <span className={cn(
+                  'text-xs whitespace-nowrap',
+                  isOverdue ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'
+                )}>
+                  — {isOverdue ? `${formatOverdue(task.overdueMinutes || 0)} overdue` : 'due now'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-5.5 pl-px">
+                for {task.elderName} · {isOverdue ? 'was due' : 'due'} at {formatTime12h(task.scheduledTime)}
               </p>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Action buttons - only for overdue and due_now */}
-        {(isOverdue || isDueNow) && (
-          <div className="flex gap-3 mt-4">
-            <Button
-              onClick={() => handleMarkComplete(task)}
-              disabled={actionLoading}
-              className={cn(
-                'flex-1 min-h-[48px] text-base font-medium',
-                isOverdue
-                  ? 'bg-red-600 hover:bg-red-700 text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              )}
-            >
-              {actionLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-              )}
-              Mark as Given
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleSkip(task)}
-              disabled={actionLoading}
-              className="min-h-[48px] px-4"
-              aria-label="Skip this task"
-            >
-              <SkipForward className="w-4 h-4" />
-            </Button>
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => handleMarkComplete(task)}
+                disabled={actionLoading}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-xs font-semibold text-white transition-colors disabled:opacity-50',
+                  isOverdue
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                )}
+              >
+                {actionLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  'Mark as Given'
+                )}
+              </button>
+              <button
+                onClick={() => handleSkip(task)}
+                disabled={actionLoading}
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                aria-label="Skip this task"
+              >
+                <SkipForward className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Upcoming: compact informational */
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Next: <span className="font-medium text-gray-800 dark:text-gray-200">{task.name}</span> at {formatTime12h(task.scheduledTime)}
+            </span>
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Auto-suggest banner */}
       <SuggestionBanner
