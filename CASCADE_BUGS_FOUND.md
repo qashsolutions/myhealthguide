@@ -58,4 +58,4 @@
 |--------|----------|--------|----------------|
 | BUG-1 | Medium | FIXED | Yes (UI-only change) |
 | BUG-2 | Low | FIXED | Yes (UI-only change) |
-| BUG-3 | Medium | DOCUMENTED | Yes (validation addition) |
+| BUG-3 | Medium | FIXED | Yes (validation addition) |

@@ -165,14 +165,14 @@
 | CAS-1E.3 | Auto-Assign without times (both empty) | Error shown | "End time must be after start time." red banner | **PASS** |
 | CAS-1E.4 | Direct Assign without selecting caregiver | Error shown | "Please select a caregiver for Direct Assign." red banner | **PASS** |
 | CAS-1E.5 | End time before start time (17:00→09:00) | Error shown | "End time must be after start time." red banner | **PASS** |
-| CAS-1E.6 | Past date (Dec 1, 2025) | Error or warning shown | No validation - shift created on past date (API 200) | **FAIL** |
+| CAS-1E.6 | Past date (Dec 1, 2025) | Error or warning shown | "Cannot create shifts in the past." red banner (after fix `4e5722f`) | **PASS** |
 | CAS-1E.7 | Auto-Assign when no caregivers available | Handled gracefully | Code creates shift with status "unfilled" (verified via code review) | **PASS** |
 
 ### Summary
 
 | Total | Passed | Failed |
 |-------|--------|--------|
-| 7 | 6 | 1 |
+| 7 | 7 | 0 |
 
 ---
 
@@ -218,5 +218,5 @@
 | CAS-1B (Auto-Assign without Preferred) | 12 | 12 | 0 |
 | CAS-1C (Auto-Assign with Preferred) | 10 | 10 | 0 |
 | CAS-1D (Direct Assign Mode) | 12 | 12 | 0 |
-| CAS-1E (Negative/Validation Tests) | 7 | 6 | 1 |
-| **TOTAL** | **53** | **52** | **1** |
+| CAS-1E (Negative/Validation Tests) | 7 | 7 | 0 |
+| **TOTAL** | **53** | **53** | **0** |
