@@ -195,7 +195,8 @@ export async function createScheduledShift(
 
 /**
  * Create a cascade shift (Auto-Assign mode)
- * Ranks caregivers and offers the shift one-at-a-time with a 30-minute response window.
+ * Calls server-side API route which uses Admin SDK to bypass Firestore rules
+ * for cross-user notification creation.
  */
 export async function createCascadeShift(
   agencyId: string,
@@ -208,121 +209,34 @@ export async function createCascadeShift(
   notes: string | undefined,
   createdBy: string,
   preferredCaregiverId?: string,
-  ownerId?: string
+  _ownerId?: string
 ): Promise<{ success: boolean; shiftId?: string; error?: string }> {
   try {
-    const { rankCaregiversForShift } = await import('./shiftCascade');
-    const { notifyShiftOffer, notifyShiftUnfilled } = await import('@/lib/notifications/shiftOfferNotifications');
+    const { authenticatedFetch } = await import('@/lib/api/authenticatedFetch');
 
-    // Rank eligible caregivers
-    const candidates = await rankCaregiversForShift(
-      agencyId,
-      elderId,
-      date,
-      startTime,
-      endTime,
-      preferredCaregiverId
-    );
-
-    const duration = parseTime(endTime) - parseTime(startTime);
-
-    // If no eligible caregivers, create as unfilled
-    if (candidates.length === 0) {
-      const shift: Record<string, any> = {
+    const response = await authenticatedFetch('/api/shifts/create-cascade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         agencyId,
         groupId,
         elderId,
         elderName,
-        caregiverId: '',
-        caregiverName: '',
-        date,
+        date: date.toISOString(),
         startTime,
         endTime,
-        duration,
-        status: 'unfilled',
-        assignmentMode: 'cascade',
-        cascadeState: {
-          rankedCandidates: [],
-          currentOfferIndex: 0,
-          offerHistory: []
-        },
-        isRecurring: false,
-        createdBy,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+        notes,
+        preferredCaregiverId
+      })
+    });
 
-      if (notes) shift.notes = notes;
-      if (preferredCaregiverId) {
-        shift.cascadeState.preferredCaregiverId = preferredCaregiverId;
-      }
+    const data = await response.json();
 
-      const shiftRef = await addDoc(collection(db, 'scheduledShifts'), shift);
-
-      // Notify owner
-      if (ownerId) {
-        await notifyShiftUnfilled(ownerId, groupId, elderId, {
-          id: shiftRef.id,
-          ...shift
-        } as any);
-      }
-
-      return { success: true, shiftId: shiftRef.id };
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create cascade shift' };
     }
 
-    // Create the shift with first candidate as tentative
-    const firstCandidate = candidates[0];
-    const offerExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min from now
-
-    const shift: Record<string, any> = {
-      agencyId,
-      groupId,
-      elderId,
-      elderName,
-      caregiverId: firstCandidate.caregiverId,
-      caregiverName: firstCandidate.caregiverName,
-      date,
-      startTime,
-      endTime,
-      duration,
-      status: 'offered',
-      assignmentMode: 'cascade',
-      cascadeState: {
-        rankedCandidates: candidates.map(c => ({
-          caregiverId: c.caregiverId,
-          caregiverName: c.caregiverName,
-          score: c.score
-        })),
-        currentOfferIndex: 0,
-        currentOfferExpiresAt: offerExpiresAt,
-        offerHistory: [{
-          caregiverId: firstCandidate.caregiverId,
-          response: 'pending'
-        }]
-      },
-      isRecurring: false,
-      createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    if (notes) shift.notes = notes;
-    if (preferredCaregiverId) {
-      shift.cascadeState.preferredCaregiverId = preferredCaregiverId;
-    }
-
-    const shiftRef = await addDoc(collection(db, 'scheduledShifts'), shift);
-
-    // Send notification to first candidate
-    await notifyShiftOffer(
-      firstCandidate.caregiverId,
-      groupId,
-      elderId,
-      { id: shiftRef.id, ...shift } as any,
-      offerExpiresAt
-    );
-
-    return { success: true, shiftId: shiftRef.id };
+    return { success: true, shiftId: data.shiftId };
   } catch (error: any) {
     console.error('Error creating cascade shift:', error);
     return { success: false, error: error.message };
