@@ -57,6 +57,13 @@ export async function POST(request: NextRequest) {
 
     const shiftDate = new Date(date);
 
+    // Validate date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (shiftDate < today) {
+      return NextResponse.json({ error: 'Cannot create shifts in the past' }, { status: 400 });
+    }
+
     // 3. Rank eligible caregivers
     const candidates = await rankCaregiversServer(
       adminDb,

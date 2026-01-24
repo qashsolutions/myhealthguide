@@ -379,6 +379,13 @@ export default function AgencySchedulePage() {
       setCreateError('Please select a date.');
       return;
     }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(createForm.date + 'T00:00:00');
+    if (selectedDate < today) {
+      setCreateError('Cannot create shifts in the past.');
+      return;
+    }
     if (createForm.startTime >= createForm.endTime) {
       setCreateError('End time must be after start time.');
       return;
