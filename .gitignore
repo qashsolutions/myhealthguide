@@ -77,6 +77,9 @@ google-cloud-sdk/
 !features.md
 !.claude/commands/*.md
 !AGENCY_FEATURE_TEST_RESULTS.md
+!CASCADE_TEST_RESULTS.md
+!CASCADE_BUGS_FOUND.md
+!CASCADE_FEATURE_STATUS.md
 !AGENCY_BUGS_FOUND.md
 !tests_jan13.md
 
