@@ -1,16 +1,20 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
 import { isSuperAdmin as checkSuperAdmin } from '@/lib/utils/getUserRole';
-import { db } from '@/lib/firebase/config';
+import { db, auth } from '@/lib/firebase/config';
 import {
   collection,
   query,
   where,
   onSnapshot,
-  limit
+  limit,
+  doc,
+  updateDoc,
+  getDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import {
   format,
@@ -26,7 +30,10 @@ import {
   Calendar,
   Clock,
   User,
-  Zap
+  Zap,
+  X,
+  Check,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ScheduledShift } from '@/types';
@@ -93,8 +100,105 @@ export default function AgencySchedulePage() {
   const [shifts, setShifts] = useState<ScheduledShift[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Phase 2: Assignment sheet state
+  const [selectedShift, setSelectedShift] = useState<ScheduledShift | null>(null);
+  const [showAssignSheet, setShowAssignSheet] = useState(false);
+  const [caregivers, setCaregivers] = useState<{ id: string; name: string }[]>([]);
+  const [loadingCaregivers, setLoadingCaregivers] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
   const userAgency = user?.agencies?.[0];
   const agencyId = userAgency?.agencyId;
+
+  // Fetch caregiver names from agency
+  const fetchCaregivers = useCallback(async () => {
+    if (!agencyId) return;
+    setLoadingCaregivers(true);
+    try {
+      // Get agency doc to get caregiverIds
+      const agencyDoc = await getDoc(doc(db, 'agencies', agencyId));
+      if (!agencyDoc.exists()) {
+        setLoadingCaregivers(false);
+        return;
+      }
+      const caregiverIds: string[] = agencyDoc.data()?.caregiverIds || [];
+      if (caregiverIds.length === 0) {
+        setCaregivers([]);
+        setLoadingCaregivers(false);
+        return;
+      }
+
+      // Call API to resolve names
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        setLoadingCaregivers(false);
+        return;
+      }
+
+      const res = await fetch('/api/agency/caregiver-names', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userIds: caregiverIds, agencyId })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const names: Record<string, string> = data.names || {};
+        const list = caregiverIds.map(id => ({
+          id,
+          name: names[id] || `User ${id.substring(0, 6)}`
+        }));
+        setCaregivers(list);
+      }
+    } catch (err) {
+      console.error('Error fetching caregivers:', err);
+    } finally {
+      setLoadingCaregivers(false);
+    }
+  }, [agencyId]);
+
+  // Open assignment sheet
+  const openAssignSheet = useCallback((shift: ScheduledShift) => {
+    setSelectedShift(shift);
+    setShowAssignSheet(true);
+    setAssignError(null);
+    if (caregivers.length === 0) {
+      fetchCaregivers();
+    }
+  }, [caregivers.length, fetchCaregivers]);
+
+  // Close assignment sheet
+  const closeAssignSheet = useCallback(() => {
+    setShowAssignSheet(false);
+    setSelectedShift(null);
+    setAssignError(null);
+  }, []);
+
+  // Assign caregiver to shift
+  const assignCaregiver = useCallback(async (caregiverId: string, caregiverName: string) => {
+    if (!selectedShift?.id) return;
+    setAssigning(true);
+    setAssignError(null);
+    try {
+      const shiftRef = doc(db, 'scheduledShifts', selectedShift.id);
+      await updateDoc(shiftRef, {
+        caregiverId,
+        caregiverName,
+        status: 'scheduled',
+        updatedAt: serverTimestamp()
+      });
+      closeAssignSheet();
+    } catch (err: any) {
+      console.error('Error assigning caregiver:', err);
+      setAssignError(err.message || 'Failed to assign caregiver');
+    } finally {
+      setAssigning(false);
+    }
+  }, [selectedShift, closeAssignSheet]);
 
   // Real-time listener for shifts
   useEffect(() => {
@@ -386,13 +490,17 @@ export default function AgencySchedulePage() {
                     {isUnassigned ? (
                       <button
                         className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-sm font-medium active:scale-[0.98] transition-transform"
-                        onClick={() => {/* Phase 2: open assignment sheet */}}
+                        onClick={() => openAssignSheet(shift)}
                       >
                         <Zap className="w-4 h-4" />
                         Assign Caregiver
                       </button>
                     ) : (
-                      <div className="flex items-center justify-between mt-1">
+                      <button
+                        className="w-full flex items-center justify-between mt-1 text-left"
+                        onClick={() => userIsSuperAdmin ? openAssignSheet(shift) : undefined}
+                        disabled={!userIsSuperAdmin}
+                      >
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                             <User className="w-3 h-3 text-blue-600 dark:text-blue-400" />
@@ -405,7 +513,7 @@ export default function AgencySchedulePage() {
                           {(shift.status === 'confirmed' || shift.status === 'completed') && '✓ '}
                           {statusInfo.label}
                         </span>
-                      </div>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -414,6 +522,129 @@ export default function AgencySchedulePage() {
           </div>
         )}
       </div>
+
+      {/* Phase 2: Assignment Bottom Sheet */}
+      {showAssignSheet && selectedShift && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            onClick={closeAssignSheet}
+          />
+          {/* Sheet */}
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-2xl shadow-xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-200">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Assign Caregiver
+              </h2>
+              <button
+                onClick={closeAssignSheet}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Shift Details */}
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {selectedShift.elderName || 'Unknown'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatTime(selectedShift.startTime)} - {formatTime(selectedShift.endTime)}
+                    {selectedShift.date && ` • ${format(selectedShift.date, 'MMM d')}`}
+                  </p>
+                </div>
+              </div>
+              {selectedShift.caregiverId && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Currently: <span className="font-medium">{selectedShift.caregiverName || 'Unknown'}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Error */}
+            {assignError && (
+              <div className="mx-4 mt-3 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-400">
+                {assignError}
+              </div>
+            )}
+
+            {/* Caregiver List */}
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+              {loadingCaregivers ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                  <span className="ml-2 text-sm text-gray-500">Loading caregivers...</span>
+                </div>
+              ) : caregivers.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No caregivers found</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {caregivers.map((cg) => {
+                    const isCurrentlyAssigned = selectedShift.caregiverId === cg.id;
+                    return (
+                      <button
+                        key={cg.id}
+                        onClick={() => !isCurrentlyAssigned && !assigning && assignCaregiver(cg.id, cg.name)}
+                        disabled={assigning || isCurrentlyAssigned}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors text-left',
+                          isCurrentlyAssigned
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700'
+                        )}
+                      >
+                        <div className={cn(
+                          'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                          isCurrentlyAssigned
+                            ? 'bg-blue-100 dark:bg-blue-900/40'
+                            : 'bg-gray-100 dark:bg-gray-700'
+                        )}>
+                          <User className={cn(
+                            'w-4 h-4',
+                            isCurrentlyAssigned
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-gray-500 dark:text-gray-400'
+                          )} />
+                        </div>
+                        <span className={cn(
+                          'flex-1 text-sm font-medium',
+                          isCurrentlyAssigned
+                            ? 'text-blue-700 dark:text-blue-300'
+                            : 'text-gray-900 dark:text-gray-100'
+                        )}>
+                          {cg.name}
+                        </span>
+                        {isCurrentlyAssigned && (
+                          <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        )}
+                        {assigning && !isCurrentlyAssigned && (
+                          <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
