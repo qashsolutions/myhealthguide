@@ -99,6 +99,34 @@ function getHourLabel(time: string): string {
   return `${h} ${period}`;
 }
 
+// Parse "HH:mm" to minutes since midnight
+function parseTimeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+// Check if existing shifts fully cover a target time range
+function isTimeRangeCovered(
+  shiftsOnDate: ScheduledShift[],
+  targetStart: number,
+  targetEnd: number
+): boolean {
+  const intervals = shiftsOnDate.map(s => ({
+    start: parseTimeToMinutes(s.startTime),
+    end: parseTimeToMinutes(s.endTime)
+  }));
+
+  intervals.sort((a, b) => a.start - b.start);
+
+  let coveredEnd = targetStart;
+  for (const interval of intervals) {
+    if (interval.start > coveredEnd) break;
+    coveredEnd = Math.max(coveredEnd, interval.end);
+    if (coveredEnd >= targetEnd) return true;
+  }
+  return false;
+}
+
 export default function AgencySchedulePage() {
   const { user } = useAuth();
   const { isMultiAgency } = useSubscription();
@@ -131,7 +159,7 @@ export default function AgencySchedulePage() {
     elderId: '',
     elderName: '',
     elderGroupId: '',
-    assignmentMode: 'direct' as 'direct' | 'cascade',
+    assignmentMode: 'cascade' as 'direct' | 'cascade',
     caregiverId: '',
     caregiverName: '',
     repeatMode: 'none' as 'none' | 'daily' | 'weekdays' | 'custom',
@@ -289,6 +317,35 @@ export default function AgencySchedulePage() {
     }
   }, [agencyId]);
 
+  // Filter elders to hide those fully covered by existing shifts for the selected date/time
+  const availableElders = useMemo(() => {
+    if (!createForm.date || !createForm.startTime || !createForm.endTime) return elders;
+    if (createForm.startTime >= createForm.endTime) return elders;
+
+    const formDate = new Date(createForm.date + 'T00:00:00');
+    const newStart = parseTimeToMinutes(createForm.startTime);
+    const newEnd = parseTimeToMinutes(createForm.endTime);
+
+    return elders.filter(elder => {
+      const elderShiftsOnDate = shifts.filter(s =>
+        s.elderId === elder.id &&
+        s.date && isSameDay(s.date, formDate) &&
+        !['cancelled', 'no_show'].includes(s.status)
+      );
+
+      if (elderShiftsOnDate.length === 0) return true;
+
+      return !isTimeRangeCovered(elderShiftsOnDate, newStart, newEnd);
+    });
+  }, [elders, shifts, createForm.date, createForm.startTime, createForm.endTime]);
+
+  // Reset elder selection if the selected elder becomes covered after date/time change
+  useEffect(() => {
+    if (createForm.elderId && !availableElders.find(e => e.id === createForm.elderId)) {
+      setCreateForm(prev => ({ ...prev, elderId: '', elderName: '', elderGroupId: '' }));
+    }
+  }, [availableElders, createForm.elderId]);
+
   // Open create sheet
   const openCreateSheet = useCallback(() => {
     setShowCreateSheet(true);
@@ -413,7 +470,7 @@ export default function AgencySchedulePage() {
           elderId: '',
           elderName: '',
           elderGroupId: '',
-          assignmentMode: 'direct',
+          assignmentMode: 'cascade',
           caregiverId: '',
           caregiverName: '',
           repeatMode: 'none',
@@ -1111,7 +1168,7 @@ export default function AgencySchedulePage() {
                   <select
                     value={createForm.elderId}
                     onChange={e => {
-                      const elder = elders.find(el => el.id === e.target.value);
+                      const elder = availableElders.find(el => el.id === e.target.value);
                       setCreateForm(prev => ({
                         ...prev,
                         elderId: e.target.value,
@@ -1122,9 +1179,13 @@ export default function AgencySchedulePage() {
                     className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
                   >
                     <option value="">Select loved one...</option>
-                    {elders.map(elder => (
-                      <option key={elder.id} value={elder.id}>{elder.name}</option>
-                    ))}
+                    {availableElders.length === 0 ? (
+                      <option value="" disabled>All loved ones are covered for this time</option>
+                    ) : (
+                      availableElders.map(elder => (
+                        <option key={elder.id} value={elder.id}>{elder.name}</option>
+                      ))
+                    )}
                   </select>
                 )}
               </div>
@@ -1165,7 +1226,7 @@ export default function AgencySchedulePage() {
               {/* Caregiver picker */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {createForm.assignmentMode === 'cascade' ? 'Preferred Caregiver (optional)' : 'Caregiver'}
+                  {createForm.assignmentMode === 'cascade' ? 'Preferred First (optional)' : 'Caregiver'}
                   {createForm.assignmentMode === 'direct' && <span className="text-red-500"> *</span>}
                 </label>
                 {loadingCaregivers ? (
