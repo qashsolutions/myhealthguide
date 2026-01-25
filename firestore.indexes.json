@@ -1083,6 +1083,25 @@
         }
       ],
       "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "timesheetSubmissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "caregiverId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "weekStartDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     }
   ],
   "fieldOverrides": []
