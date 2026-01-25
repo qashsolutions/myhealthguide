@@ -24,6 +24,9 @@ export async function POST(request: NextRequest) {
     const adminDb = getAdminDb();
     const shiftRef = adminDb.collection('scheduledShifts').doc(shiftId);
 
+    let isStale = false;
+    let staleReason = '';
+
     // Use a transaction to prevent race conditions
     await adminDb.runTransaction(async (transaction) => {
       const shiftDoc = await transaction.get(shiftRef);
@@ -35,7 +38,10 @@ export async function POST(request: NextRequest) {
 
       // 2. Verify shift is in 'offered' status
       if (shift.status !== 'offered') {
-        throw new Error('Shift is no longer available for acceptance');
+        // Return stale indicator instead of throwing - expected for old notifications
+        isStale = true;
+        staleReason = 'no longer in offered status';
+        return;
       }
 
       // 3. Verify caller is the current offeree
@@ -48,7 +54,10 @@ export async function POST(request: NextRequest) {
       const currentCandidate = cascadeState.rankedCandidates[currentIndex];
 
       if (!currentCandidate || currentCandidate.caregiverId !== auth.userId) {
-        throw new Error('You are not the current offer recipient');
+        // Return stale indicator instead of throwing - expected for old notifications
+        isStale = true;
+        staleReason = 'not the current offer recipient';
+        return;
       }
 
       // 4. Verify not expired
@@ -104,6 +113,12 @@ export async function POST(request: NextRequest) {
         createdAt: FieldValue.serverTimestamp()
       });
     });
+
+    // Handle stale offers with 200 OK (expected scenario, not an error)
+    if (isStale) {
+      console.log('[shift-offer/accept] Stale offer - returning 200 OK with stale flag');
+      return NextResponse.json({ success: false, stale: true, staleReason });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

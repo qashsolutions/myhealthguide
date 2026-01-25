@@ -39,7 +39,9 @@ export async function POST(request: NextRequest) {
 
       // 2. Verify shift is in 'offered' status
       if (shift.status !== 'offered') {
-        throw new Error('Shift is no longer in offered status');
+        // Return stale indicator instead of throwing - this is expected for old notifications
+        cascadeResult = { status: 'stale', staleReason: 'no longer in offered status' } as any;
+        return;
       }
 
       const cascadeState = shift.cascadeState;
@@ -57,9 +59,10 @@ export async function POST(request: NextRequest) {
         'totalCandidates:', cascadeState.rankedCandidates?.length);
 
       if (!currentCandidate || currentCandidate.caregiverId !== auth.userId) {
-        console.error('[shift-offer/decline] Auth mismatch! currentCandidate.caregiverId:',
-          currentCandidate?.caregiverId, 'auth.userId:', auth.userId);
-        throw new Error('You are not the current offer recipient');
+        console.log('[shift-offer/decline] User is not current recipient - offer has moved on');
+        // Return stale indicator instead of throwing - this is expected for old notifications
+        cascadeResult = { status: 'stale', staleReason: 'not the current offer recipient' } as any;
+        return;
       }
 
       // 4. Mark current offer as declined
@@ -167,6 +170,12 @@ export async function POST(request: NextRequest) {
         });
       }
     });
+
+    // Handle stale offers with 200 OK (expected scenario, not an error)
+    if (cascadeResult.status === 'stale') {
+      console.log('[shift-offer/decline] Stale offer - returning 200 OK with stale flag');
+      return NextResponse.json({ success: false, stale: true, ...cascadeResult });
+    }
 
     console.log('[shift-offer/decline] SUCCESS - cascadeResult:', cascadeResult);
     return NextResponse.json({ success: true, ...cascadeResult });
