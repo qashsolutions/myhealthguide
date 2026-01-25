@@ -11,7 +11,6 @@ import {
   Calendar,
   CalendarX,
   Clock,
-  ArrowLeftRight,
   Package,
   AlertOctagon,
   Bell,
@@ -32,7 +31,7 @@ const notificationIcons: Record<NotificationType, LucideIcon> = {
   shift_assigned: Calendar,
   shift_cancelled: CalendarX,
   shift_reminder: Clock,
-  shift_swap_request: ArrowLeftRight,
+  shift_swap_request: Bell, // DISABLED - kept for backwards compatibility (uses Bell as fallback)
   shift_offer: Hand,
   shift_unfilled: CalendarOff,
   refill_needed: Package,

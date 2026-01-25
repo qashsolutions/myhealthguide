@@ -13,7 +13,7 @@ export type NotificationType =
   | 'shift_assigned'        // Caregiver: shift assigned
   | 'shift_cancelled'       // Caregiver: shift cancelled
   | 'shift_reminder'        // Caregiver: shift in 2 hours
-  | 'shift_swap_request'    // Caregiver: someone wants to swap
+  | 'shift_swap_request'    // DEPRECATED - kept for backwards compatibility (caregivers cannot swap directly)
   | 'shift_offer'           // Caregiver: shift available, accept/decline
   | 'shift_unfilled'        // Owner: no one accepted cascade shift
   | 'refill_needed'         // Medication running low

@@ -21,7 +21,8 @@ import {
   orderBy,
   limit
 } from 'firebase/firestore';
-import type { CaregiverNotification, ScheduledShift, ShiftSwapRequest } from '@/types';
+import type { CaregiverNotification, ScheduledShift } from '@/types';
+// ShiftSwapRequest import removed - caregivers cannot swap shifts directly
 import { format } from 'date-fns';
 
 /**
@@ -121,55 +122,12 @@ export async function notifyShiftCancelled(
   );
 }
 
-/**
- * Notify caregiver of shift swap request
- */
-export async function notifyShiftSwapRequest(
-  agencyId: string,
-  targetCaregiverId: string,
-  swapRequest: ShiftSwapRequest
-): Promise<void> {
-  const title = 'Shift Swap Request';
-  const message = `${swapRequest.requestingCaregiverName} wants to swap their shift with ${swapRequest.shiftToSwap.elderName} on ${format(swapRequest.shiftToSwap.date, 'MMM d')} (${swapRequest.shiftToSwap.startTime}-${swapRequest.shiftToSwap.endTime}).`;
-
-  await createNotification(
-    agencyId,
-    targetCaregiverId,
-    'shift_swap_request',
-    title,
-    message,
-    'high',
-    true,
-    '/dashboard/calendar',
-    { swapRequestId: swapRequest.id },
-    new Date(Date.now() + 48 * 60 * 60 * 1000) // Expires in 48 hours
-  );
-}
-
-/**
- * Notify caregiver that their swap request was accepted
- */
-export async function notifyShiftSwapAccepted(
-  agencyId: string,
-  requestingCaregiverId: string,
-  swapRequest: ShiftSwapRequest,
-  acceptedBy: string
-): Promise<void> {
-  const title = 'Shift Swap Accepted';
-  const message = `Your shift swap request has been accepted! Your shift with ${swapRequest.shiftToSwap.elderName} on ${format(swapRequest.shiftToSwap.date, 'MMM d')} has been swapped.`;
-
-  await createNotification(
-    agencyId,
-    requestingCaregiverId,
-    'shift_swap_accepted',
-    title,
-    message,
-    'normal',
-    false,
-    '/dashboard/calendar',
-    { swapRequestId: swapRequest.id }
-  );
-}
+// ============================================================================
+// DISABLED: Shift swap notifications - caregivers cannot swap shifts directly
+// All shift changes must go through the agency owner
+// ============================================================================
+// export async function notifyShiftSwapRequest(...) { ... }
+// export async function notifyShiftSwapAccepted(...) { ... }
 
 /**
  * Notify caregiver that their shift request was approved
