@@ -63,7 +63,7 @@ export async function notifyShiftUnfilled(
     title: 'Shift Unfilled',
     message: `No caregiver accepted the shift with ${shift.elderName} on ${dateStr} (${shift.startTime}–${shift.endTime}). Please assign manually.`,
     priority: 'high',
-    actionUrl: '/dashboard/schedule',
+    actionUrl: '/dashboard/agency/schedule',
     sourceCollection: 'scheduledShifts',
     sourceId: shift.id,
     data: {
