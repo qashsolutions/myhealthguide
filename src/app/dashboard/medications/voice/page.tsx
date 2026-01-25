@@ -11,13 +11,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mic, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
-import { ElderService } from '@/lib/firebase/elders';
 import { logMedicationDoseOfflineAware } from '@/lib/offline';
 
 export default function VoiceMedicationPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { availableElders, isLoading: eldersLoading } = useElder();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState('');
@@ -50,6 +51,16 @@ export default function VoiceMedicationPage() {
       return;
     }
 
+    if (eldersLoading) {
+      setError('Loading loved ones... please wait');
+      return;
+    }
+
+    if (availableElders.length === 0) {
+      setError('No loved ones found. Please add a loved one first.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
 
@@ -58,16 +69,21 @@ export default function VoiceMedicationPage() {
         throw new Error('You must be signed in');
       }
 
-      const groupId = user.groups[0]?.groupId;
-      if (!groupId) {
-        throw new Error('You must be part of a group');
-      }
-
       const userId = user.id;
-      const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
 
-      if (!userRole) {
-        throw new Error('Unable to determine user role');
+      // Determine user role - check agency membership first, then group membership
+      let userRole: 'admin' | 'caregiver' | 'member' = 'member';
+      if (user.agencies && user.agencies.length > 0) {
+        const agencyRole = user.agencies[0].role;
+        if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') {
+          userRole = 'admin';
+        } else if (agencyRole === 'caregiver') {
+          userRole = 'caregiver';
+        } else {
+          userRole = 'member';
+        }
+      } else if (user.groups && user.groups.length > 0) {
+        userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
       }
 
       // Simple parsing: try to extract name and medication from transcript
@@ -84,23 +100,29 @@ export default function VoiceMedicationPage() {
       const elderName = match[1].trim();
       const medicationName = match[2].trim().replace(/\s*(morning|evening|daily)\s*/gi, '').trim();
 
-      // Find elder
-      const elders = await ElderService.getEldersByGroup(groupId, userId, userRole);
-      const elder = elders.find(e => e.name.toLowerCase().includes(elderName.toLowerCase()));
+      // Find elder from available elders (provided by ElderContext - already filtered for user's access)
+      const elder = availableElders.find(e =>
+        e.name.toLowerCase().includes(elderName.toLowerCase())
+      );
 
       if (!elder) {
-        throw new Error(`"${elderName}" not found. Please check the name.`);
+        const availableNames = availableElders.map(e => e.name).join(', ');
+        throw new Error(`"${elderName}" not found. Available: ${availableNames || 'none'}`);
       }
 
+      // Use elder's groupId for the medication lookup and logging
+      const groupId = elder.groupId;
+
       // Find medication
-      const medications = await MedicationService.getMedicationsByElder(elder.id, elder.groupId, userId, userRole);
+      const medications = await MedicationService.getMedicationsByElder(elder.id, groupId, userId, userRole);
       const medication = medications.find(m =>
         m.name.toLowerCase().includes(medicationName.toLowerCase()) ||
         medicationName.toLowerCase().includes(m.name.toLowerCase())
       );
 
       if (!medication) {
-        throw new Error(`Medication "${medicationName}" not found for ${elder.name}.`);
+        const medicationNames = medications.map(m => m.name).join(', ');
+        throw new Error(`Medication "${medicationName}" not found for ${elder.name}. Available: ${medicationNames || 'none'}`);
       }
 
       const result = await logMedicationDoseOfflineAware({
@@ -141,6 +163,9 @@ export default function VoiceMedicationPage() {
     setTranscript('');
     setError('');
   };
+
+  // Show available loved one names as hint
+  const elderNames = availableElders.map(e => e.name).join(', ');
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -191,7 +216,9 @@ export default function VoiceMedicationPage() {
             Log Medication
           </CardTitle>
           <CardDescription className="text-sm">
-            Example: &quot;John took Lisinopril 10mg&quot;
+            {elderNames
+              ? `Say: "${availableElders[0]?.name || 'Name'} took [medication]"`
+              : 'Loading loved ones...'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -234,7 +261,7 @@ export default function VoiceMedicationPage() {
           <div className="flex gap-3 pt-2">
             <Button
               onClick={handleSubmit}
-              disabled={!transcript.trim() || isSubmitting || isListening}
+              disabled={!transcript.trim() || isSubmitting || isListening || eldersLoading}
               className="flex-1"
             >
               {isSubmitting ? (

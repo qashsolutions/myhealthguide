@@ -11,14 +11,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Utensils, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useElder } from '@/contexts/ElderContext';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
-import { ElderService } from '@/lib/firebase/elders';
 import { createDietEntryOfflineAware } from '@/lib/offline';
 
 export default function VoiceDietPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { availableElders, isLoading: eldersLoading } = useElder();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState('');
@@ -51,6 +52,16 @@ export default function VoiceDietPage() {
       return;
     }
 
+    if (eldersLoading) {
+      setError('Loading loved ones... please wait');
+      return;
+    }
+
+    if (availableElders.length === 0) {
+      setError('No loved ones found. Please add a loved one first.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
 
@@ -59,16 +70,21 @@ export default function VoiceDietPage() {
         throw new Error('You must be signed in');
       }
 
-      const groupId = user.groups[0]?.groupId;
-      if (!groupId) {
-        throw new Error('You must be part of a group');
-      }
-
       const userId = user.id;
-      const userRole = user.groups[0]?.role as 'admin' | 'caregiver' | 'member';
 
-      if (!userRole) {
-        throw new Error('Unable to determine user role');
+      // Determine user role - check agency membership first, then group membership
+      let userRole: 'admin' | 'caregiver' | 'member' = 'member';
+      if (user.agencies && user.agencies.length > 0) {
+        const agencyRole = user.agencies[0].role;
+        if (agencyRole === 'super_admin' || agencyRole === 'caregiver_admin') {
+          userRole = 'admin';
+        } else if (agencyRole === 'caregiver') {
+          userRole = 'caregiver';
+        } else {
+          userRole = 'member';
+        }
+      } else if (user.groups && user.groups.length > 0) {
+        userRole = user.groups[0].role as 'admin' | 'caregiver' | 'member';
       }
 
       // Simple parsing: try to extract name, meal type, and items
@@ -94,13 +110,18 @@ export default function VoiceDietPage() {
         throw new Error('Could not understand. Please use format: "[Name] had breakfast: eggs, toast"');
       }
 
-      // Find elder
-      const elders = await ElderService.getEldersByGroup(groupId, userId, userRole);
-      const elder = elders.find(e => e.name.toLowerCase().includes(elderName.toLowerCase()));
+      // Find elder from available elders (provided by ElderContext - already filtered for user's access)
+      const elder = availableElders.find(e =>
+        e.name.toLowerCase().includes(elderName.toLowerCase())
+      );
 
       if (!elder) {
-        throw new Error(`"${elderName}" not found. Please check the name.`);
+        const availableNames = availableElders.map(e => e.name).join(', ');
+        throw new Error(`"${elderName}" not found. Available: ${availableNames || 'none'}`);
       }
+
+      // Use elder's groupId for logging
+      const groupId = elder.groupId;
 
       const result = await createDietEntryOfflineAware({
         elderId: elder.id,
@@ -139,6 +160,9 @@ export default function VoiceDietPage() {
     setTranscript('');
     setError('');
   };
+
+  // Show available loved one names as hint
+  const elderNames = availableElders.map(e => e.name).join(', ');
 
   return (
     <TrialExpirationGate featureName="voice diet entry">
@@ -191,7 +215,9 @@ export default function VoiceDietPage() {
                 Log Meal
               </CardTitle>
               <CardDescription className="text-sm">
-                Example: &quot;Mary had breakfast: eggs and toast&quot;
+                {elderNames
+                  ? `Say: "${availableElders[0]?.name || 'Name'} had breakfast: eggs and toast"`
+                  : 'Loading loved ones...'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -234,7 +260,7 @@ export default function VoiceDietPage() {
               <div className="flex gap-3 pt-2">
                 <Button
                   onClick={handleSubmit}
-                  disabled={!transcript.trim() || isSubmitting || isListening}
+                  disabled={!transcript.trim() || isSubmitting || isListening || eldersLoading}
                   className="flex-1 bg-orange-600 hover:bg-orange-700"
                 >
                   {isSubmitting ? (
