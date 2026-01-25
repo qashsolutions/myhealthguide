@@ -380,6 +380,39 @@ export default function AgencySchedulePage() {
     }
   }, [availableElders, createForm.elderId]);
 
+  // Compute which caregivers have conflicts for the Edit Shift form
+  const editFormCaregiverConflicts = useMemo(() => {
+    if (!editForm.date || !editForm.startTime || !editForm.endTime) return new Set<string>();
+
+    // Create a virtual shift object for conflict checking
+    const virtualShift: ScheduledShift = {
+      id: editForm.shiftId,
+      date: new Date(editForm.date + 'T00:00:00'),
+      startTime: editForm.startTime,
+      endTime: editForm.endTime,
+      agencyId: agencyId || '',
+      groupId: editForm.elderGroupId,
+      elderId: editForm.elderId,
+      elderName: editForm.elderName,
+      caregiverId: editForm.caregiverId,
+      caregiverName: editForm.caregiverName,
+      status: 'scheduled',
+      duration: 0,
+      isRecurring: false,
+      createdBy: user?.id || '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const conflicts = new Set<string>();
+    for (const cg of caregivers) {
+      if (hasCaregiverConflict(cg.id, virtualShift, shifts)) {
+        conflicts.add(cg.id);
+      }
+    }
+    return conflicts;
+  }, [editForm.shiftId, editForm.date, editForm.startTime, editForm.endTime, editForm.elderGroupId, editForm.elderId, editForm.elderName, editForm.caregiverId, editForm.caregiverName, caregivers, shifts, agencyId]);
+
   // Open create sheet
   const openCreateSheet = useCallback(() => {
     setShowCreateSheet(true);
@@ -1522,9 +1555,18 @@ export default function AgencySchedulePage() {
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
                 >
                   <option value="">Unassigned</option>
-                  {caregivers.map(cg => (
-                    <option key={cg.id} value={cg.id}>{cg.name}</option>
-                  ))}
+                  {caregivers.map(cg => {
+                    const hasConflict = editFormCaregiverConflicts.has(cg.id);
+                    return (
+                      <option
+                        key={cg.id}
+                        value={cg.id}
+                        disabled={hasConflict}
+                      >
+                        {cg.name}{hasConflict ? ' (Busy)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
