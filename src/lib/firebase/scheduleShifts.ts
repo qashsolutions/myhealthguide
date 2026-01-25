@@ -371,20 +371,23 @@ export async function createShiftRequest(
   notes?: string
 ): Promise<{ success: boolean; requestId?: string; error?: string }> {
   try {
-    const request: Omit<ShiftRequest, 'id'> = {
+    // Build request object, excluding undefined fields (Firestore doesn't accept undefined)
+    const request: Record<string, any> = {
       agencyId,
       caregiverId,
       caregiverName,
       requestType,
-      specificDate,
-      recurringDays,
       startTime,
       endTime,
-      preferredElders,
-      notes,
       status: 'pending',
       requestedAt: new Date()
     };
+
+    // Only add optional fields if they have values
+    if (specificDate !== undefined) request.specificDate = specificDate;
+    if (recurringDays !== undefined && recurringDays.length > 0) request.recurringDays = recurringDays;
+    if (preferredElders !== undefined && preferredElders.length > 0) request.preferredElders = preferredElders;
+    if (notes !== undefined && notes.trim() !== '') request.notes = notes;
 
     const requestRef = await addDoc(collection(db, 'shiftRequests'), request);
     return { success: true, requestId: requestRef.id };
