@@ -127,9 +127,10 @@ export function VoiceRecordButton({
       return;
     }
 
-    // Prevent starting if already listening
-    if (isRecording || isProcessing) {
-      console.warn('Already listening');
+    // Prevent starting if already listening (check both internal and external state)
+    const currentlyListening = externalIsRecording ?? isRecording;
+    if (currentlyListening || isProcessing) {
+      console.warn('Already listening, ignoring start request');
       return;
     }
 
@@ -142,11 +143,9 @@ export function VoiceRecordButton({
       setIsRecording(false);
       onRecordingStop?.();
 
-      // Handle specific error cases
+      // Handle specific error cases - silently ignore "already started"
       if (error.message?.includes('already started')) {
-        if (onError) {
-          onError(new Error('Already listening. Please wait.'));
-        }
+        console.warn('Recognition already started, ignoring');
       } else {
         if (onError) {
           onError(error as Error);
@@ -163,9 +162,12 @@ export function VoiceRecordButton({
   };
 
   const handleClick = async () => {
-    console.log('[VoiceRecordButton] Click - permissionStatus:', permissionStatus, 'consentStatus:', consentStatus, 'isRecording:', isRecording);
+    // Use effectiveIsRecording to determine current state (considers both internal and external)
+    const currentlyListening = externalIsRecording ?? isRecording;
+    console.log('[VoiceRecordButton] Click - currentlyListening:', currentlyListening, 'isRecording:', isRecording);
 
-    if (isRecording) {
+    if (currentlyListening) {
+      // Stop listening
       stopRecording();
     } else {
       if (consentStatus === 'denied' || permissionStatus === 'denied') {
@@ -174,11 +176,11 @@ export function VoiceRecordButton({
           onError(new Error('Microphone access was denied. To enable voice input:\n\n1. Click the lock/info icon in your browser address bar\n2. Find "Microphone" and change it to "Allow"\n3. Refresh the page and try again\n\nOr simply type your question instead.'));
         }
       } else if (consentStatus === 'consented' && permissionStatus === 'granted') {
-        console.log('[VoiceRecordButton] Consent and permission granted, starting recording');
+        console.log('[VoiceRecordButton] Starting voice input');
         startRecording();
       } else {
         // Need consent and/or browser permission - show consent dialog first
-        console.log('[VoiceRecordButton] Requesting consent/permission, setting pendingStart');
+        console.log('[VoiceRecordButton] Requesting consent/permission');
         setPendingStart(true);
         requestPermission();
       }
@@ -216,7 +218,7 @@ export function VoiceRecordButton({
         size={size}
         className={cn(
           'relative transition-all',
-          effectiveIsRecording && 'bg-red-500 hover:bg-red-600 text-white',
+          effectiveIsRecording && 'bg-blue-600 hover:bg-blue-700 text-white',
           className
         )}
       >
@@ -228,8 +230,8 @@ export function VoiceRecordButton({
         ) : effectiveIsRecording ? (
           <>
             <Mic className="w-4 h-4 mr-2 animate-pulse" />
-            Listening...
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse" />
+            Tap to Stop
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-blue-400 animate-ping" />
           </>
         ) : (
           <>
