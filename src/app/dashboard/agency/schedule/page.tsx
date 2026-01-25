@@ -127,6 +127,40 @@ function isTimeRangeCovered(
   return false;
 }
 
+// Check if a caregiver has a conflicting shift (overlapping time on same date)
+function hasCaregiverConflict(
+  caregiverId: string,
+  targetShift: ScheduledShift,
+  allShifts: ScheduledShift[]
+): boolean {
+  if (!targetShift.date) return false;
+
+  const targetStart = parseTimeToMinutes(targetShift.startTime);
+  const targetEnd = parseTimeToMinutes(targetShift.endTime);
+
+  // Find all shifts for this caregiver on the same date (excluding the current shift being reassigned)
+  const caregiverShiftsOnDate = allShifts.filter(s =>
+    s.caregiverId === caregiverId &&
+    s.id !== targetShift.id && // Exclude the shift being reassigned
+    s.date &&
+    isSameDay(s.date, targetShift.date!) &&
+    !['cancelled', 'no_show'].includes(s.status)
+  );
+
+  // Check if any of these shifts overlap with the target time range
+  for (const shift of caregiverShiftsOnDate) {
+    const shiftStart = parseTimeToMinutes(shift.startTime);
+    const shiftEnd = parseTimeToMinutes(shift.endTime);
+
+    // Overlaps if: start1 < end2 AND start2 < end1
+    if (targetStart < shiftEnd && shiftStart < targetEnd) {
+      return true; // Conflict found
+    }
+  }
+
+  return false;
+}
+
 export default function AgencySchedulePage() {
   const { user } = useAuth();
   const { isMultiAgency } = useSubscription();
@@ -1649,43 +1683,58 @@ export default function AgencySchedulePage() {
                 <div className="space-y-1">
                   {caregivers.map((cg) => {
                     const isCurrentlyAssigned = selectedShift.caregiverId === cg.id;
+                    const hasConflict = hasCaregiverConflict(cg.id, selectedShift, shifts);
+                    const isDisabled = assigning || isCurrentlyAssigned || hasConflict;
                     return (
                       <button
                         key={cg.id}
-                        onClick={() => !isCurrentlyAssigned && !assigning && assignCaregiver(cg.id, cg.name)}
-                        disabled={assigning || isCurrentlyAssigned}
+                        onClick={() => !isDisabled && assignCaregiver(cg.id, cg.name)}
+                        disabled={isDisabled}
                         className={cn(
                           'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors text-left',
                           isCurrentlyAssigned
                             ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700'
+                            : hasConflict
+                              ? 'bg-gray-50 dark:bg-gray-800/50 opacity-60 cursor-not-allowed'
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700'
                         )}
                       >
                         <div className={cn(
                           'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
                           isCurrentlyAssigned
                             ? 'bg-blue-100 dark:bg-blue-900/40'
-                            : 'bg-gray-100 dark:bg-gray-700'
+                            : hasConflict
+                              ? 'bg-amber-100 dark:bg-amber-900/40'
+                              : 'bg-gray-100 dark:bg-gray-700'
                         )}>
                           <User className={cn(
                             'w-4 h-4',
                             isCurrentlyAssigned
                               ? 'text-blue-600 dark:text-blue-400'
-                              : 'text-gray-500 dark:text-gray-400'
+                              : hasConflict
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-gray-500 dark:text-gray-400'
                           )} />
                         </div>
                         <span className={cn(
                           'flex-1 text-sm font-medium',
                           isCurrentlyAssigned
                             ? 'text-blue-700 dark:text-blue-300'
-                            : 'text-gray-900 dark:text-gray-100'
+                            : hasConflict
+                              ? 'text-gray-500 dark:text-gray-400'
+                              : 'text-gray-900 dark:text-gray-100'
                         )}>
                           {cg.name}
                         </span>
                         {isCurrentlyAssigned && (
                           <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         )}
-                        {assigning && !isCurrentlyAssigned && (
+                        {hasConflict && !isCurrentlyAssigned && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                            Busy
+                          </span>
+                        )}
+                        {assigning && !isCurrentlyAssigned && !hasConflict && (
                           <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
                         )}
                       </button>
