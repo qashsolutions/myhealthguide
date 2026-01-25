@@ -10,6 +10,9 @@ import { useMicrophonePermission } from '@/hooks/useMicrophonePermission';
 interface VoiceRecordButtonProps {
   onRecordingComplete: (transcript: string) => void;
   onError?: (error: Error) => void;
+  onRecordingStart?: () => void;
+  onRecordingStop?: () => void;
+  onInterimResult?: (interim: string) => void;
   isRecording?: boolean;
   disabled?: boolean;
   className?: string;
@@ -20,6 +23,9 @@ interface VoiceRecordButtonProps {
 export function VoiceRecordButton({
   onRecordingComplete,
   onError,
+  onRecordingStart,
+  onRecordingStop,
+  onInterimResult,
   isRecording: externalIsRecording,
   disabled = false,
   className,
@@ -50,20 +56,30 @@ export function VoiceRecordButton({
         const recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
         recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.interimResults = true; // Enable interim results for real-time feedback
         recognition.maxAlternatives = 1;
 
         recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setIsProcessing(false);
-          setIsRecording(false);
-          onRecordingComplete(transcript);
+          const result = event.results[0];
+          const transcript = result[0].transcript;
+
+          if (result.isFinal) {
+            // Final result - processing complete
+            setIsProcessing(false);
+            setIsRecording(false);
+            onRecordingStop?.();
+            onRecordingComplete(transcript);
+          } else {
+            // Interim result - show real-time feedback
+            onInterimResult?.(transcript);
+          }
         };
 
         recognition.onerror = (event: any) => {
           console.error('Speech recognition error:', event.error);
           setIsProcessing(false);
           setIsRecording(false);
+          onRecordingStop?.();
 
           let errorMessage: string;
 
@@ -72,7 +88,7 @@ export function VoiceRecordButton({
               errorMessage = 'Microphone access denied. Please allow microphone access in your browser settings.';
               break;
             case 'aborted':
-              errorMessage = 'Recording was stopped. Please try again.';
+              errorMessage = 'Voice input was stopped. Please try again.';
               break;
             case 'no-speech':
               errorMessage = 'No speech detected. Please speak clearly and try again.';
@@ -95,12 +111,13 @@ export function VoiceRecordButton({
         recognition.onend = () => {
           setIsRecording(false);
           setIsProcessing(false);
+          onRecordingStop?.();
         };
 
         setRecognition(recognition);
       }
     }
-  }, [onRecordingComplete, onError]);
+  }, [onRecordingComplete, onError, onInterimResult, onRecordingStop]);
 
   const startRecording = () => {
     if (!recognition) {
@@ -110,23 +127,25 @@ export function VoiceRecordButton({
       return;
     }
 
-    // Prevent starting if already recording
+    // Prevent starting if already listening
     if (isRecording || isProcessing) {
-      console.warn('Recording already in progress');
+      console.warn('Already listening');
       return;
     }
 
     try {
       setIsRecording(true);
+      onRecordingStart?.(); // Notify parent that we started listening
       recognition.start();
     } catch (error: any) {
-      console.error('Error starting recording:', error);
+      console.error('Error starting voice input:', error);
       setIsRecording(false);
+      onRecordingStop?.();
 
       // Handle specific error cases
       if (error.message?.includes('already started')) {
         if (onError) {
-          onError(new Error('Recording already in progress. Please wait.'));
+          onError(new Error('Already listening. Please wait.'));
         }
       } else {
         if (onError) {
@@ -208,8 +227,8 @@ export function VoiceRecordButton({
           </>
         ) : effectiveIsRecording ? (
           <>
-            <MicOff className="w-4 h-4 mr-2" />
-            Stop Recording
+            <Mic className="w-4 h-4 mr-2 animate-pulse" />
+            Listening...
             <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse" />
           </>
         ) : (

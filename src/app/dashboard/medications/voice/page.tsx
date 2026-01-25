@@ -22,12 +22,24 @@ export default function VoiceMedicationPage() {
   const { user } = useAuth();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const handleRecordingStart = () => {
+    setIsRecording(true);
+    setInterimTranscript('');
+    setError('');
+  };
+
+  const handleInterimResult = (interim: string) => {
+    setInterimTranscript(interim);
+  };
+
   const handleRecordingComplete = (transcriptText: string) => {
     setTranscript(transcriptText);
+    setInterimTranscript('');
     setShowDialog(true);
     setIsRecording(false);
     setError('');
@@ -36,6 +48,7 @@ export default function VoiceMedicationPage() {
   const handleError = (err: Error) => {
     setError(err.message);
     setIsRecording(false);
+    setInterimTranscript('');
   };
 
   const handleConfirm = async (parsedData: VoiceParseResult, editedTranscript: string) => {
@@ -176,7 +189,7 @@ export default function VoiceMedicationPage() {
             <AlertDescription className="ml-2">
               <p className="font-medium mb-2">How to use voice input:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Click the &quot;Start Recording&quot; button below</li>
+                <li>Click the &quot;Voice Input&quot; button below</li>
                 <li>Speak clearly: &quot;[Name] took [Medication] [Dosage] at [Time]&quot;</li>
                 <li>Example: &quot;John took Lisinopril 10mg at 9am&quot;</li>
                 <li>Review and confirm the transcription</li>
@@ -186,12 +199,18 @@ export default function VoiceMedicationPage() {
 
           {/* Recording Button */}
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center shadow-lg">
-              <Mic className={`w-16 h-16 text-blue-600 dark:text-blue-400 ${isRecording ? 'animate-pulse' : ''}`} />
+            <div className={`w-32 h-32 rounded-full flex items-center justify-center shadow-lg transition-all ${
+              isRecording
+                ? 'bg-gradient-to-br from-blue-400 to-blue-600 dark:from-blue-600 dark:to-blue-800 animate-pulse'
+                : 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800'
+            }`}>
+              <Mic className={`w-16 h-16 ${isRecording ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
             </div>
 
             <VoiceRecordButton
               onRecordingComplete={handleRecordingComplete}
+              onRecordingStart={handleRecordingStart}
+              onInterimResult={handleInterimResult}
               onError={handleError}
               isRecording={isRecording}
               size="lg"
@@ -199,9 +218,16 @@ export default function VoiceMedicationPage() {
             />
 
             {isRecording && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 animate-pulse">
-                Listening... Speak now
-              </p>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+                  Listening... Speak now
+                </p>
+                {interimTranscript && (
+                  <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2 max-w-xs">
+                    &quot;{interimTranscript}&quot;
+                  </p>
+                )}
+              </div>
             )}
           </div>
 

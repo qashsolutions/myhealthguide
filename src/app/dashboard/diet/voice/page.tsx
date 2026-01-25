@@ -27,14 +27,26 @@ export default function VoiceDietPage() {
   const { user } = useAuth();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [analysis, setAnalysis] = useState<DietAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  const handleRecordingStart = () => {
+    setIsRecording(true);
+    setInterimTranscript('');
+    setError('');
+  };
+
+  const handleInterimResult = (interim: string) => {
+    setInterimTranscript(interim);
+  };
+
   const handleRecordingComplete = (transcriptText: string) => {
     setTranscript(transcriptText);
+    setInterimTranscript('');
     setShowDialog(true);
     setIsRecording(false);
     setError('');
@@ -43,6 +55,7 @@ export default function VoiceDietPage() {
   const handleError = (err: Error) => {
     setError(err.message);
     setIsRecording(false);
+    setInterimTranscript('');
   };
 
   const handleGetAnalysis = async (parsedData: VoiceParseResult) => {
@@ -220,7 +233,7 @@ export default function VoiceDietPage() {
             <AlertDescription className="ml-2">
               <p className="font-medium mb-2">How to use voice input:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Click the &quot;Start Recording&quot; button below</li>
+                <li>Click the &quot;Voice Input&quot; button below</li>
                 <li>Speak clearly: &quot;[Name] had [Meal]: [food items]&quot;</li>
                 <li>Example: &quot;Mary had breakfast: oatmeal, orange juice, and toast&quot;</li>
                 <li>Review and confirm the transcription</li>
@@ -230,12 +243,18 @@ export default function VoiceDietPage() {
 
           {/* Recording Button */}
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900 dark:to-orange-800 flex items-center justify-center shadow-lg">
-              <Utensils className={`w-16 h-16 text-orange-600 dark:text-orange-400 ${isRecording ? 'animate-pulse' : ''}`} />
+            <div className={`w-32 h-32 rounded-full flex items-center justify-center shadow-lg transition-all ${
+              isRecording
+                ? 'bg-gradient-to-br from-orange-400 to-orange-600 dark:from-orange-600 dark:to-orange-800 animate-pulse'
+                : 'bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900 dark:to-orange-800'
+            }`}>
+              <Utensils className={`w-16 h-16 ${isRecording ? 'text-white' : 'text-orange-600 dark:text-orange-400'}`} />
             </div>
 
             <VoiceRecordButton
               onRecordingComplete={handleRecordingComplete}
+              onRecordingStart={handleRecordingStart}
+              onInterimResult={handleInterimResult}
               onError={handleError}
               isRecording={isRecording}
               size="lg"
@@ -243,9 +262,16 @@ export default function VoiceDietPage() {
             />
 
             {isRecording && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 animate-pulse">
-                Listening... Speak now
-              </p>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-orange-600 dark:text-orange-400 font-medium animate-pulse">
+                  Listening... Speak now
+                </p>
+                {interimTranscript && (
+                  <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2 max-w-xs">
+                    &quot;{interimTranscript}&quot;
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
