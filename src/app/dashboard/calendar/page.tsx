@@ -19,8 +19,7 @@ import {
   CheckCircle,
   XCircle,
   Filter,
-  Repeat,
-  Bell
+  Repeat
 } from 'lucide-react';
 import {
   getScheduledShifts,
@@ -39,7 +38,6 @@ import {
   acceptShiftSwapRequest,
   rejectShiftSwapRequest
 } from '@/lib/firebase/shiftSwap';
-import { getUnreadNotificationCount } from '@/lib/notifications/caregiverNotifications';
 import type { ScheduledShift, ShiftRequest, ShiftSwapRequest, AgencyRole } from '@/types';
 import { format, startOfWeek, endOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns';
 import { validateNoProfanity } from '@/lib/utils/profanityFilter';
@@ -57,7 +55,6 @@ export default function CalendarPage() {
   const [scheduledShifts, setScheduledShifts] = useState<ScheduledShift[]>([]);
   const [shiftRequests, setShiftRequests] = useState<ShiftRequest[]>([]);
   const [swapRequests, setSwapRequests] = useState<ShiftSwapRequest[]>([]);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,7 +110,6 @@ export default function CalendarPage() {
       }
       if (isCaregiver) {
         loadSwapRequests();
-        loadNotifications();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -170,17 +166,6 @@ export default function CalendarPage() {
       setSwapRequests(requests);
     } catch (err: any) {
       console.error('Error loading swap requests:', err);
-    }
-  };
-
-  const loadNotifications = async () => {
-    if (!user || !userAgency) return;
-
-    try {
-      const count = await getUnreadNotificationCount(user.id);
-      setUnreadNotifications(count);
-    } catch (err: any) {
-      console.error('Error loading notifications:', err);
     }
   };
 
@@ -487,12 +472,6 @@ export default function CalendarPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {isCaregiver && unreadNotifications > 0 && (
-            <Button variant="outline" onClick={() => window.location.href = '/dashboard/notifications/test'}>
-              <Bell className="w-4 h-4 mr-2" />
-              Notifications ({unreadNotifications})
-            </Button>
-          )}
           {isSuperAdmin && (
             <>
               <Button onClick={() => setViewMode('requests')} variant={viewMode === 'requests' ? 'default' : 'outline'}>
