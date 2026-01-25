@@ -4,13 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { VoiceRecordButton } from '@/components/voice/VoiceRecordButton';
-import { VoiceTranscriptDialog } from '@/components/voice/VoiceTranscriptDialog';
-import { VoiceRecordingIndicator } from '@/components/voice/VoiceRecordingIndicator';
 import { BrowserSupportAlert } from '@/components/voice/BrowserSupportAlert';
-import { VoiceParseResult } from '@/lib/voice/speechRecognition';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Mic, Info, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Mic, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { MedicationService } from '@/lib/firebase/medications';
@@ -20,38 +18,41 @@ import { logMedicationDoseOfflineAware } from '@/lib/offline';
 export default function VoiceMedicationPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [interimTranscript, setInterimTranscript] = useState('');
-  const [showDialog, setShowDialog] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleRecordingStart = () => {
-    setIsRecording(true);
-    setInterimTranscript('');
+  const handleListeningStart = () => {
+    setIsListening(true);
+    setTranscript('');
     setError('');
   };
 
   const handleInterimResult = (interim: string) => {
-    setInterimTranscript(interim);
+    setTranscript(interim);
   };
 
-  const handleRecordingComplete = (transcriptText: string) => {
-    setTranscript(transcriptText);
-    setInterimTranscript('');
-    setShowDialog(true);
-    setIsRecording(false);
-    setError('');
+  const handleListeningComplete = (finalTranscript: string) => {
+    setTranscript(finalTranscript);
+    setIsListening(false);
   };
 
   const handleError = (err: Error) => {
     setError(err.message);
-    setIsRecording(false);
-    setInterimTranscript('');
+    setIsListening(false);
   };
 
-  const handleConfirm = async (parsedData: VoiceParseResult, editedTranscript: string) => {
+  const handleSubmit = async () => {
+    if (!transcript.trim()) {
+      setError('Please speak or type a medication entry');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
     try {
       if (!user) {
         throw new Error('You must be signed in');
@@ -69,23 +70,37 @@ export default function VoiceMedicationPage() {
         throw new Error('Unable to determine user role');
       }
 
-      // Try to find elder ID by name
-      const elderName = parsedData.elderName || 'Unknown';
-      const elders = await ElderService.getEldersByGroup(groupId, userId, userRole);
-      const elder = elders.find(e => e.name.toLowerCase().trim() === elderName.toLowerCase().trim());
+      // Simple parsing: try to extract name and medication from transcript
+      // Format expected: "[Name] took [Medication]..."
+      const text = transcript.toLowerCase();
+      const tookMatch = text.match(/^(\w+)\s+took\s+(.+?)(?:\s+at|\s+\d|$)/i);
+      const hadMatch = text.match(/^(\w+)\s+had\s+(?:his|her|their)?\s*(.+?)(?:\s+at|\s+\d|$)/i);
 
-      if (!elder) {
-        throw new Error(`Elder "${elderName}" not found. Please add them first.`);
+      const match = tookMatch || hadMatch;
+      if (!match) {
+        throw new Error('Could not understand. Please use format: "[Name] took [Medication]"');
       }
 
-      // Try to find medication by name
+      const elderName = match[1].trim();
+      const medicationName = match[2].trim().replace(/\s*(morning|evening|daily)\s*/gi, '').trim();
+
+      // Find elder
+      const elders = await ElderService.getEldersByGroup(groupId, userId, userRole);
+      const elder = elders.find(e => e.name.toLowerCase().includes(elderName.toLowerCase()));
+
+      if (!elder) {
+        throw new Error(`"${elderName}" not found. Please check the name.`);
+      }
+
+      // Find medication
       const medications = await MedicationService.getMedicationsByElder(elder.id, elder.groupId, userId, userRole);
       const medication = medications.find(m =>
-        m.name.toLowerCase().trim() === parsedData.itemName.toLowerCase().trim()
+        m.name.toLowerCase().includes(medicationName.toLowerCase()) ||
+        medicationName.toLowerCase().includes(m.name.toLowerCase())
       );
 
       if (!medication) {
-        throw new Error(`Medication "${parsedData.itemName}" not found for ${elderName}. Please add it first.`);
+        throw new Error(`Medication "${medicationName}" not found for ${elder.name}.`);
       }
 
       const result = await logMedicationDoseOfflineAware({
@@ -95,9 +110,9 @@ export default function VoiceMedicationPage() {
         scheduledTime: new Date(),
         actualTime: new Date(),
         status: 'taken',
-        notes: editedTranscript,
+        notes: transcript,
         method: 'voice',
-        voiceTranscript: editedTranscript,
+        voiceTranscript: transcript,
         loggedBy: userId,
         createdAt: new Date()
       }, userId, userRole);
@@ -107,8 +122,8 @@ export default function VoiceMedicationPage() {
       }
 
       const queuedMsg = result.queued ? ' (will sync when online)' : '';
-      setSuccess(`Successfully logged ${parsedData.itemName} for ${elderName}${queuedMsg}`);
-      setShowDialog(false);
+      setSuccess(`Logged ${medication.name} for ${elder.name}${queuedMsg}`);
+      setTranscript('');
 
       // Redirect after 2 seconds
       setTimeout(() => {
@@ -116,22 +131,19 @@ export default function VoiceMedicationPage() {
       }, 2000);
     } catch (error: any) {
       console.error('Error logging medication:', error);
-      setError(error.message || 'Failed to log medication. Please try again.');
+      setError(error.message || 'Failed to log medication');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleRetry = () => {
-    setShowDialog(false);
+  const handleClear = () => {
     setTranscript('');
     setError('');
-    // Automatically start recording again
-    setTimeout(() => {
-      setIsRecording(true);
-    }, 500);
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-lg mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/dashboard/medications">
@@ -140,11 +152,11 @@ export default function VoiceMedicationPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Voice Medication Log
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Voice Log
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Use voice to quickly log medication doses
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Say who took what medication
           </p>
         </div>
       </div>
@@ -165,7 +177,7 @@ export default function VoiceMedicationPage() {
       {/* Error Message */}
       {error && (
         <Alert className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
-          <AlertDescription className="ml-2 text-red-800 dark:text-red-200">
+          <AlertDescription className="text-red-800 dark:text-red-200">
             {error}
           </AlertDescription>
         </Alert>
@@ -173,101 +185,82 @@ export default function VoiceMedicationPage() {
 
       {/* Main Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Mic className="w-5 h-5 text-blue-600" />
-            Record Medication Dose
+            Log Medication
           </CardTitle>
-          <CardDescription>
-            Speak naturally to log medication intake
+          <CardDescription className="text-sm">
+            Example: &quot;John took Lisinopril 10mg&quot;
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Instructions */}
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription className="ml-2">
-              <p className="font-medium mb-2">How to use voice input:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Click the &quot;Voice Input&quot; button below</li>
-                <li>Speak clearly: &quot;[Name] took [Medication] [Dosage] at [Time]&quot;</li>
-                <li>Example: &quot;John took Lisinopril 10mg at 9am&quot;</li>
-                <li>Review and confirm the transcription</li>
-              </ul>
-            </AlertDescription>
-          </Alert>
-
-          {/* Recording Button */}
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <div className={`w-32 h-32 rounded-full flex items-center justify-center shadow-lg transition-all ${
-              isRecording
-                ? 'bg-gradient-to-br from-blue-400 to-blue-600 dark:from-blue-600 dark:to-blue-800 animate-pulse'
+        <CardContent className="space-y-4">
+          {/* Voice Input Button + Mic Icon */}
+          <div className="flex flex-col items-center py-6">
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center shadow-lg transition-all mb-4 ${
+              isListening
+                ? 'bg-blue-500 animate-pulse'
                 : 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800'
             }`}>
-              <Mic className={`w-16 h-16 ${isRecording ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
+              <Mic className={`w-12 h-12 ${isListening ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
             </div>
 
             <VoiceRecordButton
-              onRecordingComplete={handleRecordingComplete}
-              onRecordingStart={handleRecordingStart}
+              onRecordingComplete={handleListeningComplete}
+              onRecordingStart={handleListeningStart}
               onInterimResult={handleInterimResult}
               onError={handleError}
-              isRecording={isRecording}
+              isRecording={isListening}
               size="lg"
-              className="px-8"
+              className="px-6"
             />
+          </div>
 
-            {isRecording && (
-              <div className="text-center space-y-2">
-                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium animate-pulse">
-                  Listening... Speak now
-                </p>
-                {interimTranscript && (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2 max-w-xs">
-                    &quot;{interimTranscript}&quot;
-                  </p>
-                )}
-              </div>
+          {/* Editable Transcript Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {isListening ? 'Listening...' : 'What was said (edit if needed):'}
+            </label>
+            <Textarea
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              placeholder={isListening ? 'Speak now...' : 'Your speech will appear here, or type manually'}
+              className="min-h-[80px] text-base"
+              disabled={isListening}
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <Button
+              onClick={handleSubmit}
+              disabled={!transcript.trim() || isSubmitting || isListening}
+              className="flex-1"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Logging...
+                </>
+              ) : (
+                'Log Medication'
+              )}
+            </Button>
+            {transcript && !isListening && (
+              <Button variant="outline" onClick={handleClear}>
+                Clear
+              </Button>
             )}
           </div>
 
-          {/* Examples */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Example phrases:
-            </p>
-            <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-              <p>• &quot;Mary took Metformin 500mg at 8am&quot;</p>
-              <p>• &quot;John had his morning Lisinopril&quot;</p>
-              <p>• &quot;Sarah took aspirin 81mg&quot;</p>
-            </div>
-          </div>
-
-          {/* Manual Entry Option */}
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-3">
-              Prefer manual entry?
-            </p>
-            <Link href="/dashboard/medications/new">
-              <Button variant="outline" className="w-full">
-                Use Manual Entry Form
-              </Button>
+          {/* Manual Entry Link */}
+          <div className="pt-2 text-center">
+            <Link href="/dashboard/medications/new" className="text-sm text-blue-600 hover:underline">
+              Use detailed form instead
             </Link>
           </div>
         </CardContent>
       </Card>
-
-      {/* Transcript Dialog */}
-      <VoiceTranscriptDialog
-        open={showDialog}
-        onClose={() => setShowDialog(false)}
-        transcript={transcript}
-        onConfirm={handleConfirm}
-        onRetry={handleRetry}
-      />
-
-      {/* Recording Indicator */}
-      <VoiceRecordingIndicator isRecording={isRecording} />
     </div>
   );
 }
