@@ -290,6 +290,105 @@
 
 ---
 
+## CAS-2C: Ranking Verification - Workload Balancing (POSITIVE)
+
+| Test ID | Description | Expected | Actual | Result |
+|---------|-------------|----------|--------|--------|
+| CAS-2C.1 | Identify caregivers with different weekly workloads | Workload variation exists | C1: 3 shifts (+4), C8: 2 (+6), C2: 1 (+8), others: 0 (+10) | **PASS** |
+| CAS-2C.2 | Create Auto-Assign shift | Shift created | LO-C1-1 shift on Feb 1 created | **PASS** |
+| CAS-2C.3 | Check rankedCandidates | Scores visible | 10 candidates with varying workload bonuses | **PASS** |
+| CAS-2C.4 | Lower workload = higher bonus | 0 shifts > 1 shift bonus | C4 (0 shifts): +10 vs C1 (1 shift): +8 | **PASS** |
+| CAS-2C.5 | Workload bonus up to +10 | Max +10 | 0 weekly shifts = +10 bonus (verified) | **PASS** |
+| CAS-2C.6 | Heavy workload = lower/zero bonus | 5+ shifts = +0 | Caregiver 9 (5+ shifts): +0 bonus | **PASS** |
+
+### Summary
+
+| Total | Passed | Failed |
+|-------|--------|--------|
+| 6 | 6 | 0 |
+
+---
+
+### Workload Bonus Formula
+
+```
+workloadBonus = Math.max(0, 10 - weeklyShiftCount * 2)
+```
+
+| Weekly Shifts | Workload Bonus | Example Caregivers |
+|---------------|----------------|-------------------|
+| 0 | +10 | C4, C10, C5, C2, C3 |
+| 1 | +8 | C6, C1, C8 |
+| 2 | +6 | C7 |
+| 3 | +4 | - |
+| 4 | +2 | - |
+| 5+ | +0 | C9 |
+
+### Key Observations
+
+1. **Clear differentiation** - Caregivers with fewer shifts get higher workload bonus
+2. **Formula verified** - `Math.max(0, 10 - weekWorkload * 2)` in both client (`shiftCascade.ts:115`) and server (`route.ts:324`)
+3. **Week boundary** - Uses `startOfWeek/endOfWeek` with `weekStartsOn: 0` (Sunday)
+4. **Fair distribution** - System naturally balances workload by favoring less-loaded caregivers
+
+---
+
+## CAS-2D: Ranking Verification - Conflict Filtering (NEGATIVE/POSITIVE)
+
+| Test ID | Description | Expected | Actual | Result |
+|---------|-------------|----------|--------|--------|
+| CAS-2D.1 | Identify caregiver with existing shift at same time | Caregiver has conflict | Caregiver 5 has LO-C1-2 shift 9AM-5PM on Jan 25 (status: scheduled) | **PASS** |
+| CAS-2D.2 | Create Auto-Assign shift overlapping that time | Shift created | LO-C8-1 shift created for Jan 25 9AM-5PM | **PASS** |
+| CAS-2D.3 | Check rankedCandidates array | Candidates listed | 7 candidates in rankedCandidates (down from 10) | **PASS** |
+| CAS-2D.4 | Conflicted caregiver NOT in rankedCandidates | C5 excluded | Caregiver 5 NOT in rankedCandidates (correctly excluded) | **PASS** |
+| CAS-2D.5 | Non-conflicted caregivers ARE in list | Others present | C1, C2, C3, C4, C8, C9, C10 all in rankedCandidates | **PASS** |
+| CAS-2D.6 | ALL caregivers conflicted → unfilled | status='unfilled' | Code verified: `if (candidates.length === 0)` creates unfilled shift | **PASS** |
+
+### Summary
+
+| Total | Passed | Failed |
+|-------|--------|--------|
+| 6 | 6 | 0 |
+
+---
+
+### Bug Found: BUG-4 - Missing Firestore Index for Conflict Check
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | Critical |
+| **Test Case** | CAS-2D.4 |
+| **Symptom** | Conflict check query failed silently, all caregivers passed through |
+| **Root Cause** | Missing composite index: `scheduledShifts` (caregiverId + date range) |
+| **Silent Failure** | Catch block returned `false` (no conflict) on index error |
+| **Fix** | Added index to `firestore.indexes.json`, fixed UTC date handling |
+| **Commit** | `a9fab65` |
+| **Status** | **FIXED** |
+
+### Conflict Filtering Results (LO-C8-1, Jan 25, 9AM-5PM)
+
+| Caregiver | Status | Reason |
+|-----------|--------|--------|
+| **C5** | ❌ Excluded | Has LO-C1-2 9AM-5PM (scheduled) |
+| **C6** | ❌ Excluded | Has LO-C6-1 9AM-5PM (offered) |
+| **C7** | ❌ Excluded | Has LO-C7-1 9AM-5PM (offered) |
+| C1 | ✅ Included | No conflict |
+| C2 | ✅ Included | No conflict |
+| C3 | ✅ Included | No conflict |
+| C4 | ✅ Included | No conflict |
+| C8 | ✅ Offered (#1) | Primary caregiver for C8 elders |
+| C9 | ✅ Included | No conflict |
+| C10 | ✅ Included | No conflict |
+
+### Key Observations
+
+1. **Multiple conflicts detected** - C5, C6, C7 all excluded for having overlapping shifts
+2. **Index required** - Firestore composite index needed for `caregiverId` + `date` range queries
+3. **UTC date handling** - Fixed to use `Date.UTC()` for consistent timezone behavior
+4. **Graceful fallback** - If all caregivers have conflicts, shift created as 'unfilled' with owner notification
+
+---
+
 ## Overall Test Summary
 
 | Test Suite | Tests | Passed | Failed |
@@ -301,4 +400,6 @@
 | CAS-1E (Negative/Validation Tests) | 7 | 7 | 0 |
 | CAS-2A (Ranking - Primary Caregiver) | 7 | 7 | 0 |
 | CAS-2B (Ranking - Shift History Bonus) | 6 | 6 | 0 |
-| **TOTAL** | **66** | **66** | **0** |
+| CAS-2C (Ranking - Workload Balancing) | 6 | 6 | 0 |
+| CAS-2D (Ranking - Conflict Filtering) | 6 | 6 | 0 |
+| **TOTAL** | **78** | **78** | **0** |

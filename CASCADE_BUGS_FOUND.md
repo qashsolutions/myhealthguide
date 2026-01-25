@@ -76,4 +76,4 @@
 | BUG-1 | Medium | FIXED | Yes (UI-only change) |
 | BUG-2 | Low | FIXED | Yes (UI-only change) |
 | BUG-3 | Medium | FIXED | Yes (validation addition) |
-| BUG-4 | Critical | PENDING (index building) | Yes (index addition) |
+| BUG-4 | Critical | FIXED | Yes (index addition + UTC fix) |
