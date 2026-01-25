@@ -78,10 +78,9 @@ export function IconRail({ onMoreClick }: IconRailProps) {
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
     navItems.push({ href: '/dashboard/timesheet', icon: Clock, label: 'Timesheets' });
   } else if (isMultiAgency) {
-    // Agency Caregiver: Home, Schedule, Reports, Ask AI, Alerts
+    // Agency Caregiver: Home, Schedule, Reports, Alerts (no Ask AI - they focus on logging)
     navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
-    navItems.push({ href: '/dashboard/ask-ai', icon: MessageCircle, label: 'Ask AI' });
     navItems.push({
       href: '/dashboard/safety-alerts',
       icon: AlertTriangle,

@@ -42,10 +42,9 @@ export function BottomNav({ onMoreClick }: BottomNavProps) {
     navItems.push({ href: '/dashboard/agency/schedule', icon: Calendar, label: 'Schedule' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
   } else if (isMultiAgency) {
-    // Agency Caregiver: Home, Schedule, Reports, Ask AI, More
+    // Agency Caregiver: Home, Schedule, Reports, More (no Ask AI - they focus on logging)
     navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
-    navItems.push({ href: '/dashboard/ask-ai', icon: MessageCircle, label: 'Ask AI' });
   } else {
     // Family Plan: Home, Reports, Ask AI, More
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
