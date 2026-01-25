@@ -509,6 +509,7 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - UI/UX Overhaul - Claude.ai-inspired navigation (Jan 22, 2026)
 - Twilio SMS disabled - FCM push notifications only (Jan 25, 2026)
 - Calendar page 404 fix - removed broken notification button (Jan 25, 2026)
+- Shift unfilled notification 404 fix - corrected actionUrl route (Jan 25, 2026)
 
 ---
 
@@ -523,6 +524,10 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 **Disabled:**
 - Twilio SMS (code preserved, credentials secured)
 - SMS invites (replaced with offline invite code sharing)
+
+**Bug Fixes (Jan 25, 2026):**
+- `/dashboard/schedule` 404 → Changed to `/dashboard/agency/schedule` in shift unfilled notifications
+- Files fixed: `shiftOfferNotifications.ts`, `shift-offer/decline/route.ts`
 
 **Documentation:** See `docs/removetwilio.md` and `docs/skills.md`
 
