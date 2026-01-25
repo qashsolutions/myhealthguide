@@ -100,7 +100,7 @@ function LoginContent() {
       // Redirect to dashboard
       router.push('/dashboard');
     } catch (err: any) {
-      console.error('Sign in error:', err);
+      console.warn('Auth failed:', err?.code || 'unknown-error');
       setError(getFirebaseErrorMessage(err));
     } finally {
       setLoading(false);

@@ -27,7 +27,7 @@ export default function FamilyLoginPage() {
       await signIn(email, password);
       router.push('/dashboard');
     } catch (err: any) {
-      console.error('Sign in error:', err);
+      console.warn('Auth failed:', err?.code || 'unknown-error');
 
       let errorMessage = 'Failed to sign in. Please try again.';
 
