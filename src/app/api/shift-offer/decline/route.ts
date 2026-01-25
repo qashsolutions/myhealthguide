@@ -21,8 +21,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'shiftId is required' }, { status: 400 });
     }
 
+    console.log('[shift-offer/decline] Starting decline for shiftId:', shiftId, 'userId:', auth.userId);
+
     const adminDb = getAdminDb();
     const shiftRef = adminDb.collection('scheduledShifts').doc(shiftId);
+
+    let cascadeResult: { nextCaregiverId?: string; status: string } = { status: 'unknown' };
 
     await adminDb.runTransaction(async (transaction) => {
       const shiftDoc = await transaction.get(shiftRef);
@@ -31,6 +35,7 @@ export async function POST(request: NextRequest) {
       }
 
       const shift = shiftDoc.data()!;
+      console.log('[shift-offer/decline] Shift status:', shift.status, 'caregiverId:', shift.caregiverId);
 
       // 2. Verify shift is in 'offered' status
       if (shift.status !== 'offered') {
@@ -46,7 +51,14 @@ export async function POST(request: NextRequest) {
       const currentIndex = cascadeState.currentOfferIndex;
       const currentCandidate = cascadeState.rankedCandidates[currentIndex];
 
+      console.log('[shift-offer/decline] currentIndex:', currentIndex,
+        'currentCandidate:', currentCandidate?.caregiverId,
+        'auth.userId:', auth.userId,
+        'totalCandidates:', cascadeState.rankedCandidates?.length);
+
       if (!currentCandidate || currentCandidate.caregiverId !== auth.userId) {
+        console.error('[shift-offer/decline] Auth mismatch! currentCandidate.caregiverId:',
+          currentCandidate?.caregiverId, 'auth.userId:', auth.userId);
         throw new Error('You are not the current offer recipient');
       }
 
@@ -66,6 +78,9 @@ export async function POST(request: NextRequest) {
       const nextIndex = currentIndex + 1;
       const nextCandidate = cascadeState.rankedCandidates[nextIndex];
 
+      console.log('[shift-offer/decline] nextIndex:', nextIndex,
+        'nextCandidate:', nextCandidate ? { id: nextCandidate.caregiverId, name: nextCandidate.caregiverName } : 'NONE');
+
       if (nextCandidate) {
         // 5a. Offer to next candidate
         const offerExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
@@ -74,6 +89,9 @@ export async function POST(request: NextRequest) {
           caregiverId: nextCandidate.caregiverId,
           response: 'pending'
         });
+
+        console.log('[shift-offer/decline] Creating notification for next caregiver:', nextCandidate.caregiverId);
+        cascadeResult = { nextCaregiverId: nextCandidate.caregiverId, status: 'cascaded' };
 
         transaction.update(shiftRef, {
           caregiverId: nextCandidate.caregiverId,
@@ -113,6 +131,9 @@ export async function POST(request: NextRequest) {
         });
       } else {
         // 5b. All candidates exhausted → mark unfilled
+        console.log('[shift-offer/decline] No more candidates, marking shift as unfilled');
+        cascadeResult = { status: 'unfilled' };
+
         transaction.update(shiftRef, {
           status: 'unfilled',
           caregiverId: '',
@@ -147,7 +168,8 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ success: true });
+    console.log('[shift-offer/decline] SUCCESS - cascadeResult:', cascadeResult);
+    return NextResponse.json({ success: true, ...cascadeResult });
   } catch (error: any) {
     console.error('Error declining shift offer:', error);
     const status = error.message?.includes('not found') ? 404 : 400;

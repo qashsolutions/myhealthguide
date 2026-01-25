@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <defs>
+    <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+    </symbol>
+    <symbol id="icon-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </symbol>
+    <symbol id="icon-user-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <line x1="19" x2="19" y1="8" y2="14"/>
+      <line x1="22" x2="16" y1="11" y2="11"/>
+    </symbol>
+    <symbol id="icon-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+      <line x1="16" x2="16" y1="2" y2="6"/>
+      <line x1="8" x2="8" y1="2" y2="6"/>
+      <line x1="3" x2="21" y1="10" y2="10"/>
+    </symbol>
+    <symbol id="icon-calendar-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/>
+      <line x1="16" x2="16" y1="2" y2="6"/>
+      <line x1="8" x2="8" y1="2" y2="6"/>
+      <line x1="3" x2="21" y1="10" y2="10"/>
+      <line x1="19" x2="19" y1="16" y2="22"/>
+      <line x1="22" x2="16" y1="19" y2="19"/>
+    </symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </symbol>
+    <symbol id="icon-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m22 2-7 20-4-9-9-4Z"/>
+      <path d="M22 2 11 13"/>
+    </symbol>
+    <symbol id="icon-bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" x2="12" y1="20" y2="10"/>
+      <line x1="18" x2="18" y1="20" y2="4"/>
+      <line x1="6" x2="6" y1="20" y2="16"/>
+    </symbol>
+    <symbol id="icon-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" x2="20" y1="12" y2="12"/>
+      <line x1="4" x2="20" y1="6" y2="6"/>
+      <line x1="4" x2="20" y1="18" y2="18"/>
+    </symbol>
+    <symbol id="icon-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+      <line x1="12" x2="12" y1="9" y2="13"/>
+      <line x1="12" x2="12.01" y1="17" y2="17"/>
+    </symbol>
+    <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
+    </symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </symbol>
+    <symbol id="icon-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m9 18 6-6-6-6"/>
+    </symbol>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="844" fill="#FAFAF8"/>
+
+  <!-- PWA Status Bar -->
+  <rect width="390" height="44" fill="#FAFAF8"/>
+  <text x="195" y="28" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" fill="#64748B" text-anchor="middle">9:41 AM</text>
+  <rect x="340" y="22" width="20" height="10" rx="2" fill="none" stroke="#64748B" stroke-width="1"/>
+  <rect x="342" y="24" width="14" height="6" rx="1" fill="#64748B"/>
+  <rect x="361" y="25" width="2" height="4" rx="1" fill="#64748B"/>
+
+  <!-- ====== HEADER ====== -->
+  <rect y="44" width="390" height="52" fill="#FAFAF8"/>
+  <text x="20" y="76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="600" fill="#1E40AF">MyGuide</text>
+
+  <!-- Agency name -->
+  <rect x="92" y="62" width="85" height="22" rx="11" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="134" y="77" font-family="-apple-system, sans-serif" font-size="10" font-weight="500" fill="#1E40AF" text-anchor="middle">SunnyCare</text>
+
+  <!-- Bell + Avatar -->
+  <use href="#icon-bell" x="318" y="58" width="20" height="20" color="#475569"/>
+  <circle cx="334" cy="62" r="7" fill="#EF4444"/>
+  <text x="334" y="65" font-family="-apple-system, sans-serif" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600">5</text>
+  <circle cx="366" cy="70" r="16" fill="#1E40AF"/>
+  <text x="366" y="75" font-family="-apple-system, sans-serif" font-size="12" font-weight="600" fill="#FFFFFF" text-anchor="middle">VC</text>
+
+  <line x1="16" y1="96" x2="374" y2="96" stroke="#E2E8F0" stroke-width="0.5"/>
+
+  <!-- ====== GREETING ====== -->
+  <text x="195" y="132" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="600" fill="#1E293B" text-anchor="middle">Hi Venkata</text>
+  <text x="195" y="154" font-family="-apple-system, sans-serif" font-size="14" fill="#64748B" text-anchor="middle">Agency Owner · SunnyCare</text>
+
+  <!-- ====== QUICK STATS ====== -->
+  <rect x="20" y="174" width="108" height="56" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <use href="#icon-users" x="32" y="184" width="16" height="16" color="#3B82F6"/>
+  <text x="32" y="218" font-family="-apple-system, sans-serif" font-size="18" font-weight="700" fill="#1E293B">10</text>
+  <text x="56" y="218" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">caregivers</text>
+
+  <rect x="136" y="174" width="108" height="56" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <use href="#icon-check-circle" x="148" y="184" width="16" height="16" color="#16A34A"/>
+  <text x="148" y="218" font-family="-apple-system, sans-serif" font-size="18" font-weight="700" fill="#1E293B">30</text>
+  <text x="172" y="218" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">elders</text>
+
+  <rect x="252" y="174" width="118" height="56" rx="12" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <use href="#icon-clock" x="264" y="184" width="16" height="16" color="#F59E0B"/>
+  <text x="264" y="218" font-family="-apple-system, sans-serif" font-size="18" font-weight="700" fill="#1E293B">3</text>
+  <text x="282" y="218" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">pending slots</text>
+
+  <!-- ====== NEEDS ATTENTION ====== -->
+  <text x="20" y="262" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#DC2626" letter-spacing="1">NEEDS YOUR ATTENTION</text>
+
+  <!-- Pending slot acceptance -->
+  <rect x="20" y="274" width="350" height="64" rx="14" fill="#FFFFFF" stroke="#FCA5A5" stroke-width="1.5"/>
+  <use href="#icon-calendar" x="36" y="290" width="18" height="18" color="#DC2626"/>
+  <text x="62" y="302" font-family="-apple-system, sans-serif" font-size="14" font-weight="600" fill="#1E293B">2 slots awaiting caregiver response</text>
+  <text x="62" y="322" font-family="-apple-system, sans-serif" font-size="12" fill="#64748B">Maria J. and Tom K. haven't accepted yet</text>
+  <use href="#icon-chevron-right" x="346" y="294" width="16" height="16" color="#94A3B8"/>
+
+  <!-- Unassigned elder -->
+  <rect x="20" y="346" width="350" height="56" rx="14" fill="#FFFFFF" stroke="#FCD34D" stroke-width="1.5"/>
+  <use href="#icon-alert-triangle" x="36" y="358" width="18" height="18" color="#F59E0B"/>
+  <text x="62" y="372" font-family="-apple-system, sans-serif" font-size="14" font-weight="600" fill="#1E293B">1 elder needs caregiver assignment</text>
+  <text x="62" y="390" font-family="-apple-system, sans-serif" font-size="12" fill="#64748B">Dorothy M. — no caregiver assigned</text>
+  <use href="#icon-chevron-right" x="346" y="366" width="16" height="16" color="#94A3B8"/>
+
+  <!-- ====== PRIMARY ACTIONS ====== -->
+  <text x="20" y="432" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#94A3B8" letter-spacing="1">MANAGE</text>
+
+  <!-- Action Card 1: Assign Elder -->
+  <rect x="20" y="446" width="168" height="80" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="32" y="458" width="32" height="32" rx="8" fill="#EFF6FF"/>
+  <use href="#icon-link" x="38" y="464" width="20" height="20" color="#3B82F6"/>
+  <text x="32" y="504" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#1E293B">Assign Elder</text>
+  <text x="32" y="518" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">to caregiver</text>
+
+  <!-- Action Card 2: Send Slots -->
+  <rect x="196" y="446" width="174" height="80" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="208" y="458" width="32" height="32" rx="8" fill="#EFF6FF"/>
+  <use href="#icon-send" x="214" y="464" width="20" height="20" color="#3B82F6"/>
+  <text x="208" y="504" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#1E293B">Send Slots</text>
+  <text x="208" y="518" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">to caregivers</text>
+
+  <!-- Action Card 3: Add Caregiver -->
+  <rect x="20" y="534" width="168" height="80" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="32" y="546" width="32" height="32" rx="8" fill="#EFF6FF"/>
+  <use href="#icon-user-plus" x="38" y="552" width="20" height="20" color="#3B82F6"/>
+  <text x="32" y="592" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#1E293B">Onboard</text>
+  <text x="32" y="606" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">new caregiver</text>
+
+  <!-- Action Card 4: Schedule -->
+  <rect x="196" y="534" width="174" height="80" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+  <rect x="208" y="546" width="32" height="32" rx="8" fill="#EFF6FF"/>
+  <use href="#icon-calendar-plus" x="214" y="552" width="20" height="20" color="#3B82F6"/>
+  <text x="208" y="592" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#1E293B">Create Schedule</text>
+  <text x="208" y="606" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">shifts &amp; conflicts</text>
+
+  <!-- ====== TODAY'S SHIFTS ====== -->
+  <text x="20" y="648" font-family="-apple-system, sans-serif" font-size="11" font-weight="600" fill="#94A3B8" letter-spacing="1">TODAY'S SHIFTS</text>
+
+  <rect x="20" y="660" width="350" height="100" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Shift 1 -->
+  <circle cx="40" cy="686" r="4" fill="#16A34A"/>
+  <text x="56" y="684" font-family="-apple-system, sans-serif" font-size="13" font-weight="500" fill="#1E293B">Maria J.</text>
+  <text x="56" y="700" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">Rod L., Edna S. — 7 AM–3 PM</text>
+  <text x="344" y="690" font-family="-apple-system, sans-serif" font-size="10" font-weight="500" fill="#16A34A" text-anchor="end">Active</text>
+  <line x1="56" y1="712" x2="354" y2="712" stroke="#F1F5F9" stroke-width="1"/>
+
+  <!-- Shift 2 -->
+  <circle cx="40" cy="734" r="4" fill="#94A3B8"/>
+  <text x="56" y="732" font-family="-apple-system, sans-serif" font-size="13" font-weight="500" fill="#1E293B">Tom K.</text>
+  <text x="56" y="748" font-family="-apple-system, sans-serif" font-size="11" fill="#94A3B8">James W., Dorothy M. — 3 PM–11 PM</text>
+  <text x="344" y="738" font-family="-apple-system, sans-serif" font-size="10" font-weight="500" fill="#94A3B8" text-anchor="end">Upcoming</text>
+
+  <!-- ====== BOTTOM NAV ====== -->
+  <rect x="0" y="776" width="390" height="68" fill="#FFFFFF"/>
+  <line x1="0" y1="776" x2="390" y2="776" stroke="#E2E8F0" stroke-width="1"/>
+
+  <!-- Home - Active -->
+  <rect x="18" y="782" width="38" height="3" rx="1.5" fill="#3B82F6"/>
+  <use href="#icon-home" x="26" y="792" width="20" height="20" color="#3B82F6"/>
+  <text x="36" y="826" font-family="-apple-system, sans-serif" font-size="9" font-weight="500" fill="#3B82F6" text-anchor="middle">Home</text>
+
+  <!-- Caregivers -->
+  <use href="#icon-users" x="102" y="792" width="20" height="20" color="#94A3B8"/>
+  <text x="112" y="826" font-family="-apple-system, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle">Team</text>
+
+  <!-- Schedule -->
+  <use href="#icon-calendar" x="185" y="792" width="20" height="20" color="#94A3B8"/>
+  <text x="195" y="826" font-family="-apple-system, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle">Schedule</text>
+
+  <!-- Reports -->
+  <use href="#icon-bar-chart" x="265" y="792" width="20" height="20" color="#94A3B8"/>
+  <text x="275" y="826" font-family="-apple-system, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle">Reports</text>
+
+  <!-- More -->
+  <use href="#icon-menu" x="342" y="792" width="20" height="20" color="#94A3B8"/>
+  <text x="352" y="826" font-family="-apple-system, sans-serif" font-size="9" fill="#94A3B8" text-anchor="middle">More</text>
+
+  <!-- PWA Home indicator -->
+  <rect x="140" y="836" width="110" height="4" rx="2" fill="#1E293B" opacity="0.2"/>
+</svg>
