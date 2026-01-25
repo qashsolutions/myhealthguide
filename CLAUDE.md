@@ -1,7 +1,7 @@
 # MyHealthGuide - Claude Code Instructions
 
 - Review the documents. Build prod ready files, do not add To-Dos. Do not assume - ask me when in doubt.
-- Today is Jan 22, 2026.
+- Today is Jan 25, 2026.
 - The firebase config will not work in local.
 
 ## Related Documentation
@@ -14,6 +14,8 @@
 | `docs/Jan22_UpdatedPrompt_v2.md` | Phase 14 UI/UX Overhaul - enhanced spec with context |
 | `docs/mockups/` | SVG mockups for Phase 14 navigation redesign |
 | `docs/PERMISSION_SYSTEM.md` | Permission system documentation |
+| `docs/removetwilio.md` | Twilio SMS removal documentation and reactivation instructions |
+| `docs/skills.md` | Active notification channels and capabilities |
 
 ---
 
@@ -505,6 +507,24 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 - Trial expiration blocking verified (Jan 19, 2026)
 - Daily Family Notes email integration (Jan 20, 2026)
 - UI/UX Overhaul - Claude.ai-inspired navigation (Jan 22, 2026)
+- Twilio SMS disabled - FCM push notifications only (Jan 25, 2026)
+- Calendar page 404 fix - removed broken notification button (Jan 25, 2026)
+
+---
+
+## Notification System (Jan 25, 2026)
+
+**Active Channels:**
+- FCM Push Notifications (agency owners, caregivers)
+- Email (daily family notes via Firebase Trigger Email)
+- In-App Notifications (Firestore `user_notifications` collection)
+- Dashboard Alerts (Firestore `alerts` collection)
+
+**Disabled:**
+- Twilio SMS (code preserved, credentials secured)
+- SMS invites (replaced with offline invite code sharing)
+
+**Documentation:** See `docs/removetwilio.md` and `docs/skills.md`
 
 ---
 
