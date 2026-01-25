@@ -110,13 +110,16 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
 
       const data = await response.json();
       if (!response.ok) {
-        // If the offer has moved on, mark notification as read to hide buttons
-        if (data.error?.includes('not the current offer recipient') ||
-            data.error?.includes('no longer in offered status')) {
+        // If the offer has moved on, mark notification as read to hide buttons (silently)
+        const isStaleOffer = data.error?.includes('not the current offer recipient') ||
+                            data.error?.includes('no longer in offered status');
+        if (isStaleOffer) {
           await markNotificationAsRead(notificationId);
           setNotifications(prev =>
             prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
           );
+          // Don't throw - this is expected for stale notifications
+          return;
         }
         throw new Error(data.error || 'Failed to accept shift offer');
       }
@@ -144,13 +147,16 @@ export function useNotifications(userId: string | undefined): UseNotificationsRe
 
       const data = await response.json();
       if (!response.ok) {
-        // If the offer has moved on, mark notification as read to hide buttons
-        if (data.error?.includes('not the current offer recipient') ||
-            data.error?.includes('no longer in offered status')) {
+        // If the offer has moved on, mark notification as read to hide buttons (silently)
+        const isStaleOffer = data.error?.includes('not the current offer recipient') ||
+                            data.error?.includes('no longer in offered status');
+        if (isStaleOffer) {
           await markNotificationAsRead(notificationId);
           setNotifications(prev =>
             prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
           );
+          // Don't throw - this is expected for stale notifications
+          return;
         }
         throw new Error(data.error || 'Failed to decline shift offer');
       }
