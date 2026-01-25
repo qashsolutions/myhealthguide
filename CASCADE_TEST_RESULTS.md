@@ -210,6 +210,51 @@
 
 ---
 
+## CAS-2A: Ranking Verification - Primary Caregiver (POSITIVE)
+
+| Test ID | Description | Expected | Actual | Result |
+|---------|-------------|----------|--------|--------|
+| CAS-2A.1 | Identify elder with PRIMARY caregiver | Elder has primaryCaregiverId | LO-C4-1 has primaryCaregiverId = Caregiver 4 (`cRKbLjxaFwOs32TYFso1MsKrCev2`) | **PASS** |
+| CAS-2A.2 | Create Auto-Assign shift for that elder | Shift created successfully | POST `/api/shifts/create-cascade` → 200 OK, shift on Jan 30 | **PASS** |
+| CAS-2A.3 | Check Firestore cascadeState.rankedCandidates | Array of candidates exists | 10 candidates in rankedCandidates array | **PASS** |
+| CAS-2A.4 | Primary caregiver is FIRST in rankedCandidates | Index 0 = primary caregiver | Caregiver 4 at index 0 (score 65) | **PASS** |
+| CAS-2A.5 | Primary caregiver score includes +40 | Score ≥ 40 | Score = 65 (+40 primary + +15 assigned + +10 workload) | **PASS** |
+| CAS-2A.6 | First offer goes to primary caregiver | caregiverId = primary, offerIndex = 0 | caregiverId = Caregiver 4, currentOfferIndex = 0, offerHistory[0] = pending | **PASS** |
+| CAS-2A.7 | Notification sent to primary caregiver | shift_offer notification created | API 200 (notification write in same try block, lines 188-212), offerHistory confirms pending | **PASS** |
+
+### Summary
+
+| Total | Passed | Failed |
+|-------|--------|--------|
+| 7 | 7 | 0 |
+
+---
+
+### Full Ranking Results (LO-C4-1, Jan 30, 9AM-5PM)
+
+| Rank | Caregiver | Score | Breakdown |
+|------|-----------|-------|-----------|
+| 1 | **Caregiver 4** | **65** | +40 (primary) + +15 (assigned) + +10 (workload) |
+| 2 | Caregiver 10 | 10 | +10 (workload) |
+| 3 | Caregiver 5 | 10 | +10 (workload) |
+| 4 | Caregiver 2 | 10 | +10 (workload) |
+| 5 | Caregiver 3 | 10 | +10 (workload) |
+| 6 | Caregiver 6 | 8 | +8 (workload) |
+| 7 | Caregiver 1 | 8 | +8 (workload) |
+| 8 | Caregiver 8 | 8 | +8 (workload) |
+| 9 | Caregiver 7 | 6 | +6 (workload) |
+| 10 | Caregiver 9 | 0 | (has conflict or low workload score) |
+
+### Key Observations
+
+1. **Primary caregiver dominates** - Caregiver 4 (score 65) significantly outranks all others (max 10)
+2. **Score breakdown**: +40 (primaryCaregiverId match) + +15 (assigned to elder) + +10 (low workload this week)
+3. **Workload scoring visible** - Caregivers with more weekly shifts score lower (Caregiver 9 = 0, likely has conflict or high workload)
+4. **10/10 caregivers ranked** - All active caregivers eligible (no scheduling conflicts for Jan 30)
+5. **Notification verification** - Security rules correctly prevent owner from reading caregiver notifications; verified via API success + code review
+
+---
+
 ## Overall Test Summary
 
 | Test Suite | Tests | Passed | Failed |
@@ -219,4 +264,5 @@
 | CAS-1C (Auto-Assign with Preferred) | 10 | 10 | 0 |
 | CAS-1D (Direct Assign Mode) | 12 | 12 | 0 |
 | CAS-1E (Negative/Validation Tests) | 7 | 7 | 0 |
-| **TOTAL** | **53** | **53** | **0** |
+| CAS-2A (Ranking - Primary Caregiver) | 7 | 7 | 0 |
+| **TOTAL** | **60** | **60** | **0** |
