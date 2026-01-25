@@ -15,16 +15,24 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+// Guard against build-time initialization when API key is not available
 let app: FirebaseApp;
 if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
+  if (!firebaseConfig.apiKey) {
+    // During build time, create a dummy app to prevent errors
+    // The actual app will be initialized at runtime when env vars are available
+    console.warn('[Firebase Config] API key not available, skipping initialization (expected during build)');
+    app = null as unknown as FirebaseApp;
+  } else {
+    app = initializeApp(firebaseConfig);
+  }
 } else {
   app = getApps()[0];
 }
 
 // Initialize App Check with reCAPTCHA v3
 // This protects your Firebase resources from abuse by bots
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+if (app && typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
   try {
     // Use debug token for localhost development
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -46,21 +54,21 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY)
   }
 }
 
-// Initialize services
-export const auth: Auth = getAuth(app);
+// Initialize services (only if app was initialized)
+export const auth: Auth = app ? getAuth(app) : null as unknown as Auth;
 
 // Initialize Firestore with offline persistence and long polling
 // - persistentLocalCache: Enables IndexedDB for offline data access
 // - persistentMultipleTabManager: Allows multiple tabs to share the cache
 // - experimentalForceLongPolling: Avoids QUIC protocol errors on restrictive networks
-export const db: Firestore = initializeFirestore(app, {
+export const db: Firestore = app ? initializeFirestore(app, {
   experimentalForceLongPolling: true,
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
   })
-});
+}) : null as unknown as Firestore;
 
-export const storage: FirebaseStorage = getStorage(app);
+export const storage: FirebaseStorage = app ? getStorage(app) : null as unknown as FirebaseStorage;
 
 // Export app for FCM and other services
 export { app };
