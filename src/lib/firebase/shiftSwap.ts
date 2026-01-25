@@ -86,27 +86,7 @@ export async function getSwapRequests(
   type: 'received' | 'sent' = 'received'
 ): Promise<ShiftSwapRequest[]> {
   try {
-    let swapRequestsQuery;
-
-    if (type === 'received') {
-      // Requests where this caregiver is the target OR requests for "anyone"
-      swapRequestsQuery = query(
-        collection(db, 'shiftSwapRequests'),
-        where('agencyId', '==', agencyId),
-        where('status', '==', 'pending'),
-        orderBy('requestedAt', 'desc')
-      );
-    } else {
-      // Requests this caregiver sent
-      swapRequestsQuery = query(
-        collection(db, 'shiftSwapRequests'),
-        where('requestingCaregiverId', '==', caregiverId),
-        orderBy('requestedAt', 'desc')
-      );
-    }
-
-    const snapshot = await getDocs(swapRequestsQuery);
-    let requests = snapshot.docs.map(doc => ({
+    const mapDocToRequest = (doc: any): ShiftSwapRequest => ({
       id: doc.id,
       ...doc.data(),
       shiftToSwap: {
@@ -120,18 +100,53 @@ export async function getSwapRequests(
       requestedAt: doc.data().requestedAt?.toDate(),
       acceptedAt: doc.data().acceptedAt?.toDate(),
       reviewedAt: doc.data().reviewedAt?.toDate()
-    })) as ShiftSwapRequest[];
+    });
 
-    // Filter for received requests (target caregiver or anyone available)
     if (type === 'received') {
-      requests = requests.filter(
-        req => !req.targetCaregiverId || req.targetCaregiverId === caregiverId
-      );
-    }
+      // Run two queries that match Firestore security rules:
+      // 1. Requests targeted at this caregiver
+      // 2. Open swaps (targetCaregiverId == null) in the agency
+      const [targetedSnapshot, openSnapshot] = await Promise.all([
+        getDocs(query(
+          collection(db, 'shiftSwapRequests'),
+          where('targetCaregiverId', '==', caregiverId),
+          where('status', '==', 'pending'),
+          orderBy('requestedAt', 'desc')
+        )),
+        getDocs(query(
+          collection(db, 'shiftSwapRequests'),
+          where('agencyId', '==', agencyId),
+          where('targetCaregiverId', '==', null),
+          where('status', '==', 'pending'),
+          orderBy('requestedAt', 'desc')
+        ))
+      ]);
 
-    return requests;
+      // Merge results and deduplicate by id
+      const requestsMap = new Map<string, ShiftSwapRequest>();
+      targetedSnapshot.docs.forEach(doc => requestsMap.set(doc.id, mapDocToRequest(doc)));
+      openSnapshot.docs.forEach(doc => {
+        if (!requestsMap.has(doc.id)) {
+          requestsMap.set(doc.id, mapDocToRequest(doc));
+        }
+      });
+
+      // Sort by requestedAt descending
+      return Array.from(requestsMap.values()).sort(
+        (a, b) => (b.requestedAt?.getTime() || 0) - (a.requestedAt?.getTime() || 0)
+      );
+    } else {
+      // Requests this caregiver sent
+      const snapshot = await getDocs(query(
+        collection(db, 'shiftSwapRequests'),
+        where('requestingCaregiverId', '==', caregiverId),
+        orderBy('requestedAt', 'desc')
+      ));
+
+      return snapshot.docs.map(mapDocToRequest);
+    }
   } catch (error) {
-    console.error('Error getting swap requests:', error);
+    console.warn('Error getting swap requests:', error);
     return [];
   }
 }
