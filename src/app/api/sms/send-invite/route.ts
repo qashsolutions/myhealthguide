@@ -1,52 +1,64 @@
+// ============================================
+// DISABLED: Twilio SMS Invites - January 25, 2026
+//
+// This route is disabled. Caregiver invites now use offline code sharing:
+// 1. Agency owner generates invite code via InviteCodeDialog.tsx
+// 2. Shares code offline (copy link, share button, verbally)
+// 3. Caregiver enters code at /dashboard/join or /invite/[code]
+//
+// See docs/removetwilio.md for full documentation
+// ============================================
+
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase/admin';
-import { Timestamp } from 'firebase-admin/firestore';
-import twilio from 'twilio';
-import crypto from 'crypto';
+// DISABLED: Twilio imports
+// import { getAdminDb } from '@/lib/firebase/admin';
+// import { Timestamp } from 'firebase-admin/firestore';
+// import twilio from 'twilio';
+// import crypto from 'crypto';
 
-// Initialize Twilio client
-function getTwilioClient() {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
+// DISABLED: Twilio client initialization
+// function getTwilioClient() {
+//   const accountSid = process.env.TWILIO_ACCOUNT_SID;
+//   const authToken = process.env.TWILIO_AUTH_TOKEN;
+//
+//   if (!accountSid || !authToken) {
+//     throw new Error('Twilio credentials not configured');
+//   }
+//
+//   return twilio(accountSid, authToken);
+// }
 
-  if (!accountSid || !authToken) {
-    throw new Error('Twilio credentials not configured');
-  }
+// DISABLED: Phone number normalization
+// function normalizePhoneNumber(phone: string): string {
+//   const digits = phone.replace(/\D/g, '');
+//   if (digits.length === 10) return `+1${digits}`;
+//   if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+//   if (phone.startsWith('+')) return phone;
+//   throw new Error('Invalid phone number format. Please enter a 10-digit US phone number.');
+// }
 
-  return twilio(accountSid, authToken);
-}
+// DISABLED: Invite token generation
+// function generateInviteToken(): string {
+//   return crypto.randomBytes(32).toString('hex');
+// }
 
-// Normalize phone number to +1XXXXXXXXXX format
-function normalizePhoneNumber(phone: string): string {
-  // Remove all non-digit characters
-  const digits = phone.replace(/\D/g, '');
-
-  // If 10 digits, add +1 prefix
-  if (digits.length === 10) {
-    return `+1${digits}`;
-  }
-
-  // If 11 digits starting with 1, add + prefix
-  if (digits.length === 11 && digits.startsWith('1')) {
-    return `+${digits}`;
-  }
-
-  // If already has + prefix
-  if (phone.startsWith('+')) {
-    return phone;
-  }
-
-  throw new Error('Invalid phone number format. Please enter a 10-digit US phone number.');
-}
-
-// Generate a unique invite token
-function generateInviteToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
-
+// DISABLED: SMS invite endpoint - returns 503 Service Unavailable
 export async function POST(req: NextRequest) {
+  // Return informative error that SMS invites are disabled
+  return NextResponse.json(
+    {
+      error: 'SMS invites are disabled',
+      message: 'Please use invite codes instead. Generate an invite code from your agency settings and share it with caregivers.',
+      alternative: '/dashboard/join'
+    },
+    { status: 503 }
+  );
+}
+
+/* DISABLED: Original POST implementation
+export async function POST_DISABLED(req: NextRequest) {
   try {
     const body = await req.json();
     const { agencyId, superAdminId, phoneNumber } = body;
@@ -218,9 +230,22 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+END OF DISABLED POST */
 
-// Get pending invites for an agency
+// DISABLED: GET endpoint for pending invites - returns 503 Service Unavailable
 export async function GET(req: NextRequest) {
+  return NextResponse.json(
+    {
+      error: 'SMS invites are disabled',
+      message: 'Use invite codes instead',
+      invites: []
+    },
+    { status: 503 }
+  );
+}
+
+/* DISABLED: Original GET implementation
+export async function GET_DISABLED(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const agencyId = searchParams.get('agencyId');
@@ -325,9 +350,21 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+END OF DISABLED GET */
 
-// Cancel a pending invite
+// DISABLED: DELETE endpoint for cancelling invites - returns 503 Service Unavailable
 export async function DELETE(req: NextRequest) {
+  return NextResponse.json(
+    {
+      error: 'SMS invites are disabled',
+      message: 'Use invite codes instead'
+    },
+    { status: 503 }
+  );
+}
+
+/* DISABLED: Original DELETE implementation
+export async function DELETE_DISABLED(req: NextRequest) {
   try {
     const body = await req.json();
     const { inviteId, agencyId, superAdminId } = body;
@@ -362,3 +399,4 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
+END OF DISABLED DELETE */

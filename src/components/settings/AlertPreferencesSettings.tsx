@@ -212,6 +212,9 @@ export function AlertPreferencesSettings() {
             />
           </div>
 
+          {/* DISABLED: SMS Notifications - January 25, 2026
+              FCM push notifications provide equivalent functionality
+              See docs/removetwilio.md for details
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <MessageSquare className="w-5 h-5 text-green-600" />
@@ -238,6 +241,7 @@ export function AlertPreferencesSettings() {
               }}
             />
           </div>
+          */}
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

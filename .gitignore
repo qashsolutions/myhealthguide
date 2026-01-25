@@ -82,9 +82,12 @@ google-cloud-sdk/
 !CASCADE_FEATURE_STATUS.md
 !AGENCY_BUGS_FOUND.md
 !tests_jan13.md
+!docs/*.md
 
 # Firebase Extensions Credentials
 extensions/*.env
+extensions/*.secret
+extensions/twilio-credentials.json
 
 # Firebase Functions Environment Variables
 functions/.env
