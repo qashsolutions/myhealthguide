@@ -255,6 +255,41 @@
 
 ---
 
+## CAS-2B: Ranking Verification - Shift History Bonus (POSITIVE)
+
+| Test ID | Description | Expected | Actual | Result |
+|---------|-------------|----------|--------|--------|
+| CAS-2B.1 | Identify caregiver with MULTIPLE completed shifts | Caregiver with history exists | Caregiver 2: 5 completed, Caregiver 3: 2 completed with LO-C2-1 | **PASS** |
+| CAS-2B.2 | Create Auto-Assign shift for that elder | Shift created | LO-C2-1 shift on Jan 31, Caregiver 2 offered first | **PASS** |
+| CAS-2B.3 | Check rankedCandidates scores | Array with scores | 10 candidates with scores visible | **PASS** |
+| CAS-2B.4 | Caregiver with history ranked higher | More history = higher rank | Caregiver 2 (5 shifts): #1 score 70 vs Caregiver 3 (2 shifts): #7 score 10 | **PASS** |
+| CAS-2B.5 | Score includes shift history bonus | +1 per completed shift | Caregiver 2: 70 = +40 primary + +15 assigned + +5 history + +10 workload | **PASS** |
+| CAS-2B.6 | Bonus capped at +25 | Math.min(count, 25) | Code verified: `Math.min(completedCount, 25)` at lines 110 & 320 | **PASS** |
+
+### Summary
+
+| Total | Passed | Failed |
+|-------|--------|--------|
+| 6 | 6 | 0 |
+
+---
+
+### Test Data Created
+
+| Caregiver | Elder | Completed Shifts | History Bonus |
+|-----------|-------|------------------|---------------|
+| Caregiver 2 | LO-C2-1 | 5 | +5 |
+| Caregiver 3 | LO-C2-1 | 2 | +2 |
+
+### Key Observations
+
+1. **History bonus verified** - Caregiver 2 with 5 completed shifts scored +5, Caregiver 3 with 2 scored +2
+2. **Primary caregiver still dominates** - Caregiver 2's total score 70 vs others' max 10 shows primary (+40) + assigned (+15) outweighs history alone
+3. **Cap implementation** - `Math.min(completedCount, 25)` ensures max +25 history bonus
+4. **Both client and server** - Cap implemented in both `shiftCascade.ts:110` and `route.ts:320`
+
+---
+
 ## Overall Test Summary
 
 | Test Suite | Tests | Passed | Failed |
@@ -265,4 +300,5 @@
 | CAS-1D (Direct Assign Mode) | 12 | 12 | 0 |
 | CAS-1E (Negative/Validation Tests) | 7 | 7 | 0 |
 | CAS-2A (Ranking - Primary Caregiver) | 7 | 7 | 0 |
-| **TOTAL** | **60** | **60** | **0** |
+| CAS-2B (Ranking - Shift History Bonus) | 6 | 6 | 0 |
+| **TOTAL** | **66** | **66** | **0** |
