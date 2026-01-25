@@ -343,10 +343,9 @@ async function checkConflictServer(
   endMin: number
 ): Promise<boolean> {
   try {
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
+    // Use UTC methods to ensure consistent date handling across timezones
+    const dayStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+    const dayEnd = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
 
     const shiftsSnap = await adminDb.collection('scheduledShifts')
       .where('caregiverId', '==', caregiverId)

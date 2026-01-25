@@ -52,6 +52,23 @@
 
 ---
 
+## BUG-4: Missing Firestore Index for Conflict Check Query
+
+| Field | Detail |
+|-------|--------|
+| **Severity** | Critical |
+| **Test Case** | CAS-2D.4 |
+| **Expected** | Caregivers with conflicting shifts should be excluded from rankedCandidates |
+| **Actual** | ALL caregivers included because conflict query fails silently due to missing index |
+| **Root Cause** | `checkConflictServer` queries `caregiverId` + `date` range, but no composite index exists. Catch block returns `false` on index error, allowing all caregivers through. |
+| **Server File** | `src/app/api/shifts/create-cascade/route.ts` (lines 338-375) |
+| **Index File** | `firestore.indexes.json` |
+| **Fix** | Added composite index: `scheduledShifts` → `caregiverId` (ASC), `date` (ASC), `__name__` (ASC) |
+| **Impact** | Caregivers with time conflicts were being offered shifts they couldn't work |
+| **Deploy** | `firebase deploy --only firestore:indexes` |
+
+---
+
 ## Summary
 
 | Bug ID | Severity | Status | Guardrail Safe |
@@ -59,3 +76,4 @@
 | BUG-1 | Medium | FIXED | Yes (UI-only change) |
 | BUG-2 | Low | FIXED | Yes (UI-only change) |
 | BUG-3 | Medium | FIXED | Yes (validation addition) |
+| BUG-4 | Critical | PENDING (index building) | Yes (index addition) |
