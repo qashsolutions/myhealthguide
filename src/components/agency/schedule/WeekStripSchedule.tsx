@@ -40,15 +40,6 @@ interface WeekStripScheduleProps {
   userId: string;
 }
 
-interface Gap {
-  shiftId: string;
-  elderId: string;
-  elderName: string;
-  date: Date;
-  startTime: string;
-  endTime: string;
-}
-
 interface Caregiver {
   id: string;
   name: string;
@@ -83,7 +74,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
 
   // Assign caregiver sheet state
   const [showAssignSheet, setShowAssignSheet] = useState(false);
-  const [assigningGap, setAssigningGap] = useState<Gap | null>(null);
+  const [assigningShift, setAssigningShift] = useState<ScheduledShift | null>(null);
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [assigningCaregiverId, setAssigningCaregiverId] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
@@ -273,39 +264,31 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     return map;
   }, [weekDays, shiftsByDate]);
 
-  // Compute gaps per day (unfilled shifts)
-  const gapsByDate = useMemo(() => {
-    const map = new Map<string, Gap[]>();
+  // Compute unfilled count per day
+  const unfilledCountByDate = useMemo(() => {
+    const map = new Map<string, number>();
     weekDays.forEach((day) => {
       const dateKey = format(day, 'yyyy-MM-dd');
       const dayShifts = shiftsByDate.get(dateKey) || [];
 
-      // Find shifts that are unfilled (no caregiver assigned)
-      const unfilledGaps = dayShifts
-        .filter((s) => s.status === 'unfilled' || (!s.caregiverId && s.status !== 'offered'))
-        .map((s) => ({
-          shiftId: s.id,
-          elderId: s.elderId,
-          elderName: s.elderName,
-          date: s.date,
-          startTime: s.startTime,
-          endTime: s.endTime,
-        }));
+      // Count shifts that are unfilled (no caregiver assigned)
+      const unfilledCount = dayShifts.filter(
+        (s) => s.status === 'unfilled' || (!s.caregiverId && s.status !== 'offered')
+      ).length;
 
-      map.set(dateKey, unfilledGaps);
+      map.set(dateKey, unfilledCount);
     });
     return map;
   }, [weekDays, shiftsByDate]);
 
-  // Compute total gaps and unconfirmed counts for alerts banner
-  const { totalGaps, totalUnconfirmed } = useMemo(() => {
-    let gaps = 0;
+  // Compute total unfilled and unconfirmed counts for alerts banner
+  const { totalUnfilled, totalUnconfirmed } = useMemo(() => {
+    let unfilled = 0;
     let unconfirmed = 0;
 
     weekDays.forEach((day) => {
       const dateKey = format(day, 'yyyy-MM-dd');
-      const dayGaps = gapsByDate.get(dateKey) || [];
-      gaps += dayGaps.length;
+      unfilled += unfilledCountByDate.get(dateKey) || 0;
 
       const dayShifts = shiftsByDate.get(dateKey) || [];
       unconfirmed += dayShifts.filter((s) =>
@@ -313,8 +296,8 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       ).length;
     });
 
-    return { totalGaps: gaps, totalUnconfirmed: unconfirmed };
-  }, [weekDays, gapsByDate, shiftsByDate]);
+    return { totalUnfilled: unfilled, totalUnconfirmed: unconfirmed };
+  }, [weekDays, unfilledCountByDate, shiftsByDate]);
 
   // Navigation handlers
   const handleWeekChange = useCallback((direction: 'prev' | 'next') => {
@@ -353,16 +336,16 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
   }, []);
 
   // Alert banner handlers
-  const scrollToFirstGap = useCallback(() => {
+  const scrollToFirstUnfilled = useCallback(() => {
     for (const day of weekDays) {
       const dateKey = format(day, 'yyyy-MM-dd');
-      const dayGaps = gapsByDate.get(dateKey) || [];
-      if (dayGaps.length > 0) {
+      const count = unfilledCountByDate.get(dateKey) || 0;
+      if (count > 0) {
         handleDateSelect(day);
         break;
       }
     }
-  }, [weekDays, gapsByDate, handleDateSelect]);
+  }, [weekDays, unfilledCountByDate, handleDateSelect]);
 
   const scrollToFirstUnconfirmed = useCallback(() => {
     for (const day of weekDays) {
@@ -420,16 +403,16 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     console.log('Shift clicked:', shift.id);
   }, []);
 
-  // Handle assign gap - open assignment sheet
-  const handleAssignGap = useCallback((gap: Gap) => {
-    setAssigningGap(gap);
+  // Handle assign shift - open assignment sheet
+  const handleAssignShift = useCallback((shift: ScheduledShift) => {
+    setAssigningShift(shift);
     setShowAssignSheet(true);
     setAssignError(null);
   }, []);
 
   // Assign caregiver to shift
   const handleAssignCaregiver = useCallback(async (caregiverId: string) => {
-    if (!assigningGap) return;
+    if (!assigningShift) return;
 
     setAssignError(null);
     setAssigningCaregiverId(caregiverId);
@@ -442,7 +425,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       }
 
       // Update the shift with the caregiver
-      const shiftRef = doc(db, 'scheduledShifts', assigningGap.shiftId);
+      const shiftRef = doc(db, 'scheduledShifts', assigningShift.id);
       await updateDoc(shiftRef, {
         caregiverId: caregiverId,
         caregiverName: caregiver.name,
@@ -452,14 +435,14 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
 
       // Close sheet
       setShowAssignSheet(false);
-      setAssigningGap(null);
+      setAssigningShift(null);
     } catch (err) {
       console.error('Error assigning caregiver:', err);
       setAssignError('Failed to assign caregiver. Please try again.');
     } finally {
       setAssigningCaregiverId(null);
     }
-  }, [assigningGap, caregivers]);
+  }, [assigningShift, caregivers]);
 
   if (loading) {
     return (
@@ -473,9 +456,9 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     <div className="space-y-4">
       {/* Alerts Banner */}
       <ScheduleAlertsBanner
-        gapsCount={totalGaps}
+        gapsCount={totalUnfilled}
         unconfirmedCount={totalUnconfirmed}
-        onGapsClick={scrollToFirstGap}
+        onGapsClick={scrollToFirstUnfilled}
         onUnconfirmedClick={scrollToFirstUnconfirmed}
       />
 
@@ -501,7 +484,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
         {weekDays.map((day) => {
           const dateKey = format(day, 'yyyy-MM-dd');
           const dayShifts = shiftsByDate.get(dateKey) || [];
-          const dayGaps = gapsByDate.get(dateKey) || [];
+          const dayUnfilledCount = unfilledCountByDate.get(dateKey) || 0;
           const isExpanded = expandedDays.has(dateKey);
 
           return (
@@ -514,13 +497,13 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
               <DayShiftList
                 date={day}
                 shifts={dayShifts}
-                gaps={dayGaps}
+                unfilledCount={dayUnfilledCount}
                 isExpanded={isExpanded}
                 onToggle={() => toggleDay(dateKey)}
                 onAddShift={() => handleAddShift(day)}
                 onShiftClick={handleShiftClick}
                 onMarkConfirmed={handleMarkConfirmed}
-                onAssignGap={handleAssignGap}
+                onAssignShift={handleAssignShift}
                 confirmingShiftId={confirmingShiftId}
                 isSuperAdmin={userIsSuperAdmin}
               />
@@ -554,13 +537,13 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       )}
 
       {/* Assign Caregiver Bottom Sheet */}
-      {showAssignSheet && assigningGap && (
+      {showAssignSheet && assigningShift && (
         <>
           <div
             className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
             onClick={() => {
               setShowAssignSheet(false);
-              setAssigningGap(null);
+              setAssigningShift(null);
             }}
           />
           <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-2xl shadow-xl max-h-[80vh] flex flex-col animate-in slide-in-from-bottom duration-200">
@@ -576,13 +559,13 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
                   Assign Caregiver
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {assigningGap.elderName} • {format(assigningGap.date, 'EEE, MMM d')}
+                  {assigningShift.elderName} • {format(assigningShift.date, 'EEE, MMM d')}
                 </p>
               </div>
               <button
                 onClick={() => {
                   setShowAssignSheet(false);
-                  setAssigningGap(null);
+                  setAssigningShift(null);
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
                 aria-label="Close"
@@ -596,7 +579,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <Clock className="w-4 h-4" />
                 <span>
-                  {assigningGap.startTime} - {assigningGap.endTime}
+                  {assigningShift.startTime} - {assigningShift.endTime}
                 </span>
               </div>
             </div>
