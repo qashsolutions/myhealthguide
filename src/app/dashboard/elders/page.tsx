@@ -73,34 +73,63 @@ export default function EldersPage() {
   const canManageElders = canUserManageElders(user);
   const isCaregiver = isUserCaregiver(user);
 
+  // Check if user is an agency super admin
+  const isSuperAdmin = user?.agencies?.some(
+    (a: any) => a.role === 'super_admin' && a.status === 'active'
+  );
+
   useEffect(() => {
     fetchElders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, availableElders]);
 
   async function fetchElders() {
-    if (!user || !user.groups?.[0]?.groupId) {
+    if (!user) {
       setLoading(false);
       return;
     }
 
     try {
-      const groupId = user.groups[0].groupId;
-      const userRole = (user.groups[0].role || 'member') as 'admin' | 'caregiver' | 'member';
+      // Agency Super Admin: Use availableElders from ElderContext (already loads all agency elders)
+      if (isSuperAdmin) {
+        setElders(availableElders);
 
-      // For caregivers, use the availableElders from context (already filtered by assignment)
+        // Get agency ID for limit check
+        const agencyMembership = user.agencies?.find(
+          (a: any) => a.role === 'super_admin' && a.status === 'active'
+        );
+        if (agencyMembership) {
+          const limitCheck = await canCreateElder(user.id, agencyMembership.agencyId);
+          setElderLimitCheck(limitCheck);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Caregiver: Use availableElders from context (already filtered by assignment)
       if (isCaregiver) {
         setElders(availableElders);
         setElderLimitCheck(null); // Caregivers don't need limit info
-      } else {
-        // For admins/super admins, fetch all elders in the group
-        const fetchedElders = await ElderService.getEldersByGroup(groupId, user.id, userRole);
-        setElders(fetchedElders);
-
-        // Check if user can add more elders
-        const limitCheck = await canCreateElder(user.id, groupId);
-        setElderLimitCheck(limitCheck);
+        setLoading(false);
+        return;
       }
+
+      // Family Plan users: Use groups
+      if (!user.groups?.[0]?.groupId) {
+        setLoading(false);
+        return;
+      }
+
+      const groupId = user.groups[0].groupId;
+      const userRole = (user.groups[0].role || 'member') as 'admin' | 'caregiver' | 'member';
+
+      // For family admins, fetch all elders in the group
+      const fetchedElders = await ElderService.getEldersByGroup(groupId, user.id, userRole);
+      setElders(fetchedElders);
+
+      // Check if user can add more elders
+      const limitCheck = await canCreateElder(user.id, groupId);
+      setElderLimitCheck(limitCheck);
     } catch (err) {
       console.error('Error fetching elders:', err);
       setError('Failed to load loved ones');
