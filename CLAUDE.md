@@ -500,6 +500,69 @@ When a user downgrades to a plan with lower storage limits and exceeds the new l
 
 ---
 
+## Vercel Environment Variables
+
+All environment variables are configured in Vercel for all environments.
+
+### Firebase Configuration
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web API key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | FCM sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase app ID |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Google Analytics ID |
+| `NEXT_PUBLIC_FIREBASE_VAPID_KEY` | FCM Web Push VAPID key |
+| `FIREBASE_ADMIN_CREDENTIALS_JSON` | Firebase Admin SDK service account JSON |
+
+### Stripe Payment
+| Variable | Purpose |
+|----------|---------|
+| `STRIPE_SECRET_KEY` | Stripe server-side secret key |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe client-side publishable key |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signature verification |
+| `NEXT_PUBLIC_STRIPE_FAMILY_PRICE_ID` | Plan A price ID (client) |
+| `NEXT_PUBLIC_STRIPE_SINGLE_AGENCY_PRICE_ID` | Plan B price ID (client) |
+| `NEXT_PUBLIC_STRIPE_MULTI_AGENCY_PRICE_ID` | Plan C price ID (client) |
+| `STRIPE_FAMILY_PRICE_ID` | Plan A price ID (server) |
+| `STRIPE_SINGLE_AGENCY_PRICE_ID` | Plan B price ID (server) |
+| `STRIPE_MULTI_AGENCY_PRICE_ID` | Plan C price ID (server) |
+
+### AI Services
+| Variable | Purpose | Last Updated |
+|----------|---------|--------------|
+| `GEMINI_API_KEY` | Google Gemini 3 Pro Preview (Primary AI) | Nov 15, 2025 |
+| `ANTHROPIC_API_KEY` | Claude Opus 4.5 (Fallback AI) | Dec 8, 2025 |
+| `VERTEX_AI_LOCATION` | Vertex AI region | Nov 30, 2025 |
+
+### Google Cloud
+| Variable | Purpose |
+|----------|---------|
+| `GOOGLE_CLOUD_PROJECT_ID` | GCP project ID |
+| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | GCP service account JSON |
+
+### Application
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_APP_NAME` | Application name |
+| `NEXT_PUBLIC_APP_URL` | Production URL |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA/Turnstile site key |
+
+### AI Fallback Order
+1. **Primary:** Gemini 3 Pro Preview (`GEMINI_API_KEY`)
+2. **Fallback:** Claude Opus 4.5 (`ANTHROPIC_API_KEY`)
+
+If Gemini fails, the system automatically falls back to Claude for:
+- Caregiver Burnout Analysis
+- Medication Adherence Prediction
+- Medication Refill Prediction
+- Trend Change Detection
+- Alert Prioritization
+
+---
+
 ## Testing Workflow
 
 ```
