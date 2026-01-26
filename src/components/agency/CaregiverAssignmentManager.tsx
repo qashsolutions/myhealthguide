@@ -21,16 +21,13 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { UserPlus, X, AlertCircle, Users, Crown, UserCog, AlertTriangle, CheckCircle2, User } from 'lucide-react';
+import { UserPlus, X, AlertCircle, Users, AlertTriangle, CheckCircle2, User } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
-import { ElderAssignmentService, AssignmentConflict } from '@/lib/firebase/elderAssignment';
 import { db } from '@/lib/firebase/config';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { CaregiverAssignment, Elder, GroupMember } from '@/types';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PrimaryCaregiverTransferDialog } from './PrimaryCaregiverTransferDialog';
 
 interface CaregiverAssignmentManagerProps {
   agencyId: string;
@@ -54,12 +51,8 @@ export function CaregiverAssignmentManager({
   const [selectedCaregiver, setSelectedCaregiver] = useState<string>('');
   const [selectedElders, setSelectedElders] = useState<string[]>([]);
   const [selectedRole, setSelectedRole] = useState<'caregiver' | 'caregiver_admin'>('caregiver');
-  const [assignAsPrimary, setAssignAsPrimary] = useState(false);
   const [assigning, setAssigning] = useState(false);
-
-  // Transfer dialog state
-  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
-  const [pendingConflicts, setPendingConflicts] = useState<AssignmentConflict[]>([]);
+  const [caregiverNames, setCaregiverNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
@@ -122,7 +115,23 @@ export function CaregiverAssignmentManager({
       // TODO: In future, get caregivers from all groups or agency-level
       const group = await GroupService.getGroup(groupId);
       if (group) {
-        setGroupMembers(group.members.filter(m => m.userId !== group.adminId));
+        const caregivers = group.members.filter(m => m.userId !== group.adminId);
+        setGroupMembers(caregivers);
+
+        // Fetch actual names from users collection
+        const namesMap: Record<string, string> = {};
+        for (const caregiver of caregivers) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', caregiver.userId));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              namesMap[caregiver.userId] = userData.displayName || userData.name || userData.email?.split('@')[0] || `Caregiver`;
+            }
+          } catch (e) {
+            console.error('Error fetching caregiver name:', e);
+          }
+        }
+        setCaregiverNames(namesMap);
       }
     } catch (err: any) {
       console.error('Error loading assignment data:', err);
@@ -132,7 +141,7 @@ export function CaregiverAssignmentManager({
     }
   };
 
-  const handleAssignCaregiver = async (forceTransfer: boolean = false) => {
+  const handleAssignCaregiver = async () => {
     if (!selectedCaregiver || selectedElders.length === 0) {
       return;
     }
@@ -141,7 +150,7 @@ export function CaregiverAssignmentManager({
       setAssigning(true);
       setError(null);
 
-      const result = await AgencyService.assignCaregiverToElders(
+      await AgencyService.assignCaregiverToElders(
         agencyId,
         selectedCaregiver,
         selectedElders,
@@ -149,17 +158,9 @@ export function CaregiverAssignmentManager({
         userId,
         selectedRole,
         undefined,
-        assignAsPrimary,
-        forceTransfer
+        false, // assignAsPrimary - not used
+        false  // forceTransfer - not used
       );
-
-      // Check if there are conflicts that need user confirmation
-      if (result.conflicts && result.conflicts.length > 0) {
-        setPendingConflicts(result.conflicts);
-        setTransferDialogOpen(true);
-        setAssigning(false);
-        return;
-      }
 
       // Reload data
       await loadData();
@@ -175,93 +176,10 @@ export function CaregiverAssignmentManager({
     }
   };
 
-  const handleConfirmTransfer = async (transferElderIds: string[]) => {
-    try {
-      setAssigning(true);
-
-      // Re-run assignment with forceTransfer=true for selected elders
-      // First, filter selectedElders to only include those being transferred
-      const eldersToTransfer = selectedElders.filter(id => transferElderIds.includes(id));
-      const eldersToKeepCurrent = selectedElders.filter(id => !transferElderIds.includes(id));
-
-      // Assign with transfer for selected
-      if (eldersToTransfer.length > 0) {
-        await AgencyService.assignCaregiverToElders(
-          agencyId,
-          selectedCaregiver,
-          eldersToTransfer,
-          groupId,
-          userId,
-          selectedRole,
-          undefined,
-          true, // assignAsPrimary
-          true  // forceTransfer
-        );
-      }
-
-      // Assign without primary for the rest
-      if (eldersToKeepCurrent.length > 0) {
-        await AgencyService.assignCaregiverToElders(
-          agencyId,
-          selectedCaregiver,
-          eldersToKeepCurrent,
-          groupId,
-          userId,
-          selectedRole,
-          undefined,
-          false, // assignAsPrimary
-          false  // forceTransfer
-        );
-      }
-
-      // Reload data
-      await loadData();
-      resetForm();
-      setTransferDialogOpen(false);
-      setDialogOpen(false);
-    } catch (err: any) {
-      console.error('Error during transfer:', err);
-      setError(err.message || 'Failed to transfer primary caregiver');
-    } finally {
-      setAssigning(false);
-    }
-  };
-
-  const handleKeepCurrentPrimary = async () => {
-    // Assign as regular caregiver (not primary)
-    try {
-      setAssigning(true);
-
-      await AgencyService.assignCaregiverToElders(
-        agencyId,
-        selectedCaregiver,
-        selectedElders,
-        groupId,
-        userId,
-        selectedRole,
-        undefined,
-        false, // not as primary
-        false
-      );
-
-      await loadData();
-      resetForm();
-      setTransferDialogOpen(false);
-      setDialogOpen(false);
-    } catch (err: any) {
-      console.error('Error assigning caregiver:', err);
-      setError(err.message || 'Failed to assign caregiver');
-    } finally {
-      setAssigning(false);
-    }
-  };
-
   const resetForm = () => {
     setSelectedCaregiver('');
     setSelectedElders([]);
     setSelectedRole('caregiver');
-    setAssignAsPrimary(false);
-    setPendingConflicts([]);
   };
 
   const handleRemoveAssignment = async (assignmentId: string) => {
@@ -293,8 +211,7 @@ export function CaregiverAssignmentManager({
   };
 
   const getCaregiverName = (caregiverId: string): string => {
-    const userDoc = groupMembers.find(m => m.userId === caregiverId);
-    return userDoc ? `User ${caregiverId.substring(0, 8)}` : 'Unknown';
+    return caregiverNames[caregiverId] || 'Caregiver';
   };
 
   const getElderName = (elderId: string): string => {
@@ -552,24 +469,6 @@ export function CaregiverAssignmentManager({
                     </p>
                   </div>
 
-                  {/* Primary Caregiver Toggle */}
-                  <div className="flex items-center justify-between p-4 border rounded-lg bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="primary-toggle" className="flex items-center gap-2 cursor-pointer">
-                        <Crown className="w-4 h-4 text-amber-600" />
-                        Assign as Primary Caregiver
-                      </Label>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Primary caregiver has full admin rights for the loved one (manage medications, schedules, invite family)
-                      </p>
-                    </div>
-                    <Switch
-                      id="primary-toggle"
-                      checked={assignAsPrimary}
-                      onCheckedChange={setAssignAsPrimary}
-                    />
-                  </div>
-
                   {/* Elder Selection */}
                   <div className="space-y-2">
                     <Label>Select Loved Ones</Label>
@@ -592,25 +491,12 @@ export function CaregiverAssignmentManager({
                                 {elder.name}
                               </label>
                             </div>
-                            {elder.primaryCaregiverName && (
-                              <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                                <Crown className="w-3 h-3" />
-                                <span>{elder.primaryCaregiverName}</span>
-                              </div>
-                            )}
                           </div>
                         ))
                       )}
                     </div>
                     <p className="text-xs text-gray-500">
                       Selected: {selectedElders.length} loved one(s)
-                      {assignAsPrimary && selectedElders.some(id =>
-                        elders.find(e => e.id === id)?.primaryCaregiverId
-                      ) && (
-                        <span className="text-amber-600 ml-2">
-                          (some loved ones have existing primary caregivers)
-                        </span>
-                      )}
                     </p>
                   </div>
                 </div>
@@ -627,10 +513,10 @@ export function CaregiverAssignmentManager({
                     Cancel
                   </Button>
                   <Button
-                    onClick={() => handleAssignCaregiver(false)}
+                    onClick={() => handleAssignCaregiver()}
                     disabled={!selectedCaregiver || selectedElders.length === 0 || assigning}
                   >
-                    {assigning ? 'Assigning...' : assignAsPrimary ? 'Assign as Primary' : 'Assign'}
+                    {assigning ? 'Assigning...' : 'Assign'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -653,14 +539,7 @@ export function CaregiverAssignmentManager({
             </div>
           ) : (
             <div className="space-y-4">
-              {assignments.map(assignment => {
-                // Check if this caregiver is primary for any of the assigned elders
-                const primaryForElders = assignment.elderIds.filter(elderId => {
-                  const elder = elders.find(e => e.id === elderId);
-                  return elder?.primaryCaregiverId === assignment.caregiverId;
-                });
-
-                return (
+              {assignments.map(assignment => (
                   <div
                     key={assignment.id}
                     className="flex items-center justify-between p-4 border rounded-lg"
@@ -673,12 +552,6 @@ export function CaregiverAssignmentManager({
                         <Badge variant={assignment.role === 'caregiver_admin' ? 'default' : 'secondary'}>
                           {assignment.role === 'caregiver_admin' ? 'Admin' : 'Caregiver'}
                         </Badge>
-                        {primaryForElders.length > 0 && (
-                          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                            <Crown className="w-3 h-3 mr-1" />
-                            Primary ({primaryForElders.length})
-                          </Badge>
-                        )}
                         {!assignment.active && (
                           <Badge variant="outline" className="text-gray-500">
                             Inactive
@@ -686,19 +559,15 @@ export function CaregiverAssignmentManager({
                         )}
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {assignment.elderIds.map(elderId => {
-                          const isPrimary = primaryForElders.includes(elderId);
-                          return (
+                        {assignment.elderIds.map(elderId => (
                             <Badge
                               key={elderId}
                               variant="outline"
-                              className={`text-xs ${isPrimary ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' : ''}`}
+                              className="text-xs"
                             >
-                              {isPrimary && <Crown className="w-2.5 h-2.5 mr-1 text-amber-600" />}
                               {getElderName(elderId)}
                             </Badge>
-                          );
-                        })}
+                          ))}
                       </div>
                       <p className="text-xs text-gray-500 mt-2">
                         Assigned on {new Date(assignment.assignedAt).toLocaleDateString()}
@@ -715,25 +584,11 @@ export function CaregiverAssignmentManager({
                       </Button>
                     )}
                   </div>
-                );
-              })}
+                ))}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Primary Caregiver Transfer Dialog */}
-      <PrimaryCaregiverTransferDialog
-        open={transferDialogOpen}
-        conflicts={pendingConflicts}
-        onConfirmTransfer={handleConfirmTransfer}
-        onKeepCurrent={handleKeepCurrentPrimary}
-        onCancel={() => {
-          setTransferDialogOpen(false);
-          setPendingConflicts([]);
-        }}
-        isLoading={assigning}
-      />
     </div>
   );
 }
