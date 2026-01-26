@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { ElderService } from '@/lib/firebase/elders';
+import { AgencyService } from '@/lib/firebase/agencies';
 import { canCreateElder, PlanValidationResult } from '@/lib/firebase/planLimits';
 import type { Elder } from '@/types';
 import {
@@ -81,7 +82,7 @@ export default function EldersPage() {
   useEffect(() => {
     fetchElders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, availableElders]);
+  }, [user, availableElders.length]);
 
   async function fetchElders() {
     if (!user) {
@@ -90,15 +91,18 @@ export default function EldersPage() {
     }
 
     try {
-      // Agency Super Admin: Use availableElders from ElderContext (already loads all agency elders)
+      // Agency Super Admin: Fetch ALL elders in the agency using AgencyService
+      // This is the same approach used by the agency dashboard
       if (isSuperAdmin) {
-        setElders(availableElders);
-
-        // Get agency ID for limit check
         const agencyMembership = user.agencies?.find(
           (a: any) => a.role === 'super_admin' && a.status === 'active'
         );
         if (agencyMembership) {
+          // Fetch elders directly using AgencyService (same as agency dashboard)
+          const agencyElders = await AgencyService.getAgencyElders(agencyMembership.agencyId);
+          setElders(agencyElders);
+
+          // Check elder limit
           const limitCheck = await canCreateElder(user.id, agencyMembership.agencyId);
           setElderLimitCheck(limitCheck);
         }
