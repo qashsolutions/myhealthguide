@@ -157,13 +157,13 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
 
         if (response.ok) {
           const data = await response.json();
-          if (data.caregivers) {
-            setCaregivers(
-              data.caregivers.map((c: { id: string; name: string }) => ({
-                id: c.id,
-                name: c.name,
-              }))
-            );
+          if (data.names) {
+            // Convert Record<string, string> to array format
+            const caregiverList = Object.entries(data.names).map(([id, name]) => ({
+              id,
+              name: name as string,
+            }));
+            setCaregivers(caregiverList);
           }
         } else {
           // Fallback: use IDs as names
