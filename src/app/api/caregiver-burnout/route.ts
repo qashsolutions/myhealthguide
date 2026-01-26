@@ -259,8 +259,10 @@ async function assessCaregiverBurnout(
 function calculateWorkload(shifts: any[], caregiverId: string): CaregiverWorkload {
   let totalHours = 0;
   let overtimeHours = 0;
-  const elderIds = new Set<string>();
   const shiftDates = new Set<string>();
+
+  // Track elders per day to find max concurrent elders
+  const eldersPerDay = new Map<string, Set<string>>();
 
   shifts.forEach(shift => {
     if (shift.actualDuration) {
@@ -273,13 +275,24 @@ function calculateWorkload(shifts: any[], caregiverId: string): CaregiverWorkloa
       }
     }
 
-    if (shift.elderId) {
-      elderIds.add(shift.elderId);
-    }
-
     if (shift.startTime) {
-      shiftDates.add(shift.startTime.toDateString());
+      const dateKey = shift.startTime.toDateString();
+      shiftDates.add(dateKey);
+
+      // Track elders for this day
+      if (shift.elderId) {
+        if (!eldersPerDay.has(dateKey)) {
+          eldersPerDay.set(dateKey, new Set());
+        }
+        eldersPerDay.get(dateKey)!.add(shift.elderId);
+      }
     }
+  });
+
+  // Find max elders on any single day (concurrent load)
+  let maxEldersOnAnyDay = 0;
+  eldersPerDay.forEach(elders => {
+    maxEldersOnAnyDay = Math.max(maxEldersOnAnyDay, elders.size);
   });
 
   // Calculate consecutive days
@@ -308,7 +321,7 @@ function calculateWorkload(shifts: any[], caregiverId: string): CaregiverWorkloa
     totalHours,
     overtimeHours,
     consecutiveDays: maxConsecutive,
-    elderCount: elderIds.size,
+    elderCount: maxEldersOnAnyDay, // Max elders cared for on any single day (concurrent load)
     shiftsWorked: shifts.length,
     avgShiftLength: shifts.length > 0 ? totalHours / shifts.length : 0
   };
@@ -356,7 +369,7 @@ function analyzeElderCount(elderCount: number): BurnoutFactor | null {
   if (elderCount > 5) {
     return {
       type: 'high_elder_count',
-      description: `Caring for ${elderCount} different elders`,
+      description: `Managing ${elderCount} elders concurrently in a single day`,
       severity: 'high',
       data: { elderCount },
       points: 20
@@ -364,7 +377,7 @@ function analyzeElderCount(elderCount: number): BurnoutFactor | null {
   } else if (elderCount > 3) {
     return {
       type: 'high_elder_count',
-      description: `Caring for ${elderCount} elders`,
+      description: `Managing ${elderCount} elders concurrently in a single day`,
       severity: 'moderate',
       data: { elderCount },
       points: 10
