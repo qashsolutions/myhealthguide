@@ -17,6 +17,7 @@
 | `docs/PERMISSION_SYSTEM.md` | Permission system documentation |
 | `docs/removetwilio.md` | Twilio SMS removal documentation and reactivation instructions |
 | `docs/skills.md` | Active notification channels and capabilities |
+| `.claude/skills/schedule-assignment/SKILL.md` | Copy + Adjust scheduling for weekly elder-caregiver assignments |
 
 ---
 
@@ -802,6 +803,63 @@ All schedule-related routes now point to `/dashboard/agency/schedule`:
 The old `ShiftSchedulingCalendar` (month calendar with filters) has been replaced with `WeekStripSchedule` in:
 - `/dashboard/agency?tab=scheduling` (agency dashboard tab)
 - `/dashboard/agency/schedule` (standalone page)
+
+---
+
+## Schedule Assignment System (Jan 26, 2026)
+
+**Status:** ✅ IMPLEMENTED (Phase 1)
+**Skill Documentation:** `.claude/skills/schedule-assignment/SKILL.md`
+
+### Overview
+
+"Copy + Adjust" workflow for weekly elder-caregiver assignments. Shows ALL 30 elders needing care with simple assignment tools, rather than complex auto-assignment algorithms.
+
+### Why Copy + Adjust (Not Auto-Assign)
+
+| What System Knows | What Owner Knows (Offline) |
+|-------------------|---------------------------|
+| Caregiver max load (3 elders) | Caregiver texted - sick tomorrow |
+| Previous assignments | Caregiver doesn't get along with Elder X |
+| Basic time slots | Elder 8 lives 45 mins from Elder 3 |
+| Nothing about distance | Caregiver 1 prefers morning shifts only |
+
+**The owner always knows more than the system.** So we make manual assignment fast and easy.
+
+### Gap Detection (Phase 1 - Complete)
+
+The schedule view now shows:
+1. **Unfilled shifts** - existing shifts with no caregiver assigned
+2. **Missing shifts** - elders who have NO shift created for that day
+
+This ensures all 30 elders are visible, not just those with existing unfilled shifts.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `.claude/skills/schedule-assignment/SKILL.md` | Full skill documentation |
+| `.claude/skills/schedule-assignment/PLAN.md` | 6-phase implementation plan |
+| `.claude/skills/schedule-assignment/scripts/seedWeeklyShifts.ts` | Test data seeding script |
+
+### Future Phases (Not Yet Implemented)
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 2 | Elder-Centric Day List with checkboxes | Pending |
+| 3 | Bulk Assignment | Pending |
+| 4 | Copy Last Week | Pending |
+| 5 | Caregiver Availability | Pending |
+| 6 | Conflict Detection | Pending |
+
+### Test Data
+
+Run seeding script to create test shifts:
+```bash
+npx ts-node --project tsconfig.scripts.json .claude/skills/schedule-assignment/scripts/seedWeeklyShifts.ts
+```
+
+Creates 180 shifts (30 elders x 6 days) with varying assignment states.
 
 ---
 

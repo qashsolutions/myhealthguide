@@ -273,29 +273,52 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     return map;
   }, [weekDays, shiftsByDate]);
 
-  // Compute gaps per day (unfilled shifts)
+  // Compute gaps per day (unfilled shifts + elders without any shift)
   const gapsByDate = useMemo(() => {
     const map = new Map<string, Gap[]>();
     weekDays.forEach((day) => {
       const dateKey = format(day, 'yyyy-MM-dd');
       const dayShifts = shiftsByDate.get(dateKey) || [];
+      const gaps: Gap[] = [];
 
-      // Find shifts that are unfilled (no caregiver assigned)
-      const unfilledGaps = dayShifts
+      // Get elders who already have shifts (any status)
+      const eldersWithShifts = new Set(dayShifts.map((s) => s.elderId));
+
+      // 1. Find shifts that are unfilled (no caregiver assigned)
+      dayShifts
         .filter((s) => s.status === 'unfilled' || (!s.caregiverId && s.status !== 'offered'))
-        .map((s) => ({
-          shiftId: s.id,
-          elderId: s.elderId,
-          elderName: s.elderName,
-          date: s.date,
-          startTime: s.startTime,
-          endTime: s.endTime,
-        }));
+        .forEach((s) => {
+          gaps.push({
+            shiftId: s.id,
+            elderId: s.elderId,
+            elderName: s.elderName,
+            date: s.date,
+            startTime: s.startTime,
+            endTime: s.endTime,
+          });
+        });
 
-      map.set(dateKey, unfilledGaps);
+      // 2. Find elders WITHOUT any shift for this day (missing shifts)
+      // Skip Sunday (day index 0) as it's typically a day off
+      if (day.getDay() !== 0) {
+        elders.forEach((elder) => {
+          if (!eldersWithShifts.has(elder.id)) {
+            gaps.push({
+              shiftId: '', // No shift exists yet
+              elderId: elder.id,
+              elderName: elder.name,
+              date: day,
+              startTime: '09:00', // Default time
+              endTime: '17:00',
+            });
+          }
+        });
+      }
+
+      map.set(dateKey, gaps);
     });
     return map;
-  }, [weekDays, shiftsByDate]);
+  }, [weekDays, shiftsByDate, elders]);
 
   // Compute total gaps and unconfirmed counts for alerts banner
   const { totalGaps, totalUnconfirmed } = useMemo(() => {
@@ -441,14 +464,40 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
         return;
       }
 
-      // Update the shift with the caregiver
-      const shiftRef = doc(db, 'scheduledShifts', assigningGap.shiftId);
-      await updateDoc(shiftRef, {
-        caregiverId: caregiverId,
-        caregiverName: caregiver.name,
-        status: 'scheduled',
-        updatedAt: serverTimestamp(),
-      });
+      // Find elder info for group
+      const elder = elders.find((e) => e.id === assigningGap.elderId);
+
+      if (assigningGap.shiftId) {
+        // Update existing shift with the caregiver
+        const shiftRef = doc(db, 'scheduledShifts', assigningGap.shiftId);
+        await updateDoc(shiftRef, {
+          caregiverId: caregiverId,
+          caregiverName: caregiver.name,
+          status: 'scheduled',
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        // Create new shift (elder had no shift for this day)
+        const { addDoc, Timestamp } = await import('firebase/firestore');
+        const newShift = {
+          agencyId,
+          groupId: elder?.groupId || '',
+          elderId: assigningGap.elderId,
+          elderName: assigningGap.elderName,
+          caregiverId: caregiverId,
+          caregiverName: caregiver.name,
+          date: Timestamp.fromDate(assigningGap.date),
+          startTime: assigningGap.startTime,
+          endTime: assigningGap.endTime,
+          duration: 480, // 8 hours default
+          status: 'scheduled',
+          isRecurring: false,
+          createdBy: userId,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+        await addDoc(collection(db, 'scheduledShifts'), newShift);
+      }
 
       // Close sheet
       setShowAssignSheet(false);
@@ -459,7 +508,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     } finally {
       setAssigningCaregiverId(null);
     }
-  }, [assigningGap, caregivers]);
+  }, [assigningGap, caregivers, elders, agencyId, userId]);
 
   if (loading) {
     return (
