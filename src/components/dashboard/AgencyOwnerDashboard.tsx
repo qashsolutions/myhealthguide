@@ -108,10 +108,10 @@ export function AgencyOwnerDashboard() {
       let unconfirmedCount = 0;
       let noShowCount = 0;
 
-      // Rolling 7-day window for coverage and burnout
+      // Rolling 7-day window for coverage and burnout (forward-looking: today through next 7 days)
       const weekStart = new Date(today);
-      weekStart.setDate(weekStart.getDate() - 7);
-      const weekEnd = new Date(tomorrow);
+      const weekEnd = new Date(today);
+      weekEnd.setDate(weekEnd.getDate() + 7);
 
       // Track shifts per caregiver this week for burnout
       const caregiverWeekShifts: Record<string, number> = {};
@@ -145,17 +145,16 @@ export function AgencyOwnerDashboard() {
           }
         }
 
-        // This week's shifts for coverage and burnout
+        // Next 7 days shifts for coverage and burnout
         if (shiftDate >= weekStart && shiftDate < weekEnd) {
           if (d.status !== 'cancelled') {
             weekTotalShifts++;
-            if (['confirmed', 'in_progress', 'completed'].includes(d.status)) {
+            // For forward-looking coverage: a shift is "covered" if it has an assigned caregiver
+            if (d.caregiverId) {
               weekCoveredShifts++;
+              caregiversWithShiftsThisWeek.add(d.caregiverId);
+              caregiverWeekShifts[d.caregiverId] = (caregiverWeekShifts[d.caregiverId] || 0) + 1;
             }
-          }
-          if (d.caregiverId) {
-            caregiversWithShiftsThisWeek.add(d.caregiverId);
-            caregiverWeekShifts[d.caregiverId] = (caregiverWeekShifts[d.caregiverId] || 0) + 1;
           }
         }
       });
