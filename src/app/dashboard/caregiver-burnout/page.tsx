@@ -362,14 +362,22 @@ export default function CaregiverBurnoutPage() {
                   <TrendingUp className="h-5 w-5" />
                   Recommendations
                 </h4>
-                <ul className="space-y-2 text-sm text-purple-800 dark:text-purple-200">
-                  {selectedAssessment.recommendations.map((rec, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-purple-600 dark:text-purple-400 mt-0.5">•</span>
-                      <span>{rec}</span>
-                    </li>
-                  ))}
-                </ul>
+                {selectedAssessment.recommendations?.length > 0 ? (
+                  <ul className="space-y-2 text-sm text-purple-800 dark:text-purple-200">
+                    {selectedAssessment.recommendations.map((rec, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="text-purple-600 dark:text-purple-400 mt-0.5">•</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-purple-700 dark:text-purple-300">
+                    {selectedAssessment.burnoutRisk === 'low'
+                      ? 'No recommendations needed - workload is healthy.'
+                      : 'Review workload distribution and consider scheduling a check-in meeting.'}
+                  </p>
+                )}
               </Card>
 
               {/* Action Buttons */}

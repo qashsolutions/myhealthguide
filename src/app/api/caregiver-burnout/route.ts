@@ -70,7 +70,25 @@ export async function GET(request: NextRequest) {
         const userDoc = await db.collection('users').doc(cid).get();
         if (userDoc.exists) {
           const data = userDoc.data();
-          caregiverNameMap.set(cid, data?.name || data?.displayName || `Caregiver ${cid.substring(0, 8)}`);
+          // Try multiple name fields: firstName+lastName, name, displayName, email prefix
+          let name = '';
+          if (data?.firstName || data?.lastName) {
+            name = [data.firstName, data.lastName].filter(Boolean).join(' ').trim();
+          }
+          if (!name && data?.name) {
+            name = data.name;
+          }
+          if (!name && data?.displayName) {
+            name = data.displayName;
+          }
+          if (!name && data?.email) {
+            // Extract name from email like "ramanac+c1@gmail.com" -> "Caregiver 1"
+            const emailMatch = data.email.match(/\+c(\d+)@/);
+            if (emailMatch) {
+              name = `Caregiver ${emailMatch[1]}`;
+            }
+          }
+          caregiverNameMap.set(cid, name || `Caregiver ${cid.substring(0, 8)}`);
         }
       } catch (e) {
         console.warn(`Could not fetch name for caregiver ${cid}`);
@@ -571,7 +589,9 @@ async function assessCaregiverBurnoutWithAI(
       burnoutRisk: aiPrediction.burnoutRisk,
       riskScore: aiPrediction.riskScore,
       factors,
-      recommendations: aiPrediction.interventions.map(i => `[${i.urgency.toUpperCase()}] ${i.description}`),
+      recommendations: aiPrediction.interventions?.length > 0
+        ? aiPrediction.interventions.map(i => `[${i.urgency.toUpperCase()}] ${i.description}`)
+        : generateBurnoutRecommendations(factors, workload),
       alertGenerated: aiPrediction.riskScore >= 60,
       alertId: undefined,
       reviewedBy: undefined,
