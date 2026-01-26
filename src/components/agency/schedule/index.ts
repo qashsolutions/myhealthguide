@@ -7,3 +7,4 @@ export type { ScheduleTabType } from './ScheduleTabs';
 export { WeekSummaryTab } from './WeekSummaryTab';
 export { ByCaregiverTab } from './ByCaregiverTab';
 export { GapsOnlyTab } from './GapsOnlyTab';
+export { CopyWeekSheet } from './CopyWeekSheet';

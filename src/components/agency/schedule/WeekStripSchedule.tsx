@@ -27,7 +27,7 @@ import {
   startOfWeek,
   eachDayOfInterval,
 } from 'date-fns';
-import { Plus, Calendar, Loader2, X, User, Clock } from 'lucide-react';
+import { Plus, Calendar, Loader2, X, User, Clock, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ScheduledShift } from '@/types';
 
@@ -38,6 +38,7 @@ import { ScheduleTabs, type ScheduleTabType } from './ScheduleTabs';
 import { WeekSummaryTab } from './WeekSummaryTab';
 import { ByCaregiverTab } from './ByCaregiverTab';
 import { GapsOnlyTab } from './GapsOnlyTab';
+import { CopyWeekSheet } from './CopyWeekSheet';
 
 interface WeekStripScheduleProps {
   agencyId: string;
@@ -95,6 +96,9 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [assigningCaregiverId, setAssigningCaregiverId] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
+
+  // Copy week sheet state
+  const [showCopySheet, setShowCopySheet] = useState(false);
 
   // Refs for scrolling to elements
   const dayRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
@@ -643,6 +647,22 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
         gapsCount={totalGaps}
       />
 
+      {/* Week Actions Bar - Super Admin only */}
+      {userIsSuperAdmin && (
+        <div className="flex items-center justify-between px-1">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {format(weekStart, 'MMM d')} – {format(addDays(weekStart, 6), 'MMM d, yyyy')}
+          </div>
+          <button
+            onClick={() => setShowCopySheet(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+          >
+            <Copy className="w-4 h-4" />
+            Copy Week
+          </button>
+        </div>
+      )}
+
       {/* Tab Content */}
       {activeTab === 'summary' && (
         <WeekSummaryTab
@@ -852,6 +872,19 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
           </div>
         </>
       )}
+
+      {/* Copy Week Sheet */}
+      <CopyWeekSheet
+        agencyId={agencyId}
+        userId={userId}
+        targetWeekStart={weekStart}
+        isOpen={showCopySheet}
+        onClose={() => setShowCopySheet(false)}
+        onSuccess={() => {
+          setShowCopySheet(false);
+          // Shifts will automatically update via real-time listener
+        }}
+      />
     </div>
   );
 }
