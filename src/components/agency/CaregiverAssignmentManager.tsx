@@ -23,10 +23,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { UserPlus, X, AlertCircle, Users, AlertTriangle, CheckCircle2, User } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
-import { GroupService } from '@/lib/firebase/groups';
-import { db } from '@/lib/firebase/config';
+import { db, auth } from '@/lib/firebase/config';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { CaregiverAssignment, Elder, GroupMember } from '@/types';
+import { CaregiverAssignment, Elder } from '@/types';
 import { Checkbox } from '@/components/ui/checkbox';
 
 interface CaregiverAssignmentManagerProps {
@@ -42,7 +41,7 @@ export function CaregiverAssignmentManager({
 }: CaregiverAssignmentManagerProps) {
   const [assignments, setAssignments] = useState<CaregiverAssignment[]>([]);
   const [elders, setElders] = useState<Elder[]>([]);
-  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [caregiverIds, setCaregiverIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -111,27 +110,32 @@ export function CaregiverAssignmentManager({
       }
       setElders(allElders);
 
-      // Get group members (caregivers) from the first group for now
-      // TODO: In future, get caregivers from all groups or agency-level
-      const group = await GroupService.getGroup(groupId);
-      if (group) {
-        const caregivers = group.members.filter(m => m.userId !== group.adminId);
-        setGroupMembers(caregivers);
+      // Get caregivers from agency and fetch names via API (same as Scheduling tab)
+      const agencyCaregiverIds: string[] = agencyData?.caregiverIds || [];
+      setCaregiverIds(agencyCaregiverIds);
 
-        // Fetch actual names from users collection
-        const namesMap: Record<string, string> = {};
-        for (const caregiver of caregivers) {
-          try {
-            const userDoc = await getDoc(doc(db, 'users', caregiver.userId));
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              namesMap[caregiver.userId] = userData.displayName || userData.name || userData.email?.split('@')[0] || `Caregiver`;
+      if (agencyCaregiverIds.length > 0) {
+        // Fetch names via API
+        try {
+          const token = await auth.currentUser?.getIdToken();
+          const response = await fetch('/api/agency/caregiver-names', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ userIds: agencyCaregiverIds, agencyId }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.names) {
+              setCaregiverNames(data.names);
             }
-          } catch (e) {
-            console.error('Error fetching caregiver name:', e);
           }
+        } catch (e) {
+          console.error('Error fetching caregiver names:', e);
         }
-        setCaregiverNames(namesMap);
       }
     } catch (err: any) {
       console.error('Error loading assignment data:', err);
@@ -437,11 +441,11 @@ export function CaregiverAssignmentManager({
                         <SelectValue placeholder="Choose a caregiver..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {groupMembers.map(member => {
-                          const assignedCount = getAssignedEldersCount(member.userId);
+                        {caregiverIds.map(id => {
+                          const assignedCount = getAssignedEldersCount(id);
                           return (
-                            <SelectItem key={member.userId} value={member.userId}>
-                              {getCaregiverName(member.userId)} ({assignedCount} loved ones assigned)
+                            <SelectItem key={id} value={id}>
+                              {getCaregiverName(id)} ({assignedCount} loved ones assigned)
                             </SelectItem>
                           );
                         })}
