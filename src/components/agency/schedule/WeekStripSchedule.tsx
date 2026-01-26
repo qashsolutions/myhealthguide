@@ -34,6 +34,8 @@ import type { ScheduledShift } from '@/types';
 import { ScheduleAlertsBanner } from './ScheduleAlertsBanner';
 import { WeekStrip } from './WeekStrip';
 import { DayShiftList } from './DayShiftList';
+import { ScheduleTabs, type ScheduleTabType } from './ScheduleTabs';
+import { WeekSummaryTab } from './WeekSummaryTab';
 
 interface WeekStripScheduleProps {
   agencyId: string;
@@ -71,6 +73,9 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
   });
   const [confirmingShiftId, setConfirmingShiftId] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  // Tab state - default to Week Summary
+  const [activeTab, setActiveTab] = useState<ScheduleTabType>('summary');
 
   // Elders for gap detection
   const [elders, setElders] = useState<
@@ -450,6 +455,53 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     setAssignError(null);
   }, []);
 
+  // Handle caregiver click from Week Summary - switch to By Caregiver tab (future)
+  const handleCaregiverClick = useCallback((caregiverId: string) => {
+    console.log('Caregiver clicked:', caregiverId);
+    // In Phase 3, this will switch to 'caregiver' tab and scroll to the caregiver
+    // setActiveTab('caregiver');
+  }, []);
+
+  // Handle elder click from Week Summary - switch to By Elder tab
+  const handleElderClick = useCallback((elderId: string) => {
+    console.log('Elder clicked:', elderId);
+    // In future, could filter By Elder view to show specific elder
+    setActiveTab('elder');
+  }, []);
+
+  // Handle cell click from Week Summary - open assign sheet for gap
+  const handleSummaryCellClick = useCallback((elderId: string, date: Date) => {
+    const elder = elders.find((e) => e.id === elderId);
+    if (!elder) return;
+
+    // Create a gap object for the assignment sheet
+    const gap: Gap = {
+      shiftId: '',
+      elderId,
+      elderName: elder.name,
+      date,
+      startTime: '09:00',
+      endTime: '17:00',
+    };
+
+    // Check if there's an existing unfilled shift for this elder on this date
+    const existingShift = shifts.find(
+      (s) =>
+        s.elderId === elderId &&
+        s.date &&
+        isSameDay(s.date, date) &&
+        (s.status === 'unfilled' || !s.caregiverId)
+    );
+
+    if (existingShift) {
+      gap.shiftId = existingShift.id;
+      gap.startTime = existingShift.startTime || '09:00';
+      gap.endTime = existingShift.endTime || '17:00';
+    }
+
+    handleAssignGap(gap);
+  }, [elders, shifts, handleAssignGap]);
+
   // Assign caregiver to shift
   const handleAssignCaregiver = useCallback(async (caregiverId: string) => {
     if (!assigningGap) return;
@@ -535,51 +587,100 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
         </div>
       )}
 
-      {/* Week Strip */}
-      <WeekStrip
-        weekStart={weekStart}
-        shifts={shifts}
-        expectedShiftsPerDay={expectedShiftsPerDay}
-        selectedDate={selectedDate}
-        onDateSelect={handleDateSelect}
-        onWeekChange={handleWeekChange}
+      {/* Tab Navigation */}
+      <ScheduleTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        gapsCount={totalGaps}
       />
 
-      {/* Day Sections */}
-      <div className="space-y-3">
-        {weekDays.map((day) => {
-          const dateKey = format(day, 'yyyy-MM-dd');
-          const dayShifts = shiftsByDate.get(dateKey) || [];
-          const dayGaps = gapsByDate.get(dateKey) || [];
-          const isExpanded = expandedDays.has(dateKey);
+      {/* Tab Content */}
+      {activeTab === 'summary' && (
+        <WeekSummaryTab
+          weekStart={weekStart}
+          weekDays={weekDays}
+          shifts={shifts}
+          caregivers={caregivers}
+          elders={elders}
+          onCellClick={handleSummaryCellClick}
+          onCaregiverClick={handleCaregiverClick}
+          onElderClick={handleElderClick}
+        />
+      )}
 
-          return (
-            <div
-              key={dateKey}
-              ref={(el) => {
-                dayRefs.current.set(dateKey, el);
-              }}
-            >
-              <DayShiftList
-                date={day}
-                shifts={dayShifts}
-                gaps={dayGaps}
-                isExpanded={isExpanded}
-                onToggle={() => toggleDay(dateKey)}
-                onAddShift={() => handleAddShift(day)}
-                onShiftClick={handleShiftClick}
-                onMarkConfirmed={handleMarkConfirmed}
-                onAssignGap={handleAssignGap}
-                confirmingShiftId={confirmingShiftId}
-                isSuperAdmin={userIsSuperAdmin}
-              />
-            </div>
-          );
-        })}
-      </div>
+      {activeTab === 'elder' && (
+        <>
+          {/* Week Strip */}
+          <WeekStrip
+            weekStart={weekStart}
+            shifts={shifts}
+            expectedShiftsPerDay={expectedShiftsPerDay}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            onWeekChange={handleWeekChange}
+          />
 
-      {/* Empty state */}
-      {shifts.length === 0 && (
+          {/* Day Sections */}
+          <div className="space-y-3">
+            {weekDays.map((day) => {
+              const dateKey = format(day, 'yyyy-MM-dd');
+              const dayShifts = shiftsByDate.get(dateKey) || [];
+              const dayGaps = gapsByDate.get(dateKey) || [];
+              const isExpanded = expandedDays.has(dateKey);
+
+              return (
+                <div
+                  key={dateKey}
+                  ref={(el) => {
+                    dayRefs.current.set(dateKey, el);
+                  }}
+                >
+                  <DayShiftList
+                    date={day}
+                    shifts={dayShifts}
+                    gaps={dayGaps}
+                    isExpanded={isExpanded}
+                    onToggle={() => toggleDay(dateKey)}
+                    onAddShift={() => handleAddShift(day)}
+                    onShiftClick={handleShiftClick}
+                    onMarkConfirmed={handleMarkConfirmed}
+                    onAssignGap={handleAssignGap}
+                    confirmingShiftId={confirmingShiftId}
+                    isSuperAdmin={userIsSuperAdmin}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'caregiver' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <User className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
+            By Caregiver View
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Coming in Phase 3 - Grouped list by caregiver
+          </p>
+        </div>
+      )}
+
+      {activeTab === 'gaps' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
+            Gaps Only View
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Coming in Phase 5 - Filtered list of unfilled shifts
+          </p>
+        </div>
+      )}
+
+      {/* Empty state - only show on elder tab */}
+      {activeTab === 'elder' && shifts.length === 0 && (
         <div className="text-center py-12">
           <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
