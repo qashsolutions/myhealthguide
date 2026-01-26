@@ -19,6 +19,7 @@ interface Gap {
   shiftId: string;
   elderId: string;
   elderName: string;
+  groupId: string;
   date: Date;
   startTime: string;
   endTime: string;
@@ -291,6 +292,7 @@ export function DayShiftList({
                             shiftId: shift.id,
                             elderId: shift.elderId,
                             elderName: shift.elderName,
+                            groupId: shift.groupId,
                             date: shift.date,
                             startTime: shift.startTime,
                             endTime: shift.endTime,

@@ -12,7 +12,7 @@ interface ByCaregiverTabProps {
   shifts: ScheduledShift[];
   caregivers: { id: string; name: string }[];
   onShiftClick: (shift: ScheduledShift) => void;
-  onAssignGap?: (gap: { shiftId: string; elderId: string; elderName: string; date: Date; startTime: string; endTime: string }) => void;
+  onAssignGap?: (gap: { shiftId: string; elderId: string; elderName: string; groupId: string; date: Date; startTime: string; endTime: string }) => void;
 }
 
 // Status badge config
@@ -422,6 +422,7 @@ export function ByCaregiverTab({
                                 shiftId: shift.id,
                                 elderId: shift.elderId,
                                 elderName: shift.elderName,
+                                groupId: shift.groupId,
                                 date: shift.date!,
                                 startTime: shift.startTime,
                                 endTime: shift.endTime,

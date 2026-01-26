@@ -37,6 +37,7 @@ import { DayShiftList } from './DayShiftList';
 import { ScheduleTabs, type ScheduleTabType } from './ScheduleTabs';
 import { WeekSummaryTab } from './WeekSummaryTab';
 import { ByCaregiverTab } from './ByCaregiverTab';
+import { GapsOnlyTab } from './GapsOnlyTab';
 
 interface WeekStripScheduleProps {
   agencyId: string;
@@ -47,6 +48,7 @@ interface Gap {
   shiftId: string;
   elderId: string;
   elderName: string;
+  groupId: string;
   date: Date;
   startTime: string;
   endTime: string;
@@ -298,6 +300,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
             shiftId: s.id,
             elderId: s.elderId,
             elderName: s.elderName,
+            groupId: s.groupId,
             date: s.date,
             startTime: s.startTime,
             endTime: s.endTime,
@@ -313,6 +316,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
               shiftId: '', // No shift exists yet
               elderId: elder.id,
               elderName: elder.name,
+              groupId: elder.groupId,
               date: day,
               startTime: '09:00', // Default time
               endTime: '17:00',
@@ -479,6 +483,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       shiftId: '',
       elderId,
       elderName: elder.name,
+      groupId: elder.groupId,
       date,
       startTime: '09:00',
       endTime: '17:00',
@@ -561,6 +566,50 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       setAssigningCaregiverId(null);
     }
   }, [assigningGap, caregivers, elders, agencyId, userId]);
+
+  // Bulk assign multiple gaps to a caregiver
+  const handleBulkAssign = useCallback(async (
+    gaps: Gap[],
+    caregiverId: string,
+    caregiverName: string
+  ) => {
+    const { addDoc, Timestamp } = await import('firebase/firestore');
+
+    for (const gap of gaps) {
+      const elder = elders.find((e) => e.id === gap.elderId);
+
+      if (gap.shiftId) {
+        // Update existing shift
+        const shiftRef = doc(db, 'scheduledShifts', gap.shiftId);
+        await updateDoc(shiftRef, {
+          caregiverId,
+          caregiverName,
+          status: 'scheduled',
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        // Create new shift
+        const newShift = {
+          agencyId,
+          groupId: elder?.groupId || gap.groupId || '',
+          elderId: gap.elderId,
+          elderName: gap.elderName,
+          caregiverId,
+          caregiverName,
+          date: Timestamp.fromDate(gap.date),
+          startTime: gap.startTime,
+          endTime: gap.endTime,
+          duration: 480,
+          status: 'scheduled',
+          isRecurring: false,
+          createdBy: userId,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+        await addDoc(collection(db, 'scheduledShifts'), newShift);
+      }
+    }
+  }, [elders, agencyId, userId]);
 
   if (loading) {
     return (
@@ -667,15 +716,15 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       )}
 
       {activeTab === 'gaps' && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-          <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-            Gaps Only View
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Coming in Phase 5 - Filtered list of unfilled shifts
-          </p>
-        </div>
+        <GapsOnlyTab
+          weekStart={weekStart}
+          weekDays={weekDays}
+          shifts={shifts}
+          elders={elders}
+          caregivers={caregivers}
+          onAssignGap={handleAssignGap}
+          onBulkAssign={handleBulkAssign}
+        />
       )}
 
       {/* Empty state - only show on elder tab */}
