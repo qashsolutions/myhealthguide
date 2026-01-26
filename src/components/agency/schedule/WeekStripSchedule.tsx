@@ -91,11 +91,11 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
   // Refs for scrolling to elements
   const dayRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
-  // Fetch elders and caregivers for agency
+  // Fetch elders for agency
   useEffect(() => {
     if (!agencyId) return;
 
-    const fetchData = async () => {
+    const fetchElders = async () => {
       try {
         const agencyDoc = await getDoc(doc(db, 'agencies', agencyId));
         if (!agencyDoc.exists()) return;
@@ -122,27 +122,60 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
           });
         }
         setElders(allElders);
-
-        // Fetch caregivers
-        const caregiverIds: string[] = agencyData?.caregiverIds || [];
-        const caregiverList: Caregiver[] = [];
-        for (const cId of caregiverIds) {
-          const userDoc = await getDoc(doc(db, 'users', cId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            caregiverList.push({
-              id: cId,
-              name: userData.name || userData.displayName || userData.email || 'Unknown',
-            });
-          }
-        }
-        setCaregivers(caregiverList);
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching elders:', err);
       }
     };
 
-    fetchData();
+    fetchElders();
+  }, [agencyId]);
+
+  // Fetch caregivers via API (uses Admin SDK to bypass security rules)
+  useEffect(() => {
+    if (!agencyId) return;
+
+    const fetchCaregivers = async () => {
+      try {
+        const agencyDoc = await getDoc(doc(db, 'agencies', agencyId));
+        if (!agencyDoc.exists()) return;
+
+        const caregiverIds: string[] = agencyDoc.data()?.caregiverIds || [];
+        if (caregiverIds.length === 0) {
+          setCaregivers([]);
+          return;
+        }
+
+        const token = await auth.currentUser?.getIdToken();
+        const response = await fetch('/api/agency/caregiver-names', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ userIds: caregiverIds, agencyId }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.caregivers) {
+            setCaregivers(
+              data.caregivers.map((c: { id: string; name: string }) => ({
+                id: c.id,
+                name: c.name,
+              }))
+            );
+          }
+        } else {
+          // Fallback: use IDs as names
+          console.warn('Failed to fetch caregiver names, using IDs');
+          setCaregivers(caregiverIds.map((id) => ({ id, name: id })));
+        }
+      } catch (err) {
+        console.error('Error fetching caregivers:', err);
+      }
+    };
+
+    fetchCaregivers();
   }, [agencyId]);
 
   // Real-time listener for shifts
