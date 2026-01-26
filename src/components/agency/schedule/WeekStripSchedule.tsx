@@ -27,7 +27,7 @@ import {
   startOfWeek,
   eachDayOfInterval,
 } from 'date-fns';
-import { Plus, Calendar, Loader2 } from 'lucide-react';
+import { Plus, Calendar, Loader2, X, User, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ScheduledShift } from '@/types';
 
@@ -41,8 +41,17 @@ interface WeekStripScheduleProps {
 }
 
 interface Gap {
+  shiftId: string;
   elderId: string;
   elderName: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+}
+
+interface Caregiver {
+  id: string;
+  name: string;
 }
 
 export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) {
@@ -72,19 +81,27 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
   const [showCreateSheet, setShowCreateSheet] = useState(false);
   const [createShiftDate, setCreateShiftDate] = useState<Date | null>(null);
 
+  // Assign caregiver sheet state
+  const [showAssignSheet, setShowAssignSheet] = useState(false);
+  const [assigningGap, setAssigningGap] = useState<Gap | null>(null);
+  const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
+  const [assigningCaregiverId, setAssigningCaregiverId] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
   // Refs for scrolling to elements
   const dayRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
-  // Fetch elders for agency
+  // Fetch elders and caregivers for agency
   useEffect(() => {
     if (!agencyId) return;
 
-    const fetchElders = async () => {
+    const fetchData = async () => {
       try {
         const agencyDoc = await getDoc(doc(db, 'agencies', agencyId));
         if (!agencyDoc.exists()) return;
 
-        const groupIds: string[] = agencyDoc.data()?.groupIds || [];
+        const agencyData = agencyDoc.data();
+        const groupIds: string[] = agencyData?.groupIds || [];
         const allElders: { id: string; name: string; groupId: string }[] = [];
 
         for (const gId of groupIds) {
@@ -105,12 +122,27 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
           });
         }
         setElders(allElders);
+
+        // Fetch caregivers
+        const caregiverIds: string[] = agencyData?.caregiverIds || [];
+        const caregiverList: Caregiver[] = [];
+        for (const cId of caregiverIds) {
+          const userDoc = await getDoc(doc(db, 'users', cId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            caregiverList.push({
+              id: cId,
+              name: userData.name || userData.displayName || userData.email || 'Unknown',
+            });
+          }
+        }
+        setCaregivers(caregiverList);
       } catch (err) {
-        console.error('Error fetching elders:', err);
+        console.error('Error fetching data:', err);
       }
     };
 
-    fetchElders();
+    fetchData();
   }, [agencyId]);
 
   // Real-time listener for shifts
@@ -208,39 +240,26 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     return map;
   }, [weekDays, shiftsByDate]);
 
-  // Compute gaps per day (elders without coverage)
+  // Compute gaps per day (unfilled shifts)
   const gapsByDate = useMemo(() => {
     const map = new Map<string, Gap[]>();
     weekDays.forEach((day) => {
       const dateKey = format(day, 'yyyy-MM-dd');
       const dayShifts = shiftsByDate.get(dateKey) || [];
 
-      // Get elders with active shifts (non-cancelled)
-      const coveredElderIds = new Set(
-        dayShifts
-          .filter(
-            (s) =>
-              s.caregiverId &&
-              !['cancelled', 'declined', 'unfilled'].includes(s.status)
-          )
-          .map((s) => s.elderId)
-      );
-
-      // Find elders that have unfilled shifts on this day
+      // Find shifts that are unfilled (no caregiver assigned)
       const unfilledGaps = dayShifts
         .filter((s) => s.status === 'unfilled' || (!s.caregiverId && s.status !== 'offered'))
         .map((s) => ({
+          shiftId: s.id,
           elderId: s.elderId,
           elderName: s.elderName,
+          date: s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
         }));
 
-      // Remove duplicates
-      const uniqueGaps = unfilledGaps.filter(
-        (gap, idx, arr) =>
-          arr.findIndex((g) => g.elderId === gap.elderId) === idx
-      );
-
-      map.set(dateKey, uniqueGaps);
+      map.set(dateKey, unfilledGaps);
     });
     return map;
   }, [weekDays, shiftsByDate]);
@@ -368,11 +387,46 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     console.log('Shift clicked:', shift.id);
   }, []);
 
-  // Handle assign gap
-  const handleAssignGap = useCallback((elderId: string) => {
-    // For now, just log. Could open create shift dialog with elder pre-selected
-    console.log('Assign gap for elder:', elderId);
+  // Handle assign gap - open assignment sheet
+  const handleAssignGap = useCallback((gap: Gap) => {
+    setAssigningGap(gap);
+    setShowAssignSheet(true);
+    setAssignError(null);
   }, []);
+
+  // Assign caregiver to shift
+  const handleAssignCaregiver = useCallback(async (caregiverId: string) => {
+    if (!assigningGap) return;
+
+    setAssignError(null);
+    setAssigningCaregiverId(caregiverId);
+
+    try {
+      const caregiver = caregivers.find((c) => c.id === caregiverId);
+      if (!caregiver) {
+        setAssignError('Caregiver not found');
+        return;
+      }
+
+      // Update the shift with the caregiver
+      const shiftRef = doc(db, 'scheduledShifts', assigningGap.shiftId);
+      await updateDoc(shiftRef, {
+        caregiverId: caregiverId,
+        caregiverName: caregiver.name,
+        status: 'scheduled',
+        updatedAt: serverTimestamp(),
+      });
+
+      // Close sheet
+      setShowAssignSheet(false);
+      setAssigningGap(null);
+    } catch (err) {
+      console.error('Error assigning caregiver:', err);
+      setAssignError('Failed to assign caregiver. Please try again.');
+    } finally {
+      setAssigningCaregiverId(null);
+    }
+  }, [assigningGap, caregivers]);
 
   if (loading) {
     return (
@@ -464,6 +518,108 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
         >
           <Plus className="w-6 h-6" />
         </button>
+      )}
+
+      {/* Assign Caregiver Bottom Sheet */}
+      {showAssignSheet && assigningGap && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            onClick={() => {
+              setShowAssignSheet(false);
+              setAssigningGap(null);
+            }}
+          />
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-gray-900 rounded-t-2xl shadow-xl max-h-[80vh] flex flex-col animate-in slide-in-from-bottom duration-200">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Assign Caregiver
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {assigningGap.elderName} • {format(assigningGap.date, 'EEE, MMM d')}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAssignSheet(false);
+                  setAssigningGap(null);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Shift Info */}
+            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <Clock className="w-4 h-4" />
+                <span>
+                  {assigningGap.startTime} - {assigningGap.endTime}
+                </span>
+              </div>
+            </div>
+
+            {/* Error */}
+            {assignError && (
+              <div className="mx-4 mt-3 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300">
+                {assignError}
+              </div>
+            )}
+
+            {/* Caregiver List */}
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+              {caregivers.length === 0 ? (
+                <div className="text-center py-8">
+                  <User className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No caregivers available
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {caregivers.map((caregiver) => {
+                    const isAssigning = assigningCaregiverId === caregiver.id;
+                    return (
+                      <button
+                        key={caregiver.id}
+                        onClick={() => handleAssignCaregiver(caregiver.id)}
+                        disabled={!!assigningCaregiverId}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors text-left',
+                          isAssigning
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
+                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750',
+                          assigningCaregiverId && !isAssigning && 'opacity-50'
+                        )}
+                      >
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {caregiver.name}
+                          </p>
+                        </div>
+                        {isAssigning && (
+                          <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

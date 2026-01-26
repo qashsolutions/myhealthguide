@@ -16,8 +16,12 @@ import { cn } from '@/lib/utils';
 import type { ScheduledShift } from '@/types';
 
 interface Gap {
+  shiftId: string;
   elderId: string;
   elderName: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
 }
 
 interface DayShiftListProps {
@@ -29,7 +33,7 @@ interface DayShiftListProps {
   onAddShift: () => void;
   onShiftClick: (shift: ScheduledShift) => void;
   onMarkConfirmed: (shiftId: string) => void;
-  onAssignGap: (elderId: string) => void;
+  onAssignGap: (gap: Gap) => void;
   confirmingShiftId: string | null;
   isSuperAdmin: boolean;
 }
@@ -371,7 +375,7 @@ export function DayShiftList({
                   {/* Assign button */}
                   {isSuperAdmin && (
                     <button
-                      onClick={() => onAssignGap(gap.elderId)}
+                      onClick={() => onAssignGap(gap)}
                       className={cn(
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                         'bg-red-600 text-white hover:bg-red-700 active:scale-[0.98]'
