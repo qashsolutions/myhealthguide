@@ -513,12 +513,98 @@ Return a JSON object with this exact structure:
     riskScore += Math.min(20, (data.uniqueEldersCount - 2) * 10);
     riskScore += Math.min(25, Math.max(0, data.averageShiftLength - 8) * 8);
 
+    // Build factors based on workload analysis
+    const factors: AIBurnoutPrediction['factors'] = [];
+    const interventions: AIBurnoutPrediction['interventions'] = [];
+
+    // Overtime factor
+    if (data.overtimeHours > 10) {
+      const severity = data.overtimeHours > 20 ? 'high' : 'moderate';
+      factors.push({
+        type: 'overtime',
+        severity,
+        description: `${Math.round(data.overtimeHours)} overtime hours in ${data.periodDays} days`,
+        contribution: severity === 'high' ? 30 : 20,
+        trend: 'stable',
+      });
+      interventions.push({
+        type: 'schedule_adjustment',
+        description: 'Reduce overtime by redistributing shifts to other caregivers',
+        urgency: severity === 'high' ? 'immediate' : 'soon',
+        expectedBenefit: 'Reduce weekly hours to sustainable 40-hour threshold',
+      });
+    }
+
+    // Consecutive days factor
+    if (data.consecutiveDaysWorked >= 7) {
+      const severity = data.consecutiveDaysWorked >= 10 ? 'high' : 'moderate';
+      factors.push({
+        type: 'consecutive_days',
+        severity,
+        description: `${data.consecutiveDaysWorked} consecutive days worked without a break`,
+        contribution: severity === 'high' ? 25 : 15,
+        trend: 'stable',
+      });
+      interventions.push({
+        type: 'mandatory_rest',
+        description: 'Schedule mandatory 2 consecutive days off within the next week',
+        urgency: severity === 'high' ? 'immediate' : 'soon',
+        expectedBenefit: 'Allow physical and mental recovery to prevent burnout',
+      });
+    }
+
+    // Elder count factor
+    if (data.uniqueEldersCount > 3) {
+      const severity = data.uniqueEldersCount > 5 ? 'high' : 'moderate';
+      factors.push({
+        type: 'elder_count',
+        severity,
+        description: `Caring for ${data.uniqueEldersCount} different elders`,
+        contribution: severity === 'high' ? 20 : 10,
+        trend: 'stable',
+      });
+      interventions.push({
+        type: 'workload_redistribution',
+        description: 'Reduce assigned elders to maximum 3 per caregiver',
+        urgency: 'soon',
+        expectedBenefit: 'Lower cognitive load and improve care quality',
+      });
+    }
+
+    // Shift length factor
+    if (data.averageShiftLength > 10) {
+      const severity = data.averageShiftLength > 12 ? 'high' : 'moderate';
+      factors.push({
+        type: 'shift_length',
+        severity,
+        description: `Average shift length of ${data.averageShiftLength.toFixed(1)} hours`,
+        contribution: severity === 'high' ? 15 : 10,
+        trend: 'stable',
+      });
+      interventions.push({
+        type: 'schedule_adjustment',
+        description: 'Limit shifts to 8-10 hours maximum with adequate breaks',
+        urgency: 'soon',
+        expectedBenefit: 'Reduce fatigue and maintain alertness during care',
+      });
+    }
+
+    // Always add wellness check for moderate+ risk
+    if (riskScore >= 30) {
+      interventions.push({
+        type: 'wellness_check',
+        description: 'Schedule a wellness check-in meeting to discuss workload and stress levels',
+        urgency: riskScore >= 50 ? 'immediate' : 'scheduled',
+        expectedBenefit: 'Early intervention and support before burnout occurs',
+      });
+    }
+
     return {
       burnoutRisk: riskScore >= 70 ? 'critical' : riskScore >= 50 ? 'high' : riskScore >= 30 ? 'moderate' : 'low',
       riskScore: Math.round(riskScore),
       trajectory: 'stable',
       predictedDaysToHighRisk: riskScore < 50 ? null : 14,
-      factors: [],
+      factors,
       personalizedThresholds: {
         lowRisk: 29,
         moderateRisk: 49,
@@ -526,7 +612,7 @@ Return a JSON object with this exact structure:
         criticalRisk: 70,
         reasoning: 'Default thresholds - AI analysis unavailable',
       },
-      interventions: [],
+      interventions,
       workloadAnalysis: {
         sustainabilityScore: Math.max(0, 100 - riskScore),
         optimalHoursPerWeek: 40,
