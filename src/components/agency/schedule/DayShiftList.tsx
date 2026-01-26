@@ -278,11 +278,27 @@ export function DayShiftList({
                     ['pending_confirmation', 'scheduled'].includes(shift.status) &&
                     shift.caregiverId;
                   const isConfirming = confirmingShiftId === shift.id;
+                  // Check if shift is unfilled (needs caregiver assignment)
+                  const isUnfilled = shift.status === 'unfilled' || !shift.caregiverId;
 
                   return (
                     <div
                       key={shift.id}
-                      onClick={() => onShiftClick(shift)}
+                      onClick={() => {
+                        // For unfilled shifts, open the assign caregiver sheet
+                        if (isUnfilled && isSuperAdmin) {
+                          onAssignGap({
+                            shiftId: shift.id,
+                            elderId: shift.elderId,
+                            elderName: shift.elderName,
+                            date: shift.date,
+                            startTime: shift.startTime,
+                            endTime: shift.endTime,
+                          });
+                        } else {
+                          onShiftClick(shift);
+                        }
+                      }}
                       className={cn(
                         'flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
                         'hover:bg-gray-50 dark:hover:bg-gray-800/50'

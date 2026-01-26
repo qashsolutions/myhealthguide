@@ -38,7 +38,7 @@ const gapsByDate = shifts.filter(s => s.status === 'unfilled' || !s.caregiverId)
 
 ---
 
-## Phase 1.5: Click-to-Assign for Unfilled Shifts
+## Phase 1.5: Click-to-Assign for Unfilled Shifts ✅ COMPLETE
 
 **Problem:** Clicking an unfilled shift row does nothing (just logs to console).
 
@@ -85,9 +85,9 @@ onClick={() => {
 - `src/components/agency/schedule/DayShiftList.tsx`
 
 ### Test
-- Click unfilled shift row → Assign Caregiver sheet opens
-- Select caregiver → Shift updated with caregiverId
-- Sheet closes and shift shows as assigned
+- ✅ Click unfilled shift row → Assign Caregiver sheet opens
+- ✅ Select caregiver → Shift updated with caregiverId
+- ✅ Sheet closes and shift shows as assigned
 
 ---
 
@@ -233,7 +233,7 @@ When copying schedule or toggling availability:
 | Phase | Priority | Effort | Dependencies | Status |
 |-------|----------|--------|--------------|--------|
 | 1. Fix Gap Detection | HIGH | Small | None | ✅ DONE |
-| 1.5. Click-to-Assign | HIGH | Small | Phase 1 | 🔲 TODO |
+| 1.5. Click-to-Assign | HIGH | Small | Phase 1 | ✅ DONE |
 | 2. Elder-Centric List | HIGH | Medium | Phase 1.5 | 🔲 TODO |
 | 3. Bulk Assignment | HIGH | Medium | Phase 2 | 🔲 TODO |
 | 4. Copy Last Week | MEDIUM | Medium | Phase 3 | 🔲 TODO |
@@ -262,7 +262,7 @@ This creates:
 
 1. ✅ All 30 elders visible in schedule view (Phase 1 - DONE)
 2. ✅ Accurate gap count per day (Phase 1 - DONE)
-3. 🔲 Click unfilled shift → opens assign sheet (Phase 1.5)
+3. ✅ Click unfilled shift → opens assign sheet (Phase 1.5 - DONE)
 4. 🔲 Bulk select and assign works (Phase 3)
 5. 🔲 Copy last week creates shifts (Phase 4)
 6. 🔲 Caregiver unavailability reflected (Phase 5)
