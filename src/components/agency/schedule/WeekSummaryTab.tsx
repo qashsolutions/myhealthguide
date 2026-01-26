@@ -164,6 +164,9 @@ export function WeekSummaryTab({
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Caregiver Load
           </h3>
+          <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+            # of elders assigned per day
+          </span>
         </div>
 
         <div className="overflow-x-auto">
