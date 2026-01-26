@@ -18,7 +18,7 @@ import {
 import {
   UserPlus,
   Phone,
-  Send,
+  Link as LinkIcon,
   Clock,
   CheckCircle2,
   XCircle,
@@ -40,8 +40,7 @@ interface CaregiverInvite {
   createdAt: string;
   expiresAt: string;
   acceptedAt?: string;
-  smsStatus?: string;
-  testInviteUrl?: string;
+  inviteUrl?: string;
   // User details for accepted invites
   acceptedByName?: string;
   acceptedByEmail?: string;
@@ -77,7 +76,7 @@ export function CaregiverInviteManager({
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/sms/send-invite?agencyId=${agencyId}&superAdminId=${userId}`
+        `/api/agency/caregiver-invite?agencyId=${agencyId}&superAdminId=${userId}`
       );
       const data = await response.json();
       if (data.invites) {
@@ -121,7 +120,7 @@ export function CaregiverInviteManager({
 
     try {
       setSending(true);
-      const response = await fetch('/api/sms/send-invite', {
+      const response = await fetch('/api/agency/caregiver-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,7 +133,7 @@ export function CaregiverInviteManager({
       const data = await response.json();
 
       if (!response.ok) {
-        setPhoneError(data.error || 'Failed to send invite');
+        setPhoneError(data.error || 'Failed to create invite');
         return;
       }
 
@@ -142,9 +141,8 @@ export function CaregiverInviteManager({
       await fetchInvites();
       setPhoneNumber('');
       setDialogOpen(false);
-      // Test invite URL is shown in the invite list with "Open Test Invite" link
     } catch (error) {
-      setPhoneError('Failed to send invite. Please try again.');
+      setPhoneError('Failed to create invite. Please try again.');
     } finally {
       setSending(false);
     }
@@ -154,7 +152,7 @@ export function CaregiverInviteManager({
     if (!selectedInvite) return;
 
     try {
-      const response = await fetch('/api/sms/send-invite', {
+      const response = await fetch('/api/agency/caregiver-invite', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -223,7 +221,7 @@ export function CaregiverInviteManager({
               Invite Caregivers
             </CardTitle>
             <CardDescription className="mt-1">
-              Send SMS invitations to add caregivers to your agency
+              Create invite links to add caregivers to your agency
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -258,7 +256,7 @@ export function CaregiverInviteManager({
             <DialogHeader>
               <DialogTitle>Invite a Caregiver</DialogTitle>
               <DialogDescription>
-                Enter the caregiver&apos;s phone number. They will receive an SMS with a link to sign up and join your agency.
+                Enter the caregiver&apos;s phone number. You&apos;ll get a link to share with them offline.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -290,7 +288,7 @@ export function CaregiverInviteManager({
               </div>
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>Note:</strong> The caregiver must sign up using this phone number to be automatically linked to your agency.
+                  <strong>Note:</strong> The caregiver must verify this phone number during signup to join your agency.
                 </p>
               </div>
             </div>
@@ -312,12 +310,12 @@ export function CaregiverInviteManager({
                 {sending ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Sending...
+                    Creating...
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Invite
+                    <LinkIcon className="w-4 h-4 mr-2" />
+                    Create Invite
                   </>
                 )}
               </Button>
@@ -344,9 +342,9 @@ export function CaregiverInviteManager({
           </div>
         ) : invites.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <Phone className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>No invites sent yet</p>
-            <p className="text-sm">Invite caregivers to join your agency</p>
+            <UserPlus className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>No invites created yet</p>
+            <p className="text-sm">Create invite links to add caregivers to your agency</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -402,9 +400,6 @@ export function CaregiverInviteManager({
                       {/* Status row */}
                       <div className="flex items-center gap-2 pt-1">
                         {getStatusBadge(invite.status, invite.expiresAt)}
-                        {invite.smsStatus === 'test_mode' && (
-                          <span className="text-xs text-gray-500">(SMS not sent)</span>
-                        )}
                         <span className="text-xs text-gray-500">
                           {invite.createdAt
                             ? formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true })
@@ -412,12 +407,12 @@ export function CaregiverInviteManager({
                         </span>
                       </div>
 
-                      {/* Show Copy Link button when SMS was skipped */}
-                      {invite.testInviteUrl && invite.status === 'pending' && (
+                      {/* Show Copy Link and Share buttons for pending invites */}
+                      {invite.inviteUrl && invite.status === 'pending' && (
                         <div className="flex items-center gap-2 mt-2">
                           <button
                             onClick={() => {
-                              navigator.clipboard.writeText(invite.testInviteUrl!);
+                              navigator.clipboard.writeText(invite.inviteUrl!);
                               setCopiedId(invite.id);
                               setTimeout(() => setCopiedId(null), 2000);
                             }}
@@ -445,7 +440,7 @@ export function CaregiverInviteManager({
                               const shareData = {
                                 title: 'Caregiver Invite',
                                 text: 'You\'ve been invited to join as a caregiver. Click the link to sign up:',
-                                url: invite.testInviteUrl!
+                                url: invite.inviteUrl!
                               };
 
                               if (navigator.share && navigator.canShare?.(shareData)) {
@@ -455,7 +450,7 @@ export function CaregiverInviteManager({
                                   // User cancelled
                                 }
                               } else {
-                                navigator.clipboard.writeText(invite.testInviteUrl!);
+                                navigator.clipboard.writeText(invite.inviteUrl!);
                                 setCopiedId(invite.id);
                                 setTimeout(() => setCopiedId(null), 2000);
                               }
