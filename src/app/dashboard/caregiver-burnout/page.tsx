@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw, Brain, Sparkles } from 'lucide-react';
+import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw, Brain } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { CaregiverBurnoutAssessment } from '@/types';
 
@@ -111,12 +111,6 @@ export default function CaregiverBurnoutPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <Users className="h-8 w-8 text-blue-600" />
             Caregiver Burnout Monitoring
-            {useAI && (
-              <span className="inline-flex items-center gap-1 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">
-                <Sparkles className="h-3 w-3" />
-                AI-Powered
-              </span>
-            )}
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Monitor workload metrics and burnout risk for all caregivers
