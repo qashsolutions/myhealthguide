@@ -427,7 +427,7 @@ CAREGIVER WORKLOAD DATA (Last ${data.periodDays} days):
 - Total Hours Worked: ${data.totalHoursWorked}
 - Overtime Hours: ${data.overtimeHours}
 - Consecutive Days Worked: ${data.consecutiveDaysWorked}
-- Number of Elders Cared For: ${data.uniqueEldersCount}
+- Max Elders Managed Concurrently (single day): ${data.uniqueEldersCount}
 - Average Shift Length: ${data.averageShiftLength.toFixed(1)} hours
 
 SHIFT BREAKDOWN:
@@ -553,19 +553,19 @@ Return a JSON object with this exact structure:
       });
     }
 
-    // Elder count factor
+    // Elder count factor - only flag if more than 3 elders concurrently in a single day
     if (data.uniqueEldersCount > 3) {
       const severity = data.uniqueEldersCount > 5 ? 'high' : 'moderate';
       factors.push({
         type: 'elder_count',
         severity,
-        description: `Caring for ${data.uniqueEldersCount} different elders`,
+        description: `Managing ${data.uniqueEldersCount} elders concurrently in a single day`,
         contribution: severity === 'high' ? 20 : 10,
         trend: 'stable',
       });
       interventions.push({
         type: 'workload_redistribution',
-        description: 'Reduce assigned elders to maximum 3 per caregiver',
+        description: 'Reduce assigned elders to maximum 3 per caregiver per day',
         urgency: 'soon',
         expectedBenefit: 'Lower cognitive load and improve care quality',
       });
