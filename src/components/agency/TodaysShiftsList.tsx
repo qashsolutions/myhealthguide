@@ -135,7 +135,7 @@ export function TodaysShiftsList({ shifts, loading }: TodaysShiftsListProps) {
                 <div
                   key={shift.id}
                   className="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  onClick={() => router.push('/dashboard/care-management')}
+                  onClick={() => router.push('/dashboard/agency/schedule')}
                 >
                   <div className="flex-1 min-w-0">
                     <div className={cn(
