@@ -158,7 +158,7 @@ export function TodaysShiftsList({ shifts, loading, onRefresh }: TodaysShiftsLis
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/dashboard/agency?tab=scheduling')}
+              onClick={() => router.push('/dashboard/agency/schedule')}
             >
               <Calendar className="w-4 h-4 mr-2" />
               Create Schedule

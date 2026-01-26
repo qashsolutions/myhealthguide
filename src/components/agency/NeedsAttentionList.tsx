@@ -100,7 +100,7 @@ export function NeedsAttentionList({
       impact: 'Client satisfaction risk',
       type: 'urgent',
       icon: UserX,
-      href: '/dashboard/agency?tab=scheduling',
+      href: '/dashboard/agency/schedule',
       ctaLabel: 'View Schedule',
       rootCause: 'scheduling',
     });
@@ -115,7 +115,7 @@ export function NeedsAttentionList({
       impact: 'Coverage gap risk',
       type: 'warning',
       icon: AlertCircle,
-      href: '/dashboard/agency?tab=scheduling',
+      href: '/dashboard/agency/schedule',
       ctaLabel: 'Confirm Shifts',
       rootCause: 'scheduling',
     });
@@ -157,7 +157,7 @@ export function NeedsAttentionList({
       impact: coverageRatePct < 50 ? 'Critical coverage gap' : 'Coverage below target',
       type: coverageRatePct < 50 ? 'urgent' : 'warning',
       icon: AlertCircle,
-      href: '/dashboard/agency?tab=scheduling',
+      href: '/dashboard/agency/schedule',
       ctaLabel: 'Fix Coverage',
       rootCause: 'scheduling',
     });
@@ -174,7 +174,7 @@ export function NeedsAttentionList({
       impact: isUrgent ? 'Revenue at risk — schedule now' : 'Underutilization',
       type: isUrgent ? 'urgent' : 'info',
       icon: AlertTriangle,
-      href: '/dashboard/agency?tab=scheduling',
+      href: '/dashboard/agency/schedule',
       ctaLabel: 'Create Schedule',
       rootCause: 'scheduling',
     });
@@ -188,7 +188,7 @@ export function NeedsAttentionList({
       impact: 'Coverage gap',
       type: 'warning',
       icon: AlertTriangle,
-      href: '/dashboard/agency?tab=scheduling',
+      href: '/dashboard/agency/schedule',
       ctaLabel: 'Find Replacement',
       rootCause: 'scheduling',
     });

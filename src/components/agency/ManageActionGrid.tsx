@@ -37,7 +37,7 @@ export function ManageActionGrid({
       icon: CalendarPlus,
       label: 'Send Slots',
       tooltip: 'Send Slots',
-      href: '/dashboard/agency?tab=scheduling',
+      href: '/dashboard/agency/schedule',
       disabled: false,
     },
     {
@@ -53,7 +53,7 @@ export function ManageActionGrid({
       icon: Calendar,
       label: 'Create Schedule',
       tooltip: 'Create Schedule',
-      href: '/dashboard/agency?tab=scheduling',
+      href: '/dashboard/agency/schedule',
       disabled: false,
     },
   ];
