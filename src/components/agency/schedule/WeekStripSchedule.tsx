@@ -60,6 +60,19 @@ interface Caregiver {
   name: string;
 }
 
+// Schedule constants
+const MIN_SHIFT_DURATION_MINS = 120; // 2 hours minimum
+const MAX_ELDERS_PER_CAREGIVER_PER_DAY = 3;
+
+// Helper to calculate duration in minutes from start/end times
+function calculateDurationMins(startTime: string, endTime: string): number {
+  const parseTime = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  return parseTime(endTime) - parseTime(startTime);
+}
+
 export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) {
   const { user } = useAuth();
   const userIsSuperAdmin = checkSuperAdmin(user);
@@ -515,6 +528,12 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
   const handleAssignCaregiver = useCallback(async (caregiverId: string) => {
     if (!assigningGap) return;
 
+    // Only agency owner can assign caregivers
+    if (!userIsSuperAdmin) {
+      setAssignError('Only the agency owner can assign caregivers to shifts');
+      return;
+    }
+
     setAssignError(null);
     setAssigningCaregiverId(caregiverId);
 
@@ -522,6 +541,37 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       const caregiver = caregivers.find((c) => c.id === caregiverId);
       if (!caregiver) {
         setAssignError('Caregiver not found');
+        return;
+      }
+
+      // Validate min 2-hour shift duration
+      const duration = calculateDurationMins(assigningGap.startTime, assigningGap.endTime);
+      if (duration < MIN_SHIFT_DURATION_MINS) {
+        setAssignError(`Shift must be at least 2 hours (current: ${duration} mins)`);
+        return;
+      }
+
+      // Check for conflicts (max 3 elders per caregiver per day, availability, double-booking)
+      const token = await auth.currentUser?.getIdToken();
+      const conflictResponse = await fetch('/api/agency/check-conflicts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          caregiverId,
+          agencyId,
+          date: assigningGap.date.toISOString(),
+          startTime: assigningGap.startTime,
+          endTime: assigningGap.endTime,
+          excludeShiftId: assigningGap.shiftId || undefined,
+        }),
+      });
+
+      const conflictData = await conflictResponse.json();
+      if (conflictData.conflict) {
+        setAssignError(conflictData.conflict.message);
         return;
       }
 
@@ -550,7 +600,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
           date: Timestamp.fromDate(assigningGap.date),
           startTime: assigningGap.startTime,
           endTime: assigningGap.endTime,
-          duration: 480, // 8 hours default
+          duration: calculateDurationMins(assigningGap.startTime, assigningGap.endTime),
           status: 'scheduled',
           isRecurring: false,
           createdBy: userId,
@@ -569,7 +619,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     } finally {
       setAssigningCaregiverId(null);
     }
-  }, [assigningGap, caregivers, elders, agencyId, userId]);
+  }, [assigningGap, caregivers, elders, agencyId, userId, userIsSuperAdmin]);
 
   // Bulk assign multiple gaps to a caregiver
   const handleBulkAssign = useCallback(async (
@@ -577,9 +627,41 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     caregiverId: string,
     caregiverName: string
   ) => {
+    // Only agency owner can assign caregivers
+    if (!userIsSuperAdmin) {
+      console.error('Only the agency owner can assign caregivers to shifts');
+      return;
+    }
+
     const { addDoc, Timestamp } = await import('firebase/firestore');
 
-    for (const gap of gaps) {
+    // Filter out gaps with invalid duration (< 2 hours)
+    const validGaps = gaps.filter(gap => {
+      const duration = calculateDurationMins(gap.startTime, gap.endTime);
+      return duration >= MIN_SHIFT_DURATION_MINS;
+    });
+
+    // Track caregiver's load per day (existing + new assignments)
+    // Count existing shifts for this caregiver per day
+    const caregiverDayLoad = new Map<string, number>();
+    shifts
+      .filter(s => s.caregiverId === caregiverId && !['cancelled', 'declined'].includes(s.status))
+      .forEach(s => {
+        if (s.date) {
+          const dateKey = format(s.date, 'yyyy-MM-dd');
+          caregiverDayLoad.set(dateKey, (caregiverDayLoad.get(dateKey) || 0) + 1);
+        }
+      });
+
+    for (const gap of validGaps) {
+      // Check if caregiver is at daily limit
+      const dateKey = format(gap.date, 'yyyy-MM-dd');
+      const currentLoad = caregiverDayLoad.get(dateKey) || 0;
+      if (currentLoad >= MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
+        console.warn(`Skipping ${gap.elderName} on ${dateKey}: caregiver at max load`);
+        continue; // Skip this gap
+      }
+
       const elder = elders.find((e) => e.id === gap.elderId);
 
       if (gap.shiftId) {
@@ -603,7 +685,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
           date: Timestamp.fromDate(gap.date),
           startTime: gap.startTime,
           endTime: gap.endTime,
-          duration: 480,
+          duration: calculateDurationMins(gap.startTime, gap.endTime),
           status: 'scheduled',
           isRecurring: false,
           createdBy: userId,
@@ -612,8 +694,11 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
         };
         await addDoc(collection(db, 'scheduledShifts'), newShift);
       }
+
+      // Update running load count
+      caregiverDayLoad.set(dateKey, currentLoad + 1);
     }
-  }, [elders, agencyId, userId]);
+  }, [elders, agencyId, userId, shifts, userIsSuperAdmin]);
 
   if (loading) {
     return (

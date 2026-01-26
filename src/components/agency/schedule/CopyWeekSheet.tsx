@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { format, startOfWeek, subWeeks } from 'date-fns';
 import { Copy, X, Loader2, Check, AlertTriangle, Calendar, Users, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { isSuperAdmin as checkSuperAdmin } from '@/lib/utils/getUserRole';
 import {
   getLastScheduledWeek,
   getCopyPreview,
@@ -35,6 +37,9 @@ export function CopyWeekSheet({
   onClose,
   onSuccess,
 }: CopyWeekSheetProps) {
+  const { user } = useAuth();
+  const userIsSuperAdmin = checkSuperAdmin(user);
+
   // State
   const [loading, setLoading] = useState(true);
   const [copying, setCopying] = useState(false);
@@ -160,6 +165,12 @@ export function CopyWeekSheet({
   const handleCopy = useCallback(async () => {
     if (!selectedWeek || !agencyId || !userId) return;
 
+    // Only agency owner can copy schedules
+    if (!userIsSuperAdmin) {
+      setError('Only the agency owner can copy schedules');
+      return;
+    }
+
     setCopying(true);
     setError(null);
 
@@ -187,7 +198,7 @@ export function CopyWeekSheet({
     } finally {
       setCopying(false);
     }
-  }, [selectedWeek, agencyId, userId, targetWeekStart, copyAssignments, onSuccess, onClose]);
+  }, [selectedWeek, agencyId, userId, targetWeekStart, copyAssignments, onSuccess, onClose, userIsSuperAdmin]);
 
   if (!isOpen) return null;
 

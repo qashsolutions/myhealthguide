@@ -19,6 +19,9 @@ import {
 import { startOfWeek, endOfWeek, addDays, isSameDay, format } from 'date-fns';
 import type { ScheduledShift } from '@/types';
 
+// Schedule constants
+const MAX_ELDERS_PER_CAREGIVER_PER_DAY = 3;
+
 interface CopyWeekResult {
   success: boolean;
   shiftsCreated: number;
@@ -174,6 +177,20 @@ export async function copyWeekSchedule(
       targetShifts.map(s => `${s.elderId}-${s.date ? format(s.date, 'yyyy-MM-dd') : ''}`)
     );
 
+    // Track caregiver load per day (for 3-elder limit)
+    // Map: caregiverId -> dateKey -> count
+    const caregiverDayLoad = new Map<string, Map<string, number>>();
+    targetShifts.forEach(s => {
+      if (s.caregiverId && s.date) {
+        const dateKey = format(s.date, 'yyyy-MM-dd');
+        if (!caregiverDayLoad.has(s.caregiverId)) {
+          caregiverDayLoad.set(s.caregiverId, new Map());
+        }
+        const dayMap = caregiverDayLoad.get(s.caregiverId)!;
+        dayMap.set(dateKey, (dayMap.get(dateKey) || 0) + 1);
+      }
+    });
+
     // Calculate day offset between weeks
     const dayOffset = Math.round(
       (targetWeekStart.getTime() - sourceWeekStart.getTime()) / (1000 * 60 * 60 * 24)
@@ -195,19 +212,33 @@ export async function copyWeekSchedule(
         continue;
       }
 
+      // Check caregiver's daily load (max 3 elders per day)
+      const dateKey = format(newDate, 'yyyy-MM-dd');
+      let canAssignCaregiver = copyAssignments && sourceShift.caregiverId;
+
+      if (canAssignCaregiver && sourceShift.caregiverId) {
+        const cgDayMap = caregiverDayLoad.get(sourceShift.caregiverId);
+        const currentLoad = cgDayMap?.get(dateKey) || 0;
+        if (currentLoad >= MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
+          // Caregiver at limit - create shift as unfilled
+          canAssignCaregiver = false;
+          errors.push(`${sourceShift.caregiverName} at max load on ${dateKey}, shift for ${sourceShift.elderName} created unfilled`);
+        }
+      }
+
       // Create new shift
       const newShift = {
         agencyId: sourceShift.agencyId,
         groupId: sourceShift.groupId,
         elderId: sourceShift.elderId,
         elderName: sourceShift.elderName,
-        caregiverId: copyAssignments ? sourceShift.caregiverId : '',
-        caregiverName: copyAssignments ? sourceShift.caregiverName : '',
+        caregiverId: canAssignCaregiver ? sourceShift.caregiverId : '',
+        caregiverName: canAssignCaregiver ? sourceShift.caregiverName : '',
         date: Timestamp.fromDate(newDate),
         startTime: sourceShift.startTime,
         endTime: sourceShift.endTime,
         duration: sourceShift.duration,
-        status: copyAssignments && sourceShift.caregiverId ? 'scheduled' : 'unfilled',
+        status: canAssignCaregiver ? 'scheduled' : 'unfilled',
         notes: sourceShift.notes || '',
         isRecurring: false,
         createdBy: userId,
@@ -219,6 +250,15 @@ export async function copyWeekSchedule(
         await addDoc(collection(db, 'scheduledShifts'), newShift);
         shiftsCreated++;
         existingElderDates.add(elderDateKey); // Track to prevent duplicates within batch
+
+        // Update caregiver day load tracking
+        if (canAssignCaregiver && sourceShift.caregiverId) {
+          if (!caregiverDayLoad.has(sourceShift.caregiverId)) {
+            caregiverDayLoad.set(sourceShift.caregiverId, new Map());
+          }
+          const cgDayMap = caregiverDayLoad.get(sourceShift.caregiverId)!;
+          cgDayMap.set(dateKey, (cgDayMap.get(dateKey) || 0) + 1);
+        }
       } catch (err) {
         console.error('Error creating shift:', err);
         errors.push(`Failed to create shift for ${sourceShift.elderName}`);

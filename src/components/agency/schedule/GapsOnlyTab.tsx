@@ -2,9 +2,12 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { format, isSameDay } from 'date-fns';
-import { AlertTriangle, User, Clock, Check, X, Loader2, Users } from 'lucide-react';
+import { AlertTriangle, User, Clock, Check, X, Loader2, Users, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ScheduledShift } from '@/types';
+
+// Schedule constants
+const MAX_ELDERS_PER_CAREGIVER_PER_DAY = 3;
 
 interface Gap {
   shiftId: string;
@@ -189,6 +192,47 @@ export function GapsOnlyTab({
 
     return load;
   }, [caregivers, shifts]);
+
+  // Count caregiver load per day (for 3-elder daily limit check)
+  const caregiverDailyLoad = useMemo(() => {
+    // Map: caregiverId -> dateKey -> count
+    const load = new Map<string, Map<string, number>>();
+    caregivers.forEach((cg) => load.set(cg.id, new Map()));
+
+    shifts.forEach((shift) => {
+      if (!shift.caregiverId || shift.status === 'cancelled' || !shift.date) return;
+      const dateKey = format(shift.date, 'yyyy-MM-dd');
+      const cgMap = load.get(shift.caregiverId);
+      if (cgMap) {
+        cgMap.set(dateKey, (cgMap.get(dateKey) || 0) + 1);
+      }
+    });
+
+    return load;
+  }, [caregivers, shifts]);
+
+  // Check if caregiver would exceed daily limit for selected gaps
+  const wouldExceedDailyLimit = useCallback((caregiverId: string, gaps: Gap[]) => {
+    const cgDayLoad = caregiverDailyLoad.get(caregiverId);
+    if (!cgDayLoad) return false;
+
+    // Count how many gaps are on each day
+    const gapsPerDay = new Map<string, number>();
+    gaps.forEach((gap) => {
+      const dateKey = format(gap.date, 'yyyy-MM-dd');
+      gapsPerDay.set(dateKey, (gapsPerDay.get(dateKey) || 0) + 1);
+    });
+
+    // Check if any day would exceed the limit
+    for (const [dateKey, gapCount] of gapsPerDay) {
+      const currentLoad = cgDayLoad.get(dateKey) || 0;
+      if (currentLoad + gapCount > MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [caregiverDailyLoad]);
 
   if (totalGaps === 0) {
     return (
@@ -451,32 +495,53 @@ export function GapsOnlyTab({
                   {caregivers.map((caregiver) => {
                     const weeklyLoad = caregiverWeeklyLoad.get(caregiver.id) || 0;
                     const newLoad = weeklyLoad + selectedGapObjects.length;
+                    const exceedsLimit = wouldExceedDailyLimit(caregiver.id, selectedGapObjects);
+                    const isDisabled = bulkAssigning || exceedsLimit;
 
                     return (
                       <button
                         key={caregiver.id}
                         onClick={() => handleBulkAssign(caregiver.id, caregiver.name)}
-                        disabled={bulkAssigning}
+                        disabled={isDisabled}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors text-left',
-                          bulkAssigning
+                          isDisabled
                             ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                             : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700'
                         )}
                       >
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <div className={cn(
+                          'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
+                          exceedsLimit
+                            ? 'bg-red-100 dark:bg-red-900/30'
+                            : 'bg-blue-100 dark:bg-blue-900/30'
+                        )}>
+                          {exceedsLimit ? (
+                            <Ban className="w-5 h-5 text-red-600 dark:text-red-400" />
+                          ) : (
+                            <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
                             {caregiver.name}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {weeklyLoad} shifts this week → {newLoad} after assign
-                          </p>
+                          {exceedsLimit ? (
+                            <p className="text-xs text-red-600 dark:text-red-400">
+                              Would exceed 3 elders/day limit
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {weeklyLoad} shifts this week → {newLoad} after assign
+                            </p>
+                          )}
                         </div>
                         {bulkAssigning ? (
                           <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                        ) : exceedsLimit ? (
+                          <div className="px-2 py-1 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-medium">
+                            Max 3/day
+                          </div>
                         ) : (
                           <div className="px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium">
                             +{selectedGapObjects.length}
