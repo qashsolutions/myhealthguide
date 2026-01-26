@@ -36,6 +36,7 @@ import { WeekStrip } from './WeekStrip';
 import { DayShiftList } from './DayShiftList';
 import { ScheduleTabs, type ScheduleTabType } from './ScheduleTabs';
 import { WeekSummaryTab } from './WeekSummaryTab';
+import { ByCaregiverTab } from './ByCaregiverTab';
 
 interface WeekStripScheduleProps {
   agencyId: string;
@@ -455,11 +456,10 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
     setAssignError(null);
   }, []);
 
-  // Handle caregiver click from Week Summary - switch to By Caregiver tab (future)
+  // Handle caregiver click from Week Summary - switch to By Caregiver tab
   const handleCaregiverClick = useCallback((caregiverId: string) => {
-    console.log('Caregiver clicked:', caregiverId);
-    // In Phase 3, this will switch to 'caregiver' tab and scroll to the caregiver
-    // setActiveTab('caregiver');
+    setActiveTab('caregiver');
+    // Future enhancement: scroll to specific caregiver section
   }, []);
 
   // Handle elder click from Week Summary - switch to By Elder tab
@@ -656,15 +656,14 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       )}
 
       {activeTab === 'caregiver' && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
-          <User className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-            By Caregiver View
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Coming in Phase 3 - Grouped list by caregiver
-          </p>
-        </div>
+        <ByCaregiverTab
+          weekStart={weekStart}
+          weekDays={weekDays}
+          shifts={shifts}
+          caregivers={caregivers}
+          onShiftClick={handleShiftClick}
+          onAssignGap={handleAssignGap}
+        />
       )}
 
       {activeTab === 'gaps' && (
