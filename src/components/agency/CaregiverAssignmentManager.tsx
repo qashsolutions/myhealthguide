@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { UserPlus, X, AlertCircle, Users, Crown, UserCog } from 'lucide-react';
+import { UserPlus, X, AlertCircle, Users, Crown, UserCog, AlertTriangle, CheckCircle2, User } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
 import { ElderAssignmentService, AssignmentConflict } from '@/lib/firebase/elderAssignment';
@@ -260,6 +260,29 @@ export function CaregiverAssignmentManager({
     return elder ? elder.name : 'Unknown Loved One';
   };
 
+  // Compute assigned elder IDs (from active assignments)
+  const assignedElderIds = new Set<string>();
+  assignments.filter(a => a.active).forEach(a => {
+    a.elderIds.forEach(id => assignedElderIds.add(id));
+  });
+
+  // Compute unassigned elders
+  const unassignedElders = elders.filter(e => e.id && !assignedElderIds.has(e.id));
+
+  // Stats
+  const totalElders = elders.length;
+  const assignedCount = assignedElderIds.size;
+  const unassignedCount = unassignedElders.length;
+  const activeCaregiversCount = new Set(
+    assignments.filter(a => a.active).map(a => a.caregiverId)
+  ).size;
+
+  // Handle quick assign for unassigned elders (opens dialog with elder pre-selected)
+  const handleQuickAssign = (elderIds: string[]) => {
+    setSelectedElders(elderIds);
+    setDialogOpen(true);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -280,16 +303,152 @@ export function CaregiverAssignmentManager({
         </Card>
       )}
 
+      {/* Stats Overview */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card className={unassignedCount === 0 ? 'border-green-200 bg-green-50 dark:bg-green-900/10' : ''}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                unassignedCount === 0
+                  ? 'bg-green-100 dark:bg-green-900/30'
+                  : 'bg-blue-100 dark:bg-blue-900/30'
+              }`}>
+                {unassignedCount === 0 ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                ) : (
+                  <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                )}
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {assignedCount}/{totalElders}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Loved Ones Assigned
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={unassignedCount > 0 ? 'border-amber-200 bg-amber-50 dark:bg-amber-900/10' : ''}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                unassignedCount > 0
+                  ? 'bg-amber-100 dark:bg-amber-900/30'
+                  : 'bg-gray-100 dark:bg-gray-800'
+              }`}>
+                <AlertTriangle className={`w-5 h-5 ${
+                  unassignedCount > 0
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-gray-400'
+                }`} />
+              </div>
+              <div>
+                <p className={`text-2xl font-bold ${
+                  unassignedCount > 0
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-gray-900 dark:text-white'
+                }`}>
+                  {unassignedCount}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Need Caregiver
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {activeCaregiversCount}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Active Caregivers
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Needs Attention: Unassigned Elders */}
+      {unassignedCount > 0 && (
+        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-900/10">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-amber-800 dark:text-amber-200">
+                    Needs Attention: {unassignedCount} Loved One{unassignedCount !== 1 ? 's' : ''} Without Caregiver
+                  </CardTitle>
+                  <CardDescription className="text-amber-600 dark:text-amber-400">
+                    These loved ones have not been assigned to any caregiver yet
+                  </CardDescription>
+                </div>
+              </div>
+              <Button
+                onClick={() => handleQuickAssign(unassignedElders.map(e => e.id!))}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Assign All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {unassignedElders.slice(0, 10).map(elder => (
+                <Badge
+                  key={elder.id}
+                  variant="outline"
+                  className="border-amber-300 bg-white dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                  onClick={() => handleQuickAssign([elder.id!])}
+                >
+                  {elder.name}
+                </Badge>
+              ))}
+              {unassignedElders.length > 10 && (
+                <Badge
+                  variant="outline"
+                  className="border-amber-300 bg-white dark:bg-amber-900/20 text-amber-700 dark:text-amber-300"
+                >
+                  +{unassignedElders.length - 10} more
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-3">
+              Click on a name to assign individually, or use &quot;Assign All&quot; for bulk assignment
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Current Assignments */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Caregiver Assignments
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                Current Assignments
               </CardTitle>
               <CardDescription>
-                Assign caregivers to specific loved ones
+                {assignments.length > 0
+                  ? `${assignedCount} loved one${assignedCount !== 1 ? 's' : ''} assigned to ${activeCaregiversCount} caregiver${activeCaregiversCount !== 1 ? 's' : ''}`
+                  : 'No assignments yet - use the button to assign caregivers'
+                }
               </CardDescription>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -444,7 +603,10 @@ export function CaregiverAssignmentManager({
                 No caregiver assignments yet
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                Click &quot;Assign Caregiver&quot; to get started
+                {unassignedCount > 0
+                  ? `You have ${unassignedCount} loved one${unassignedCount !== 1 ? 's' : ''} waiting to be assigned`
+                  : 'Click "Assign Caregiver" to get started'
+                }
               </p>
             </div>
           ) : (
