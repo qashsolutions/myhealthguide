@@ -369,6 +369,133 @@ Role-based card visibility:
 
 ---
 
+## Caregiver Burnout Analysis
+
+**Location:** `/dashboard/caregiver-burnout`
+**Access:** Agency Owner only
+
+The system offers two analysis modes, selectable via toggle:
+
+### Traditional Analysis (Rule-Based)
+
+Uses fixed thresholds and a point-based scoring system to assess burnout risk.
+
+**How It Works:**
+- Analyzes last 14 days of completed shift sessions
+- Calculates workload metrics from shift data
+- Assigns points based on threshold breaches
+- Sums points to determine risk level
+
+**Factors Analyzed:**
+
+| Factor | Threshold | Severity | Points |
+|--------|-----------|----------|--------|
+| **Overtime Hours** | >10 hrs/week | Moderate | 20 |
+| | >20 hrs/week | High | 30 |
+| **Consecutive Days** | 7-9 days | Moderate | 15 |
+| | 10+ days | High | 25 |
+| **Elder Count** | 4-5 elders | Moderate | 10 |
+| | 6+ elders | High | 20 |
+| **Avg Shift Length** | >10 hours | Moderate | 10 |
+| | >12 hours | High | 15 |
+
+**Risk Levels (based on total score):**
+
+| Score | Risk Level |
+|-------|------------|
+| 0-29 | Low |
+| 30-49 | Moderate |
+| 50-69 | High |
+| 70+ | Critical |
+
+**Adaptive Thresholds:**
+The traditional analysis also applies adaptive adjustments:
+- High volume (>50 hrs/week): Lowers thresholds by 5-10 points
+- High complexity (>4 elders): Lowers thresholds by 3-5 points
+- 10+ consecutive days: Further reduces thresholds
+
+**Recommendations Generated:**
+- Reduce overtime, redistribute shifts
+- Schedule mandatory days off
+- Reduce assigned elders
+- Consider shorter shifts
+- Schedule check-in meeting
+- Monitor for stress signs
+
+---
+
+### AI Analysis (Gemini)
+
+Uses **Google Gemini AI** for deep pattern analysis and personalized predictions.
+
+**How It Works:**
+- Sends workload data to Gemini AI
+- AI calculates personalized thresholds per caregiver
+- Predicts burnout trajectory (improving/stable/worsening)
+- Estimates days until high risk
+- Generates urgency-prioritized interventions
+
+**Data Sent to AI:**
+- Total hours worked (last 14 days)
+- Overtime hours
+- Consecutive days worked
+- Number of elders cared for
+- Average shift length
+- Individual shift breakdown (up to 20 shifts)
+- Previous period data (for trend comparison)
+
+**AI Analysis Outputs:**
+
+| Output | Description |
+|--------|-------------|
+| **Personalized Risk Score** | 0-100 based on workload sustainability |
+| **Trajectory** | Improving, stable, or worsening trend |
+| **Days to High Risk** | Predicted when burnout may occur |
+| **Personalized Thresholds** | Custom low/moderate/high/critical levels |
+| **Workload Analysis** | Optimal vs actual hours comparison |
+| **Interventions** | Urgency-prioritized (immediate/soon/scheduled) |
+
+**AI Guidelines Used:**
+- Industry standard: 35-40 hours/week sustainable
+- Overtime >10h/week = significant burnout risk
+- 6+ consecutive days = major red flag
+- 3+ elders = increased cognitive load
+- 10+ hour shifts = compounded fatigue
+
+**HIPAA Compliance:**
+- All AI calls are logged in PHI audit trail
+- Data shared: shift_data, work_hours, elder_assignments
+- Service: Google Gemini AI
+- Purpose: Burnout prediction and intervention recommendations
+
+---
+
+### Comparison: Traditional vs AI Analysis
+
+| Aspect | Traditional | AI (Gemini) |
+|--------|-------------|-------------|
+| **Thresholds** | Fixed (30/50/70) with adaptive adjustments | Fully personalized per caregiver |
+| **Scoring** | Static point system | 0-100 sustainability score |
+| **Trajectory** | Not tracked | Predicts improving/stable/worsening |
+| **Days to Risk** | Not calculated | Predicts when burnout may occur |
+| **Recommendations** | Generic list | Urgency-prioritized interventions |
+| **Context** | Current period with adaptive thresholds | Compares to previous period |
+| **Speed** | Instant | 2-5 seconds (API call) |
+| **Cost** | Free | Gemini API usage |
+
+---
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/caregiver-burnout/page.tsx` | UI with toggle switch |
+| `src/app/api/caregiver-burnout/route.ts` | API endpoint, both analysis modes |
+| `src/lib/medical/caregiverBurnoutDetection.ts` | Client-side traditional analysis |
+| `src/lib/ai/agenticAnalytics.ts` | `analyzeBurnoutWithAI()` function |
+
+---
+
 ## Security & Privacy
 
 - **FCM tokens** stored only in authenticated user documents

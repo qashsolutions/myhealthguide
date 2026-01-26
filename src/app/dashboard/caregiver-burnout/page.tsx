@@ -118,13 +118,17 @@ export default function CaregiverBurnoutPage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Brain className="h-4 w-4 text-purple-600" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">AI Analysis</span>
+            <span className={`text-sm font-medium ${!useAI ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              Traditional
+            </span>
             <Switch
               checked={useAI}
               onCheckedChange={setUseAI}
-              className="data-[state=checked]:bg-purple-600"
+              className="data-[state=checked]:bg-purple-600 data-[state=unchecked]:bg-blue-600"
             />
+            <span className={`text-sm font-medium ${useAI ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              AI Analysis
+            </span>
           </div>
           <Button onClick={loadAssessments} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -143,7 +147,7 @@ export default function CaregiverBurnoutPage() {
           )}
           <div className="flex-1">
             <p className={`font-semibold ${useAI ? 'text-purple-900 dark:text-purple-100' : 'text-blue-900 dark:text-blue-100'}`}>
-              {useAI ? 'AI-Powered Burnout Analysis' : 'Workload Analysis'}
+              {useAI ? 'AI-Powered Burnout Analysis' : 'Traditional Burnout Analysis'}
             </p>
             <p className={`text-sm mt-1 ${useAI ? 'text-purple-800 dark:text-purple-200' : 'text-blue-800 dark:text-blue-200'}`}>
               {useAI ? (
