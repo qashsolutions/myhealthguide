@@ -215,7 +215,7 @@ export default function CaregiverBurnoutPage() {
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        Caregiver {assessment.caregiverId.slice(0, 8)}
+                        {assessment.caregiverName || `Caregiver ${assessment.caregiverId.slice(0, 8)}`}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">
                         Risk Score: {assessment.riskScore}
@@ -248,7 +248,7 @@ export default function CaregiverBurnoutPage() {
 
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                      Caregiver {selectedAssessment.caregiverId.slice(0, 8)}
+                      {selectedAssessment.caregiverName || `Caregiver ${selectedAssessment.caregiverId.slice(0, 8)}`}
                     </h3>
 
                     <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">

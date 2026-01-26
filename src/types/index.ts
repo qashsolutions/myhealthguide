@@ -1260,6 +1260,7 @@ export interface CaregiverBurnoutAssessment {
   id: string;
   agencyId: string;
   caregiverId: string;
+  caregiverName?: string;
   assessmentDate: Date;
   period: {
     start: Date;

@@ -96,6 +96,7 @@ async function callGeminiWithThinking(
   // Try Gemini first
   if (geminiKey) {
     try {
+      console.log('[AI Analytics] Attempting Gemini API call...');
       const response = await fetch(`${GEMINI_API_URL}?key=${geminiKey}`, {
         method: 'POST',
         headers: {
@@ -121,24 +122,34 @@ async function callGeminiWithThinking(
         const result: GeminiResponse = await response.json();
         const text = result.candidates[0]?.content?.parts[0]?.text;
         if (text) {
-          console.log('[AI Analytics] Using Gemini API');
+          console.log('[AI Analytics] Using Gemini API - success');
           return text;
+        } else {
+          console.warn('[AI Analytics] Gemini returned empty text, response:', JSON.stringify(result).slice(0, 500));
         }
       } else {
         const errorText = await response.text();
-        console.warn('Gemini API error, will try Claude fallback:', errorText);
+        console.warn('[AI Analytics] Gemini API error (status:', response.status, '):', errorText.slice(0, 500));
       }
     } catch (error) {
-      console.warn('Gemini API failed, will try Claude fallback:', error);
+      console.warn('[AI Analytics] Gemini API failed with exception:', error);
     }
+  } else {
+    console.log('[AI Analytics] No GEMINI_API_KEY configured');
   }
 
   // Fallback to Claude
   if (claudeKey) {
-    console.log('[AI Analytics] Falling back to Claude API');
-    return callClaudeAPI(prompt, temperature, maxTokens);
+    console.log('[AI Analytics] Falling back to Claude API (Opus 4.5)');
+    try {
+      return await callClaudeAPI(prompt, temperature, maxTokens);
+    } catch (claudeError) {
+      console.error('[AI Analytics] Claude API also failed:', claudeError);
+      throw claudeError;
+    }
   }
 
+  console.error('[AI Analytics] No AI API keys available - GEMINI_API_KEY:', !!geminiKey, ', ANTHROPIC_API_KEY:', !!claudeKey);
   throw new Error('No AI API keys configured (GEMINI_API_KEY or ANTHROPIC_API_KEY)');
 }
 
@@ -484,10 +495,14 @@ Return a JSON object with this exact structure:
 }`;
 
   try {
+    console.log('[AI Burnout] Calling AI for caregiver:', data.caregiverId);
     const response = await callGeminiWithThinking(prompt, 0.3, 2048);
-    return parseJsonFromResponse(response);
+    console.log('[AI Burnout] Got response, parsing JSON...');
+    const parsed = parseJsonFromResponse(response);
+    console.log('[AI Burnout] Successfully parsed AI response for:', data.caregiverId);
+    return parsed;
   } catch (error) {
-    console.error('AI burnout analysis failed:', error);
+    console.error('[AI Burnout] Analysis failed for caregiver', data.caregiverId, ':', error);
     // Intelligent fallback
     const weeklyHours = (data.totalHoursWorked / data.periodDays) * 7;
     const overtimeRatio = data.overtimeHours / Math.max(data.totalHoursWorked, 1);

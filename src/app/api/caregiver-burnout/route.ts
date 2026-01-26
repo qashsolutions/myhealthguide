@@ -63,6 +63,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, assessments: [] });
     }
 
+    // Fetch caregiver names in batch
+    const caregiverNameMap = new Map<string, string>();
+    for (const cid of caregiverIds) {
+      try {
+        const userDoc = await db.collection('users').doc(cid).get();
+        if (userDoc.exists) {
+          const data = userDoc.data();
+          caregiverNameMap.set(cid, data?.name || data?.displayName || `Caregiver ${cid.substring(0, 8)}`);
+        }
+      } catch (e) {
+        console.warn(`Could not fetch name for caregiver ${cid}`);
+      }
+    }
+
     // Get user role for AI analysis
     const userData = await getUserDataServer(authResult.userId);
     const userRole: UserRole = userData?.role || 'member';
@@ -71,17 +85,28 @@ export async function GET(request: NextRequest) {
     const assessments: CaregiverBurnoutAssessment[] = [];
 
     for (const caregiverId of caregiverIds) {
+      const caregiverName = caregiverNameMap.get(caregiverId) || `Caregiver ${caregiverId.substring(0, 8)}`;
+
       if (useAI) {
         // Use AI-driven analysis
-        const aiAssessment = await assessCaregiverBurnoutWithAI(
-          db, agencyId, caregiverId, periodDays, authResult.userId, userRole
-        );
-        if (aiAssessment) {
-          assessments.push(aiAssessment);
+        try {
+          const aiAssessment = await assessCaregiverBurnoutWithAI(
+            db, agencyId, caregiverId, caregiverName, periodDays, authResult.userId, userRole
+          );
+          if (aiAssessment) {
+            assessments.push(aiAssessment);
+          }
+        } catch (aiError) {
+          console.error(`AI analysis failed for ${caregiverName}, falling back to traditional:`, aiError);
+          // Fallback to traditional analysis if AI fails
+          const fallbackAssessment = await assessCaregiverBurnout(db, agencyId, caregiverId, caregiverName, periodDays);
+          if (fallbackAssessment) {
+            assessments.push(fallbackAssessment);
+          }
         }
       } else {
         // Use traditional analysis with adaptive thresholds
-        const assessment = await assessCaregiverBurnout(db, agencyId, caregiverId, periodDays);
+        const assessment = await assessCaregiverBurnout(db, agencyId, caregiverId, caregiverName, periodDays);
         if (assessment) {
           assessments.push(assessment);
         }
@@ -106,6 +131,7 @@ async function assessCaregiverBurnout(
   db: FirebaseFirestore.Firestore,
   agencyId: string,
   caregiverId: string,
+  caregiverName: string,
   periodDays: number
 ): Promise<CaregiverBurnoutAssessment | null> {
   try {
@@ -190,6 +216,7 @@ async function assessCaregiverBurnout(
       id: `${agencyId}-${caregiverId}-${Date.now()}`,
       agencyId,
       caregiverId,
+      caregiverName,
       assessmentDate: new Date(),
       period: { start: startDate, end: endDate },
       burnoutRisk,
@@ -206,7 +233,7 @@ async function assessCaregiverBurnout(
     return assessment;
 
   } catch (error) {
-    console.error(`Error assessing caregiver ${caregiverId}:`, error);
+    console.error(`Error assessing caregiver ${caregiverName} (${caregiverId}):`, error);
     return null;
   }
 }
@@ -432,6 +459,7 @@ async function assessCaregiverBurnoutWithAI(
   db: FirebaseFirestore.Firestore,
   agencyId: string,
   caregiverId: string,
+  caregiverName: string,
   periodDays: number,
   userId: string,
   userRole: UserRole
@@ -505,7 +533,7 @@ async function assessCaregiverBurnoutWithAI(
     const aiPrediction = await analyzeBurnoutWithAI(
       {
         caregiverId,
-        caregiverName: undefined,
+        caregiverName,
         periodDays,
         shifts: shiftsForAI,
         totalHoursWorked: workload.totalHours,
@@ -537,6 +565,7 @@ async function assessCaregiverBurnoutWithAI(
       id: `${agencyId}-${caregiverId}-${Date.now()}`,
       agencyId,
       caregiverId,
+      caregiverName,
       assessmentDate: new Date(),
       period: { start: startDate, end: endDate },
       burnoutRisk: aiPrediction.burnoutRisk,
@@ -561,8 +590,8 @@ async function assessCaregiverBurnoutWithAI(
     return assessment;
 
   } catch (error) {
-    console.error(`Error in AI burnout assessment for ${caregiverId}:`, error);
+    console.error(`Error in AI burnout assessment for ${caregiverName} (${caregiverId}):`, error);
     // Fall back to traditional assessment
-    return assessCaregiverBurnout(db, agencyId, caregiverId, periodDays);
+    return assessCaregiverBurnout(db, agencyId, caregiverId, caregiverName, periodDays);
   }
 }

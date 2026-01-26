@@ -496,6 +496,121 @@ Uses **Google Gemini AI** for deep pattern analysis and personalized predictions
 
 ---
 
+## Caregiver Burnout Test Data
+
+**Purpose:** Test both Traditional and AI burnout analysis modes with realistic data
+
+### Test Data Requirements
+
+The burnout analysis reads from the `shiftSessions` collection with the following query:
+- `agencyId` = Agency ID
+- `caregiverId` = Caregiver ID
+- `status` = 'completed'
+- Date filtered in memory for last 14 days
+
+### shiftSessions Document Schema
+
+```typescript
+shiftSessions/{id}: {
+  agencyId: string,        // Required: K9AYIGQR2RCInk7nVMSd
+  caregiverId: string,     // Required: User ID
+  elderId: string,         // Required: Elder ID
+  elderName: string,       // For display
+  groupId: string,         // Elder's group ID
+  status: 'completed',     // Required for burnout analysis
+  startTime: Timestamp,    // When shift started
+  endTime: Timestamp,      // When shift ended
+  actualDuration: number,  // Duration in MINUTES (e.g., 480 = 8 hours)
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+### Test Caregiver Profiles
+
+| Caregiver | Email | Risk Level | Profile |
+|-----------|-------|------------|---------|
+| **Caregiver 1** | ramanac+c1@gmail.com | Critical | 14 consecutive days, 12-hour shifts, 5 elders |
+| **Caregiver 2** | ramanac+c2@gmail.com | High | 10 consecutive days, 10-hour shifts, 4 elders |
+| **Caregiver 3** | ramanac+c3@gmail.com | Moderate | 7 days worked, 8-hour shifts, 3 elders |
+| **Caregiver 4** | ramanac+c4@gmail.com | Low | 5 days worked, 8-hour shifts, 2 elders, 2 days off |
+
+### Detailed Test Scenarios
+
+#### Caregiver 1: Critical Risk
+- **Days worked:** 14 consecutive days (no breaks)
+- **Shift length:** 12 hours average (720 minutes)
+- **Elders:** 5 different loved ones
+- **Total hours:** 168 hours (12h × 14 days)
+- **Overtime:** 56 hours (168 - 112 regular = 56 OT)
+- **Expected Score (Traditional):** 70+ points
+  - Overtime >20h/week: 30 points
+  - 10+ consecutive days: 25 points
+  - 5+ elders: 20 points
+  - Avg shift >12h: 15 points = **90 points**
+
+#### Caregiver 2: High Risk
+- **Days worked:** 10 consecutive days
+- **Shift length:** 10 hours average (600 minutes)
+- **Elders:** 4 different loved ones
+- **Total hours:** 100 hours (10h × 10 days)
+- **Overtime:** 20 hours
+- **Expected Score (Traditional):** 50-69 points
+  - Overtime 10-20h/week: 20 points
+  - 10+ consecutive days: 25 points
+  - 4-5 elders: 10 points = **55 points**
+
+#### Caregiver 3: Moderate Risk
+- **Days worked:** 7 days (with 2 days off in between)
+- **Shift length:** 9 hours average (540 minutes)
+- **Elders:** 3 different loved ones
+- **Total hours:** 63 hours (9h × 7 days)
+- **Overtime:** 7 hours
+- **Expected Score (Traditional):** 30-49 points
+  - 7-9 consecutive days: 15 points
+  - Overtime >10h: 20 points (borderline) = **35 points**
+
+#### Caregiver 4: Low Risk
+- **Days worked:** 5 days (spread across 2 weeks with breaks)
+- **Shift length:** 8 hours average (480 minutes)
+- **Elders:** 2 different loved ones
+- **Total hours:** 40 hours
+- **Overtime:** 0 hours
+- **Expected Score (Traditional):** <30 points = **0 points** (healthy)
+
+### Script: Create Burnout Test Data
+
+**File:** `scripts/createBurnoutTestData.ts`
+
+**Run command:**
+```bash
+npx tsx scripts/createBurnoutTestData.ts
+```
+
+**What it does:**
+1. Clears existing shiftSessions for test caregivers (C1-C4)
+2. Creates shiftSessions spanning last 14 days
+3. Each caregiver gets appropriate shift patterns per profile
+
+### Verification Steps
+
+1. Run the script to create test data
+2. Login as agency owner (ramanac+owner@gmail.com)
+3. Navigate to Care Management → Caregiver Burnout
+4. Toggle between Traditional and AI Analysis
+5. Verify each caregiver shows expected risk level
+
+### Expected Results
+
+| Caregiver | Traditional Risk | AI Risk | Key Factors Shown |
+|-----------|------------------|---------|-------------------|
+| C1 | Critical (90 pts) | Critical | Overtime, consecutive days, elder count, shift length |
+| C2 | High (55 pts) | High | Overtime, consecutive days, elder count |
+| C3 | Moderate (35 pts) | Moderate | Consecutive days, borderline overtime |
+| C4 | Low (0 pts) | Low | No risk factors |
+
+---
+
 ## Security & Privacy
 
 - **FCM tokens** stored only in authenticated user documents
