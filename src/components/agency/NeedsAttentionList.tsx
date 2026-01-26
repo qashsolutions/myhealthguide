@@ -70,7 +70,7 @@ export function NeedsAttentionList({
       impact: 'Retention risk — review workload',
       type: 'urgent',
       icon: AlertTriangle,
-      href: '/dashboard/care-management',
+      href: '/dashboard/caregiver-burnout',
       ctaLabel: 'Review Workload',
       rootCause: 'burnout',
     });

@@ -12,7 +12,6 @@ import { AgencyService } from '@/lib/firebase/agencies';
 import {
   getBillableHoursData,
   getStaffUtilizationMetrics,
-  getBurnoutRiskAlerts,
   getScheduleCoverageStats,
   getCaregiverPerformanceRankings,
   getCurrentMonthSummary,
@@ -22,6 +21,7 @@ import {
   type ScheduleCoverageStats,
   type CaregiverPerformance
 } from '@/lib/firebase/agencyAnalytics';
+import { auth } from '@/lib/firebase/config';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -103,6 +103,37 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
       const elderIds: string[] = [];
       // This is simplified - actual implementation would fetch elder IDs
 
+      // Fetch burnout data from API (same source as dashboard overview)
+      const fetchBurnoutFromAPI = async (): Promise<BurnoutAlert[]> => {
+        try {
+          const token = await auth.currentUser?.getIdToken();
+          const response = await fetch(`/api/caregiver-burnout?agencyId=${agencyId}&periodDays=14`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.assessments) {
+              // Transform API response to BurnoutAlert format
+              return data.assessments
+                .filter((a: any) => ['moderate', 'high', 'critical'].includes(a.burnoutRisk))
+                .map((a: any) => ({
+                  caregiverId: a.caregiverId,
+                  caregiverName: a.caregiverName || 'Unknown',
+                  riskLevel: a.burnoutRisk as BurnoutAlert['riskLevel'],
+                  factors: a.factors?.map((f: any) => f.description) || [],
+                  consecutiveDays: a.workload?.consecutiveDays || 0,
+                  hoursThisWeek: Math.round((a.workload?.totalHours || 0) / 2), // 14 days -> weekly
+                  recommendedAction: a.recommendations?.[0] || 'Review workload and consider schedule adjustments'
+                }));
+            }
+          }
+          return [];
+        } catch (e) {
+          console.error('Error fetching burnout from API:', e);
+          return [];
+        }
+      };
+
       // Load all analytics data in parallel
       const [
         billableData,
@@ -114,7 +145,7 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
       ] = await Promise.all([
         getBillableHoursData(agencyId, 6),
         getStaffUtilizationMetrics(agencyId, caregiverIds, caregiverNames),
-        getBurnoutRiskAlerts(agencyId, caregiverIds, caregiverNames),
+        fetchBurnoutFromAPI(), // Use API instead of local function
         getScheduleCoverageStats(agencyId),
         getCaregiverPerformanceRankings(agencyId, caregiverIds, caregiverNames, 'month'),
         getCurrentMonthSummary(agencyId)

@@ -230,7 +230,7 @@ async function assessCaregiverBurnout(
     // Generate recommendations
     const recommendations = generateBurnoutRecommendations(factors, workload);
 
-    const assessment: CaregiverBurnoutAssessment = {
+    const assessment: CaregiverBurnoutAssessment & { workload?: CaregiverWorkload } = {
       id: `${agencyId}-${caregiverId}-${Date.now()}`,
       agencyId,
       caregiverId,
@@ -245,7 +245,8 @@ async function assessCaregiverBurnout(
       alertId: undefined,
       reviewedBy: undefined,
       reviewedAt: undefined,
-      actionTaken: undefined
+      actionTaken: undefined,
+      workload // Include workload metrics for UI display
     };
 
     return assessment;
