@@ -15,16 +15,25 @@ import { format, isToday, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { ScheduledShift } from '@/types';
 
+interface Gap {
+  shiftId: string;
+  elderId: string;
+  elderName: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+}
+
 interface DayShiftListProps {
   date: Date;
   shifts: ScheduledShift[];
-  unfilledCount: number;
+  gaps: Gap[];
   isExpanded: boolean;
   onToggle: () => void;
   onAddShift: () => void;
   onShiftClick: (shift: ScheduledShift) => void;
   onMarkConfirmed: (shiftId: string) => void;
-  onAssignShift: (shift: ScheduledShift) => void;
+  onAssignGap: (gap: Gap) => void;
   confirmingShiftId: string | null;
   isSuperAdmin: boolean;
 }
@@ -113,13 +122,13 @@ function getStatusIcon(status: string) {
 export function DayShiftList({
   date,
   shifts,
-  unfilledCount,
+  gaps,
   isExpanded,
   onToggle,
   onAddShift,
   onShiftClick,
   onMarkConfirmed,
-  onAssignShift,
+  onAssignGap,
   confirmingShiftId,
   isSuperAdmin,
 }: DayShiftListProps) {
@@ -137,20 +146,20 @@ export function DayShiftList({
   // Determine day status
   const today = isToday(date);
   const past = isPast(date) && !today;
-  const hasUnfilled = unfilledCount > 0;
-  const allConfirmed = totalCount > 0 && confirmedCount === totalCount && !hasUnfilled;
+  const hasGaps = gaps.length > 0;
+  const allConfirmed = totalCount > 0 && confirmedCount === totalCount;
 
   // Get header color based on status
   const getHeaderBg = () => {
     if (past) return 'bg-gray-50 dark:bg-gray-800/30';
-    if (hasUnfilled) return 'bg-amber-50 dark:bg-amber-900/10';
+    if (hasGaps) return 'bg-amber-50 dark:bg-amber-900/10';
     if (allConfirmed) return 'bg-green-50 dark:bg-green-900/10';
     return 'bg-white dark:bg-gray-800';
   };
 
   const getHeaderBorder = () => {
     if (past) return 'border-gray-200 dark:border-gray-700';
-    if (hasUnfilled) return 'border-amber-200 dark:border-amber-800';
+    if (hasGaps) return 'border-amber-200 dark:border-amber-800';
     if (allConfirmed) return 'border-green-200 dark:border-green-800';
     return 'border-gray-200 dark:border-gray-700';
   };
@@ -199,15 +208,15 @@ export function DayShiftList({
                 <span
                   className={cn(
                     'text-xs font-medium',
-                    hasUnfilled
+                    hasGaps
                       ? 'text-amber-600 dark:text-amber-400'
                       : allConfirmed
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-gray-500 dark:text-gray-400'
                   )}
                 >
-                  {hasUnfilled
-                    ? `${unfilledCount} unfilled`
+                  {hasGaps
+                    ? `${gaps.length} gap${gaps.length !== 1 ? 's' : ''}`
                     : allConfirmed
                       ? 'All covered ✓'
                       : `${confirmedCount}/${totalCount} confirmed`}
@@ -215,7 +224,7 @@ export function DayShiftList({
               )}
             </div>
 
-            {totalCount === 0 && (
+            {totalCount === 0 && gaps.length === 0 && (
               <span className="text-xs text-gray-400 dark:text-gray-500">
                 No shifts
               </span>
@@ -241,7 +250,7 @@ export function DayShiftList({
       {/* Expanded Content */}
       {isExpanded && (
         <div className="border-t border-gray-100 dark:border-gray-700">
-          {visibleShifts.length === 0 ? (
+          {visibleShifts.length === 0 && gaps.length === 0 ? (
             <div className="px-4 py-6 text-center">
               <p className="text-sm text-gray-400 dark:text-gray-500">
                 No shifts scheduled
@@ -268,7 +277,6 @@ export function DayShiftList({
                   const needsConfirmation =
                     ['pending_confirmation', 'scheduled'].includes(shift.status) &&
                     shift.caregiverId;
-                  const isUnfilled = shift.status === 'unfilled' || (!shift.caregiverId && shift.status !== 'offered');
                   const isConfirming = confirmingShiftId === shift.id;
 
                   return (
@@ -307,21 +315,7 @@ export function DayShiftList({
                       </div>
 
                       {/* Actions / Status */}
-                      {isUnfilled && isSuperAdmin ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAssignShift(shift);
-                          }}
-                          className={cn(
-                            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                            'bg-red-600 text-white hover:bg-red-700 active:scale-[0.98]'
-                          )}
-                        >
-                          <User className="w-3 h-3" />
-                          Assign
-                        </button>
-                      ) : needsConfirmation && isSuperAdmin ? (
+                      {needsConfirmation && isSuperAdmin && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -344,7 +338,9 @@ export function DayShiftList({
                             </>
                           )}
                         </button>
-                      ) : (
+                      )}
+
+                      {!needsConfirmation && (
                         <span
                           className={cn(
                             'text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap',
@@ -358,6 +354,39 @@ export function DayShiftList({
                   );
                 })}
 
+              {/* Gap rows */}
+              {gaps.map((gap) => (
+                <div
+                  key={gap.elderId}
+                  className="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/10"
+                >
+                  {/* Warning icon */}
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-red-100 dark:bg-red-900/30">
+                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  </div>
+
+                  {/* Main content */}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                      Gap: {gap.elderName} needs coverage
+                    </span>
+                  </div>
+
+                  {/* Assign button */}
+                  {isSuperAdmin && (
+                    <button
+                      onClick={() => onAssignGap(gap)}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                        'bg-red-600 text-white hover:bg-red-700 active:scale-[0.98]'
+                      )}
+                    >
+                      <User className="w-3 h-3" />
+                      Assign
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
