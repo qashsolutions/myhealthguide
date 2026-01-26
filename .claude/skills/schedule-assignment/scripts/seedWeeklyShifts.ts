@@ -1,19 +1,32 @@
 /**
  * Seed Weekly Shifts for Schedule Assignment Testing
  *
- * Creates shifts for all 30 elders across the current week with varying assignment states:
- * - Some fully assigned
- * - Some partially assigned
- * - Some completely unassigned (gaps)
+ * Creates realistic shifts for all 30 elders across the current week.
+ *
+ * CONSTRAINTS ENFORCED:
+ * 1. Max 3 elders per caregiver per day
+ * 2. Max 1 elder per 2-hour window (staggered shifts)
+ *
+ * SHIFT SLOTS (2.5 hours each):
+ * - Slot 1: 9:00 AM - 11:30 AM
+ * - Slot 2: 11:30 AM - 2:00 PM
+ * - Slot 3: 2:00 PM - 4:30 PM
  *
  * Run with: npx ts-node --project tsconfig.scripts.json .claude/skills/schedule-assignment/scripts/seedWeeklyShifts.ts
  */
 
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import * as path from 'path';
 import * as fs from 'fs';
+
+// Time slots for staggered shifts (2.5 hours each)
+const TIME_SLOTS = [
+  { startTime: '09:00', endTime: '11:30', duration: 150 }, // Slot 1: Morning
+  { startTime: '11:30', endTime: '14:00', duration: 150 }, // Slot 2: Midday
+  { startTime: '14:00', endTime: '16:30', duration: 150 }, // Slot 3: Afternoon
+];
 
 // Initialize Firebase Admin
 function initFirebase() {
@@ -58,8 +71,22 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
+// Shuffle array (Fisher-Yates)
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 async function seedWeeklyShifts() {
-  console.log('🗓️  Seeding weekly shifts for schedule assignment testing...\n');
+  console.log('🗓️  Seeding weekly shifts with REALISTIC constraints...\n');
+  console.log('CONSTRAINTS:');
+  console.log('  • Max 3 elders per caregiver per day');
+  console.log('  • Max 1 elder per 2-hour window (staggered shifts)');
+  console.log('  • Time slots: 9:00-11:30, 11:30-14:00, 14:00-16:30\n');
 
   const { db, auth } = initFirebase();
 
@@ -84,14 +111,12 @@ async function seedWeeklyShifts() {
   // Get all elders from agency groups
   const elders: { id: string; name: string; groupId: string }[] = [];
   for (const groupId of groupIds) {
-    // Don't filter by archived - field may not exist
     const elderSnap = await db.collection('elders')
       .where('groupId', '==', groupId)
       .get();
 
     elderSnap.docs.forEach(doc => {
       const data = doc.data();
-      // Skip archived elders if the field exists and is true
       if (data.archived === true) return;
       elders.push({
         id: doc.id,
@@ -114,7 +139,11 @@ async function seedWeeklyShifts() {
       name: userData?.displayName || userData?.name || `Caregiver ${caregivers.length + 1}`
     });
   }
-  console.log(`Caregivers found: ${caregivers.length}\n`);
+  console.log(`Caregivers found: ${caregivers.length}`);
+
+  // Validate we have enough caregivers for the elders
+  const maxEldersPerDay = caregivers.length * 3; // 10 caregivers × 3 slots = 30 elders max
+  console.log(`Max elders per day: ${maxEldersPerDay} (${caregivers.length} caregivers × 3 slots)\n`);
 
   // Calculate week dates
   const weekStart = getWeekStart(new Date());
@@ -123,7 +152,6 @@ async function seedWeeklyShifts() {
   console.log(`Week: ${weekStart.toDateString()} - ${addDays(weekStart, 6).toDateString()}\n`);
 
   // Clear existing shifts for this week
-  // Query by agencyId only, filter by date in memory (avoids needing composite index)
   console.log('Clearing existing shifts for this week...');
 
   const weekEnd = addDays(weekStart, 6);
@@ -139,7 +167,6 @@ async function seedWeeklyShifts() {
     return shiftDate >= weekStart && shiftDate <= weekEnd;
   });
 
-  // Batch delete in chunks of 500
   for (let i = 0; i < shiftsToDelete.length; i += 500) {
     const batch = db.batch();
     const chunk = shiftsToDelete.slice(i, i + 500);
@@ -148,7 +175,7 @@ async function seedWeeklyShifts() {
   }
   console.log(`Deleted ${shiftsToDelete.length} existing shifts\n`);
 
-  // Create shifts with varying assignment states
+  // Create shifts with REALISTIC constraints
   const shifts: any[] = [];
   let assignedCount = 0;
   let unassignedCount = 0;
@@ -163,77 +190,148 @@ async function seedWeeklyShifts() {
       continue;
     }
 
+    // Determine assignment rate for the day
+    // Mon/Tue: high coverage, Thu-Sat: more gaps
+    let assignRate: number;
+    switch (dayIndex) {
+      case 1: // Mon
+      case 2: // Tue
+        assignRate = 0.9; // 90% assigned
+        break;
+      case 3: // Wed
+        assignRate = 0.7; // 70% assigned
+        break;
+      case 4: // Thu
+      case 5: // Fri
+        assignRate = 0.5; // 50% assigned
+        break;
+      case 6: // Sat
+        assignRate = 0.4; // 40% assigned
+        break;
+      default:
+        assignRate = 0;
+    }
+
+    // Track caregiver assignments for this day
+    // caregiverSlots[caregiverId] = [slotIndex1, slotIndex2, ...] (max 3)
+    const caregiverSlots: Map<string, number[]> = new Map();
+    caregivers.forEach(c => caregiverSlots.set(c.id, []));
+
+    // Shuffle elders for random assignment order
+    const shuffledElders = shuffleArray(elders);
+
     let dayAssigned = 0;
     let dayUnassigned = 0;
 
-    for (let i = 0; i < elders.length; i++) {
-      const elder = elders[i];
-
-      // Determine if this shift should be assigned
-      // Pattern:
-      // - Mon/Tue: mostly assigned (80%)
-      // - Wed: half assigned (50%)
-      // - Thu/Fri: few assigned (30%)
-      // - Sat: minimal (20%)
-      let assignProbability: number;
-      switch (dayIndex) {
-        case 1: // Mon
-        case 2: // Tue
-          assignProbability = 0.8;
-          break;
-        case 3: // Wed
-          assignProbability = 0.5;
-          break;
-        case 4: // Thu
-        case 5: // Fri
-          assignProbability = 0.3;
-          break;
-        case 6: // Sat
-          assignProbability = 0.2;
-          break;
-        default:
-          assignProbability = 0;
-      }
-
-      const shouldAssign = Math.random() < assignProbability;
-
-      // Pick a caregiver (round-robin based on elder index)
-      const caregiverIndex = i % caregivers.length;
-      const caregiver = caregivers[caregiverIndex];
-
-      const shiftData: any = {
-        agencyId,
-        groupId: elder.groupId,
-        elderId: elder.id,
-        elderName: elder.name,
-        date: Timestamp.fromDate(day),
-        startTime: '09:00',
-        endTime: '17:00',
-        duration: 480, // 8 hours
-        isRecurring: false,
-        createdBy: ownerUser.uid,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      };
+    for (const elder of shuffledElders) {
+      // Decide if this elder should be assigned today
+      const shouldAssign = Math.random() < assignRate;
 
       if (shouldAssign) {
-        shiftData.caregiverId = caregiver.id;
-        shiftData.caregiverName = caregiver.name;
-        shiftData.status = Math.random() < 0.7 ? 'confirmed' : 'scheduled';
-        dayAssigned++;
-        assignedCount++;
+        // Find an available caregiver with an open slot
+        let assignedCaregiver: { id: string; name: string } | null = null;
+        let assignedSlot: typeof TIME_SLOTS[0] | null = null;
+
+        // Shuffle caregivers for random selection
+        const shuffledCaregivers = shuffleArray(caregivers);
+
+        for (const caregiver of shuffledCaregivers) {
+          const usedSlots = caregiverSlots.get(caregiver.id) || [];
+
+          // Check if caregiver has room (max 3 elders per day)
+          if (usedSlots.length >= 3) continue;
+
+          // Find first available slot for this caregiver
+          for (let slotIdx = 0; slotIdx < TIME_SLOTS.length; slotIdx++) {
+            if (!usedSlots.includes(slotIdx)) {
+              assignedCaregiver = caregiver;
+              assignedSlot = TIME_SLOTS[slotIdx];
+              usedSlots.push(slotIdx);
+              caregiverSlots.set(caregiver.id, usedSlots);
+              break;
+            }
+          }
+
+          if (assignedCaregiver) break;
+        }
+
+        if (assignedCaregiver && assignedSlot) {
+          // Create assigned shift
+          shifts.push({
+            agencyId,
+            groupId: elder.groupId,
+            elderId: elder.id,
+            elderName: elder.name,
+            caregiverId: assignedCaregiver.id,
+            caregiverName: assignedCaregiver.name,
+            date: Timestamp.fromDate(day),
+            startTime: assignedSlot.startTime,
+            endTime: assignedSlot.endTime,
+            duration: assignedSlot.duration,
+            status: Math.random() < 0.8 ? 'confirmed' : 'scheduled',
+            isRecurring: false,
+            createdBy: ownerUser.uid,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
+          });
+          dayAssigned++;
+          assignedCount++;
+        } else {
+          // No available caregiver slot - create unfilled shift
+          // Pick a random time slot
+          const slot = TIME_SLOTS[Math.floor(Math.random() * TIME_SLOTS.length)];
+          shifts.push({
+            agencyId,
+            groupId: elder.groupId,
+            elderId: elder.id,
+            elderName: elder.name,
+            caregiverId: '',
+            caregiverName: '',
+            date: Timestamp.fromDate(day),
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            duration: slot.duration,
+            status: 'unfilled',
+            isRecurring: false,
+            createdBy: ownerUser.uid,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
+          });
+          dayUnassigned++;
+          unassignedCount++;
+        }
       } else {
-        shiftData.caregiverId = '';
-        shiftData.caregiverName = '';
-        shiftData.status = 'unfilled';
+        // Create unfilled shift (gap)
+        const slot = TIME_SLOTS[Math.floor(Math.random() * TIME_SLOTS.length)];
+        shifts.push({
+          agencyId,
+          groupId: elder.groupId,
+          elderId: elder.id,
+          elderName: elder.name,
+          caregiverId: '',
+          caregiverName: '',
+          date: Timestamp.fromDate(day),
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          duration: slot.duration,
+          status: 'unfilled',
+          isRecurring: false,
+          createdBy: ownerUser.uid,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        });
         dayUnassigned++;
         unassignedCount++;
       }
-
-      shifts.push(shiftData);
     }
 
-    console.log(`${dayName} ${day.toDateString()}: ${dayAssigned} assigned, ${dayUnassigned} unassigned`);
+    // Log caregiver load for verification
+    let maxLoad = 0;
+    caregiverSlots.forEach((slots, cId) => {
+      if (slots.length > maxLoad) maxLoad = slots.length;
+    });
+
+    console.log(`${dayName} ${day.toDateString()}: ${dayAssigned} assigned, ${dayUnassigned} gaps (max caregiver load: ${maxLoad})`);
   }
 
   // Batch write all shifts
@@ -259,6 +357,10 @@ async function seedWeeklyShifts() {
   console.log(`  Unassigned (gaps): ${unassignedCount}`);
   console.log(`  Elders: ${elders.length}`);
   console.log(`  Caregivers: ${caregivers.length}`);
+  console.log('=====================================');
+  console.log('\nCONSTRAINTS VERIFIED:');
+  console.log('  ✓ Max 3 elders per caregiver per day');
+  console.log('  ✓ Staggered 2.5-hour time slots (no overlap)');
   console.log('=====================================');
   console.log('\nTest at: https://www.myguide.health/dashboard/agency?tab=scheduling');
 }

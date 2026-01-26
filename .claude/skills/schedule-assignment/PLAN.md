@@ -210,20 +210,92 @@ async function getLastScheduledWeek(agencyId: string): Promise<Date | null>;
 
 ---
 
-## Phase 6: Conflict Detection
+## Phase 1.6: Fix Test Data Seeding
 
-When copying schedule or toggling availability:
+**Problem:** Seeding script creates unrealistic shifts:
+- Same caregiver assigned to multiple elders at same time (9AM-5PM)
+- Caregiver assigned to >3 elders per day
 
-1. Find shifts where caregiver is unavailable
-2. Highlight these in UI
-3. Show conflict resolution sheet
+**Solution:** Update seeding script with realistic constraints.
+
+### Constraints to Enforce
+
+| Rule | Constraint |
+|------|------------|
+| Daily elder limit | Max 3 elders per caregiver per day |
+| Time slot conflict | Max 1 elder per 2-hour window |
+
+### Realistic Shift Pattern
+
+For 30 elders and 10 caregivers:
+- Each caregiver gets 3 elders per day
+- Shifts staggered in 2.5-hour slots:
+  - Slot 1: 9:00 AM - 11:30 AM
+  - Slot 2: 11:30 AM - 2:00 PM
+  - Slot 3: 2:00 PM - 4:30 PM
+
+### Files to Modify
+- `.claude/skills/schedule-assignment/scripts/seedWeeklyShifts.ts`
+
+### Test
+- Each caregiver has max 3 elders per day
+- No overlapping shifts for same caregiver
+- Shifts staggered by 2.5-hour windows
+
+---
+
+## Phase 6: Conflict Detection & Constraint Validation
+
+When assigning caregivers, the system must validate:
+
+### Hard Constraints (Block Assignment)
+
+| Constraint | Check | Error Message |
+|------------|-------|---------------|
+| Daily limit | Count caregiver's shifts on that day | "Caregiver X already has 3 elders on this day" |
+| Time overlap | Check if new shift overlaps existing | "Caregiver X is already scheduled for this time" |
+
+### Soft Constraints (Warning Only)
+
+| Constraint | Check | Warning Message |
+|------------|-------|-----------------|
+| Caregiver preference | Check caregiver-elder history | "Caregiver X hasn't worked with this elder before" |
+
+### Validation Logic
+
+```typescript
+function canAssignCaregiver(
+  caregiverId: string,
+  date: Date,
+  startTime: string,
+  endTime: string,
+  existingShifts: ScheduledShift[]
+): { valid: boolean; error?: string } {
+  // 1. Check daily limit (max 3 elders)
+  const sameDayShifts = existingShifts.filter(
+    s => s.caregiverId === caregiverId && isSameDay(s.date, date)
+  );
+  if (sameDayShifts.length >= 3) {
+    return { valid: false, error: 'Caregiver already has 3 elders on this day' };
+  }
+
+  // 2. Check time overlap (2-hour window)
+  const hasOverlap = sameDayShifts.some(s => timesOverlap(s, startTime, endTime));
+  if (hasOverlap) {
+    return { valid: false, error: 'Caregiver is already scheduled for this time' };
+  }
+
+  return { valid: true };
+}
+```
 
 ### Conflict Types
 
 | Conflict | Detection | Resolution |
 |----------|-----------|------------|
 | Caregiver unavailable | shift.caregiverId in unavailableDays | Reassign to available caregiver |
-| Over capacity | caregiver has >3 elders/day | Warning only (allow override) |
+| Over capacity | caregiver has ≥3 elders/day | Block assignment, suggest different caregiver |
+| Time conflict | shift overlaps existing shift | Block assignment, suggest different time |
 | No caregiver | shift.caregiverId empty | Assign from available list |
 
 ---
@@ -234,11 +306,12 @@ When copying schedule or toggling availability:
 |-------|----------|--------|--------------|--------|
 | 1. Fix Gap Detection | HIGH | Small | None | ✅ DONE |
 | 1.5. Click-to-Assign | HIGH | Small | Phase 1 | ✅ DONE |
-| 2. Elder-Centric List | HIGH | Medium | Phase 1.5 | 🔲 TODO |
+| 1.6. Fix Test Data | HIGH | Small | Phase 1.5 | 🔲 TODO |
+| 2. Elder-Centric List | HIGH | Medium | Phase 1.6 | 🔲 TODO |
 | 3. Bulk Assignment | HIGH | Medium | Phase 2 | 🔲 TODO |
 | 4. Copy Last Week | MEDIUM | Medium | Phase 3 | 🔲 TODO |
 | 5. Caregiver Availability | MEDIUM | Medium | Phase 4 | 🔲 TODO |
-| 6. Conflict Detection | LOW | Small | Phase 4, 5 | 🔲 TODO |
+| 6. Conflict Detection | HIGH | Medium | Phase 1.6 | 🔲 TODO |
 
 ---
 

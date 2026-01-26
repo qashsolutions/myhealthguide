@@ -808,12 +808,32 @@ The old `ShiftSchedulingCalendar` (month calendar with filters) has been replace
 
 ## Schedule Assignment System (Jan 26, 2026)
 
-**Status:** ✅ IMPLEMENTED (Phase 1)
+**Status:** ✅ IMPLEMENTED (Phase 1, 1.5)
 **Skill Documentation:** `.claude/skills/schedule-assignment/SKILL.md`
 
 ### Overview
 
 "Copy + Adjust" workflow for weekly elder-caregiver assignments. Shows ALL 30 elders needing care with simple assignment tools, rather than complex auto-assignment algorithms.
+
+### Caregiver Assignment Constraints
+
+| Rule | Constraint | Enforcement |
+|------|------------|-------------|
+| **Daily Elder Limit** | Max 3 elders per caregiver per day | Hard block |
+| **Time Slot Conflict** | Max 1 elder per 2-hour window | Hard block |
+
+**Example Valid Schedule (staggered shifts):**
+```
+Caregiver 1 → Elder A: 9:00 AM - 11:30 AM
+Caregiver 1 → Elder B: 11:30 AM - 2:00 PM
+Caregiver 1 → Elder C: 2:00 PM - 4:30 PM
+```
+
+**Invalid (same time slot):**
+```
+Caregiver 1 → Elder A: 9:00 AM - 5:00 PM
+Caregiver 1 → Elder B: 9:00 AM - 5:00 PM  ← CONFLICT!
+```
 
 ### Why Copy + Adjust (Not Auto-Assign)
 
@@ -826,31 +846,31 @@ The old `ShiftSchedulingCalendar` (month calendar with filters) has been replace
 
 **The owner always knows more than the system.** So we make manual assignment fast and easy.
 
-### Gap Detection (Phase 1 - Complete)
+### Completed Phases
 
-The schedule view now shows:
-1. **Unfilled shifts** - existing shifts with no caregiver assigned
-2. **Missing shifts** - elders who have NO shift created for that day
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1 | Gap Detection (show ALL elders) | ✅ Complete |
+| 1.5 | Click-to-Assign for unfilled shifts | ✅ Complete |
 
-This ensures all 30 elders are visible, not just those with existing unfilled shifts.
+### Future Phases
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1.6 | Fix test data seeding (realistic shifts) | Pending |
+| 2 | Elder-Centric Day List with checkboxes | Pending |
+| 3 | Bulk Assignment | Pending |
+| 4 | Copy Last Week | Pending |
+| 5 | Caregiver Availability | Pending |
+| 6 | Conflict Detection & Constraint Validation | Pending |
 
 ### Key Files
 
 | File | Purpose |
 |------|---------|
 | `.claude/skills/schedule-assignment/SKILL.md` | Full skill documentation |
-| `.claude/skills/schedule-assignment/PLAN.md` | 6-phase implementation plan |
+| `.claude/skills/schedule-assignment/PLAN.md` | Implementation plan with phases |
 | `.claude/skills/schedule-assignment/scripts/seedWeeklyShifts.ts` | Test data seeding script |
-
-### Future Phases (Not Yet Implemented)
-
-| Phase | Feature | Status |
-|-------|---------|--------|
-| 2 | Elder-Centric Day List with checkboxes | Pending |
-| 3 | Bulk Assignment | Pending |
-| 4 | Copy Last Week | Pending |
-| 5 | Caregiver Availability | Pending |
-| 6 | Conflict Detection | Pending |
 
 ### Test Data
 
@@ -859,7 +879,7 @@ Run seeding script to create test shifts:
 npx ts-node --project tsconfig.scripts.json .claude/skills/schedule-assignment/scripts/seedWeeklyShifts.ts
 ```
 
-Creates 180 shifts (30 elders x 6 days) with varying assignment states.
+Creates 180 shifts (30 elders x 6 days) with staggered time slots respecting constraints.
 
 ---
 

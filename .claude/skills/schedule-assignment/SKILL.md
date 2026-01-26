@@ -245,21 +245,64 @@ The Schedule Assignment system allows agency owners to assign caregivers to elde
 
 ## Business Rules
 
-### Caregiver Limits
-- Multi-agency plan: Max 3 elders per caregiver per day
-- Show warning (not block) if exceeded
+### Caregiver Assignment Constraints
+
+| Rule | Constraint | Enforcement |
+|------|------------|-------------|
+| **Daily Elder Limit** | Max 3 elders per caregiver per day | Hard block |
+| **Time Slot Conflict** | Max 1 elder per 2-hour window | Hard block |
+
+#### Rule 1: Daily Elder Limit
+
+A caregiver cannot be assigned to more than **3 elders** on any given day.
+
+```
+✅ Valid: Caregiver 1 has 3 elders on Monday
+❌ Invalid: Caregiver 1 has 4 elders on Monday
+```
+
+#### Rule 2: Time Slot Conflict (2-Hour Window)
+
+A caregiver cannot be assigned to more than **1 elder** in any 2-hour window. Shifts must be staggered.
+
+```
+✅ Valid Schedule:
+   Caregiver 1 → Elder A: 9:00 AM - 11:00 AM
+   Caregiver 1 → Elder B: 11:00 AM - 1:00 PM
+   Caregiver 1 → Elder C: 1:00 PM - 3:00 PM
+
+❌ Invalid Schedule (overlapping):
+   Caregiver 1 → Elder A: 9:00 AM - 5:00 PM
+   Caregiver 1 → Elder B: 9:00 AM - 5:00 PM  ← CONFLICT!
+```
+
+#### Realistic Shift Patterns
+
+For a caregiver with 3 elders per day, shifts should be staggered:
+
+| Slot | Time | Duration |
+|------|------|----------|
+| Morning | 9:00 AM - 11:30 AM | 2.5 hours |
+| Midday | 11:30 AM - 2:00 PM | 2.5 hours |
+| Afternoon | 2:00 PM - 4:30 PM | 2.5 hours |
 
 ### Conflict Detection
-1. Caregiver marked unavailable for a day they have assignments
-2. Elder has no caregiver assigned for a day
-3. Caregiver over max capacity
 
-### Warnings (Not Blocks)
+| Conflict Type | Detection | Resolution |
+|---------------|-----------|------------|
+| Daily limit exceeded | Caregiver has ≥3 elders on day | Block assignment, show "Caregiver full" |
+| Time slot overlap | New shift overlaps existing shift | Block assignment, suggest different time |
+| Caregiver unavailable | Marked as unavailable for that day | Hide from caregiver list |
+| Elder has no caregiver | No shift or unfilled shift | Show as gap, prompt to assign |
+
+### Warning Messages
+
 ```
-⚠️ Warning: Caregiver 1 already has 3 elders for Monday.
-   Assigning Elder 5 will exceed recommended limit.
+❌ Cannot assign: Caregiver 1 already has 3 elders on Monday.
+   Choose a different caregiver.
 
-   [Assign Anyway]  [Choose Different]
+❌ Cannot assign: Caregiver 1 is already scheduled for 9AM-11AM.
+   Choose a different time slot or caregiver.
 ```
 
 ---
