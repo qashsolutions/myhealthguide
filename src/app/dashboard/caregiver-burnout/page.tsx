@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw, Brain } from 'lucide-react';
+import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw, Brain, AlertCircle, CalendarClock } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { CaregiverBurnoutAssessment } from '@/types';
 
@@ -363,13 +363,34 @@ export default function CaregiverBurnoutPage() {
                   Recommendations
                 </h4>
                 {selectedAssessment.recommendations?.length > 0 ? (
-                  <ul className="space-y-2 text-sm text-purple-800 dark:text-purple-200">
-                    {selectedAssessment.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="text-purple-600 dark:text-purple-400 mt-0.5">•</span>
-                        <span>{rec}</span>
-                      </li>
-                    ))}
+                  <ul className="space-y-3 text-sm text-purple-800 dark:text-purple-200">
+                    {selectedAssessment.recommendations.map((rec, index) => {
+                      // Parse urgency from recommendation text like "[IMMEDIATE] ..." or "[SOON] ..."
+                      const urgencyMatch = rec.match(/^\[(IMMEDIATE|SOON|SCHEDULED)\]\s*/i);
+                      const urgency = urgencyMatch ? urgencyMatch[1].toLowerCase() : null;
+                      const text = urgencyMatch ? rec.replace(urgencyMatch[0], '') : rec;
+
+                      // Get icon and color based on urgency
+                      const getUrgencyIcon = () => {
+                        switch (urgency) {
+                          case 'immediate':
+                            return <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />;
+                          case 'soon':
+                            return <Clock className="h-4 w-4 text-orange-500 flex-shrink-0" />;
+                          case 'scheduled':
+                            return <CalendarClock className="h-4 w-4 text-blue-500 flex-shrink-0" />;
+                          default:
+                            return <span className="text-purple-600 dark:text-purple-400 mt-0.5">•</span>;
+                        }
+                      };
+
+                      return (
+                        <li key={index} className="flex items-start gap-2">
+                          {getUrgencyIcon()}
+                          <span>{text}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <p className="text-sm text-purple-700 dark:text-purple-300">
@@ -380,7 +401,7 @@ export default function CaregiverBurnoutPage() {
                 )}
               </Card>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - DISABLED: Buttons not functional yet
               {selectedAssessment.burnoutRisk !== 'low' && (
                 <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 p-4">
                   <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-3">
@@ -398,6 +419,7 @@ export default function CaregiverBurnoutPage() {
                   </div>
                 </Card>
               )}
+              */}
             </div>
           )}
         </div>
