@@ -32,9 +32,11 @@ export default function DocumentsPage() {
   const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
   const [storageInfo, setStorageInfo] = useState<{ used: number; limit: number; isOverQuota: boolean } | null>(null);
 
-  // Check if user is a family member (read-only access)
-  const userAgencyRole = user?.agencies?.[0]?.role;
-  const isReadOnly = userAgencyRole === 'family_member';
+  // DISABLED: Legacy family_member role check - family members now use Report Recipients (email-only, no accounts)
+  // Family members no longer have app access, so this is always false
+  // const userAgencyRole = user?.agencies?.[0]?.role;
+  // const isReadOnly = userAgencyRole === 'family_member';
+  const isReadOnly = false; // Only owner has access to documents page now
 
   useEffect(() => {
     if (user) {

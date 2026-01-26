@@ -37,7 +37,8 @@ import { FeedbackDashboard } from '@/components/feedback/FeedbackDashboard';
 import { ShiftTrackingDashboard } from './ShiftTrackingDashboard';
 import { TimesheetApprovalDashboard } from './TimesheetApprovalDashboard';
 import { FamilyInviteManager } from '@/components/caregiver/FamilyInviteManager';
-import { SuperAdminFamilyOverview } from './SuperAdminFamilyOverview';
+// DISABLED: Legacy family member system - now using Report Recipients (email-only)
+// import { SuperAdminFamilyOverview } from './SuperAdminFamilyOverview';
 
 interface AgencyDashboardProps {
   userId: string;
@@ -553,13 +554,14 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
         />
       )}
 
-      {/* Family Members Overview - Only for Super Admin */}
+      {/* DISABLED: Legacy Family Members Overview - family members now use Report Recipients (email-only, no accounts)
       {isSuperAdmin && groups.length > 0 && (
         <SuperAdminFamilyOverview
           agencyId={agencyId}
           groupId={groups[0].id}
         />
       )}
+      */}
 
       {/* Caregiver Invite Manager - Only for Super Admin */}
       {isSuperAdmin && (

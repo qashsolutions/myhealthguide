@@ -2,6 +2,7 @@
 
 - Review the documents. Build prod ready files, do not add To-Dos. Do not assume - ask me when in doubt.
 - Today is Jan 25, 2026.
+- See `docs/skills.md` for detailed system capabilities and notification flows.
 - The firebase config will not work in local.
 
 ## Related Documentation
@@ -363,6 +364,61 @@ Tests what happens when trial expires WITHOUT subscribing.
 | **Plan A** (Family) | $8.99/mo | 45 days | 1 | 1 (admin) | 1 (read-only) | 25 MB |
 | **Plan B** (Family) | $18.99/mo | 45 days | 1 | 1 (admin) | 3 (read-only) | 50 MB |
 | **Plan C** (Multi Agency) | $55/elder/mo | 30 days | 3/caregiver | 10 max | 2/elder (read-only) | 500 MB |
+
+---
+
+## Multi-Agency Roles & Permissions
+
+**Updated:** Jan 25, 2026
+
+### Roles
+
+| Role | Description | Can Login? |
+|------|-------------|------------|
+| **Owner** | Agency owner (super admin) - manages caregivers, elders, scheduling | ✅ Yes |
+| **Caregiver** | Care provider - handles shifts, logs care activities | ✅ Yes |
+| **Family Member** | Receives daily health reports via email | ❌ No (email-only) |
+
+### Family Members (Report Recipients)
+
+Family members **do NOT create accounts**. They are added as email recipients only:
+
+1. Owner/Caregiver adds email via **Settings → Daily Report Recipients**
+2. Family member receives **automated daily health email** at 7 PM PST
+3. No login, no app access - just email notifications
+
+**Legacy System (DISABLED):** The old `SuperAdminFamilyOverview` component that allowed family members to create accounts has been disabled. Code is preserved but commented out.
+
+### Page Access by Role
+
+| Page | Owner | Caregiver |
+|------|-------|-----------|
+| **Documents** (`/dashboard/documents`) | ✅ Upload/View/Delete | ❌ No access |
+| **Shift Handoff** (`/dashboard/shift-handoff`) | ❌ Not shown | ✅ Full access |
+| **Timesheet** (`/dashboard/timesheet`) | ✅ View all (different page) | ✅ Log own hours |
+| **Caregiver Burnout** (`/dashboard/caregiver-burnout`) | ✅ Monitor team | ❌ No access |
+| **Schedule** (`/dashboard/agency/schedule`) | ✅ Full access | ✅ View own shifts |
+| **Alerts** (`/dashboard/alerts`) | ✅ Read-only | ✅ Read-only |
+
+### Care Management Page Cards
+
+| Card | Owner | Caregiver |
+|------|-------|-----------|
+| Documents | ✅ Shown | ❌ Hidden |
+| Caregiver Burnout | ✅ Shown | ❌ Hidden |
+| Alerts | ✅ Shown | ✅ Shown |
+| Shift Handoff | ❌ Hidden | ✅ Shown |
+| Timesheet | ❌ Hidden | ✅ Shown |
+| Family Updates | ❌ Removed (automated) | ❌ Removed (automated) |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/care-management/page.tsx` | Role-based card visibility |
+| `src/app/dashboard/documents/page.tsx` | Owner-only document access |
+| `src/app/dashboard/settings/page.tsx` | Report Recipients management |
+| `src/components/agency/AgencyDashboard.tsx` | Legacy family overview disabled |
 
 ---
 

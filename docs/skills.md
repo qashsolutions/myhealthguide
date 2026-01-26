@@ -291,6 +291,84 @@ Generate summary + PDF
 
 ---
 
+## Multi-Agency Roles & Permissions
+
+### User Roles
+
+| Role | Description | Has App Account? |
+|------|-------------|------------------|
+| **Owner** | Agency super admin - manages caregivers, elders, scheduling, documents | ✅ Yes |
+| **Caregiver** | Care provider - shift handoffs, timesheets, logs care activities | ✅ Yes |
+| **Family Member** | Receives daily email reports only | ❌ No (email-only) |
+
+### Family Members (Report Recipients)
+
+Family members **do NOT create accounts**. The legacy family member account system has been **DISABLED**.
+
+**Current Flow:**
+```
+Owner/Caregiver → Settings → Daily Report Recipients
+      ↓
+Add family email under specific Elder
+      ↓
+Family receives automated daily email at 7 PM PST
+      ↓
+No login, no app access - email notifications only
+```
+
+**Key Points:**
+- No accounts needed for family members
+- Added via Settings → "Daily Report Recipients"
+- Stored as `reportRecipients` array on elder document
+- Receive Daily Family Notes email with PDF attachment
+- Cannot log in or access the app
+
+**Legacy System (DISABLED):**
+- `SuperAdminFamilyOverview.tsx` - commented out
+- Family member invite links - disabled
+- `family_member` role checks - disabled
+- Code preserved for potential future reactivation
+
+### Feature Access by Role
+
+| Feature | Owner | Caregiver | Family Member |
+|---------|-------|-----------|---------------|
+| **Documents** | ✅ Upload/View/Delete | ❌ No access | ❌ No access |
+| **Shift Handoff** | ❌ Not applicable | ✅ Full access | ❌ No access |
+| **Timesheet (own)** | ❌ Not applicable | ✅ Log hours | ❌ No access |
+| **Timesheet (review all)** | ✅ View all | ❌ No access | ❌ No access |
+| **Schedule** | ✅ Create/Edit/Assign | ✅ View own shifts | ❌ No access |
+| **Caregiver Burnout** | ✅ Monitor team | ❌ No access | ❌ No access |
+| **Alerts** | ✅ Read-only | ✅ Read-only | ❌ No access |
+| **Daily Email Reports** | ✅ Receives | ❌ No | ✅ Receives |
+
+### Care Management Page
+
+Role-based card visibility:
+
+| Card | Owner | Caregiver |
+|------|-------|-----------|
+| Documents | ✅ Shown | ❌ Hidden |
+| Caregiver Burnout | ✅ Shown | ❌ Hidden |
+| Alerts | ✅ Shown | ✅ Shown |
+| Shift Handoff | ❌ Hidden | ✅ Shown |
+| Timesheet | ❌ Hidden | ✅ Shown |
+| Family Updates | ❌ Removed | ❌ Removed |
+
+**Note:** Family Updates card removed entirely - daily emails are automated, not manual.
+
+### Key Files for Role Management
+
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/care-management/page.tsx` | Role-based card visibility |
+| `src/app/dashboard/documents/page.tsx` | Owner-only document access |
+| `src/app/dashboard/settings/page.tsx` | Report Recipients management |
+| `src/lib/firebase/groups.ts` | `addReportRecipient()`, `removeReportRecipient()` |
+| `src/components/agency/AgencyDashboard.tsx` | Legacy family overview (disabled) |
+
+---
+
 ## Security & Privacy
 
 - **FCM tokens** stored only in authenticated user documents
@@ -298,6 +376,7 @@ Generate summary + PDF
 - **Role-based filtering** caregivers only see assigned elders
 - **Email addresses** treated as sensitive data
 - **Report recipients** can receive emails without app accounts
+- **Documents** accessible only by agency owner (not caregivers or family)
 
 ---
 
