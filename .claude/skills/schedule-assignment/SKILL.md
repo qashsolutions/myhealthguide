@@ -216,6 +216,33 @@ The Schedule Assignment system allows agency owners to assign caregivers to elde
 
 ---
 
+## Color Coding & Visual States
+
+### Status Badges (No Action Needed)
+
+| Badge | Color | Meaning |
+|-------|-------|---------|
+| **Confirmed** | Green | Shift is confirmed, no action needed |
+| **Awaiting** | Amber | Waiting for caregiver to respond |
+| **Unfilled** | Red | No caregiver assigned |
+| **Completed** | Gray | Shift is done |
+
+### Action Buttons (Click Required)
+
+| Button | Color | Meaning |
+|--------|-------|---------|
+| **Confirm** | Blue | Owner needs to click to confirm shift |
+| **Assign** | Red | Click to assign caregiver to gap |
+
+**Design Principle:** Action buttons use distinct colors from status badges to clearly indicate "click me" vs "information only".
+
+- **Blue** = Primary action (Confirm, Save, Submit)
+- **Green** = Success/completed state (Confirmed badge)
+- **Red** = Urgent action or warning (Assign gap, Unfilled badge)
+- **Amber** = Pending/waiting state (Awaiting badge)
+
+---
+
 ## Business Rules
 
 ### Caregiver Limits
