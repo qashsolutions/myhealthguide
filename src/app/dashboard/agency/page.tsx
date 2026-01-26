@@ -12,7 +12,7 @@ import { AgencyDashboard } from '@/components/agency/AgencyDashboard';
 import { CaregiverAssignmentManager } from '@/components/agency/CaregiverAssignmentManager';
 import { AgencyAnalyticsDashboard } from '@/components/agency/analytics/AgencyAnalyticsDashboard';
 import { AgencyBillingDashboard } from '@/components/agency/billing/AgencyBillingDashboard';
-import { ShiftSchedulingCalendar } from '@/components/agency/scheduling';
+import { WeekStripSchedule } from '@/components/agency/schedule';
 import { Building2, Users, BarChart3, DollarSign, CalendarDays } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -218,9 +218,8 @@ export default function AgencyPage() {
           </TabsContent>
 
           <TabsContent value="scheduling" className="space-y-6">
-            <ShiftSchedulingCalendar
+            <WeekStripSchedule
               agencyId={agencyId}
-              groupId={groupId}
               userId={userId}
             />
           </TabsContent>
