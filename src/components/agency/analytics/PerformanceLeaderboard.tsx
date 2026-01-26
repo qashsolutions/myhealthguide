@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Clock, CheckCircle, Star } from 'lucide-react';
+import { Trophy, Clock } from 'lucide-react';
 import type { CaregiverPerformance } from '@/lib/firebase/agencyAnalytics';
 
 interface PerformanceLeaderboardProps {
@@ -79,13 +79,10 @@ export function PerformanceLeaderboard({ data, loading }: PerformanceLeaderboard
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-yellow-600">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="font-bold">{performer.avgRating.toFixed(1)}</span>
-                  </div>
+                  {/* Rating hidden - not yet implemented */}
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 text-sm">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs">
                       <Clock className="w-3 h-3" />
@@ -93,15 +90,6 @@ export function PerformanceLeaderboard({ data, loading }: PerformanceLeaderboard
                     </div>
                     <div className="font-bold text-gray-900 dark:text-white">
                       {performer.hoursWorked}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs">
-                      <CheckCircle className="w-3 h-3" />
-                      Compliance
-                    </div>
-                    <div className="font-bold text-gray-900 dark:text-white">
-                      {Math.round(performer.complianceRate)}%
                     </div>
                   </div>
                   <div>

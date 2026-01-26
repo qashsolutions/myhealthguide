@@ -22,6 +22,13 @@ export interface BillableHoursData {
   projectedRevenue: number;
 }
 
+export interface AssignmentsOverviewData {
+  month: string;
+  caregiverCount: number;
+  elderCount: number;
+  activeAssignments: number;
+}
+
 export interface StaffUtilizationMetrics {
   caregiverId: string;
   caregiverName: string;
@@ -568,5 +575,71 @@ export async function getCurrentMonthSummary(agencyId: string) {
       projectedRevenue: 0,
       fillRate: 0
     };
+  }
+}
+
+/**
+ * Get assignments overview data for the last N months
+ * Shows caregiver count, elder count, and active assignments per month
+ */
+export async function getAssignmentsOverviewData(
+  agencyId: string,
+  monthsBack: number = 6
+): Promise<AssignmentsOverviewData[]> {
+  try {
+    const data: AssignmentsOverviewData[] = [];
+    const today = new Date();
+
+    // Get all assignments for the agency
+    const assignmentsQuery = query(
+      collection(db, 'caregiver_assignments'),
+      where('agencyId', '==', agencyId),
+      limit(500)
+    );
+
+    const assignmentsSnapshot = await getDocs(assignmentsQuery);
+
+    interface AssignmentDoc {
+      active?: boolean;
+      createdAt: Date;
+      caregiverId: string;
+      elderIds?: string[];
+    }
+
+    const allAssignments: AssignmentDoc[] = assignmentsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        active: data.active,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        caregiverId: data.caregiverId,
+        elderIds: data.elderIds
+      };
+    });
+
+    for (let i = monthsBack - 1; i >= 0; i--) {
+      const monthDate = subMonths(today, i);
+      const endDate = endOfMonth(monthDate);
+
+      // Count assignments that existed by the end of this month
+      const activeAssignments = allAssignments.filter(a =>
+        a.active !== false && a.createdAt <= endDate
+      );
+
+      // Count unique caregivers and elders
+      const caregiverIds = new Set(activeAssignments.map(a => a.caregiverId));
+      const elderIds = new Set(activeAssignments.flatMap(a => a.elderIds || []));
+
+      data.push({
+        month: monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        caregiverCount: caregiverIds.size,
+        elderCount: elderIds.size,
+        activeAssignments: activeAssignments.length
+      });
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error getting assignments overview:', error);
+    return [];
   }
 }

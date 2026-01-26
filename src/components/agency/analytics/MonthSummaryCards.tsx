@@ -1,12 +1,12 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, TrendingUp, DollarSign, CheckCircle } from 'lucide-react';
+import { Clock, TrendingUp, CheckCircle } from 'lucide-react';
 
 interface MonthSummary {
   totalHours: number;
   averagePerDay: number;
-  projectedRevenue: number;
+  projectedRevenue: number; // Not displayed - no agency billing rates configured
   fillRate: number;
 }
 
@@ -18,8 +18,8 @@ interface MonthSummaryCardsProps {
 export function MonthSummaryCards({ summary, loading }: MonthSummaryCardsProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
           <Card key={i}>
             <CardContent className="pt-6">
               <div className="animate-pulse">
@@ -33,6 +33,7 @@ export function MonthSummaryCards({ summary, loading }: MonthSummaryCardsProps) 
     );
   }
 
+  // Revenue Projection removed - no agency billing rates configured yet
   const cards = [
     {
       title: 'Total Hours',
@@ -49,13 +50,6 @@ export function MonthSummaryCards({ summary, loading }: MonthSummaryCardsProps) 
       bgColor: 'bg-green-100 dark:bg-green-900/30'
     },
     {
-      title: 'Revenue Proj.',
-      value: `$${summary.projectedRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100 dark:bg-purple-900/30'
-    },
-    {
       title: 'Fill Rate',
       value: `${summary.fillRate}%`,
       icon: CheckCircle,
@@ -65,7 +59,7 @@ export function MonthSummaryCards({ summary, loading }: MonthSummaryCardsProps) 
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((card, index) => (
         <Card key={index}>
           <CardContent className="pt-6">

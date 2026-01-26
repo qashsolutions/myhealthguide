@@ -186,7 +186,7 @@ export default function AgencyPage() {
 
       {isSuperAdmin ? (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isMultiAgency ? 'grid-cols-5' : 'grid-cols-3'} lg:w-auto`}>
+          <TabsList className={`grid w-full ${isMultiAgency ? 'grid-cols-4' : 'grid-cols-3'} lg:w-auto`}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
               <span className="hidden sm:inline">Overview</span>

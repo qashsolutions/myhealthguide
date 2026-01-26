@@ -1,7 +1,7 @@
 # MyHealthGuide - Claude Code Instructions
 
 - Review the documents. Build prod ready files, do not add To-Dos. Do not assume - ask me when in doubt.
-- Today is Jan 25, 2026.
+- Today is Jan 26, 2026.
 - See `docs/skills.md` for detailed system capabilities and notification flows.
 - The firebase config will not work in local.
 
@@ -632,6 +632,7 @@ If Gemini fails, the system automatically falls back to Claude for:
 - Shift unfilled notification 404 fix - corrected actionUrl route (Jan 25, 2026)
 - Shift Confirmation System with multi-channel notifications (Jan 25, 2026)
 - Week Strip Schedule View - mobile-friendly schedule interface (Jan 25, 2026)
+- Analytics Tab fixes - removed billing, fixed caregiver names, assignments chart (Jan 26, 2026)
 
 ---
 
@@ -1032,3 +1033,52 @@ Complete navigation and dashboard redesign inspired by Claude.ai's minimal UI pa
 | `upcoming` | Scheduled later today | Gray card, no action buttons |
 | `completed` | Log found within ±30min window | Hidden from priority card |
 | `skipped` | Skip log found | Hidden from priority card |
+
+---
+
+## Agency Analytics Tab (Jan 26, 2026)
+
+**Status:** ✅ UPDATED
+
+### Overview
+
+Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related metrics (no agency billing rates configured) and fixed caregiver name display issues.
+
+### Changes Made
+
+| Change | Description |
+|--------|-------------|
+| **Grid cols fixed** | Tab list changed from 5 cols to 4 cols (billing removed) |
+| **Revenue Projection removed** | MonthSummaryCards now shows 3 cards instead of 4 |
+| **BillableHoursChart replaced** | New `AssignmentsOverviewChart` shows caregiver/elder counts by month |
+| **Caregiver names fixed** | Uses `/api/agency/caregiver-names` API (same as Scheduling tab) |
+| **Ratings/Compliance hidden** | Removed placeholder values from PerformanceLeaderboard |
+
+### Current Analytics Components
+
+| Component | What It Shows |
+|-----------|---------------|
+| **MonthSummaryCards** | Total Hours, Avg Per Day, Fill Rate (3 cards) |
+| **AssignmentsOverviewChart** | Bar chart - caregivers vs loved ones by month |
+| **StaffUtilizationChart** | Caregiver utilization % with names |
+| **BurnoutAlertPanel** | At-risk caregivers (from API) |
+| **ScheduleCoverageChart** | Weekly coverage by day |
+| **PerformanceLeaderboard** | Hours worked, No-Shows (ratings hidden) |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/components/agency/analytics/AgencyAnalyticsDashboard.tsx` | Main dashboard, API-based name fetching |
+| `src/components/agency/analytics/AssignmentsOverviewChart.tsx` | NEW - Caregiver/Elder bar chart |
+| `src/components/agency/analytics/MonthSummaryCards.tsx` | 3 summary cards (revenue removed) |
+| `src/components/agency/analytics/PerformanceLeaderboard.tsx` | Hours + No-Shows only |
+| `src/lib/firebase/agencyAnalytics.ts` | Added `getAssignmentsOverviewData()` |
+
+### What's Still Placeholder
+
+| Metric | Status | Note |
+|--------|--------|------|
+| Ratings | Hidden | No rating system implemented |
+| Compliance | Hidden | No compliance tracking implemented |
+| No-Shows | ✅ Real | Counted from `shift.status === 'no_show'` |

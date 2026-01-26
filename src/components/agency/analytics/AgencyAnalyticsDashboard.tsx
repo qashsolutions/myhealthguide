@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BillableHoursChart } from './BillableHoursChart';
+import { AssignmentsOverviewChart } from './AssignmentsOverviewChart';
 import { StaffUtilizationChart } from './StaffUtilizationChart';
 import { BurnoutAlertPanel } from './BurnoutAlertPanel';
 import { ScheduleCoverageChart } from './ScheduleCoverageChart';
@@ -10,12 +10,12 @@ import { PerformanceLeaderboard } from './PerformanceLeaderboard';
 import { MonthSummaryCards } from './MonthSummaryCards';
 import { AgencyService } from '@/lib/firebase/agencies';
 import {
-  getBillableHoursData,
+  getAssignmentsOverviewData,
   getStaffUtilizationMetrics,
   getScheduleCoverageStats,
   getCaregiverPerformanceRankings,
   getCurrentMonthSummary,
-  type BillableHoursData,
+  type AssignmentsOverviewData,
   type StaffUtilizationMetrics,
   type BurnoutAlert,
   type ScheduleCoverageStats,
@@ -34,7 +34,7 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
   const [refreshing, setRefreshing] = useState(false);
 
   // Data states
-  const [billableHours, setBillableHours] = useState<BillableHoursData[]>([]);
+  const [assignmentsOverview, setAssignmentsOverview] = useState<AssignmentsOverviewData[]>([]);
   const [utilization, setUtilization] = useState<StaffUtilizationMetrics[]>([]);
   const [burnoutAlerts, setBurnoutAlerts] = useState<BurnoutAlert[]>([]);
   const [coverage, setCoverage] = useState<ScheduleCoverageStats[]>([]);
@@ -65,37 +65,38 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
       const assignments = await AgencyService.getAgencyAssignments(agencyId);
       const caregiverIds = [...new Set(assignments.map(a => a.caregiverId))];
 
-      // Build caregiver names map by fetching caregiver profiles (super admin CAN read these)
+      // Fetch caregiver names via API (same approach as Scheduling/Assignments tabs)
       const caregiverNames = new Map<string, string>();
 
-      // Fetch caregiver profiles for this agency
-      const { collection, query, where, getDocs } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase/config');
+      if (caregiverIds.length > 0) {
+        try {
+          const token = await auth.currentUser?.getIdToken();
+          const response = await fetch('/api/agency/caregiver-names', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ userIds: caregiverIds, agencyId })
+          });
 
-      try {
-        const profilesQuery = query(
-          collection(db, 'caregiver_profiles'),
-          where('agencyId', '==', agencyId)
-        );
-        const profilesSnapshot = await getDocs(profilesQuery);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.names) {
+              Object.entries(data.names).forEach(([id, name]) => {
+                caregiverNames.set(id, name as string);
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching caregiver names:', error);
+        }
 
-        profilesSnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          const name = data.fullName || data.userId;
-          caregiverNames.set(data.userId, name);
-        });
-
-        // Set fallback for any caregivers without profiles
+        // Set fallback for any caregivers without names
         for (const caregiverId of caregiverIds) {
           if (!caregiverNames.has(caregiverId)) {
             caregiverNames.set(caregiverId, caregiverId);
           }
-        }
-      } catch (error) {
-        console.error('Error fetching caregiver profiles:', error);
-        // Fallback to using caregiver IDs as names
-        for (const caregiverId of caregiverIds) {
-          caregiverNames.set(caregiverId, caregiverId);
         }
       }
 
@@ -136,14 +137,14 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
 
       // Load all analytics data in parallel
       const [
-        billableData,
+        assignmentsData,
         utilizationData,
         burnoutData,
         coverageData,
         leaderboardData,
         summaryData
       ] = await Promise.all([
-        getBillableHoursData(agencyId, 6),
+        getAssignmentsOverviewData(agencyId, 6),
         getStaffUtilizationMetrics(agencyId, caregiverIds, caregiverNames),
         fetchBurnoutFromAPI(), // Use API instead of local function
         getScheduleCoverageStats(agencyId),
@@ -151,7 +152,7 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
         getCurrentMonthSummary(agencyId)
       ]);
 
-      setBillableHours(billableData);
+      setAssignmentsOverview(assignmentsData);
       setUtilization(utilizationData);
       setBurnoutAlerts(burnoutData);
       setCoverage(coverageData);
@@ -210,8 +211,8 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
         <MonthSummaryCards summary={monthSummary} loading={loading} />
       </div>
 
-      {/* Billable Hours Trend */}
-      <BillableHoursChart data={billableHours} loading={loading} />
+      {/* Assignments Overview */}
+      <AssignmentsOverviewChart data={assignmentsOverview} loading={loading} />
 
       {/* Staff Management Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
