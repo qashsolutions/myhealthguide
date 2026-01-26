@@ -565,6 +565,7 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
           date: assigningGap.date.toISOString(),
           startTime: assigningGap.startTime,
           endTime: assigningGap.endTime,
+          elderId: assigningGap.elderId,
           excludeShiftId: assigningGap.shiftId || undefined,
         }),
       });
@@ -641,24 +642,30 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
       return duration >= MIN_SHIFT_DURATION_MINS;
     });
 
-    // Track caregiver's load per day (existing + new assignments)
-    // Count existing shifts for this caregiver per day
-    const caregiverDayLoad = new Map<string, number>();
+    // Track caregiver's UNIQUE elders per day (existing + new assignments)
+    // Map: dateKey -> Set<elderId>
+    const caregiverDayElders = new Map<string, Set<string>>();
     shifts
       .filter(s => s.caregiverId === caregiverId && !['cancelled', 'declined'].includes(s.status))
       .forEach(s => {
-        if (s.date) {
+        if (s.date && s.elderId) {
           const dateKey = format(s.date, 'yyyy-MM-dd');
-          caregiverDayLoad.set(dateKey, (caregiverDayLoad.get(dateKey) || 0) + 1);
+          if (!caregiverDayElders.has(dateKey)) {
+            caregiverDayElders.set(dateKey, new Set());
+          }
+          caregiverDayElders.get(dateKey)!.add(s.elderId);
         }
       });
 
     for (const gap of validGaps) {
-      // Check if caregiver is at daily limit
+      // Check if caregiver would exceed daily unique elder limit
       const dateKey = format(gap.date, 'yyyy-MM-dd');
-      const currentLoad = caregiverDayLoad.get(dateKey) || 0;
-      if (currentLoad >= MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
-        console.warn(`Skipping ${gap.elderName} on ${dateKey}: caregiver at max load`);
+      const currentElders = caregiverDayElders.get(dateKey) || new Set();
+      const isNewElder = !currentElders.has(gap.elderId);
+
+      // Only block if this is a NEW elder and already at limit
+      if (isNewElder && currentElders.size >= MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
+        console.warn(`Skipping ${gap.elderName} on ${dateKey}: caregiver already has ${currentElders.size} elders`);
         continue; // Skip this gap
       }
 
@@ -695,8 +702,11 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
         await addDoc(collection(db, 'scheduledShifts'), newShift);
       }
 
-      // Update running load count
-      caregiverDayLoad.set(dateKey, currentLoad + 1);
+      // Update running unique elder tracking
+      if (!caregiverDayElders.has(dateKey)) {
+        caregiverDayElders.set(dateKey, new Set());
+      }
+      caregiverDayElders.get(dateKey)!.add(gap.elderId);
     }
   }, [elders, agencyId, userId, shifts, userIsSuperAdmin]);
 

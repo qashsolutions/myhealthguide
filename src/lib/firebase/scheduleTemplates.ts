@@ -177,17 +177,20 @@ export async function copyWeekSchedule(
       targetShifts.map(s => `${s.elderId}-${s.date ? format(s.date, 'yyyy-MM-dd') : ''}`)
     );
 
-    // Track caregiver load per day (for 3-elder limit)
-    // Map: caregiverId -> dateKey -> count
-    const caregiverDayLoad = new Map<string, Map<string, number>>();
+    // Track UNIQUE elders per caregiver per day (for 3-elder limit)
+    // Map: caregiverId -> dateKey -> Set<elderId>
+    const caregiverDayElders = new Map<string, Map<string, Set<string>>>();
     targetShifts.forEach(s => {
-      if (s.caregiverId && s.date) {
+      if (s.caregiverId && s.date && s.elderId) {
         const dateKey = format(s.date, 'yyyy-MM-dd');
-        if (!caregiverDayLoad.has(s.caregiverId)) {
-          caregiverDayLoad.set(s.caregiverId, new Map());
+        if (!caregiverDayElders.has(s.caregiverId)) {
+          caregiverDayElders.set(s.caregiverId, new Map());
         }
-        const dayMap = caregiverDayLoad.get(s.caregiverId)!;
-        dayMap.set(dateKey, (dayMap.get(dateKey) || 0) + 1);
+        const dayMap = caregiverDayElders.get(s.caregiverId)!;
+        if (!dayMap.has(dateKey)) {
+          dayMap.set(dateKey, new Set());
+        }
+        dayMap.get(dateKey)!.add(s.elderId);
       }
     });
 
@@ -212,17 +215,19 @@ export async function copyWeekSchedule(
         continue;
       }
 
-      // Check caregiver's daily load (max 3 elders per day)
+      // Check caregiver's daily UNIQUE elder count (max 3 different elders per day)
       const dateKey = format(newDate, 'yyyy-MM-dd');
       let canAssignCaregiver = copyAssignments && sourceShift.caregiverId;
 
       if (canAssignCaregiver && sourceShift.caregiverId) {
-        const cgDayMap = caregiverDayLoad.get(sourceShift.caregiverId);
-        const currentLoad = cgDayMap?.get(dateKey) || 0;
-        if (currentLoad >= MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
-          // Caregiver at limit - create shift as unfilled
+        const cgDayMap = caregiverDayElders.get(sourceShift.caregiverId);
+        const currentElders = cgDayMap?.get(dateKey) || new Set();
+        // Check if this elder is already assigned (same elder = OK) or if adding new would exceed limit
+        const isNewElder = !currentElders.has(sourceShift.elderId);
+        if (isNewElder && currentElders.size >= MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
+          // Caregiver at limit with different elders - create shift as unfilled
           canAssignCaregiver = false;
-          errors.push(`${sourceShift.caregiverName} at max load on ${dateKey}, shift for ${sourceShift.elderName} created unfilled`);
+          errors.push(`${sourceShift.caregiverName} already has ${currentElders.size} elders on ${dateKey}, shift for ${sourceShift.elderName} created unfilled`);
         }
       }
 
@@ -251,13 +256,16 @@ export async function copyWeekSchedule(
         shiftsCreated++;
         existingElderDates.add(elderDateKey); // Track to prevent duplicates within batch
 
-        // Update caregiver day load tracking
-        if (canAssignCaregiver && sourceShift.caregiverId) {
-          if (!caregiverDayLoad.has(sourceShift.caregiverId)) {
-            caregiverDayLoad.set(sourceShift.caregiverId, new Map());
+        // Update caregiver day unique elder tracking
+        if (canAssignCaregiver && sourceShift.caregiverId && sourceShift.elderId) {
+          if (!caregiverDayElders.has(sourceShift.caregiverId)) {
+            caregiverDayElders.set(sourceShift.caregiverId, new Map());
           }
-          const cgDayMap = caregiverDayLoad.get(sourceShift.caregiverId)!;
-          cgDayMap.set(dateKey, (cgDayMap.get(dateKey) || 0) + 1);
+          const cgDayMap = caregiverDayElders.get(sourceShift.caregiverId)!;
+          if (!cgDayMap.has(dateKey)) {
+            cgDayMap.set(dateKey, new Set());
+          }
+          cgDayMap.get(dateKey)!.add(sourceShift.elderId);
         }
       } catch (err) {
         console.error('Error creating shift:', err);

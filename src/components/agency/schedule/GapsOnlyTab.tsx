@@ -193,46 +193,64 @@ export function GapsOnlyTab({
     return load;
   }, [caregivers, shifts]);
 
-  // Count caregiver load per day (for 3-elder daily limit check)
-  const caregiverDailyLoad = useMemo(() => {
-    // Map: caregiverId -> dateKey -> count
-    const load = new Map<string, Map<string, number>>();
+  // Track caregiver's UNIQUE elders per day (for 3-elder daily limit check)
+  // A caregiver can have multiple shifts with the same elder, but max 3 different elders per day
+  const caregiverDailyElders = useMemo(() => {
+    // Map: caregiverId -> dateKey -> Set<elderId>
+    const load = new Map<string, Map<string, Set<string>>>();
     caregivers.forEach((cg) => load.set(cg.id, new Map()));
 
     shifts.forEach((shift) => {
-      if (!shift.caregiverId || shift.status === 'cancelled' || !shift.date) return;
+      if (!shift.caregiverId || shift.status === 'cancelled' || !shift.date || !shift.elderId) return;
       const dateKey = format(shift.date, 'yyyy-MM-dd');
       const cgMap = load.get(shift.caregiverId);
       if (cgMap) {
-        cgMap.set(dateKey, (cgMap.get(dateKey) || 0) + 1);
+        if (!cgMap.has(dateKey)) {
+          cgMap.set(dateKey, new Set());
+        }
+        cgMap.get(dateKey)!.add(shift.elderId);
       }
     });
 
     return load;
   }, [caregivers, shifts]);
 
-  // Check if caregiver would exceed daily limit for selected gaps
+  // Check if caregiver would exceed daily UNIQUE elder limit for selected gaps
+  // A caregiver can have multiple shifts with the same elder, but max 3 different elders per day
   const wouldExceedDailyLimit = useCallback((caregiverId: string, gaps: Gap[]) => {
-    const cgDayLoad = caregiverDailyLoad.get(caregiverId);
-    if (!cgDayLoad) return false;
+    const cgDayElders = caregiverDailyElders.get(caregiverId);
+    if (!cgDayElders) return false;
 
-    // Count how many gaps are on each day
-    const gapsPerDay = new Map<string, number>();
+    // Group gaps by day and collect unique elder IDs that would be added
+    const newEldersPerDay = new Map<string, Set<string>>();
     gaps.forEach((gap) => {
       const dateKey = format(gap.date, 'yyyy-MM-dd');
-      gapsPerDay.set(dateKey, (gapsPerDay.get(dateKey) || 0) + 1);
+      if (!newEldersPerDay.has(dateKey)) {
+        newEldersPerDay.set(dateKey, new Set());
+      }
+      newEldersPerDay.get(dateKey)!.add(gap.elderId);
     });
 
-    // Check if any day would exceed the limit
-    for (const [dateKey, gapCount] of gapsPerDay) {
-      const currentLoad = cgDayLoad.get(dateKey) || 0;
-      if (currentLoad + gapCount > MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
+    // Check if any day would exceed the limit with unique elders
+    for (const [dateKey, newElders] of newEldersPerDay) {
+      const existingElders = cgDayElders.get(dateKey) || new Set();
+
+      // Count how many NEW unique elders would be added (not already assigned)
+      let newUniqueCount = 0;
+      for (const elderId of newElders) {
+        if (!existingElders.has(elderId)) {
+          newUniqueCount++;
+        }
+      }
+
+      // Check if adding new unique elders would exceed the limit
+      if (existingElders.size + newUniqueCount > MAX_ELDERS_PER_CAREGIVER_PER_DAY) {
         return true;
       }
     }
 
     return false;
-  }, [caregiverDailyLoad]);
+  }, [caregiverDailyElders]);
 
   if (totalGaps === 0) {
     return (

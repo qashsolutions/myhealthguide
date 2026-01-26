@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const requestingUserId = decodedToken.uid;
 
     // Get request body
-    const { caregiverId, agencyId, date, startTime, endTime, excludeShiftId } = await request.json();
+    const { caregiverId, agencyId, date, startTime, endTime, excludeShiftId, elderId } = await request.json();
 
     if (!caregiverId || !agencyId || !date || !startTime || !endTime) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -138,14 +138,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Check for double-booking (existing shifts at same time)
-    // Normalize date to start of day for query
+    // 2. Check for double-booking and max elders per day
+    // Use date RANGE query (not equality) to find all shifts on this day
     const startOfDay = new Date(shiftDate);
     startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(shiftDate);
+    endOfDay.setHours(23, 59, 59, 999);
 
     const shiftsSnapshot = await db.collection('scheduledShifts')
       .where('caregiverId', '==', caregiverId)
-      .where('date', '==', Timestamp.fromDate(startOfDay))
+      .where('date', '>=', Timestamp.fromDate(startOfDay))
+      .where('date', '<=', Timestamp.fromDate(endOfDay))
       .get();
 
     const existingShifts = shiftsSnapshot.docs
@@ -163,19 +166,27 @@ export async function POST(request: NextRequest) {
           startTime: data.startTime as string,
           endTime: data.endTime as string,
           elderName: data.elderName as string,
+          elderId: data.elderId as string,
           status: data.status as string
         };
       });
 
-    // 3. Check max 3 elders per caregiver per day limit
+    // 3. Check max 3 UNIQUE elders per caregiver per day limit
+    // (A caregiver can have multiple shifts with the same elder, but max 3 different elders)
     const MAX_ELDERS_PER_DAY = 3;
-    if (existingShifts.length >= MAX_ELDERS_PER_DAY) {
+    const uniqueElderIds = new Set(existingShifts.map(s => s.elderId));
+
+    // Only count as new elder if not already assigned to this elder today
+    const isNewElder = elderId && !uniqueElderIds.has(elderId);
+    const effectiveElderCount = isNewElder ? uniqueElderIds.size + 1 : uniqueElderIds.size;
+
+    if (effectiveElderCount > MAX_ELDERS_PER_DAY) {
       return NextResponse.json({
         success: true,
         conflict: {
           type: 'caregiver_max_load',
-          message: `Caregiver already has ${existingShifts.length} elders assigned on this day (max ${MAX_ELDERS_PER_DAY})`,
-          currentLoad: existingShifts.length,
+          message: `Caregiver already has ${uniqueElderIds.size} different elders assigned on this day (max ${MAX_ELDERS_PER_DAY})`,
+          currentLoad: uniqueElderIds.size,
           maxLoad: MAX_ELDERS_PER_DAY
         }
       });
