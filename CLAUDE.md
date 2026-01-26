@@ -630,6 +630,7 @@ If Gemini fails, the system automatically falls back to Claude for:
 - Calendar page 404 fix - removed broken notification button (Jan 25, 2026)
 - Shift unfilled notification 404 fix - corrected actionUrl route (Jan 25, 2026)
 - Shift Confirmation System with multi-channel notifications (Jan 25, 2026)
+- Week Strip Schedule View - mobile-friendly schedule interface (Jan 25, 2026)
 
 ---
 
@@ -756,6 +757,51 @@ scheduled → pending_confirmation → confirmed/owner_confirmed/declined/expire
   }
 }
 ```
+
+---
+
+## Week Strip Schedule View (Jan 25, 2026)
+
+**Status:** ✅ IMPLEMENTED
+
+### Overview
+
+Simplified schedule interface replacing the complex calendar view. Mobile-friendly "Week Strip + Day Expand" design that's easy to scan and act upon.
+
+### Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `WeekStripSchedule` | `src/components/agency/schedule/WeekStripSchedule.tsx` | Main orchestrating component with Firestore listener |
+| `WeekStrip` | `src/components/agency/schedule/WeekStrip.tsx` | Horizontal 7-day bar with coverage indicators |
+| `DayShiftList` | `src/components/agency/schedule/DayShiftList.tsx` | Expandable accordion showing shifts per day |
+| `ScheduleAlertsBanner` | `src/components/agency/schedule/ScheduleAlertsBanner.tsx` | Clickable alerts for gaps and unconfirmed shifts |
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| Week Strip | 7-day horizontal bar with coverage bars (green/amber/red) |
+| Day Expand | Click day to expand and see shifts |
+| Coverage Stats | "X/Y confirmed" with visual progress bar |
+| Gap Detection | Shows unfilled shifts with "Assign" button |
+| Mark Confirmed | Owner can manually confirm shifts |
+| Real-time | Firestore `onSnapshot` listener for live updates |
+| Role-based | Super admin sees all shifts, caregivers see only their own |
+
+### Routes Updated
+
+All schedule-related routes now point to `/dashboard/agency/schedule`:
+- `NeedsAttentionList.tsx` - 5 routes updated
+- `ManageActionGrid.tsx` - 2 routes updated
+- `TodaysShiftsList.tsx` - 1 route updated
+- Agency dashboard Scheduling tab - uses `WeekStripSchedule`
+
+### Replaced Component
+
+The old `ShiftSchedulingCalendar` (month calendar with filters) has been replaced with `WeekStripSchedule` in:
+- `/dashboard/agency?tab=scheduling` (agency dashboard tab)
+- `/dashboard/agency/schedule` (standalone page)
 
 ---
 
