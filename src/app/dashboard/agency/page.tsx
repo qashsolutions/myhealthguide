@@ -11,9 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AgencyDashboard } from '@/components/agency/AgencyDashboard';
 import { CaregiverAssignmentManager } from '@/components/agency/CaregiverAssignmentManager';
 import { AgencyAnalyticsDashboard } from '@/components/agency/analytics/AgencyAnalyticsDashboard';
-import { AgencyBillingDashboard } from '@/components/agency/billing/AgencyBillingDashboard';
+// import { AgencyBillingDashboard } from '@/components/agency/billing/AgencyBillingDashboard'; // Commented out - no agency billing data yet
 import { WeekStripSchedule } from '@/components/agency/schedule';
-import { Building2, Users, BarChart3, DollarSign, CalendarDays } from 'lucide-react';
+import { Building2, Users, BarChart3, CalendarDays } from 'lucide-react';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,7 @@ export default function AgencyPage() {
 
   // Update active tab when URL param changes
   useEffect(() => {
-    if (tabParam && ['overview', 'scheduling', 'assignments', 'analytics', 'billing'].includes(tabParam)) {
+    if (tabParam && ['overview', 'scheduling', 'assignments', 'analytics'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -205,10 +205,12 @@ export default function AgencyPage() {
                   <BarChart3 className="w-4 h-4" />
                   <span className="hidden sm:inline">Analytics</span>
                 </TabsTrigger>
+                {/* Billing tab commented out - no agency billing rates/fees data yet
                 <TabsTrigger value="billing" className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
                   <span className="hidden sm:inline">Billing</span>
                 </TabsTrigger>
+                */}
               </>
             )}
           </TabsList>
@@ -238,9 +240,11 @@ export default function AgencyPage() {
                 <AgencyAnalyticsDashboard agencyId={agencyId} />
               </TabsContent>
 
+              {/* Billing tab commented out - no agency billing rates/fees data yet
               <TabsContent value="billing" className="space-y-6">
                 <AgencyBillingDashboard agencyId={agencyId} />
               </TabsContent>
+              */}
             </>
           )}
         </Tabs>
