@@ -70,9 +70,11 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 export function TodaysShiftsList({ shifts, loading, onRefresh }: TodaysShiftsListProps) {
   const router = useRouter();
   const [confirmingShiftId, setConfirmingShiftId] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const handleMarkConfirmed = async (e: React.MouseEvent, shiftId: string) => {
     e.stopPropagation(); // Prevent navigation
+    setConfirmError(null);
     try {
       setConfirmingShiftId(shiftId);
       const response = await fetchWithAuth('/api/shifts/confirm', {
@@ -80,11 +82,20 @@ export function TodaysShiftsList({ shifts, loading, onRefresh }: TodaysShiftsLis
         body: JSON.stringify({ shiftId, ownerConfirm: true, note: 'Confirmed by owner' }),
       });
       const data = await response.json();
-      if (data.success && onRefresh) {
-        onRefresh();
+      if (data.success) {
+        if (onRefresh) {
+          onRefresh();
+        }
+      } else {
+        console.error('Failed to confirm shift:', data.error);
+        setConfirmError(data.error || 'Failed to confirm shift');
+        // Clear error after 3 seconds
+        setTimeout(() => setConfirmError(null), 3000);
       }
     } catch (err) {
       console.error('Failed to confirm shift:', err);
+      setConfirmError('Network error - please try again');
+      setTimeout(() => setConfirmError(null), 3000);
     } finally {
       setConfirmingShiftId(null);
     }
@@ -173,6 +184,13 @@ export function TodaysShiftsList({ shifts, loading, onRefresh }: TodaysShiftsLis
               />
             </div>
           </Card>
+
+          {/* Error message */}
+          {confirmError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2 text-sm text-red-700 dark:text-red-300">
+              {confirmError}
+            </div>
+          )}
 
           {/* Shift list */}
           <Card className="divide-y divide-gray-100 dark:divide-gray-800">
