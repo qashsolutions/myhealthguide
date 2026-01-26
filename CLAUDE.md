@@ -1056,14 +1056,14 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 
 ### Current Analytics Components
 
-| Component | What It Shows |
-|-----------|---------------|
-| **MonthSummaryCards** | Total Hours, Avg Per Day, Fill Rate (3 cards) |
-| **AssignmentsOverviewChart** | Bar chart - caregivers vs loved ones by month |
-| **StaffUtilizationChart** | Caregiver utilization % with names |
-| **BurnoutAlertPanel** | At-risk caregivers (from API) |
-| **ScheduleCoverageChart** | Weekly coverage by day |
-| **PerformanceLeaderboard** | Hours worked, No-Shows (ratings hidden) |
+| Component | What It Shows | Status |
+|-----------|---------------|--------|
+| **MonthSummaryCards** | Total Hours, Avg Per Day, Fill Rate (3 cards) | ✅ Active |
+| **AssignmentsOverviewChart** | Bar chart - caregivers vs loved ones by month | ✅ Active |
+| **StaffUtilizationChart** | Caregiver utilization % with names | ✅ Active |
+| **BurnoutAlertPanel** | At-risk caregivers (from API) | ✅ Active |
+| **ScheduleCoverageChart** | Weekly coverage by day | ✅ Active |
+| **PerformanceLeaderboard** | Hours worked, No-Shows | ❌ Commented out |
 
 ### Key Files
 
@@ -1075,10 +1075,19 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 | `src/components/agency/analytics/PerformanceLeaderboard.tsx` | Hours + No-Shows only |
 | `src/lib/firebase/agencyAnalytics.ts` | Added `getAssignmentsOverviewData()` |
 
-### What's Still Placeholder
+### What's Disabled (Re-enable Later)
 
-| Metric | Status | Note |
-|--------|--------|------|
-| Ratings | Hidden | No rating system implemented |
-| Compliance | Hidden | No compliance tracking implemented |
-| No-Shows | ✅ Real | Counted from `shift.status === 'no_show'` |
+| Feature | Status | Note |
+|---------|--------|------|
+| **PerformanceLeaderboard** | ❌ Commented out | Requires real ratings/compliance data |
+| Ratings | Not implemented | Need owner feedback/rating system |
+| Compliance | Not implemented | Need medication adherence, on-time tracking |
+| No-Shows | ✅ Real data | Counted from `shift.status === 'no_show'` |
+
+### Sync Permissions Button (Overview Tab)
+
+The "Sync Permissions" button in the Overview tab calls `AgencyService.syncAllCaregiverAssignments()`. It:
+- Syncs all caregiver assignments to group members
+- Ensures caregivers have proper write access to their assigned groups
+- Useful for migrating existing assignments or fixing permission issues
+- Records `lastCaregiverSyncAt` timestamp on agency document

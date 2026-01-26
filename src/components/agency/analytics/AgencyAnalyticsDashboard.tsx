@@ -6,20 +6,22 @@ import { AssignmentsOverviewChart } from './AssignmentsOverviewChart';
 import { StaffUtilizationChart } from './StaffUtilizationChart';
 import { BurnoutAlertPanel } from './BurnoutAlertPanel';
 import { ScheduleCoverageChart } from './ScheduleCoverageChart';
-import { PerformanceLeaderboard } from './PerformanceLeaderboard';
+// Performance Leaderboard commented out - requires real ratings/compliance data
+// Will be re-enabled when owner feedback/rating system is implemented
+// import { PerformanceLeaderboard } from './PerformanceLeaderboard';
 import { MonthSummaryCards } from './MonthSummaryCards';
 import { AgencyService } from '@/lib/firebase/agencies';
 import {
   getAssignmentsOverviewData,
   getStaffUtilizationMetrics,
   getScheduleCoverageStats,
-  getCaregiverPerformanceRankings,
+  // getCaregiverPerformanceRankings, // Commented out - leaderboard disabled
   getCurrentMonthSummary,
   type AssignmentsOverviewData,
   type StaffUtilizationMetrics,
   type BurnoutAlert,
   type ScheduleCoverageStats,
-  type CaregiverPerformance
+  // type CaregiverPerformance // Commented out - leaderboard disabled
 } from '@/lib/firebase/agencyAnalytics';
 import { auth } from '@/lib/firebase/config';
 import { BarChart3, RefreshCw } from 'lucide-react';
@@ -38,7 +40,7 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
   const [utilization, setUtilization] = useState<StaffUtilizationMetrics[]>([]);
   const [burnoutAlerts, setBurnoutAlerts] = useState<BurnoutAlert[]>([]);
   const [coverage, setCoverage] = useState<ScheduleCoverageStats[]>([]);
-  const [leaderboard, setLeaderboard] = useState<CaregiverPerformance[]>([]);
+  // const [leaderboard, setLeaderboard] = useState<CaregiverPerformance[]>([]); // Leaderboard disabled
   const [monthSummary, setMonthSummary] = useState({
     totalHours: 0,
     averagePerDay: 0,
@@ -136,19 +138,20 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
       };
 
       // Load all analytics data in parallel
+      // Note: Performance Leaderboard disabled - requires real ratings/compliance data
       const [
         assignmentsData,
         utilizationData,
         burnoutData,
         coverageData,
-        leaderboardData,
+        // leaderboardData, // Leaderboard disabled
         summaryData
       ] = await Promise.all([
         getAssignmentsOverviewData(agencyId, 6),
         getStaffUtilizationMetrics(agencyId, caregiverIds, caregiverNames),
         fetchBurnoutFromAPI(), // Use API instead of local function
         getScheduleCoverageStats(agencyId),
-        getCaregiverPerformanceRankings(agencyId, caregiverIds, caregiverNames, 'month'),
+        // getCaregiverPerformanceRankings(agencyId, caregiverIds, caregiverNames, 'month'), // Leaderboard disabled
         getCurrentMonthSummary(agencyId)
       ]);
 
@@ -156,7 +159,7 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
       setUtilization(utilizationData);
       setBurnoutAlerts(burnoutData);
       setCoverage(coverageData);
-      setLeaderboard(leaderboardData);
+      // setLeaderboard(leaderboardData); // Leaderboard disabled
       setMonthSummary(summaryData);
     } catch (error) {
       console.error('Error loading analytics:', error);
@@ -223,8 +226,13 @@ export function AgencyAnalyticsDashboard({ agencyId }: AgencyAnalyticsDashboardP
       {/* Schedule Coverage */}
       <ScheduleCoverageChart data={coverage} loading={loading} />
 
-      {/* Performance Leaderboard */}
-      <PerformanceLeaderboard data={leaderboard} loading={loading} />
+      {/* Performance Leaderboard - Commented out until real ratings/compliance data is available
+         To re-enable:
+         1. Implement owner feedback/rating system for caregivers
+         2. Implement compliance tracking (medication adherence, on-time arrivals, etc.)
+         3. Uncomment imports, state, fetch, and component below
+      */}
+      {/* <PerformanceLeaderboard data={leaderboard} loading={loading} /> */}
 
       {/* Data Refresh Info */}
       <Card className="bg-gray-50 dark:bg-gray-800">
