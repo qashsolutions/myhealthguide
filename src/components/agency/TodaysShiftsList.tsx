@@ -1,18 +1,23 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Calendar, Loader2, Check, MoreVertical } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { auth } from '@/lib/firebase/config';
 import type { TodayShift } from '@/components/dashboard/AgencyOwnerDashboard';
 
 interface TodaysShiftsListProps {
   shifts: TodayShift[];
   loading: boolean;
+  onRefresh?: () => void;
 }
 
-type ShiftStatus = 'confirmed' | 'in_progress' | 'completed' | 'scheduled' | 'no_show' | 'cancelled';
+type ShiftStatus = 'confirmed' | 'owner_confirmed' | 'in_progress' | 'completed' |
+                   'scheduled' | 'pending_confirmation' | 'no_show' | 'cancelled' |
+                   'declined' | 'expired';
 
 function formatShiftTime(time24: string): string {
   const [h, m] = time24.split(':').map(Number);
@@ -22,26 +27,68 @@ function formatShiftTime(time24: string): string {
   return `${hour}:${m.toString().padStart(2, '0')}${ampm}`;
 }
 
-// Use database status directly - no_show status is now auto-updated by the API
+// Map database status to display status
 function resolveDisplayStatus(shift: TodayShift): ShiftStatus {
   const status = shift.status as ShiftStatus;
-  if (['confirmed', 'in_progress', 'completed', 'no_show', 'cancelled', 'scheduled'].includes(status)) {
+  const validStatuses: ShiftStatus[] = [
+    'confirmed', 'owner_confirmed', 'in_progress', 'completed',
+    'scheduled', 'pending_confirmation', 'no_show', 'cancelled',
+    'declined', 'expired'
+  ];
+  if (validStatuses.includes(status)) {
     return status;
   }
   return 'scheduled';
 }
 
-const statusConfig: Record<ShiftStatus, { bg: string; text: string; label: string }> = {
+// Status configuration with clearer labels for owners
+const statusConfig: Record<ShiftStatus, { bg: string; text: string; label: string; showAction?: boolean }> = {
+  pending_confirmation: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', label: 'Awaiting Response', showAction: true },
+  scheduled: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', label: 'Awaiting Response', showAction: true },
   confirmed: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', label: 'Confirmed' },
-  scheduled: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', label: 'Unconfirmed' },
+  owner_confirmed: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300', label: 'Confirmed ✓' },
   in_progress: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', label: 'In Progress' },
   completed: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', label: 'Completed' },
   no_show: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', label: 'No-Show' },
+  declined: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300', label: 'Declined' },
+  expired: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-500', label: 'No Response' },
   cancelled: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-500 dark:text-gray-500', label: 'Cancelled' },
 };
 
-export function TodaysShiftsList({ shifts, loading }: TodaysShiftsListProps) {
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const token = await auth.currentUser?.getIdToken();
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+export function TodaysShiftsList({ shifts, loading, onRefresh }: TodaysShiftsListProps) {
   const router = useRouter();
+  const [confirmingShiftId, setConfirmingShiftId] = useState<string | null>(null);
+
+  const handleMarkConfirmed = async (e: React.MouseEvent, shiftId: string) => {
+    e.stopPropagation(); // Prevent navigation
+    try {
+      setConfirmingShiftId(shiftId);
+      const response = await fetchWithAuth('/api/shifts/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ shiftId, ownerConfirm: true, note: 'Confirmed by owner' }),
+      });
+      const data = await response.json();
+      if (data.success && onRefresh) {
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Failed to confirm shift:', err);
+    } finally {
+      setConfirmingShiftId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -51,11 +98,11 @@ export function TodaysShiftsList({ shifts, loading }: TodaysShiftsListProps) {
     );
   }
 
-  // Compute coverage stats
+  // Compute coverage stats - include owner_confirmed in confirmed count
   const confirmedCount = shifts.filter(s =>
-    ['confirmed', 'in_progress', 'completed'].includes(s.status)
+    ['confirmed', 'owner_confirmed', 'in_progress', 'completed'].includes(s.status)
   ).length;
-  const totalCount = shifts.filter(s => s.status !== 'cancelled').length;
+  const totalCount = shifts.filter(s => !['cancelled', 'declined'].includes(s.status)).length;
   const coveragePct = totalCount > 0 ? (confirmedCount / totalCount) * 100 : 0;
 
   const coverageColor = coveragePct > 80
@@ -70,9 +117,18 @@ export function TodaysShiftsList({ shifts, loading }: TodaysShiftsListProps) {
       ? 'text-amber-700 dark:text-amber-300'
       : 'text-red-700 dark:text-red-300';
 
-  // Sort: in_progress first, then confirmed, scheduled, no_show, completed, cancelled
+  // Sort: pending first, then in_progress, confirmed, no_show, declined, completed, cancelled
   const statusOrder: Record<string, number> = {
-    in_progress: 0, confirmed: 1, scheduled: 2, no_show: 3, completed: 4, cancelled: 5,
+    pending_confirmation: 0,
+    scheduled: 1,
+    in_progress: 2,
+    confirmed: 3,
+    owner_confirmed: 3,
+    no_show: 4,
+    declined: 5,
+    expired: 6,
+    completed: 7,
+    cancelled: 8,
   };
   const sortedShifts = [...shifts].sort((a, b) => {
     const aStatus = resolveDisplayStatus(a);
@@ -124,6 +180,9 @@ export function TodaysShiftsList({ shifts, loading }: TodaysShiftsListProps) {
               const displayStatus = resolveDisplayStatus(shift);
               const style = statusConfig[displayStatus];
               const isCancelled = displayStatus === 'cancelled';
+              const showConfirmAction = style.showAction && !isCancelled;
+              const isConfirming = confirmingShiftId === shift.id;
+
               return (
                 <div
                   key={shift.id}
@@ -151,6 +210,27 @@ export function TodaysShiftsList({ shifts, loading }: TodaysShiftsListProps) {
                       )}
                     </div>
                   </div>
+
+                  {/* Action button for pending shifts */}
+                  {showConfirmAction && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                      onClick={(e) => handleMarkConfirmed(e, shift.id)}
+                      disabled={isConfirming}
+                    >
+                      {isConfirming ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Check className="w-3 h-3 mr-1" />
+                          Mark Confirmed
+                        </>
+                      )}
+                    </Button>
+                  )}
+
                   <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap', style.bg, style.text)}>
                     {style.label}
                   </span>

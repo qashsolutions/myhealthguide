@@ -629,6 +629,7 @@ If Gemini fails, the system automatically falls back to Claude for:
 - Twilio SMS disabled - FCM push notifications only (Jan 25, 2026)
 - Calendar page 404 fix - removed broken notification button (Jan 25, 2026)
 - Shift unfilled notification 404 fix - corrected actionUrl route (Jan 25, 2026)
+- Shift Confirmation System with multi-channel notifications (Jan 25, 2026)
 
 ---
 
@@ -649,6 +650,112 @@ If Gemini fails, the system automatically falls back to Claude for:
 - Files fixed: `shiftOfferNotifications.ts`, `shift-offer/decline/route.ts`
 
 **Documentation:** See `docs/removetwilio.md` and `docs/skills.md`
+
+---
+
+## Shift Confirmation System (Jan 25, 2026)
+
+**Status:** ✅ IMPLEMENTED
+
+### Overview
+
+Multi-channel notification system for shift assignments with caregiver confirmation workflow. Agency owners can assign shifts and track confirmation status; caregivers receive notifications and can confirm/decline.
+
+### Notification Channels
+
+| Channel | When Sent | Required |
+|---------|-----------|----------|
+| **Email** | Always (verified email) | ✅ Yes |
+| **In-App** | Always (user_notifications) | ✅ Yes |
+| **FCM Push** | If token available | Optional |
+
+### Status Lifecycle
+
+```
+scheduled → pending_confirmation → confirmed/owner_confirmed/declined/expired/no_show
+```
+
+| Status | Description | Set By |
+|--------|-------------|--------|
+| `scheduled` | Initial status when shift created | System |
+| `pending_confirmation` | After notification sent | System |
+| `confirmed` | Caregiver confirmed | Caregiver |
+| `owner_confirmed` | Owner marked as confirmed (phone/offline) | Owner |
+| `declined` | Caregiver declined | Caregiver |
+| `expired` | No response within deadline | System |
+| `no_show` | Past start time with no check-in | System |
+
+### Owner Actions
+
+| Action | Location | Behavior |
+|--------|----------|----------|
+| **Notify Assignment** | Schedule page | Sends email + in-app + FCM to caregiver |
+| **Mark Confirmed** | Today's Shifts card | Owner manually confirms (for phone/offline confirmations) |
+| **View Status** | Today's Shifts card | See confirmation status with color-coded badges |
+
+### Caregiver Actions
+
+| Action | Location | Behavior |
+|--------|----------|----------|
+| **Confirm** | My Shifts page, Email link | Marks shift as confirmed, notifies owner |
+| **Decline** | My Shifts page, Email link | Marks shift as declined, notifies owner with reason |
+
+### Status Labels (User-Facing)
+
+| Status | Display Label | Color |
+|--------|---------------|-------|
+| `pending_confirmation` | Awaiting Response | Amber |
+| `scheduled` | Awaiting Response | Amber |
+| `confirmed` | Confirmed | Green |
+| `owner_confirmed` | Confirmed ✓ | Green |
+| `in_progress` | In Progress | Blue |
+| `completed` | Completed | Gray |
+| `no_show` | No-Show | Red |
+| `declined` | Declined | Red |
+| `expired` | No Response | Gray |
+| `cancelled` | Cancelled | Gray |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/app/api/shifts/confirm/route.ts` | Confirm shift API (caregiver + owner) |
+| `src/app/api/shifts/decline/route.ts` | Decline shift API |
+| `src/app/api/shifts/notify-assignment/route.ts` | Send assignment notifications |
+| `src/app/dashboard/my-shifts/page.tsx` | Caregiver pending shifts UI |
+| `src/components/agency/TodaysShiftsList.tsx` | Owner Today's Shifts with Mark Confirmed |
+| `src/app/dashboard/agency/schedule/page.tsx` | STATUS_CONFIG with new statuses |
+
+### Email Template Features
+
+- Professional HTML with mobile-responsive design
+- Clear shift details (date, time, loved one)
+- One-click Confirm/Decline buttons
+- Deep links to `/dashboard/my-shifts?action=confirm&shiftId=xxx`
+- 24-hour response reminder
+
+### Firestore Schema Changes
+
+```typescript
+// scheduledShifts document
+{
+  status: 'pending_confirmation' | 'confirmed' | 'owner_confirmed' | 'declined' | 'expired' | 'no_show',
+  confirmation: {
+    requestedAt: Timestamp,
+    requestedBy: string,  // userId who triggered notification
+    respondedAt?: Timestamp,
+    respondedVia?: 'app' | 'email' | 'owner_manual',
+    response?: 'confirmed' | 'declined',
+    declineReason?: string,
+    remindersSent: number,
+    notifications: {
+      email: { sent: boolean, sentAt: Timestamp | null, error: string | null },
+      inApp: { sent: boolean, sentAt: Timestamp | null },
+      fcm: { sent: boolean, sentAt: Timestamp | null, error: string | null }
+    }
+  }
+}
+```
 
 ---
 

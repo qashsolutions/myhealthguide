@@ -641,6 +641,165 @@ npx tsx scripts/createBurnoutTestData.ts
 
 ---
 
+## Shift Confirmation System
+
+**Added:** January 25, 2026
+**Status:** ACTIVE
+
+### Overview
+
+When an agency owner creates or assigns a shift, caregivers must confirm their availability. This ensures coverage reliability and creates an audit trail for HR/compliance purposes.
+
+### Status Flow
+
+```
+Owner creates shift
+        ↓
+Status: "pending_confirmation"
+        ↓
+   ┌────┴────┬─────────────┐
+   ↓         ↓             ↓
+Caregiver   Owner clicks   No response
+confirms    "Mark          in 24h
+via app     Confirmed"         ↓
+   ↓              ↓       Status: "expired"
+Status:      Status:      Owner alerted
+"confirmed"  "owner_confirmed"
+   ↓              ↓
+   └──────┬───────┘
+          ↓
+   Shift day arrives
+          ↓
+   Caregiver clocks in
+          ↓
+   Status: "in_progress"
+          ↓
+   Caregiver clocks out
+          ↓
+   Status: "completed"
+```
+
+### Notification Channels
+
+When a shift is created/assigned, notifications are sent via:
+
+| Channel | Priority | Reliability | Notes |
+|---------|----------|-------------|-------|
+| **Email** | Primary | High | Always sent (verified email) |
+| **In-App** | Primary | High | Always created |
+| **FCM Push** | Secondary | Medium | Sent if FCM token exists |
+
+### scheduledShifts Schema (Extended)
+
+```typescript
+scheduledShifts/{id}: {
+  // Existing fields...
+  status: 'pending_confirmation' | 'confirmed' | 'declined' |
+          'owner_confirmed' | 'in_progress' | 'completed' |
+          'no_show' | 'cancelled' | 'expired',
+
+  // Confirmation tracking
+  confirmation: {
+    requestedAt: Timestamp,
+    requestedBy: string,           // Owner userId
+
+    // Notification delivery tracking
+    notifications: {
+      fcm: { sent: boolean, sentAt?: Timestamp, error?: string },
+      email: { sent: boolean, sentAt?: Timestamp, messageId?: string },
+      inApp: { sent: boolean, sentAt?: Timestamp, readAt?: Timestamp }
+    },
+
+    // Response tracking
+    respondedAt?: Timestamp,
+    respondedVia?: 'app' | 'email_link' | 'owner_manual',
+    response?: 'confirmed' | 'declined',
+    declineReason?: string,
+
+    // Reminder tracking
+    remindersSent: number,
+    lastReminderAt?: Timestamp,
+
+    // Owner override
+    ownerConfirmedAt?: Timestamp,
+    ownerConfirmedBy?: string,
+    ownerConfirmNote?: string
+  }
+}
+```
+
+### Status Labels by Role
+
+| Database Status | Owner Dashboard | Caregiver Dashboard |
+|-----------------|-----------------|---------------------|
+| `pending_confirmation` | Awaiting Response | Action Required |
+| `confirmed` | Confirmed | Confirmed |
+| `owner_confirmed` | Confirmed ✓ | Confirmed |
+| `declined` | Declined | Declined |
+| `expired` | No Response | Expired |
+| `in_progress` | In Progress | In Progress |
+| `completed` | Completed | Completed |
+| `no_show` | No-Show | No-Show |
+| `cancelled` | Cancelled | Cancelled |
+
+### Owner Actions
+
+| Action | Use Case | API |
+|--------|----------|-----|
+| **Mark Confirmed** | Caregiver confirmed via phone/text | POST /api/shifts/confirm |
+| **Send Reminder** | Re-send notification | POST /api/shifts/remind |
+| **Reassign** | Caregiver declined or no response | POST /api/shifts/reassign |
+
+### Caregiver Actions
+
+| Action | Result | API |
+|--------|--------|-----|
+| **Confirm** | Status → confirmed | POST /api/shifts/confirm |
+| **Decline** | Status → declined, owner alerted | POST /api/shifts/decline |
+
+### Email Template: Shift Assignment
+
+**Subject:** Shift Assignment - {Date} (Action Required)
+
+**Content:**
+- Loved One name
+- Date and time
+- Location (if available)
+- Confirm/Decline buttons with deep links
+- Confirmation deadline (24h before shift)
+
+### Automated Behaviors
+
+| Trigger | Action |
+|---------|--------|
+| Shift created | Send Email + In-App + FCM notification |
+| No response in 12h | Auto-send reminder |
+| No response in 24h | Mark as `expired`, alert owner |
+| Caregiver confirms | Update status, notify owner |
+| Caregiver declines | Update status, alert owner |
+| Shift start + 15min, status = confirmed | Mark as `no_show` |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/app/api/shifts/confirm/route.ts` | Confirm shift API |
+| `src/app/api/shifts/decline/route.ts` | Decline shift API |
+| `src/app/api/shifts/remind/route.ts` | Send reminder API |
+| `src/app/api/shifts/notify-assignment/route.ts` | Send assignment notification |
+| `src/components/caregiver/MyShifts.tsx` | Caregiver pending shifts UI |
+| `src/components/agency/TodaysShiftsList.tsx` | Owner shift list with actions |
+
+### Grace Periods
+
+| Period | Duration | Purpose |
+|--------|----------|---------|
+| Confirmation deadline | 24h before shift | Time for caregiver to respond |
+| No-show grace | 15 min after start | Time before marking no-show |
+| Reminder interval | 12h | Time before auto-reminder |
+
+---
+
 ## Troubleshooting
 
 ### FCM Not Working

@@ -47,15 +47,23 @@ import { createScheduledShift, createCascadeShift } from '@/lib/firebase/schedul
 import { cn } from '@/lib/utils';
 import type { ScheduledShift } from '@/types';
 
-// Status badge config
+// Status badge config with clearer labels
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  pending_confirmation: {
+    label: 'Awaiting Response',
+    className: 'text-amber-700 dark:text-amber-400'
+  },
   confirmed: {
     label: 'Confirmed',
     className: 'text-green-700 dark:text-green-400'
   },
+  owner_confirmed: {
+    label: 'Confirmed ✓',
+    className: 'text-green-700 dark:text-green-400'
+  },
   scheduled: {
-    label: 'Scheduled',
-    className: 'text-blue-700 dark:text-blue-400'
+    label: 'Awaiting Response',
+    className: 'text-amber-700 dark:text-amber-400'
   },
   in_progress: {
     label: 'In Progress',
@@ -72,6 +80,14 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   unfilled: {
     label: 'Unfilled',
     className: 'text-red-700 dark:text-red-400'
+  },
+  declined: {
+    label: 'Declined',
+    className: 'text-red-700 dark:text-red-400'
+  },
+  expired: {
+    label: 'No Response',
+    className: 'text-gray-500 dark:text-gray-400'
   },
   cancelled: {
     label: 'Cancelled',

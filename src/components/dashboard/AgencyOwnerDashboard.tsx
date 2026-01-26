@@ -344,6 +344,7 @@ export function AgencyOwnerDashboard() {
         <TodaysShiftsList
           shifts={data.todayShifts}
           loading={data.loading}
+          onRefresh={fetchData}
         />
       )}
       <ManageActionGrid
