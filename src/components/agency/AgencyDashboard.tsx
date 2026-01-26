@@ -242,36 +242,37 @@ export function AgencyDashboard({ userId, agencyId }: AgencyDashboardProps) {
           <div className="flex items-start justify-between">
             <div>
               <CardTitle className="text-2xl">{agency.name}</CardTitle>
-              <CardDescription className="mt-1">
-                {agency.type === 'individual' ? 'Individual Family' : 'Professional Agency'}
+              <CardDescription className="mt-1 flex items-center gap-2">
+                {isSuperAdmin ? (
+                  <Badge variant="default" className="bg-purple-600">
+                    Super Admin
+                  </Badge>
+                ) : (
+                  <span>{agency.type === 'individual' ? 'Individual Family' : 'Professional Agency'}</span>
+                )}
               </CardDescription>
             </div>
             {isSuperAdmin && (
               <div className="flex flex-col items-end gap-1">
-                <div className="flex items-center gap-3">
-                  <Button
-                    onClick={handleSyncCaregivers}
-                    disabled={syncing}
-                    variant="outline"
-                    size="sm"
-                    title="Sync all caregiver permissions"
-                  >
-                    {syncing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Sync Permissions
-                      </>
-                    )}
-                  </Button>
-                  <Badge variant="default" className="bg-purple-600">
-                    Super Admin
-                  </Badge>
-                </div>
+                <Button
+                  onClick={handleSyncCaregivers}
+                  disabled={syncing}
+                  variant="outline"
+                  size="sm"
+                  title="Sync all caregiver permissions"
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      Sync Permissions
+                    </>
+                  )}
+                </Button>
                 {lastSyncDate && (
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Last synced: {formatRelativeTime(lastSyncDate)}

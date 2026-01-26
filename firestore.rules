@@ -174,8 +174,10 @@ service cloud.firestore {
       allow read: if isGroupAdmin(groupId) ||
         (canAccessGroup(groupId) && hasActiveAccess(request.auth.uid));
 
-      // Only admin can update group (requires active access)
-      allow update: if isGroupAdmin(groupId) &&
+      // Group admin OR agency super admin can update group (requires active access)
+      // Super admin needs update access to sync caregiver permissions to groups
+      allow update: if (isGroupAdmin(groupId) ||
+        (resource.data.agencyId != null && isSuperAdmin(resource.data.agencyId))) &&
         hasActiveAccess(request.auth.uid);
 
       // Users can create groups (becomes admin, requires active access)
