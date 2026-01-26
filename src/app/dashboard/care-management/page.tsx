@@ -9,7 +9,6 @@ import {
   Clock,
   FileText,
   FolderOpen,
-  Mail,
   Users,
   Bell,
   ChevronRight,
@@ -43,8 +42,8 @@ export default function CareManagementPage() {
     );
   }
 
-  // Features available to all agency caregivers
-  const caregiverFeatures = [
+  // Features only for caregivers
+  const caregiverOnlyFeatures = [
     {
       title: 'Shift Handoff',
       description: 'Share notes between caregivers at shift change',
@@ -59,6 +58,10 @@ export default function CareManagementPage() {
       href: '/dashboard/timesheet',
       color: 'green',
     },
+  ];
+
+  // Features only for agency owner (super admin)
+  const ownerOnlyFeatures = [
     {
       title: 'Documents',
       description: 'Store and manage medical records',
@@ -67,23 +70,16 @@ export default function CareManagementPage() {
       color: 'purple',
     },
     {
-      title: 'Family Updates',
-      description: 'Send updates to family members',
-      icon: Mail,
-      href: '/dashboard/family-updates',
-      color: 'orange',
-    },
-  ];
-
-  // Additional features only for super admins
-  const adminOnlyFeatures = [
-    {
       title: 'Caregiver Burnout',
       description: 'Monitor caregiver stress levels',
       icon: Users,
       href: '/dashboard/caregiver-burnout',
       color: 'red',
     },
+  ];
+
+  // Features for both roles (read-only, system-generated)
+  const sharedFeatures = [
     {
       title: 'Alerts',
       description: 'View all notifications and alerts',
@@ -95,8 +91,8 @@ export default function CareManagementPage() {
 
   // Combine features based on user role
   const features = userIsSuperAdmin
-    ? [...caregiverFeatures, ...adminOnlyFeatures]
-    : caregiverFeatures;
+    ? [...ownerOnlyFeatures, ...sharedFeatures]
+    : [...caregiverOnlyFeatures, ...sharedFeatures];
 
   const colorClasses: Record<string, { bg: string; icon: string }> = {
     blue: { bg: 'bg-blue-100 dark:bg-blue-900/30', icon: 'text-blue-600 dark:text-blue-400' },
