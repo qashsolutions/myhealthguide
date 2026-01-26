@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/lib/firebase/config';
+import { db, auth } from '@/lib/firebase/config';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { AgencyGreeting } from '@/components/agency/AgencyGreeting';
 import { AgencyQuickStats } from '@/components/agency/AgencyQuickStats';
@@ -13,6 +13,19 @@ import { TodaysShiftsList } from '@/components/agency/TodaysShiftsList';
 const MAX_CAREGIVERS = 10;
 const MAX_ELDERS_TOTAL = 30;
 const REFRESH_INTERVAL_MS = 60_000;
+
+// Helper to fetch with auth token
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const token = await auth.currentUser?.getIdToken();
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+}
 
 export interface AgencyDashboardData {
   caregiverCount: number;
@@ -76,6 +89,17 @@ export function AgencyOwnerDashboard() {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
+      // Option C: Auto-update no-show statuses before fetching shifts
+      // This ensures database status is authoritative
+      try {
+        await fetchWithAuth('/api/shifts/update-no-shows', {
+          method: 'POST',
+          body: JSON.stringify({ agencyId }),
+        });
+      } catch (e) {
+        console.warn('[AgencyOwnerDashboard] Failed to update no-show statuses:', e);
+      }
+
       // 1. Caregiver assignments → caregiverCount, elderCount, elderIds
       const assignQ = query(
         collection(db, 'caregiver_assignments'),
@@ -97,6 +121,23 @@ export function AgencyOwnerDashboard() {
       const caregiverCount = uniqueCaregiverIds.size;
       const elderCount = elderIds.size;
 
+      // Option A: Fetch real burnout analysis from API
+      let burnoutRiskCount = 0;
+      try {
+        const burnoutRes = await fetchWithAuth(`/api/caregiver-burnout?agencyId=${agencyId}&periodDays=14`);
+        if (burnoutRes.ok) {
+          const burnoutData = await burnoutRes.json();
+          if (burnoutData.success && burnoutData.assessments) {
+            // Count caregivers with burnout risk >= moderate
+            burnoutRiskCount = burnoutData.assessments.filter(
+              (a: { burnoutRisk: string }) => ['moderate', 'high', 'critical'].includes(a.burnoutRisk)
+            ).length;
+          }
+        }
+      } catch (e) {
+        console.warn('[AgencyOwnerDashboard] Failed to fetch burnout data:', e);
+      }
+
       // 2. Scheduled shifts (all)
       const shiftsQ = query(
         collection(db, 'scheduledShifts'),
@@ -108,13 +149,11 @@ export function AgencyOwnerDashboard() {
       let unconfirmedCount = 0;
       let noShowCount = 0;
 
-      // Rolling 7-day window for coverage and burnout (forward-looking: today through next 7 days)
+      // Rolling 7-day window for coverage (forward-looking: today through next 7 days)
       const weekStart = new Date(today);
       const weekEnd = new Date(today);
       weekEnd.setDate(weekEnd.getDate() + 7);
 
-      // Track shifts per caregiver this week for burnout
-      const caregiverWeekShifts: Record<string, number> = {};
       const caregiversWithShiftsThisWeek = new Set<string>();
 
       // Track this week's completed vs total for coverage
@@ -136,16 +175,15 @@ export function AgencyOwnerDashboard() {
             status: d.status || 'scheduled',
           });
 
+          // Count unconfirmed and no-shows from actual database status
           if (d.status === 'scheduled') {
             unconfirmedCount++;
-            const [startH, startM] = (d.startTime || '09:00').split(':').map(Number);
-            const shiftStart = new Date(today);
-            shiftStart.setHours(startH, startM, 0, 0);
-            if (now > shiftStart) noShowCount++;
+          } else if (d.status === 'no_show') {
+            noShowCount++;
           }
         }
 
-        // Next 7 days shifts for coverage and burnout
+        // Next 7 days shifts for coverage
         if (shiftDate >= weekStart && shiftDate < weekEnd) {
           if (d.status !== 'cancelled') {
             weekTotalShifts++;
@@ -153,7 +191,6 @@ export function AgencyOwnerDashboard() {
             if (d.caregiverId) {
               weekCoveredShifts++;
               caregiversWithShiftsThisWeek.add(d.caregiverId);
-              caregiverWeekShifts[d.caregiverId] = (caregiverWeekShifts[d.caregiverId] || 0) + 1;
             }
           }
         }
@@ -165,13 +202,7 @@ export function AgencyOwnerDashboard() {
         ? Math.round((weekCoveredShifts / weekTotalShifts) * 100)
         : (caregiverCount > 0 && elderCount > 0 ? 0 : 100);
 
-      // Burnout risk: caregivers with > 6 shifts this week
-      let burnoutRiskCount = 0;
-      Object.values(caregiverWeekShifts).forEach(count => {
-        if (count > 6) burnoutRiskCount++;
-      });
-
-      // 3. Active shift sessions (overtime + burnout from hours)
+      // 3. Active shift sessions (overtime)
       let overtimeCount = 0;
       try {
         const sessionsQ = query(
@@ -187,10 +218,6 @@ export function AgencyOwnerDashboard() {
           const planned = d.plannedDurationMinutes || 480;
           if (elapsed > planned + 60) {
             overtimeCount++;
-            // Also count toward burnout
-            if (d.caregiverId && !Object.keys(caregiverWeekShifts).includes(d.caregiverId)) {
-              burnoutRiskCount++;
-            }
           }
         });
       } catch {

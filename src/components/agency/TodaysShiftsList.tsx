@@ -22,18 +22,11 @@ function formatShiftTime(time24: string): string {
   return `${hour}:${m.toString().padStart(2, '0')}${ampm}`;
 }
 
+// Use database status directly - no_show status is now auto-updated by the API
 function resolveDisplayStatus(shift: TodayShift): ShiftStatus {
   const status = shift.status as ShiftStatus;
-  if (['confirmed', 'in_progress', 'completed', 'no_show', 'cancelled'].includes(status)) {
+  if (['confirmed', 'in_progress', 'completed', 'no_show', 'cancelled', 'scheduled'].includes(status)) {
     return status;
-  }
-  // 'scheduled' status — check if past start time (potential no-show)
-  if (status === 'scheduled') {
-    const now = new Date();
-    const [startH, startM] = shift.startTime.split(':').map(Number);
-    const shiftStart = new Date();
-    shiftStart.setHours(startH, startM, 0, 0);
-    if (now > shiftStart) return 'no_show';
   }
   return 'scheduled';
 }
