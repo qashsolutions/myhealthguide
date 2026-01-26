@@ -40,12 +40,12 @@ interface WeekSummary {
 export async function getLastScheduledWeek(agencyId: string): Promise<WeekSummary | null> {
   try {
     // Query recent shifts ordered by date descending
+    // Note: We filter out cancelled client-side to avoid needing a composite index
     const shiftsQuery = query(
       collection(db, 'scheduledShifts'),
       where('agencyId', '==', agencyId),
-      where('status', 'not-in', ['cancelled']),
       orderBy('date', 'desc'),
-      limit(100)
+      limit(200)
     );
 
     const snapshot = await getDocs(shiftsQuery);
@@ -55,11 +55,14 @@ export async function getLastScheduledWeek(agencyId: string): Promise<WeekSummar
     }
 
     // Find the most recent shift and its week
-    const shifts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      date: doc.data().date?.toDate(),
-    })) as ScheduledShift[];
+    // Filter out cancelled/declined shifts client-side
+    const shifts = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: doc.data().date?.toDate(),
+      }) as ScheduledShift)
+      .filter(s => !['cancelled', 'declined'].includes(s.status));
 
     if (shifts.length === 0 || !shifts[0].date) {
       return null;
