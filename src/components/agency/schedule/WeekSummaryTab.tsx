@@ -165,7 +165,7 @@ export function WeekSummaryTab({
             Caregiver Load
           </h3>
           <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-            # of elders assigned per day
+            # of elders per day (max 3)
           </span>
         </div>
 
@@ -211,6 +211,9 @@ export function WeekSummaryTab({
                     </td>
                     {dayHeaders.map((day) => {
                       const count = dayMap?.get(day.key) || 0;
+                      const MAX_ELDERS_PER_DAY = 3;
+                      const isOverloaded = count > MAX_ELDERS_PER_DAY;
+                      const isAtMax = count === MAX_ELDERS_PER_DAY;
                       return (
                         <td
                           key={day.key}
@@ -218,12 +221,15 @@ export function WeekSummaryTab({
                             'text-center px-2 py-2',
                             day.isSunday
                               ? 'text-gray-300 dark:text-gray-600'
-                              : count >= 3
-                                ? 'text-green-600 dark:text-green-400 font-semibold'
-                                : count > 0
-                                  ? 'text-gray-700 dark:text-gray-300'
-                                  : 'text-gray-300 dark:text-gray-600'
+                              : isOverloaded
+                                ? 'text-red-600 dark:text-red-400 font-semibold'
+                                : isAtMax
+                                  ? 'text-green-600 dark:text-green-400 font-semibold'
+                                  : count > 0
+                                    ? 'text-gray-700 dark:text-gray-300'
+                                    : 'text-gray-300 dark:text-gray-600'
                           )}
+                          title={isOverloaded ? `Over limit! Max ${MAX_ELDERS_PER_DAY} elders per day` : undefined}
                         >
                           {day.isSunday ? '-' : count}
                         </td>

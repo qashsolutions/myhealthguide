@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
         // Exclude the shift being edited
         if (excludeShiftId && doc.id === excludeShiftId) return false;
         // Only check active shifts
-        return ['scheduled', 'confirmed', 'in_progress'].includes(data.status);
+        return ['scheduled', 'confirmed', 'in_progress', 'pending_confirmation', 'owner_confirmed'].includes(data.status);
       })
       .map(doc => {
         const data = doc.data();
@@ -166,6 +166,20 @@ export async function POST(request: NextRequest) {
           status: data.status as string
         };
       });
+
+    // 3. Check max 3 elders per caregiver per day limit
+    const MAX_ELDERS_PER_DAY = 3;
+    if (existingShifts.length >= MAX_ELDERS_PER_DAY) {
+      return NextResponse.json({
+        success: true,
+        conflict: {
+          type: 'caregiver_max_load',
+          message: `Caregiver already has ${existingShifts.length} elders assigned on this day (max ${MAX_ELDERS_PER_DAY})`,
+          currentLoad: existingShifts.length,
+          maxLoad: MAX_ELDERS_PER_DAY
+        }
+      });
+    }
 
     // Check for time overlap
     const newStart = parseTime(startTime);
