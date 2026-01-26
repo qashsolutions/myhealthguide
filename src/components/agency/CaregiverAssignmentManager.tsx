@@ -26,6 +26,8 @@ import { UserPlus, X, AlertCircle, Users, Crown, UserCog, AlertTriangle, CheckCi
 import { AgencyService } from '@/lib/firebase/agencies';
 import { GroupService } from '@/lib/firebase/groups';
 import { ElderAssignmentService, AssignmentConflict } from '@/lib/firebase/elderAssignment';
+import { db } from '@/lib/firebase/config';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { CaregiverAssignment, Elder, GroupMember } from '@/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PrimaryCaregiverTransferDialog } from './PrimaryCaregiverTransferDialog';
@@ -69,19 +71,59 @@ export function CaregiverAssignmentManager({
       setLoading(true);
       setError(null);
 
-      const [assignmentsData, group] = await Promise.all([
-        AgencyService.getAgencyAssignments(agencyId),
-        GroupService.getGroup(groupId)
-      ]);
-
-      if (!group) {
-        setError('Group not found');
+      // Get agency to find all group IDs
+      const agencyDoc = await getDoc(doc(db, 'agencies', agencyId));
+      if (!agencyDoc.exists()) {
+        setError('Agency not found');
         return;
       }
+      const agencyData = agencyDoc.data();
+      const groupIds: string[] = agencyData?.groupIds || [];
 
-      setAssignments(assignmentsData.filter(a => a.groupId === groupId));
-      setElders(group.elders);
-      setGroupMembers(group.members.filter(m => m.userId !== group.adminId)); // Exclude admin
+      // Get all assignments for the agency
+      const assignmentsData = await AgencyService.getAgencyAssignments(agencyId);
+      setAssignments(assignmentsData); // Don't filter by groupId - show ALL assignments
+
+      // Query elders from the elders collection for ALL groups (not embedded group.elders)
+      const allElders: Elder[] = [];
+      for (const gId of groupIds) {
+        const elderQuery = query(
+          collection(db, 'elders'),
+          where('groupId', '==', gId)
+        );
+        const snap = await getDocs(elderQuery);
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          if (!data.archived) {
+            allElders.push({
+              id: d.id,
+              groupId: gId,
+              name: data.name || data.preferredName || 'Unknown',
+              dateOfBirth: data.dateOfBirth?.toDate?.() || undefined,
+              approximateAge: data.approximateAge,
+              userId: data.userId,
+              profileImage: data.profileImage,
+              notes: data.notes || '',
+              createdAt: data.createdAt?.toDate?.() || new Date(),
+              preferredName: data.preferredName,
+              gender: data.gender,
+              biologicalSex: data.biologicalSex,
+              primaryCaregiverId: data.primaryCaregiverId,
+              primaryCaregiverName: data.primaryCaregiverName,
+              primaryCaregiverAssignedAt: data.primaryCaregiverAssignedAt?.toDate?.(),
+              primaryCaregiverAssignedBy: data.primaryCaregiverAssignedBy,
+            } as Elder);
+          }
+        });
+      }
+      setElders(allElders);
+
+      // Get group members (caregivers) from the first group for now
+      // TODO: In future, get caregivers from all groups or agency-level
+      const group = await GroupService.getGroup(groupId);
+      if (group) {
+        setGroupMembers(group.members.filter(m => m.userId !== group.adminId));
+      }
     } catch (err: any) {
       console.error('Error loading assignment data:', err);
       setError(err.message || 'Failed to load data');
