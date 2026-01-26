@@ -1,6 +1,6 @@
 ---
 name: Schedule Assignment
-description: Copy + Adjust scheduling for weekly elder-caregiver assignments. Displays all elders needing care with simple bulk assignment tools.
+description: Tab-based scheduling interface for weekly elder-caregiver assignments. Week Summary grid as default view with drill-down options.
 ---
 
 ## Overview
@@ -13,7 +13,7 @@ The Schedule Assignment system allows agency owners to assign caregivers to elde
 |-------------------|---------------------------|
 | Caregiver max load (3 elders) | "Caregiver 2 texted - sick tomorrow" |
 | Previous assignments | "Caregiver 5 doesn't get along with Elder 12" |
-| Basic time slots | "Elder 8 lives 45 mins from Elder 3" |
+| Time conflict detection | "Elder 8 lives 45 mins from Elder 3" |
 | Nothing about distance | "Caregiver 1 prefers morning shifts only" |
 
 **The owner always knows more than the system.** So we make manual assignment fast and easy.
@@ -32,71 +32,146 @@ The Schedule Assignment system allows agency owners to assign caregivers to elde
 
 ---
 
-## UI Components
+## UI Layout: Tab-Based Navigation
 
-### 1. Week Setup Screen
-
-```
-┌─────────────────────────────────────────────────┐
-│  SCHEDULE WEEK: Jan 27 - Feb 2                  │
-│                                                 │
-│  How do you want to start?                      │
-│                                                 │
-│  [📋 Copy Last Week]  [📄 Start Blank]          │
-│                                                 │
-│  Caregivers available this week:                │
-│  ✓ Caregiver 1     ✓ Caregiver 6               │
-│  ✓ Caregiver 2     ✗ Caregiver 7  (OFF)        │
-│  ✓ Caregiver 3     ✓ Caregiver 8               │
-│  ...                                            │
-│                                                 │
-│  [Continue →]                                   │
-└─────────────────────────────────────────────────┘
-```
-
-### 2. Day Assignment View
+The schedule page uses **4 tabs** to provide different views of the same data:
 
 ```
-┌─────────────────────────────────────────────────┐
-│  MONDAY, JAN 27                    [< Day >]    │
-│                                                 │
-│  ⚠️ 5 elders need caregivers                    │
-│                                                 │
-│  [Select All Unassigned]  [Assign Selected ▼]   │
-└─────────────────────────────────────────────────┘
-
-│ ☑ Elder 1 ............ --                       │
-│ ☑ Elder 2 ............ --                       │
-│ □ Elder 3 ............ Caregiver 2 ✓            │
-│ □ Elder 4 ............ Caregiver 1 ✓            │
-│ ☑ Elder 5 ............ --                       │
-│ ...                                             │
-
-┌─────────────────────────────────────────────────┐
-│  Assign 3 selected elders to:                   │
-│                                                 │
-│  ○ Caregiver 1  ████████░░  2/3                 │
-│  ○ Caregiver 3  ████░░░░░░  1/3  ← capacity    │
-│  ○ Caregiver 4  ██████████  3/3  FULL          │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  WEEK: Jan 26 - Feb 1                    [< Prev]  [Next >]     │
+├─────────────────────────────────────────────────────────────────┤
+│  [Week Summary]  [By Caregiver]  [By Elder]  [Gaps Only]        │
+│       ↑ DEFAULT                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Conflict Resolution
+| Tab | Purpose | When to Use |
+|-----|---------|-------------|
+| **Week Summary** | Grid overview of caregiver load + elder coverage | Default view, quick status check |
+| **By Caregiver** | Grouped list showing each caregiver's assignments | Check workload distribution |
+| **By Elder** | Day-expand view showing each elder's coverage | Assign specific elders |
+| **Gaps Only** | Filtered list of unfilled shifts only | Quick gap resolution |
+
+---
+
+## Tab 1: Week Summary (Default)
+
+Grid showing caregiver load and elder coverage at a glance.
 
 ```
-┌─────────────────────────────────────────────────┐
-│  ⚠️ CONFLICTS FOUND                              │
-│                                                 │
-│  Caregiver 7 is unavailable Monday              │
-│  3 elders need reassignment:                    │
-│                                                 │
-│  Elder 17 → [Select Caregiver ▼]                │
-│  Elder 21 → [Select Caregiver ▼]                │
-│  Elder 28 → [Select Caregiver ▼]                │
-│                                                 │
-│  [Auto-distribute to available caregivers]      │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  CAREGIVER LOAD                                                 │
+│                    Mon  Tue  Wed  Thu  Fri  Sat    Total        │
+│  ─────────────────────────────────────────────────────────      │
+│  Caregiver 1        3    3    3    2    3    -      14          │
+│  Caregiver 2        3    2    3    3    2    -      13          │
+│  Caregiver 3        2    3    3    3    3    -      14          │
+│  Caregiver 4        3    3    2    3    3    -      14          │
+│  ...                                                            │
+│  ─────────────────────────────────────────────────────────      │
+│  TOTAL             28   28   27   28   28   12     151          │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  ELDER COVERAGE                                                 │
+│                    Mon  Tue  Wed  Thu  Fri  Sat    Status       │
+│  ─────────────────────────────────────────────────────────      │
+│  LO-C1-1            ✓    ✓    ✓    ✓    ✓    -      5/5 ✓       │
+│  LO-C4-1            ✓    ⚠    ✓    ✓    ✓    -      4/5 ⚠       │
+│  LO-C7-3            ⚠    ⚠    ✓    ✓    ⚠    -      2/5 ⚠       │
+│  ...                                                            │
+│  ─────────────────────────────────────────────────────────      │
+│  ⚠ = Missing coverage                                           │
+│  Click any cell to assign/edit                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+**Interactions:**
+- Click caregiver row → Switch to "By Caregiver" tab, scrolled to that caregiver
+- Click elder row → Switch to "By Elder" tab, scrolled to that elder
+- Click any ⚠ cell → Open Assign Caregiver sheet for that elder+day
+
+---
+
+## Tab 2: By Caregiver
+
+Grouped list showing each caregiver's weekly assignments.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ▼ Caregiver 1                               14 shifts (3/day)  │
+├─────────────────────────────────────────────────────────────────┤
+│    MONDAY                                                       │
+│    • LO-C1-1    7:00 AM – 9:00 AM       ✓ Confirmed             │
+│    • LO-C1-2    9:30 AM – 11:30 AM      ✓ Confirmed             │
+│    • LO-C1-3    2:00 PM – 4:00 PM       ⏳ Awaiting             │
+│                                                                 │
+│    TUESDAY                                                      │
+│    • LO-C1-1    8:00 AM – 10:00 AM      ✓ Confirmed             │
+│    • LO-C2-3    11:00 AM – 1:00 PM      ✓ Confirmed             │
+│    • LO-C3-2    3:00 PM – 5:00 PM       ⏳ Awaiting             │
+│    ...                                                          │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  ▶ Caregiver 2                               13 shifts          │
+│     (click to expand)                                           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Interactions:**
+- Click caregiver header → Expand/collapse
+- Click shift row → Open shift details or Assign sheet (if unfilled)
+
+---
+
+## Tab 3: By Elder (Current Day-Expand View)
+
+The existing day-expand view, showing shifts grouped by day.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ▼ MONDAY, JAN 27 — 2 gaps                              [+ Add] │
+├─────────────────────────────────────────────────────────────────┤
+│    ✓ Caregiver 1 → LO-C1-1    7AM–9AM       Confirmed           │
+│    ✓ Caregiver 2 → LO-C2-1    8AM–10AM      Confirmed           │
+│    ⚠ Unassigned  → LO-C4-1    --            [Assign]            │
+│    ...                                                          │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  ▶ TUESDAY, JAN 28 — All covered ✓                      [+ Add] │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Tab 4: Gaps Only
+
+Filtered view showing ONLY unfilled shifts across the week.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ⚠ 24 GAPS THIS WEEK                                            │
+├─────────────────────────────────────────────────────────────────┤
+│  MONDAY (5 gaps)                                                │
+│  • LO-C4-1     No caregiver assigned          [Assign]          │
+│  • LO-C7-3     No caregiver assigned          [Assign]          │
+│  • LO-C8-2     No caregiver assigned          [Assign]          │
+│  ...                                                            │
+│                                                                 │
+│  TUESDAY (3 gaps)                                               │
+│  • LO-C2-2     No caregiver assigned          [Assign]          │
+│  • LO-C5-1     No caregiver assigned          [Assign]          │
+│  ...                                                            │
+├─────────────────────────────────────────────────────────────────┤
+│  [Select All]  [Bulk Assign Selected →]                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Interactions:**
+- Click [Assign] → Open Assign Caregiver sheet
+- Check multiple gaps → [Bulk Assign Selected] opens bulk assign sheet
 
 ---
 
@@ -250,7 +325,7 @@ The Schedule Assignment system allows agency owners to assign caregivers to elde
 | Rule | Constraint | Enforcement |
 |------|------------|-------------|
 | **Daily Elder Limit** | Max 3 elders per caregiver per day | Hard block |
-| **Time Slot Conflict** | Max 1 elder per 2-hour window | Hard block |
+| **Minimum Time Gap** | Min 2-hour gap between shift end and next shift start | Hard block |
 
 #### Rule 1: Daily Elder Limit
 
@@ -261,37 +336,49 @@ A caregiver cannot be assigned to more than **3 elders** on any given day.
 ❌ Invalid: Caregiver 1 has 4 elders on Monday
 ```
 
-#### Rule 2: Time Slot Conflict (2-Hour Window)
+#### Rule 2: Minimum Time Gap (2 Hours)
 
-A caregiver cannot be assigned to more than **1 elder** in any 2-hour window. Shifts must be staggered.
+There must be at least **2 hours** between a caregiver's shift ending and their next shift starting. This allows for travel time between elders.
+
+**Important:** Time slots are NOT fixed. The owner picks ANY start/end time based on each elder's needs (7 AM, 5 PM, etc.). The system only validates the 2-hour gap.
 
 ```
-✅ Valid Schedule:
-   Caregiver 1 → Elder A: 9:00 AM - 11:00 AM
-   Caregiver 1 → Elder B: 11:00 AM - 1:00 PM
-   Caregiver 1 → Elder C: 1:00 PM - 3:00 PM
+✅ Valid Schedule (2+ hour gaps):
+   Caregiver 1 → Elder A: 7:00 AM – 9:00 AM
+   Caregiver 1 → Elder B: 11:00 AM – 1:00 PM    (2hr gap after 9AM ✓)
+   Caregiver 1 → Elder C: 3:30 PM – 5:30 PM     (2.5hr gap after 1PM ✓)
 
-❌ Invalid Schedule (overlapping):
-   Caregiver 1 → Elder A: 9:00 AM - 5:00 PM
-   Caregiver 1 → Elder B: 9:00 AM - 5:00 PM  ← CONFLICT!
+❌ Invalid Schedule (overlapping or too close):
+   Caregiver 1 → Elder A: 9:00 AM – 11:00 AM
+   Caregiver 1 → Elder B: 11:30 AM – 1:30 PM    (only 30min gap ✗)
+
+❌ Invalid Schedule (same time):
+   Caregiver 1 → Elder A: 9:00 AM – 5:00 PM
+   Caregiver 1 → Elder B: 9:00 AM – 5:00 PM     (overlap ✗)
 ```
 
-#### Realistic Shift Patterns
+### Flexible Time Slots
 
-For a caregiver with 3 elders per day, shifts should be staggered:
+The owner sets shift times based on elder needs. Common patterns:
 
-| Slot | Time | Duration |
-|------|------|----------|
-| Morning | 9:00 AM - 11:30 AM | 2.5 hours |
-| Midday | 11:30 AM - 2:00 PM | 2.5 hours |
-| Afternoon | 2:00 PM - 4:30 PM | 2.5 hours |
+| Pattern | Example | Use Case |
+|---------|---------|----------|
+| Early morning | 6:00 AM – 8:00 AM | Elder needs help getting ready |
+| Standard morning | 9:00 AM – 11:00 AM | Typical visit |
+| Afternoon | 2:00 PM – 4:00 PM | Post-lunch care |
+| Evening | 5:00 PM – 7:00 PM | Dinner assistance |
+
+**The system does NOT enforce specific time slots.** It only validates:
+1. Max 3 elders per caregiver per day
+2. Min 2-hour gap between shifts for same caregiver
 
 ### Conflict Detection
 
 | Conflict Type | Detection | Resolution |
 |---------------|-----------|------------|
 | Daily limit exceeded | Caregiver has ≥3 elders on day | Block assignment, show "Caregiver full" |
-| Time slot overlap | New shift overlaps existing shift | Block assignment, suggest different time |
+| Time gap too short | <2 hours between shifts | Block assignment, show conflict |
+| Time overlap | Shifts overlap same time period | Block assignment, show conflict |
 | Caregiver unavailable | Marked as unavailable for that day | Hide from caregiver list |
 | Elder has no caregiver | No shift or unfilled shift | Show as gap, prompt to assign |
 
@@ -301,24 +388,29 @@ For a caregiver with 3 elders per day, shifts should be staggered:
 ❌ Cannot assign: Caregiver 1 already has 3 elders on Monday.
    Choose a different caregiver.
 
+❌ Cannot assign: Caregiver 1's shift ends at 11:00 AM.
+   Next shift must start at 1:00 PM or later (2-hour minimum gap).
+
 ❌ Cannot assign: Caregiver 1 is already scheduled for 9AM-11AM.
-   Choose a different time slot or caregiver.
+   This overlaps with the requested time. Choose a different time or caregiver.
 ```
 
 ---
 
 ## Files to Create/Modify
 
-### New Files
+### New Files (Tab-Based UI)
 
 | File | Purpose |
 |------|---------|
-| `src/app/dashboard/agency/schedule/assignment/page.tsx` | Week assignment page |
-| `src/components/agency/schedule/WeekSetupSheet.tsx` | Copy/blank setup bottom sheet |
-| `src/components/agency/schedule/DayAssignmentList.tsx` | Elder list with checkboxes |
-| `src/components/agency/schedule/CaregiverAvailabilityGrid.tsx` | Toggle caregiver availability |
+| `src/components/agency/schedule/ScheduleTabs.tsx` | Tab navigation component |
+| `src/components/agency/schedule/WeekSummaryTab.tsx` | Tab 1: Grid view of caregiver load + elder coverage |
+| `src/components/agency/schedule/ByCaregiverTab.tsx` | Tab 2: Grouped list by caregiver |
+| `src/components/agency/schedule/ByElderTab.tsx` | Tab 3: Day-expand view (refactored from current) |
+| `src/components/agency/schedule/GapsOnlyTab.tsx` | Tab 4: Filtered unfilled shifts |
 | `src/components/agency/schedule/BulkAssignSheet.tsx` | Assign selected elders to caregiver |
-| `src/components/agency/schedule/ConflictResolutionSheet.tsx` | Fix conflicts UI |
+| `src/components/agency/schedule/WeekSetupSheet.tsx` | Copy/blank setup bottom sheet |
+| `src/components/agency/schedule/CaregiverAvailabilityGrid.tsx` | Toggle caregiver availability |
 | `src/lib/firebase/scheduleTemplates.ts` | Template CRUD operations |
 | `src/lib/firebase/caregiverAvailability.ts` | Availability CRUD |
 
@@ -326,33 +418,50 @@ For a caregiver with 3 elders per day, shifts should be staggered:
 
 | File | Changes |
 |------|---------|
-| `src/components/agency/schedule/WeekStripSchedule.tsx` | Add link to assignment page |
-| `src/components/agency/schedule/ScheduleAlertsBanner.tsx` | Show "X elders need assignment" |
+| `src/app/dashboard/agency/schedule/page.tsx` | Add tab navigation, integrate all 4 tabs |
+| `src/components/agency/schedule/WeekStripSchedule.tsx` | Refactor to support tab switching |
+| `src/components/agency/schedule/DayShiftList.tsx` | Reuse in ByElderTab |
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Display All Elders
-- Query all elders for agency (from groups)
-- For selected day, show each elder with current assignment (or "unassigned")
-- Show count of unassigned
+### Phase 1: Tab Navigation ✅ DONE
+- Tab bar with 4 tabs: Week Summary, By Caregiver, By Elder, Gaps Only
+- Week Summary as default tab
+- Tab state persists during session
 
-### Phase 2: Single Assignment
-- Tap elder row → open caregiver picker
-- Show caregiver workload (X/3)
-- On select → create/update scheduledShift
+### Phase 2: Week Summary Tab (Default)
+- Caregiver load grid (caregivers × days)
+- Elder coverage grid (elders × days)
+- Click cell → opens Assign sheet
+- Totals row/column
 
-### Phase 3: Bulk Assignment
-- Checkbox to select multiple elders
+### Phase 3: By Caregiver Tab
+- Expandable sections per caregiver
+- Shows all shifts grouped by day
+- Workload indicator (X/3 per day)
+
+### Phase 4: By Elder Tab (Existing)
+- Refactor current day-expand view
+- Keep existing functionality
+- Add checkbox for bulk select
+
+### Phase 5: Gaps Only Tab
+- Filtered view of unfilled shifts
+- Grouped by day
+- Bulk select + assign
+
+### Phase 6: Bulk Assignment
+- Checkbox to select multiple gaps
 - "Assign Selected" → pick caregiver → create shifts for all
 
-### Phase 4: Copy Last Week
+### Phase 7: Copy Last Week
 - Load last week's shifts as template
 - Apply to current week
 - Highlight conflicts
 
-### Phase 5: Caregiver Availability
+### Phase 8: Caregiver Availability
 - Grid to mark caregivers unavailable
 - Auto-highlight affected assignments
 

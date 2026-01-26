@@ -2,11 +2,16 @@
 
 ## Summary
 
-Replace the current Week Strip view with a **Copy + Adjust** assignment interface that:
-1. Shows ALL 30 elders (not just existing shifts)
-2. Allows bulk assignment with checkboxes
-3. Supports copying last week's schedule
-4. Marks caregivers as unavailable
+Replace the current day-list view with a **Tab-Based** schedule interface that:
+1. **Week Summary** (default) - Grid showing caregiver load + elder coverage
+2. **By Caregiver** - Grouped list showing each caregiver's weekly assignments
+3. **By Elder** - Current day-expand view (existing)
+4. **Gaps Only** - Filtered list of unfilled shifts for quick resolution
+
+Plus Copy + Adjust workflow:
+- Copy last week's schedule
+- Mark caregivers unavailable
+- Bulk assignment for gaps
 
 ---
 
@@ -91,66 +96,218 @@ onClick={() => {
 
 ---
 
-## Phase 2: Elder-Centric Day List
+## Phase 2: Tab Navigation + Week Summary Tab 🔲 TODO
 
-Replace shift-centric view with elder-centric checklist.
+**Goal:** Add tab navigation and implement the Week Summary grid as default view.
 
-### New Component: `ElderAssignmentList.tsx`
+### New Components
+
+#### `ScheduleTabs.tsx` - Tab Navigation
 
 ```typescript
-interface ElderAssignmentListProps {
-  date: Date;
-  elders: Elder[];
-  shifts: Map<string, ScheduledShift>; // elderId -> shift
-  onAssign: (elderId: string, caregiverId: string) => void;
-  onBulkSelect: (elderIds: string[]) => void;
+interface ScheduleTabsProps {
+  activeTab: 'summary' | 'caregiver' | 'elder' | 'gaps';
+  onTabChange: (tab: string) => void;
+  gapsCount: number;  // Show badge on Gaps tab
 }
 
 // Renders:
-// ☑ Elder 1 ............ Caregiver 2 ✓
-// ☑ Elder 2 ............ --
-// □ Elder 3 ............ Caregiver 1 ✓
+// [Week Summary]  [By Caregiver]  [By Elder]  [Gaps Only (5)]
+//      ↑ active
 ```
 
+#### `WeekSummaryTab.tsx` - Default Tab
+
+```typescript
+interface WeekSummaryTabProps {
+  weekStart: Date;
+  shifts: ScheduledShift[];
+  caregivers: Caregiver[];
+  elders: Elder[];
+  onCellClick: (elderId: string, date: Date) => void;
+}
+
+// Renders two grids:
+// 1. Caregiver Load (caregivers × days → count)
+// 2. Elder Coverage (elders × days → ✓/⚠)
+```
+
+### Grid Interactions
+
+| Click Target | Action |
+|--------------|--------|
+| Caregiver row | Switch to "By Caregiver" tab, scroll to caregiver |
+| Elder row | Switch to "By Elder" tab, scroll to elder |
+| ⚠ (gap cell) | Open Assign Caregiver sheet |
+| ✓ (assigned cell) | Open shift details |
+
 ### Files to Create
-- `src/components/agency/schedule/ElderAssignmentList.tsx`
+- `src/components/agency/schedule/ScheduleTabs.tsx`
+- `src/components/agency/schedule/WeekSummaryTab.tsx`
 
 ### Files to Modify
-- `src/components/agency/schedule/DayShiftList.tsx` (replace or extend)
+- `src/app/dashboard/agency/schedule/page.tsx` - Add tab state, render tabs
+
+### Test
+- [ ] Tab navigation works
+- [ ] Week Summary shows correct caregiver counts
+- [ ] Week Summary shows correct elder coverage (✓/⚠)
+- [ ] Click ⚠ opens Assign sheet
+- [ ] Mobile responsive (horizontal scroll for grid)
 
 ---
 
-## Phase 3: Bulk Assignment
+## Phase 3: By Caregiver Tab 🔲 TODO
+
+**Goal:** Grouped list showing each caregiver's weekly assignments.
+
+### New Component: `ByCaregiverTab.tsx`
+
+```typescript
+interface ByCaregiverTabProps {
+  weekStart: Date;
+  shifts: ScheduledShift[];
+  caregivers: Caregiver[];
+  onShiftClick: (shift: ScheduledShift) => void;
+}
+
+// Renders expandable sections:
+// ▼ Caregiver 1 (14 shifts)
+//   MONDAY
+//   • LO-C1-1  7:00 AM – 9:00 AM   ✓ Confirmed
+//   • LO-C1-2  11:00 AM – 1:00 PM  ⏳ Awaiting
+//   ...
+// ▶ Caregiver 2 (13 shifts)
+```
+
+### Features
+- Expandable/collapsible caregiver sections
+- Shifts grouped by day within each caregiver
+- Shows total shift count per caregiver
+- Workload indicator (X/3 per day)
+
+### Files to Create
+- `src/components/agency/schedule/ByCaregiverTab.tsx`
+
+### Test
+- [ ] Caregivers listed with shift counts
+- [ ] Expand/collapse works
+- [ ] Shifts grouped by day
+- [ ] Click shift → opens details/assign sheet
+
+---
+
+## Phase 4: By Elder Tab (Refactor Existing) 🔲 TODO
+
+**Goal:** Refactor existing day-expand view into a tab component.
+
+### Changes to Existing Components
+
+The current `WeekStripSchedule.tsx` + `DayShiftList.tsx` become the "By Elder" tab.
+
+```typescript
+interface ByElderTabProps {
+  weekStart: Date;
+  shifts: ScheduledShift[];
+  elders: Elder[];
+  onAssignGap: (gap: Gap) => void;
+  onShiftClick: (shift: ScheduledShift) => void;
+}
+
+// Renders existing day-expand view:
+// ▼ MONDAY, JAN 27 — 2 gaps
+//   ✓ Caregiver 1 → LO-C1-1  7AM–9AM   Confirmed
+//   ⚠ Unassigned  → LO-C4-1  --        [Assign]
+// ▶ TUESDAY, JAN 28 — All covered ✓
+```
+
+### Files to Create
+- `src/components/agency/schedule/ByElderTab.tsx` (wrapper around existing components)
+
+### Files to Modify
+- `src/components/agency/schedule/WeekStripSchedule.tsx` - Extract logic for reuse
+- `src/components/agency/schedule/DayShiftList.tsx` - Keep as-is, used by ByElderTab
+
+### Test
+- [ ] Existing day-expand functionality preserved
+- [ ] Works within tab context
+- [ ] Click-to-assign still works
+
+---
+
+## Phase 5: Gaps Only Tab 🔲 TODO
+
+**Goal:** Filtered view showing only unfilled shifts for quick gap resolution.
+
+### New Component: `GapsOnlyTab.tsx`
+
+```typescript
+interface GapsOnlyTabProps {
+  weekStart: Date;
+  gaps: Gap[];  // All unfilled shifts across the week
+  onAssignGap: (gap: Gap) => void;
+  onBulkAssign: (gaps: Gap[], caregiverId: string) => void;
+}
+
+// Renders:
+// ⚠ 24 GAPS THIS WEEK
+//
+// MONDAY (5 gaps)
+// ☑ LO-C4-1   No caregiver   [Assign]
+// ☑ LO-C7-3   No caregiver   [Assign]
+// ...
+//
+// [Select All]  [Bulk Assign Selected →]
+```
+
+### Features
+- Shows only unfilled shifts
+- Grouped by day
+- Checkbox for multi-select
+- Bulk assign button
+
+### Files to Create
+- `src/components/agency/schedule/GapsOnlyTab.tsx`
+
+### Test
+- [ ] Only shows unfilled shifts
+- [ ] Multi-select works
+- [ ] Bulk assign creates shifts for all selected
+
+---
+
+## Phase 6: Bulk Assignment 🔲 TODO
 
 ### New Component: `BulkAssignSheet.tsx`
 
 ```typescript
 interface BulkAssignSheetProps {
-  selectedElders: Elder[];
+  selectedGaps: Gap[];
   caregivers: Caregiver[];
-  date: Date;
   onAssign: (caregiverId: string) => void;
   onClose: () => void;
 }
 
 // Shows:
-// - Selected elders count
-// - Caregiver list with workload bars
-// - Assign button
+// Assign 5 elders to:
+// ○ Caregiver 1  ████████░░  2/3
+// ○ Caregiver 3  ████░░░░░░  1/3
+// ○ Caregiver 4  ██████████  3/3  FULL
 ```
 
 ### Files to Create
 - `src/components/agency/schedule/BulkAssignSheet.tsx`
 
 ### Logic
-1. User checks multiple elders
+1. User checks multiple gaps (from Gaps Only tab or By Elder tab)
 2. Opens bulk assign sheet
-3. Picks caregiver
-4. System creates/updates shifts for all selected elders
+3. Picks caregiver (with workload shown)
+4. System validates constraints (max 3/day, 2hr gap)
+5. Creates shifts for valid assignments, shows errors for conflicts
 
 ---
 
-## Phase 4: Copy Last Week
+## Phase 7: Copy Last Week 🔲 TODO
 
 ### New Component: `WeekSetupSheet.tsx`
 
@@ -158,7 +315,7 @@ interface BulkAssignSheetProps {
 // Shows when entering schedule for a new week:
 // - "Copy Last Week" button
 // - "Start Blank" button
-// - Caregiver availability toggles
+// - Preview of what will be copied
 ```
 
 ### New Service: `src/lib/firebase/scheduleTemplates.ts`
@@ -181,7 +338,7 @@ async function getLastScheduledWeek(agencyId: string): Promise<Date | null>;
 
 ---
 
-## Phase 5: Caregiver Availability
+## Phase 8: Caregiver Availability 🔲 TODO
 
 ### New Component: `CaregiverAvailabilityGrid.tsx`
 
@@ -210,7 +367,7 @@ async function getLastScheduledWeek(agencyId: string): Promise<Date | null>;
 
 ---
 
-## Phase 1.6: Fix Test Data Seeding
+## Phase 1.6: Fix Test Data Seeding ✅ COMPLETE
 
 **Problem:** Seeding script creates unrealistic shifts:
 - Same caregiver assigned to multiple elders at same time (9AM-5PM)
@@ -218,29 +375,29 @@ async function getLastScheduledWeek(agencyId: string): Promise<Date | null>;
 
 **Solution:** Update seeding script with realistic constraints.
 
-### Constraints to Enforce
+### Constraints Enforced
 
 | Rule | Constraint |
 |------|------------|
 | Daily elder limit | Max 3 elders per caregiver per day |
-| Time slot conflict | Max 1 elder per 2-hour window |
+| Minimum time gap | 2+ hours between shifts for same caregiver |
 
-### Realistic Shift Pattern
+### Time Slots (Flexible)
 
-For 30 elders and 10 caregivers:
-- Each caregiver gets 3 elders per day
-- Shifts staggered in 2.5-hour slots:
-  - Slot 1: 9:00 AM - 11:30 AM
-  - Slot 2: 11:30 AM - 2:00 PM
-  - Slot 3: 2:00 PM - 4:30 PM
+Owner can set ANY time. For test data, we use sample staggered slots:
+- Varied start times (7AM, 8AM, 9AM, 11AM, 2PM, 4PM, etc.)
+- Min 2-hour gap between shifts
+- Max 3 elders per caregiver per day
 
-### Files to Modify
+**Note:** These are NOT fixed slots. The system only validates the 2-hour gap and 3-elder limit. Owner picks any time based on elder needs.
+
+### Files Modified
 - `.claude/skills/schedule-assignment/scripts/seedWeeklyShifts.ts`
 
-### Test
-- Each caregiver has max 3 elders per day
-- No overlapping shifts for same caregiver
-- Shifts staggered by 2.5-hour windows
+### Test Results
+- ✅ Each caregiver has max 3 elders per day
+- ✅ No overlapping shifts for same caregiver
+- ✅ Min 2-hour gap between shifts
 
 ---
 
@@ -302,16 +459,19 @@ function canAssignCaregiver(
 
 ## Execution Order
 
-| Phase | Priority | Effort | Dependencies | Status |
-|-------|----------|--------|--------------|--------|
-| 1. Fix Gap Detection | HIGH | Small | None | ✅ DONE |
-| 1.5. Click-to-Assign | HIGH | Small | Phase 1 | ✅ DONE |
-| 1.6. Fix Test Data | HIGH | Small | Phase 1.5 | 🔲 TODO |
-| 2. Elder-Centric List | HIGH | Medium | Phase 1.6 | 🔲 TODO |
-| 3. Bulk Assignment | HIGH | Medium | Phase 2 | 🔲 TODO |
-| 4. Copy Last Week | MEDIUM | Medium | Phase 3 | 🔲 TODO |
-| 5. Caregiver Availability | MEDIUM | Medium | Phase 4 | 🔲 TODO |
-| 6. Conflict Detection | HIGH | Medium | Phase 1.6 | 🔲 TODO |
+| Phase | Description | Priority | Effort | Dependencies | Status |
+|-------|-------------|----------|--------|--------------|--------|
+| 1 | Fix Gap Detection | HIGH | Small | None | ✅ DONE |
+| 1.5 | Click-to-Assign | HIGH | Small | Phase 1 | ✅ DONE |
+| 1.6 | Fix Test Data | HIGH | Small | Phase 1.5 | ✅ DONE |
+| 2 | Tab Nav + Week Summary | HIGH | Medium | Phase 1.6 | 🔲 TODO |
+| 3 | By Caregiver Tab | HIGH | Medium | Phase 2 | 🔲 TODO |
+| 4 | By Elder Tab (refactor) | MEDIUM | Small | Phase 2 | 🔲 TODO |
+| 5 | Gaps Only Tab | HIGH | Medium | Phase 2 | 🔲 TODO |
+| 6 | Bulk Assignment | HIGH | Medium | Phase 5 | 🔲 TODO |
+| 7 | Copy Last Week | MEDIUM | Medium | Phase 6 | 🔲 TODO |
+| 8 | Caregiver Availability | MEDIUM | Medium | Phase 7 | 🔲 TODO |
+| 9 | Conflict Detection | HIGH | Medium | Phase 2 | 🔲 TODO |
 
 ---
 
@@ -328,17 +488,28 @@ This creates:
 - 30 elders with shifts across the week
 - Varying assignment states (assigned, unassigned)
 - Different patterns per day (more gaps later in week)
+- Realistic time slots with 2+ hour gaps
+- Max 3 elders per caregiver per day
 
 ---
 
 ## Success Criteria
 
-1. ✅ All 30 elders visible in schedule view (Phase 1 - DONE)
-2. ✅ Accurate gap count per day (Phase 1 - DONE)
-3. ✅ Click unfilled shift → opens assign sheet (Phase 1.5 - DONE)
-4. 🔲 Bulk select and assign works (Phase 3)
-5. 🔲 Copy last week creates shifts (Phase 4)
-6. 🔲 Caregiver unavailability reflected (Phase 5)
-7. 🔲 Conflicts highlighted and resolvable (Phase 6)
-8. ✅ Mobile responsive
-9. ✅ Grade 5 student can understand the UI
+### Completed
+1. ✅ All 30 elders visible in schedule view (Phase 1)
+2. ✅ Accurate gap count per day (Phase 1)
+3. ✅ Click unfilled shift → opens assign sheet (Phase 1.5)
+4. ✅ Realistic test data with constraints (Phase 1.6)
+5. ✅ Mobile responsive
+6. ✅ Grade 5 student can understand the UI
+
+### Pending
+7. 🔲 Tab navigation with 4 tabs (Phase 2)
+8. 🔲 Week Summary grid shows caregiver load (Phase 2)
+9. 🔲 Week Summary grid shows elder coverage (Phase 2)
+10. 🔲 By Caregiver grouped view (Phase 3)
+11. 🔲 Gaps Only filtered view (Phase 5)
+12. 🔲 Bulk select and assign works (Phase 6)
+13. 🔲 Copy last week creates shifts (Phase 7)
+14. 🔲 Caregiver unavailability reflected (Phase 8)
+15. 🔲 Conflicts highlighted and resolvable (Phase 9)

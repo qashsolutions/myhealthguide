@@ -5,12 +5,10 @@
  *
  * CONSTRAINTS ENFORCED:
  * 1. Max 3 elders per caregiver per day
- * 2. Max 1 elder per 2-hour window (staggered shifts)
+ * 2. Min 2-hour gap between shifts for same caregiver
  *
- * SHIFT SLOTS (2.5 hours each):
- * - Slot 1: 9:00 AM - 11:30 AM
- * - Slot 2: 11:30 AM - 2:00 PM
- * - Slot 3: 2:00 PM - 4:30 PM
+ * TIME SLOTS: Flexible - owner can set any time. For test data, we use
+ * varied sample times (7AM, 8AM, 9AM, 11AM, 2PM, 4PM, etc.)
  *
  * Run with: npx ts-node --project tsconfig.scripts.json .claude/skills/schedule-assignment/scripts/seedWeeklyShifts.ts
  */
@@ -21,12 +19,46 @@ import { getAuth } from 'firebase-admin/auth';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Time slots for staggered shifts (2.5 hours each)
-const TIME_SLOTS = [
-  { startTime: '09:00', endTime: '11:30', duration: 150 }, // Slot 1: Morning
-  { startTime: '11:30', endTime: '14:00', duration: 150 }, // Slot 2: Midday
-  { startTime: '14:00', endTime: '16:30', duration: 150 }, // Slot 3: Afternoon
+// Sample time slots - varied to demonstrate flexibility
+// In production, owner picks any time based on elder needs
+const SAMPLE_TIME_SLOTS = [
+  { startTime: '07:00', endTime: '09:00', duration: 120 },   // Early morning
+  { startTime: '08:00', endTime: '10:00', duration: 120 },   // Morning
+  { startTime: '09:00', endTime: '11:00', duration: 120 },   // Mid-morning
+  { startTime: '11:00', endTime: '13:00', duration: 120 },   // Late morning
+  { startTime: '13:00', endTime: '15:00', duration: 120 },   // Early afternoon
+  { startTime: '14:00', endTime: '16:00', duration: 120 },   // Afternoon
+  { startTime: '15:00', endTime: '17:00', duration: 120 },   // Late afternoon
+  { startTime: '17:00', endTime: '19:00', duration: 120 },   // Evening
 ];
+
+// Helper to parse time string to minutes since midnight
+function timeToMinutes(time: string): number {
+  const [hours, mins] = time.split(':').map(Number);
+  return hours * 60 + mins;
+}
+
+// Check if two time ranges have at least 2-hour gap
+function hasMinimumGap(existingSlots: typeof SAMPLE_TIME_SLOTS, newSlot: typeof SAMPLE_TIME_SLOTS[0]): boolean {
+  const newStart = timeToMinutes(newSlot.startTime);
+  const newEnd = timeToMinutes(newSlot.endTime);
+
+  for (const slot of existingSlots) {
+    const existingStart = timeToMinutes(slot.startTime);
+    const existingEnd = timeToMinutes(slot.endTime);
+
+    // Check if there's overlap or less than 2-hour gap
+    // New shift must end at least 2 hours before existing starts
+    // OR new shift must start at least 2 hours after existing ends
+    const gapBefore = existingStart - newEnd;
+    const gapAfter = newStart - existingEnd;
+
+    if (gapBefore < 120 && gapAfter < 120) {
+      return false; // Not enough gap
+    }
+  }
+  return true;
+}
 
 // Initialize Firebase Admin
 function initFirebase() {
@@ -82,11 +114,11 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 async function seedWeeklyShifts() {
-  console.log('🗓️  Seeding weekly shifts with REALISTIC constraints...\n');
+  console.log('🗓️  Seeding weekly shifts with FLEXIBLE time slots...\n');
   console.log('CONSTRAINTS:');
   console.log('  • Max 3 elders per caregiver per day');
-  console.log('  • Max 1 elder per 2-hour window (staggered shifts)');
-  console.log('  • Time slots: 9:00-11:30, 11:30-14:00, 14:00-16:30\n');
+  console.log('  • Min 2-hour gap between shifts for same caregiver');
+  console.log('  • Flexible times (7AM-7PM range)\n');
 
   const { db, auth } = initFirebase();
 
@@ -213,8 +245,8 @@ async function seedWeeklyShifts() {
     }
 
     // Track caregiver assignments for this day
-    // caregiverSlots[caregiverId] = [slotIndex1, slotIndex2, ...] (max 3)
-    const caregiverSlots: Map<string, number[]> = new Map();
+    // caregiverSlots[caregiverId] = [slot1, slot2, ...] (max 3, with 2hr gaps)
+    const caregiverSlots: Map<string, typeof SAMPLE_TIME_SLOTS> = new Map();
     caregivers.forEach(c => caregiverSlots.set(c.id, []));
 
     // Shuffle elders for random assignment order
@@ -230,7 +262,7 @@ async function seedWeeklyShifts() {
       if (shouldAssign) {
         // Find an available caregiver with an open slot
         let assignedCaregiver: { id: string; name: string } | null = null;
-        let assignedSlot: typeof TIME_SLOTS[0] | null = null;
+        let assignedSlot: typeof SAMPLE_TIME_SLOTS[0] | null = null;
 
         // Shuffle caregivers for random selection
         const shuffledCaregivers = shuffleArray(caregivers);
@@ -241,12 +273,15 @@ async function seedWeeklyShifts() {
           // Check if caregiver has room (max 3 elders per day)
           if (usedSlots.length >= 3) continue;
 
-          // Find first available slot for this caregiver
-          for (let slotIdx = 0; slotIdx < TIME_SLOTS.length; slotIdx++) {
-            if (!usedSlots.includes(slotIdx)) {
+          // Shuffle available time slots to get variety
+          const shuffledTimeSlots = shuffleArray([...SAMPLE_TIME_SLOTS]);
+
+          // Find first slot that has minimum 2-hour gap from existing shifts
+          for (const slot of shuffledTimeSlots) {
+            if (hasMinimumGap(usedSlots, slot)) {
               assignedCaregiver = caregiver;
-              assignedSlot = TIME_SLOTS[slotIdx];
-              usedSlots.push(slotIdx);
+              assignedSlot = slot;
+              usedSlots.push(slot);
               caregiverSlots.set(caregiver.id, usedSlots);
               break;
             }
@@ -279,7 +314,7 @@ async function seedWeeklyShifts() {
         } else {
           // No available caregiver slot - create unfilled shift
           // Pick a random time slot
-          const slot = TIME_SLOTS[Math.floor(Math.random() * TIME_SLOTS.length)];
+          const slot = SAMPLE_TIME_SLOTS[Math.floor(Math.random() * SAMPLE_TIME_SLOTS.length)];
           shifts.push({
             agencyId,
             groupId: elder.groupId,
@@ -302,7 +337,7 @@ async function seedWeeklyShifts() {
         }
       } else {
         // Create unfilled shift (gap)
-        const slot = TIME_SLOTS[Math.floor(Math.random() * TIME_SLOTS.length)];
+        const slot = SAMPLE_TIME_SLOTS[Math.floor(Math.random() * SAMPLE_TIME_SLOTS.length)];
         shifts.push({
           agencyId,
           groupId: elder.groupId,
@@ -360,9 +395,13 @@ async function seedWeeklyShifts() {
   console.log('=====================================');
   console.log('\nCONSTRAINTS VERIFIED:');
   console.log('  ✓ Max 3 elders per caregiver per day');
-  console.log('  ✓ Staggered 2.5-hour time slots (no overlap)');
+  console.log('  ✓ Min 2-hour gap between shifts (flexible times)');
   console.log('=====================================');
-  console.log('\nTest at: https://www.myguide.health/dashboard/agency?tab=scheduling');
+  console.log('\nNOTE: Time slots are FLEXIBLE (7AM-7PM range).');
+  console.log('Owner can set any time based on elder needs.');
+  console.log('System only validates 2hr gap + 3 elders/day limit.');
+  console.log('=====================================');
+  console.log('\nTest at: https://www.myguide.health/dashboard/agency/schedule');
 }
 
 seedWeeklyShifts().catch(console.error);
