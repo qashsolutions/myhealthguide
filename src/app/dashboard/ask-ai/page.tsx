@@ -170,8 +170,9 @@ function AskAIContent() {
 function ChatTab({ elderName }: { elderName: string }) {
   return (
     <div className="space-y-4">
-      {/* Quick Actions */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Quick Actions - lg:grid-cols-2 because Voice Search is disabled (Jan 27, 2026) */}
+      {/* Change back to lg:grid-cols-3 when Voice Search is re-enabled */}
+      <div className="grid sm:grid-cols-2 gap-4">
         <QuickActionCard
           title="Health Records Lookup"
           description="Query logged medications, meals, and compliance data"
