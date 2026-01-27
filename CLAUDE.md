@@ -375,7 +375,7 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 
 ### Disabled Features
 
-**Updated:** Jan 26, 2026
+**Updated:** Jan 27, 2026
 
 #### Timesheet Management (DISABLED)
 
@@ -404,32 +404,41 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
    - `src/components/navigation/MoreMenuDrawer.tsx` (line ~209)
 3. Update this documentation
 
-#### Analytics Page for Agency Owners (HIDDEN)
+#### Analytics Page (DISABLED)
 
 | Item | Status |
 |------|--------|
-| **Feature** | Individual elder health analytics (medication adherence, nutrition, trends) |
-| **Status** | ⏸️ HIDDEN - redirects to /dashboard/agency |
-| **Reason** | Not actionable for agency owners managing 30+ elders; caregivers still see it |
-| **Date** | Jan 26, 2026 |
+| **Feature** | Health analytics dashboard (medication adherence, nutrition, health trends, smart feedback) |
+| **Status** | ⏸️ DISABLED - redirects ALL users to /dashboard/insights |
+| **Reason** | Redundant with Insights page; Analytics was just a navigation hub linking to other pages |
+| **Date** | Jan 27, 2026 |
 
-**Why Hidden:**
-1. Agency owners focus on business ops (scheduling, staffing, billing)
-2. Medication adherence and nutrition are caregiver/family concerns
-3. Managing 30+ elders, individual health trends aren't useful for daily decisions
-4. Caregivers still see this page for their assigned elders (max 3 per day)
+**Why Disabled:**
+1. Analytics page was a "navigation hub" that just linked to other pages (added unnecessary clicks)
+2. All functionality now available directly in `/dashboard/insights`:
+   - Health Trends tab: Shows compliance charts, weekly summaries, AI insights inline
+   - Clinical Notes tab: Generates doctor visit preparation documents
+   - Reports tab: Unified medication adherence + nutrition analysis in one report
+3. Smart Feedback dashboard (only unique feature in Analytics) was rarely used
+4. Consolidating reduces user confusion and clicks
+
+**What Was In Analytics:**
+- Overview tab: Links to medication adherence, nutrition, health trends
+- Medication Adherence tab: Link to /medication-adherence page
+- Nutrition tab: Link to /nutrition-analysis page
+- Health Trends tab: Link to /insights page
+- Smart Feedback tab: FeedbackDashboard component
 
 **Current Behavior:**
-- Super admins visiting `/dashboard/analytics` are redirected to `/dashboard/agency`
-- Reports/Analytics nav items hidden in IconRail and MoreMenuDrawer for agency owners
-- Caregivers and Family Plan users still have full access
+- ALL users visiting `/dashboard/analytics` are redirected to `/dashboard/insights`
+- Original code commented out in page file for reference
 
 **To Re-enable:**
-1. Remove redirect useEffect in `src/app/dashboard/analytics/page.tsx`
-2. Uncomment nav items in:
-   - `src/components/navigation/IconRail.tsx` (Agency Owner section)
-   - `src/components/navigation/MoreMenuDrawer.tsx` (Insights section)
-3. Consider building an aggregated agency-wide view instead of individual elder analytics
+1. Restore commented code in `src/app/dashboard/analytics/page.tsx`
+2. Add nav items back in:
+   - `src/components/navigation/IconRail.tsx`
+   - `src/components/navigation/MoreMenuDrawer.tsx`
+3. Update this documentation
 
 ---
 
