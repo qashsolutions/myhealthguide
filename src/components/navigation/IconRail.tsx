@@ -14,9 +14,12 @@ import {
   Users,
   Heart,
   Clock,
+  FileText,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
+import { useElder } from '@/contexts/ElderContext';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
@@ -46,6 +49,7 @@ export function IconRail({ onMoreClick }: IconRailProps) {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { isMultiAgency } = useSubscription();
+  const { selectedElder } = useElder();
   const userIsSuperAdmin = isSuperAdmin(user);
   const {
     notifications,
@@ -115,27 +119,18 @@ export function IconRail({ onMoreClick }: IconRailProps) {
       badge: unreadCount > 0 ? unreadCount : undefined,
     });
   } else {
-    // Family Plan: Home, Insights
-    // REMOVED: Reports (Analytics) nav item for Family Plan A/B users (Jan 27, 2026)
-    // Reason: Analytics page now just redirects to Insights - redundant icon creates bad UX.
-    // All analytics functionality consolidated into /dashboard/insights:
-    // - Health Trends tab, Clinical Notes tab, Reports tab (unified medication + nutrition)
-    // navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+    // Family Plan: Home, Health Profile, Insights, My Notes (Jan 27, 2026)
+    // Hamburger menu eliminated for Family Plan - all items moved to IconRail for 1-click access.
+    // Help moved to Avatar dropdown. Settings already in Avatar dropdown.
+    if (selectedElder) {
+      navItems.push({
+        href: `/dashboard/elder-profile?elderId=${selectedElder.id}`,
+        icon: Heart,
+        label: 'Health Profile',
+      });
+    }
     navItems.push({ href: '/dashboard/insights', icon: Sparkles, label: 'Insights' });
-    // REMOVED: Safety Alerts nav item for Family Plan A/B users (Jan 27, 2026)
-    // Reason: Safety Alerts features (Drug Interactions, Schedule Conflicts, Incident Reports,
-    // Dementia Screening) are designed for professional caregiving contexts with multiple
-    // caregivers and clinical oversight. Family Plan users caring for 1 loved one should:
-    // - Consult their pharmacist for drug interactions
-    // - Use their healthcare provider for dementia screening
-    // - Don't need schedule conflict detection (only 1 caregiver)
-    // - Don't need formal incident tracking (not a compliance requirement)
-    // navItems.push({
-    //   href: '/dashboard/safety-alerts',
-    //   icon: AlertTriangle,
-    //   label: 'Alerts',
-    //   badge: unreadCount > 0 ? unreadCount : undefined,
-    // });
+    navItems.push({ href: '/dashboard/notes', icon: FileText, label: 'My Notes' });
   }
 
   return (
@@ -190,21 +185,25 @@ export function IconRail({ onMoreClick }: IconRailProps) {
         {/* Divider */}
         <div className="w-6 h-px bg-gray-200 dark:bg-gray-700 my-2" />
 
-        {/* More */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={onMoreClick}
-              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-2"
-              aria-label="More options"
-            >
-              <Menu className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="text-sm">
-            More
-          </TooltipContent>
-        </Tooltip>
+        {/* More - Only for Multi-Agency users (Jan 27, 2026)
+            Family Plan users have all nav items in IconRail + Avatar dropdown,
+            so they don't need the hamburger menu on desktop. */}
+        {isMultiAgency && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onMoreClick}
+                className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-2"
+                aria-label="More options"
+              >
+                <Menu className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-sm">
+              More
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Health Chat - Quick access to AI chat */}
         <Tooltip>
@@ -307,6 +306,9 @@ export function IconRail({ onMoreClick }: IconRailProps) {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
               Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/help')}>
+              Help
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={async () => {
