@@ -119,9 +119,10 @@ export function IconRail({ onMoreClick }: IconRailProps) {
       badge: unreadCount > 0 ? unreadCount : undefined,
     });
   } else {
-    // Family Plan: Home, Health Profile, Insights, My Notes (Jan 27, 2026)
-    // Hamburger menu eliminated for Family Plan - all items moved to IconRail for 1-click access.
-    // Help moved to Avatar dropdown. Settings already in Avatar dropdown.
+    // Family Plan: Home, Health Profile, Insights, Health Chat (Jan 27, 2026)
+    // Hamburger menu eliminated for Family Plan - all items in IconRail for 1-click access.
+    // My Notes removed - already accessible from dashboard home page inline.
+    // Health Chat moved here for direct access (was below divider).
     if (selectedElder) {
       navItems.push({
         href: `/dashboard/elder-profile?elderId=${selectedElder.id}`,
@@ -130,7 +131,7 @@ export function IconRail({ onMoreClick }: IconRailProps) {
       });
     }
     navItems.push({ href: '/dashboard/insights', icon: Sparkles, label: 'Insights' });
-    navItems.push({ href: '/dashboard/notes', icon: FileText, label: 'My Notes' });
+    navItems.push({ href: '/dashboard/health-chat', icon: MessageSquare, label: 'Health Chat' });
   }
 
   return (
@@ -205,21 +206,24 @@ export function IconRail({ onMoreClick }: IconRailProps) {
           </Tooltip>
         )}
 
-        {/* Health Chat - Quick access to AI chat */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href="/dashboard/health-chat"
-              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-2"
-              aria-label="Health Chat"
-            >
-              <MessageSquare className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="text-sm">
-            Health Chat
-          </TooltipContent>
-        </Tooltip>
+        {/* Health Chat - Only for Multi-Agency users (Jan 27, 2026)
+            Family Plan users have Health Chat in their main nav items above. */}
+        {isMultiAgency && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/dashboard/health-chat"
+                className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-2"
+                aria-label="Health Chat"
+              >
+                <MessageSquare className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-sm">
+              Health Chat
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Notifications Bell */}
         <DropdownMenu>
