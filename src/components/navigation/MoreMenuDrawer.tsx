@@ -195,7 +195,28 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
 
           {/* Insights */}
           <SectionLabel>Insights</SectionLabel>
-          <MenuItem href="/dashboard/ask-ai" icon={MessageSquare} label="AI Insights" />
+          {/* DISABLED FOR AGENCY OWNERS: AI Insights (Jan 26, 2026)
+
+              Reason: The AI Insights page (/dashboard/ask-ai) provides elder-specific health
+              questions and conversation features. This is not actionable for agency owners who:
+              1. Manage 30+ elders across multiple caregivers
+              2. Focus on business operations (scheduling, staffing, compliance)
+              3. Don't need individual health conversations - that's the caregiver's job
+              4. Have already had Analytics page hidden for similar reasons
+
+              Who still has access:
+              - Agency caregivers: Need AI insights for their assigned elders (max 3/day)
+              - Family Plan A/B users: Need AI insights for their loved ones
+              - Read-only members: Can view AI insights for their family members
+
+              To re-enable for agency owners:
+              1. Remove the condition below wrapping MenuItem
+              2. Consider building an aggregated agency-wide AI summary instead
+              3. Update CLAUDE.md documentation
+          */}
+          {!(isMultiAgency && userIsSuperAdmin) && (
+            <MenuItem href="/dashboard/ask-ai" icon={MessageSquare} label="AI Insights" />
+          )}
           <MenuItem href="/dashboard/safety-alerts" icon={AlertTriangle} label="Safety Alerts" />
           {/* REMOVED: Analytics for agency owners (Jan 26, 2026)
               Reason: Individual elder health analytics (medication adherence, nutrition, trends)

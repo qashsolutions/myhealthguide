@@ -21,7 +21,7 @@
    - [Caregiver Invite System](#caregiver-invite-system)
    - [Analytics Tab](#analytics-tab)
    - [Storage Quota](#storage-quota--downgrade-validation)
-   - [Disabled Features](#disabled-features) (Analytics, Timesheets, Elders for owners, Documents simplified)
+   - [Disabled Features](#disabled-features) (AI Insights, Analytics, Timesheets, Elders for owners, Documents simplified)
    - [Caregiver Burnout Page](#caregiver-burnout-page)
 5. [Features](#features)
    - [Notification System](#notification-system)
@@ -376,6 +376,33 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
    - `src/components/navigation/IconRail.tsx` (Agency Owner section)
    - `src/components/navigation/MoreMenuDrawer.tsx` (Insights section)
 3. Consider building an aggregated agency-wide view instead of individual elder analytics
+
+---
+
+#### AI Insights for Agency Owners (HIDDEN)
+
+| Item | Status |
+|------|--------|
+| **Feature** | AI-powered health chat, clinical notes, reports |
+| **Status** | ⏸️ HIDDEN - redirects to /dashboard/agency |
+| **Reason** | Per-elder health conversations are caregiver/family responsibility, not agency owner ops |
+| **Date** | Jan 26, 2026 |
+
+**Why Hidden:**
+1. Agency owners focus on business operations (scheduling, staffing, compliance)
+2. Individual elder health conversations are the caregiver's responsibility
+3. Managing 30+ elders, per-elder AI chat isn't practical for owners
+4. Related features (Analytics) were already hidden for the same reason
+
+**Current Behavior:**
+- Super admins visiting `/dashboard/ask-ai` are redirected to `/dashboard/agency`
+- AI Insights menu item hidden in MoreMenuDrawer for agency owners
+- Caregivers and Family Plan users still have full access
+
+**To Re-enable:**
+1. Remove redirect useEffect in `src/app/dashboard/ask-ai/page.tsx`
+2. Uncomment AI Insights menu item in `src/components/navigation/MoreMenuDrawer.tsx` (Insights section)
+3. Consider building an aggregated agency-wide AI summary instead
 
 ---
 
@@ -801,6 +828,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 26, 2026 | AI Insights HIDDEN for agency owners - per-elder chat is caregiver responsibility |
 | Jan 26, 2026 | Documents page SIMPLIFIED - removed category filters, added descriptions |
 | Jan 26, 2026 | Alerts page HIDDEN for agency owners - uses groups, not agencies |
 | Jan 26, 2026 | Analytics page HIDDEN for agency owners - not actionable for 30+ elders |

@@ -1,9 +1,32 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+/**
+ * ASK AI PAGE - HIDDEN FOR AGENCY OWNERS (Jan 26, 2026)
+ *
+ * This page provides AI-powered health insights for individual elders.
+ * It is NOT shown for multi-agency owners (super admins) because:
+ * 1. Agency owners focus on business ops (scheduling, staffing, compliance)
+ * 2. Individual elder health conversations are the caregiver's responsibility
+ * 3. Managing 30+ elders, per-elder AI chat isn't practical for owners
+ * 4. Related features (Analytics) were already hidden for the same reason
+ *
+ * WHO CAN ACCESS:
+ * - Agency caregivers - for their assigned elders (max 3 per day)
+ * - Family Plan A/B users - for their loved ones
+ * - Read-only members - can view insights for their family members
+ *
+ * TO RE-ENABLE FOR AGENCY OWNERS:
+ * 1. Remove the redirect useEffect below
+ * 2. Uncomment AI Insights in MoreMenuDrawer.tsx (Insights section)
+ * 3. Consider building an aggregated agency-wide AI summary instead
+ */
+
+import { useState, Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useSubscription } from '@/lib/subscription';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { useTabTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +51,16 @@ function AskAIContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { selectedElder } = useElder();
+  const { isMultiAgency } = useSubscription();
+  const userIsSuperAdmin = isSuperAdmin(user);
+
+  // REDIRECT: Agency owners should use /dashboard/agency instead (Jan 26, 2026)
+  // AI Insights is for per-elder health conversations, not agency-wide operations.
+  useEffect(() => {
+    if (isMultiAgency && userIsSuperAdmin) {
+      router.replace('/dashboard/agency');
+    }
+  }, [isMultiAgency, userIsSuperAdmin, router]);
 
   // Get active tab from URL or default to chat
   const activeTab = (searchParams.get('tab') as TabType) || 'chat';
