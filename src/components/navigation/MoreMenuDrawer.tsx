@@ -233,10 +233,51 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
             <>
               <SectionLabel>Insights</SectionLabel>
               <MenuItem href="/dashboard/insights" icon={MessageSquare} label="AI Insights" />
-              <MenuItem href="/dashboard/safety-alerts" icon={AlertTriangle} label="Safety Alerts" />
+              {/* DISABLED: Safety Alerts for Family Plan A/B users (Jan 27, 2026)
+
+                  Reason: Safety Alerts features (Drug Interactions, Schedule Conflicts,
+                  Incident Reports, Dementia Screening) are designed for professional
+                  caregiving contexts with multiple caregivers and clinical oversight.
+
+                  Family Plan users caring for 1 loved one should:
+                  - Consult their pharmacist for drug interactions
+                  - Use their healthcare provider for dementia screening
+                  - Don't need schedule conflict detection (only 1 caregiver)
+                  - Don't need formal incident tracking (not a compliance requirement)
+
+                  Who can access:
+                  - Multi-Agency caregivers: Managing 3 elders/day with professional oversight
+
+                  To re-enable for Family Plan:
+                  1. Remove the `isMultiAgency` condition below
+                  2. Update /dashboard/safety-alerts/page.tsx to remove redirect
+                  3. Add nav item back in IconRail.tsx
+                  4. Update CLAUDE.md
+              */}
+              {isMultiAgency && (
+                <MenuItem href="/dashboard/safety-alerts" icon={AlertTriangle} label="Safety Alerts" />
+              )}
+              {/* DISABLED: Analytics for all users (Jan 27, 2026)
+
+                  Reason: Analytics page was a "navigation hub" that just linked to other pages.
+                  All functionality is now available directly in /dashboard/insights:
+                  - Health Trends tab: Shows compliance charts, weekly summaries, AI insights
+                  - Clinical Notes tab: Generates doctor visit preparation documents
+                  - Reports tab: Unified medication adherence + nutrition analysis in one report
+
+                  The Analytics page now just redirects to /dashboard/insights, making this
+                  menu item redundant and confusing UX.
+
+                  To re-enable:
+                  1. Restore /dashboard/analytics/page.tsx (uncomment original code)
+                  2. Uncomment the MenuItem below
+                  3. Add nav items back in IconRail.tsx
+                  4. Update CLAUDE.md
+
               {!userIsReadOnly && (
                 <MenuItem href="/dashboard/analytics" icon={BarChart3} label="Analytics" />
               )}
+              */}
             </>
           )}
 
