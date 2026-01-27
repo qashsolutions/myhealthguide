@@ -67,7 +67,7 @@ export default function EditDietEntryPage() {
         setEntry(dietEntry);
         setFormData({
           meal: dietEntry.meal,
-          items: dietEntry.items.join(', '),
+          items: Array.isArray(dietEntry.items) ? dietEntry.items.join(', ') : (dietEntry.items || ''),
           notes: dietEntry.notes || ''
         });
         setLoading(false);

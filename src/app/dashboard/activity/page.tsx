@@ -443,13 +443,14 @@ export default function ActivityPage() {
     dietEntries
       .filter(entry => isToday(new Date(entry.timestamp)))
       .forEach(entry => {
+        const itemsArr = Array.isArray(entry.items) ? entry.items : (entry.items ? String(entry.items).split(',').map(s => s.trim()) : []);
         items.push({
           id: `diet-${entry.id}`,
           type: 'diet',
           action: `${entry.meal} logged`,
-          name: entry.items.join(', '),
+          name: itemsArr.join(', ') || 'No items',
           timestamp: new Date(entry.timestamp),
-          details: entry.items.slice(0, 3).join(', ') + (entry.items.length > 3 ? '...' : '')
+          details: itemsArr.slice(0, 3).join(', ') + (itemsArr.length > 3 ? '...' : '')
         });
       });
 

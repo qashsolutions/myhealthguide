@@ -942,7 +942,9 @@ function generateTemplateBasedSummary(
   if (data.dietEntries?.length > 0) {
     lines.push(`### Diet Entries (${data.dietEntries.length} logged)`);
     for (const entry of data.dietEntries.slice(0, 5)) {
-      lines.push(`- ${entry.meal}: ${entry.items.join(', ')} (${safeDateString(entry.timestamp)})`);
+      // Safely handle items as string or array
+      const itemsStr = Array.isArray(entry.items) ? entry.items.join(', ') : (entry.items || 'No items');
+      lines.push(`- ${entry.meal}: ${itemsStr} (${safeDateString(entry.timestamp)})`);
     }
     lines.push('');
   }

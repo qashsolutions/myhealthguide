@@ -147,9 +147,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Normalize items to always be an array
+      let items = entry.items;
+      if (!items) {
+        items = [];
+      } else if (typeof items === 'string') {
+        // Split string into array (handles comma-separated items)
+        items = items.split(',').map((i: string) => i.trim()).filter(Boolean);
+      } else if (!Array.isArray(items)) {
+        items = [String(items)];
+      }
+
       return {
         meal: entry.meal,
-        items: entry.items || [],
+        items,
         timestamp,
       };
     });

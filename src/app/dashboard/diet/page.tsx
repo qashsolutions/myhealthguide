@@ -82,7 +82,7 @@ export default function DietPage() {
     setReanalyzeError(null);
 
     try {
-      const freeformText = entry.items.join(', ');
+      const freeformText = Array.isArray(entry.items) ? entry.items.join(', ') : (entry.items || '');
 
       const result = await analyzeDietEntryWithParsing(
         {

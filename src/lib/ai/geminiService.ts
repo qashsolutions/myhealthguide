@@ -212,7 +212,7 @@ DAILY TARGETS FOR THIS ELDER:
 
 MEAL TO ANALYZE:
 - Meal Type: ${entry.meal}
-- Food Items: ${entry.items.join(', ')}
+- Food Items: ${Array.isArray(entry.items) ? entry.items.join(', ') : (entry.items || 'No items')}
 ${entry.notes ? `- Notes: ${entry.notes}` : ''}
 
 ANALYSIS REQUIREMENTS:
