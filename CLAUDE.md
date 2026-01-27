@@ -1,7 +1,7 @@
 # MyHealthGuide - Claude Code Instructions
 
 - Review the documents. Build prod ready files, do not add To-Dos. Do not assume - ask me when in doubt.
-- Today is Jan 26, 2026.
+- Today is Jan 27, 2026.
 - See `docs/skills.md` for detailed system capabilities and notification flows.
 - The firebase config will not work in local.
 
@@ -826,19 +826,65 @@ Daily Care Update for {Elder Name} - {Day, Month Date, Year}
 ### Phase 14 - UI/UX Overhaul
 
 **Added:** Jan 22, 2026
+**Updated:** Jan 27, 2026
 **Reference Documents:** `docs/Jan22_UpdatePrompt_v1.md`, `docs/Jan22_UpdatedPrompt_v2.md`
 
 #### Overview
 
 Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and bottom nav (mobile), task priority engine, auto-suggestions.
 
-#### Navigation by Role
+#### Navigation by Role (Updated Jan 27, 2026)
 
-| Role | Bottom Nav Items | Icon Rail Items |
-|------|-----------------|-----------------|
-| Family (Plan A/B) | Home, Reports, Ask AI, More | Home, Reports, Medications, Supplements, Care Logs, Ask AI |
-| Agency Caregiver | Home, Schedule, Reports, Alerts, More | Home, Schedule, Reports, Alerts |
-| Agency Owner | Home, Team, Schedule, Reports, More | Home, Team, Schedule, Reports |
+| Role | Desktop IconRail | Mobile BottomNav | Hamburger Menu |
+|------|------------------|------------------|----------------|
+| **Family (Plan A/B)** | Home, Health Profile, Insights, Health Chat | Same 4 icons | ❌ Eliminated |
+| **Agency Caregiver** | Home, Schedule, Alerts | Home, Schedule, Reports, More | ✅ Has More menu |
+| **Agency Owner** | Home, Team, Schedule | Home, Team, Schedule, Reports, More | ✅ Has More menu |
+
+#### Family Plan Navigation Simplification (Jan 27, 2026)
+
+**Goal:** Reduce clicks, eliminate redundant hamburger menu, consistent experience across devices.
+
+**Changes Made:**
+1. **Removed "Reports"** from nav - Analytics page just redirects to Insights (redundant)
+2. **Removed "More" hamburger** - All items now directly accessible
+3. **Added Health Profile** to main nav - Previously hidden in hamburger
+4. **Added Health Chat** to main nav - Previously below divider
+5. **Settings/Help/Sign Out** - Accessible via avatar dropdown in header (both desktop and mobile)
+
+**Desktop IconRail (Family Plan):**
+```
+🏠 Home → ❤️ Health Profile → ✨ Insights → 💬 Health Chat
+────────
+🔔 Bell (notifications)
+👤 Avatar (Settings, Help, Sign Out)
+```
+
+**Mobile BottomNav (Family Plan):**
+```
+🏠 Home → ❤️ Health Profile → ✨ Insights → 💬 Health Chat
+```
+
+**Mobile Header Avatar Dropdown:**
+- Settings
+- Help
+- Sign Out
+
+#### MoreMenuDrawer (Updated Jan 27, 2026)
+
+| Section/Item | Family Plan | Agency Caregiver | Agency Owner |
+|--------------|-------------|------------------|--------------|
+| **Care Section** | Health Profile only | Health Profile, Daily Care | ⏸️ HIDDEN |
+| **Insights Section** | AI Insights only | AI Insights, Safety Alerts | ⏸️ HIDDEN |
+| **Care Tools** | N/A | Shift Handoff, Documents, Family Updates | N/A |
+| **Personal** | ~~My Notes~~ (on dashboard) | My Notes | My Notes |
+| **Agency** | N/A | Care Management | Care Management, Agency Management |
+| **System** | Settings, Help, Sign Out | Settings, Help, Sign Out | Settings, Help, Sign Out |
+
+**Items Removed from MoreMenuDrawer (Jan 27, 2026):**
+- **Analytics** - Commented out for all users (page redirects to Insights)
+- **Safety Alerts** - Hidden for Family Plan (only Multi-Agency can access)
+- **Daily Care** - Hidden for Family Plan (moved to BottomNav, then removed - accessible from dashboard)
 
 **Note:** Timesheets and Elders nav items removed for agency owners (Jan 26, 2026). See [Disabled Features](#disabled-features).
 
@@ -985,6 +1031,11 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
+| Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
+| Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
+| Jan 27, 2026 | BottomNav synced with IconRail for Family Plan (consistent 4 icons) |
+| Jan 27, 2026 | Help added to mobile header avatar dropdown |
 | Jan 26, 2026 | Smart Features setting HIDDEN for agency owners |
 | Jan 26, 2026 | Care section HIDDEN for agency owners (Health Profile, Daily Care) |
 | Jan 26, 2026 | Insights section HIDDEN for agency owners (AI Insights, Safety Alerts, Analytics) |
