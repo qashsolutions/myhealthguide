@@ -95,6 +95,27 @@ service firebase.storage {
       allow delete: if isSignedIn();
     }
 
+    // ============= User Documents (Agency Owners & Family Plan) =============
+    // Path: documents/{userId}/{elderId}/{fileName}
+    // Used by /dashboard/documents page for both agency owners and family plan users
+    // Agency owners don't have groups, so they can't use the /groups/ path above
+    // Added Jan 26, 2026 to fix agency owner document upload permission error
+
+    match /documents/{userId}/{elderId}/{fileName} {
+      // Users can read their own documents
+      allow read: if isSignedIn() && isOwner(userId);
+
+      // Users can upload documents to their own folder
+      // Total storage quota is checked in application code before upload
+      allow write: if isSignedIn() &&
+        isOwner(userId) &&
+        isDocument() &&
+        isValidDocSize();
+
+      // Users can delete their own documents
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
     // ============= Default Deny =============
 
     match /{allPaths=**} {
