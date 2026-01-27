@@ -111,28 +111,32 @@ export async function GET(request: NextRequest) {
           const aiAssessment = await assessCaregiverBurnoutWithAI(
             db, agencyId, caregiverId, caregiverName, periodDays, authResult.userId, userRole
           );
-          if (aiAssessment) {
-            assessments.push(aiAssessment);
-          }
+          assessments.push(aiAssessment);
         } catch (aiError) {
           console.error(`AI analysis failed for ${caregiverName}, falling back to traditional:`, aiError);
           // Fallback to traditional analysis if AI fails
           const fallbackAssessment = await assessCaregiverBurnout(db, agencyId, caregiverId, caregiverName, periodDays);
-          if (fallbackAssessment) {
-            assessments.push(fallbackAssessment);
-          }
+          assessments.push(fallbackAssessment);
         }
       } else {
         // Use traditional analysis with adaptive thresholds
         const assessment = await assessCaregiverBurnout(db, agencyId, caregiverId, caregiverName, periodDays);
-        if (assessment) {
-          assessments.push(assessment);
-        }
+        assessments.push(assessment);
       }
     }
 
-    // Sort by risk score (highest first)
-    assessments.sort((a, b) => b.riskScore - a.riskScore);
+    // Sort: active caregivers by risk score (highest first), then inactive at the end
+    assessments.sort((a, b) => {
+      // Inactive caregivers (riskScore -1) go to the end
+      if (a.riskScore === -1 && b.riskScore !== -1) return 1;
+      if (b.riskScore === -1 && a.riskScore !== -1) return -1;
+      // Both inactive - alphabetical by name
+      if (a.riskScore === -1 && b.riskScore === -1) {
+        return (a.caregiverName || '').localeCompare(b.caregiverName || '');
+      }
+      // Active caregivers - highest risk first
+      return b.riskScore - a.riskScore;
+    });
 
     return NextResponse.json({ success: true, assessments, useAI });
 
@@ -151,7 +155,7 @@ async function assessCaregiverBurnout(
   caregiverId: string,
   caregiverName: string,
   periodDays: number
-): Promise<CaregiverBurnoutAssessment | null> {
+): Promise<CaregiverBurnoutAssessment> {
   try {
     const endDate = new Date();
     const startDate = new Date();
@@ -177,8 +181,25 @@ async function assessCaregiverBurnout(
         return shift.startTime >= startDate && shift.startTime <= endDate;
       });
 
+    // Return inactive assessment for caregivers with no recent shifts
     if (shifts.length === 0) {
-      return null; // No data to assess
+      return {
+        id: `${agencyId}-${caregiverId}-${Date.now()}`,
+        agencyId,
+        caregiverId,
+        caregiverName,
+        assessmentDate: new Date(),
+        period: { start: startDate, end: endDate },
+        burnoutRisk: 'inactive' as any, // Special status for no recent shifts
+        riskScore: -1, // Negative score indicates no data
+        factors: [],
+        recommendations: ['No completed shifts in the assessment period'],
+        alertGenerated: false,
+        alertId: undefined,
+        reviewedBy: undefined,
+        reviewedAt: undefined,
+        actionTaken: undefined,
+      };
     }
 
     // Calculate workload metrics
@@ -253,7 +274,27 @@ async function assessCaregiverBurnout(
 
   } catch (error) {
     console.error(`Error assessing caregiver ${caregiverName} (${caregiverId}):`, error);
-    return null;
+    // Return error assessment instead of null
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - periodDays);
+    return {
+      id: `${agencyId}-${caregiverId}-${Date.now()}`,
+      agencyId,
+      caregiverId,
+      caregiverName,
+      assessmentDate: new Date(),
+      period: { start: startDate, end: endDate },
+      burnoutRisk: 'inactive' as any,
+      riskScore: -1,
+      factors: [],
+      recommendations: ['Error loading assessment data'],
+      alertGenerated: false,
+      alertId: undefined,
+      reviewedBy: undefined,
+      reviewedAt: undefined,
+      actionTaken: undefined,
+    };
   }
 }
 
@@ -495,7 +536,7 @@ async function assessCaregiverBurnoutWithAI(
   periodDays: number,
   userId: string,
   userRole: UserRole
-): Promise<CaregiverBurnoutAssessment | null> {
+): Promise<CaregiverBurnoutAssessment> {
   try {
     const endDate = new Date();
     const startDate = new Date();
@@ -520,8 +561,25 @@ async function assessCaregiverBurnoutWithAI(
         return shift.startTime >= startDate && shift.startTime <= endDate;
       });
 
+    // Return inactive assessment for caregivers with no recent shifts
     if (shifts.length === 0) {
-      return null;
+      return {
+        id: `${agencyId}-${caregiverId}-${Date.now()}`,
+        agencyId,
+        caregiverId,
+        caregiverName,
+        assessmentDate: new Date(),
+        period: { start: startDate, end: endDate },
+        burnoutRisk: 'inactive' as any,
+        riskScore: -1,
+        factors: [],
+        recommendations: ['No completed shifts in the assessment period'],
+        alertGenerated: false,
+        alertId: undefined,
+        reviewedBy: undefined,
+        reviewedAt: undefined,
+        actionTaken: undefined,
+      };
     }
 
     // Calculate workload metrics

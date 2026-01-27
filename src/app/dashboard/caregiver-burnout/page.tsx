@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw, Brain, AlertCircle, CalendarClock } from 'lucide-react';
+import { Users, Loader2, AlertTriangle, TrendingUp, Clock, RefreshCw, Brain, AlertCircle, CalendarClock, CheckCircle, UserX, ChevronDown, ChevronUp } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { CaregiverBurnoutAssessment } from '@/types';
 
@@ -20,6 +20,24 @@ export default function CaregiverBurnoutPage() {
   const [assessments, setAssessments] = useState<CaregiverBurnoutAssessment[]>([]);
   const [selectedAssessment, setSelectedAssessment] = useState<CaregiverBurnoutAssessment | null>(null);
   const [useAI, setUseAI] = useState(true); // Default to AI mode
+  const [showInactive, setShowInactive] = useState(false); // Collapsed by default
+
+  // Categorize assessments
+  const needsAttention = assessments.filter(a =>
+    a.burnoutRisk === 'critical' || a.burnoutRisk === 'high'
+  );
+  const healthy = assessments.filter(a =>
+    a.burnoutRisk === 'moderate' || a.burnoutRisk === 'low'
+  );
+  const inactive = assessments.filter(a =>
+    (a.burnoutRisk as string) === 'inactive' || a.riskScore === -1
+  );
+
+  // Summary stats
+  const totalCaregivers = assessments.length;
+  const atRiskCount = needsAttention.length;
+  const healthyCount = healthy.length;
+  const inactiveCount = inactive.length;
 
   useEffect(() => {
     if (isAgencyAdmin && agencyId) {
@@ -70,6 +88,8 @@ export default function CaregiverBurnoutPage() {
         return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-500';
       case 'low':
         return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-500';
+      case 'inactive':
+        return 'bg-gray-100 text-gray-500 dark:bg-gray-800/50 dark:text-gray-400 border-gray-300';
       default:
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300 border-gray-500';
     }
@@ -183,140 +203,328 @@ export default function CaregiverBurnoutPage() {
               <Users className="h-8 w-8 text-gray-600 dark:text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              No Assessments Available
+              No Caregivers Found
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              No caregiver data available for burnout assessment. Ensure caregivers have logged
-              shifts in the past 14 days.
+              No caregivers are registered with this agency yet.
             </p>
           </div>
         </Card>
+      )}
+
+      {/* Summary Cards */}
+      {!loading && assessments.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-4 text-center">
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{totalCaregivers}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
+              <Users className="h-4 w-4" />
+              Total
+            </div>
+          </Card>
+          <Card className={`p-4 text-center ${atRiskCount > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : ''}`}>
+            <div className={`text-3xl font-bold ${atRiskCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
+              {atRiskCount}
+            </div>
+            <div className={`text-sm flex items-center justify-center gap-1 ${atRiskCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
+              <AlertTriangle className="h-4 w-4" />
+              At Risk
+            </div>
+          </Card>
+          <Card className="p-4 text-center bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{healthyCount}</div>
+            <div className="text-sm text-green-600 dark:text-green-400 flex items-center justify-center gap-1">
+              <CheckCircle className="h-4 w-4" />
+              Healthy
+            </div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-3xl font-bold text-gray-500 dark:text-gray-400">{inactiveCount}</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
+              <UserX className="h-4 w-4" />
+              Inactive
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* Assessments */}
       {!loading && assessments.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Caregiver List */}
-          <div className="lg:col-span-1 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase">
-              Caregivers ({assessments.length})
-            </h2>
-            <div className="space-y-2">
-              {assessments.map((assessment) => (
-                <Card
-                  key={assessment.id}
-                  className={`p-4 cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
-                    selectedAssessment?.id === assessment.id
-                      ? 'bg-blue-50 dark:bg-blue-900/20'
-                      : ''
-                  } ${getRiskColor(assessment.burnoutRisk).split(' ').pop() || ''}`}
-                  onClick={() => setSelectedAssessment(assessment)}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Needs Attention Section */}
+            {needsAttention.length > 0 && (
+              <div className="space-y-2">
+                <h2 className="text-sm font-semibold text-red-700 dark:text-red-400 uppercase flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Needs Attention ({needsAttention.length})
+                </h2>
+                <div className="space-y-2">
+                  {needsAttention.map((assessment) => (
+                    <Card
+                      key={assessment.id}
+                      className={`p-4 cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
+                        selectedAssessment?.id === assessment.id
+                          ? 'bg-blue-50 dark:bg-blue-900/20'
+                          : ''
+                      } ${getRiskColor(assessment.burnoutRisk).split(' ').pop() || ''}`}
+                      onClick={() => setSelectedAssessment(assessment)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {assessment.caregiverName || `Caregiver ${assessment.caregiverId.slice(0, 8)}`}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Risk Score: {assessment.riskScore}
+                          </p>
+                        </div>
+                        {assessment.alertGenerated && (
+                          <AlertTriangle className="h-4 w-4 text-red-600" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          getRiskColor(assessment.burnoutRisk).split('border-')[0] || ''
+                        }`}
+                      >
+                        {assessment.burnoutRisk.toUpperCase()}
+                      </span>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Healthy Section */}
+            {healthy.length > 0 && (
+              <div className="space-y-2">
+                <h2 className="text-sm font-semibold text-green-700 dark:text-green-400 uppercase flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Healthy ({healthy.length})
+                </h2>
+                <div className="space-y-2">
+                  {healthy.map((assessment) => (
+                    <Card
+                      key={assessment.id}
+                      className={`p-4 cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
+                        selectedAssessment?.id === assessment.id
+                          ? 'bg-blue-50 dark:bg-blue-900/20'
+                          : ''
+                      } ${getRiskColor(assessment.burnoutRisk).split(' ').pop() || ''}`}
+                      onClick={() => setSelectedAssessment(assessment)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {assessment.caregiverName || `Caregiver ${assessment.caregiverId.slice(0, 8)}`}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Risk Score: {assessment.riskScore}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          getRiskColor(assessment.burnoutRisk).split('border-')[0] || ''
+                        }`}
+                      >
+                        {assessment.burnoutRisk.toUpperCase()}
+                      </span>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Inactive Section */}
+            {inactive.length > 0 && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowInactive(!showInactive)}
+                  className="w-full text-left text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between gap-2 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {assessment.caregiverName || `Caregiver ${assessment.caregiverId.slice(0, 8)}`}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        Risk Score: {assessment.riskScore}
-                      </p>
-                    </div>
-                    {assessment.alertGenerated && (
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                    )}
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      getRiskColor(assessment.burnoutRisk).split('border-')[0] || ''
-                    }`}
-                  >
-                    {assessment.burnoutRisk.toUpperCase()}
+                  <span className="flex items-center gap-2">
+                    <UserX className="h-4 w-4" />
+                    Inactive ({inactive.length})
                   </span>
-                </Card>
-              ))}
-            </div>
+                  {showInactive ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+
+                {showInactive && (
+                  <>
+                    <Card className="p-3 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+                      <p className="text-xs text-amber-800 dark:text-amber-200">
+                        <strong>No recent shifts.</strong> Consider checking in with these team members to ensure they&apos;re available and well.
+                      </p>
+                    </Card>
+                    <div className="space-y-2">
+                      {inactive.map((assessment) => (
+                        <Card
+                          key={assessment.id}
+                          className={`p-4 cursor-pointer hover:shadow-md transition-shadow border-l-4 border-gray-300 dark:border-gray-600 ${
+                            selectedAssessment?.id === assessment.id
+                              ? 'bg-blue-50 dark:bg-blue-900/20'
+                              : 'bg-gray-50 dark:bg-gray-800/50'
+                          }`}
+                          onClick={() => setSelectedAssessment(assessment)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                {assessment.caregiverName || `Caregiver ${assessment.caregiverId.slice(0, 8)}`}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                No shifts in last 14 days
+                              </p>
+                            </div>
+                            <span className="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                              INACTIVE
+                            </span>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Detailed Assessment */}
           {selectedAssessment && (
             <div className="lg:col-span-2 space-y-4">
-              <Card className={`border-l-4 ${getRiskColor(selectedAssessment.burnoutRisk)} p-6`}>
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                      {selectedAssessment.caregiverName || `Caregiver ${selectedAssessment.caregiverId.slice(0, 8)}`}
-                    </h3>
-
-                    <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-                      <p>
-                        <strong>Assessment Date:</strong>{' '}
-                        {selectedAssessment.assessmentDate.toLocaleDateString()}
-                      </p>
-                      <p>
-                        <strong>Period:</strong>{' '}
-                        {selectedAssessment.period.start.toLocaleDateString()} -{' '}
-                        {selectedAssessment.period.end.toLocaleDateString()}
-                      </p>
-                      <p>
-                        <strong>Burnout Risk:</strong>{' '}
-                        <span
-                          className={`font-semibold uppercase ${
-                            selectedAssessment.burnoutRisk === 'critical'
-                              ? 'text-red-600 dark:text-red-400'
-                              : selectedAssessment.burnoutRisk === 'high'
-                              ? 'text-orange-600 dark:text-orange-400'
-                              : selectedAssessment.burnoutRisk === 'moderate'
-                              ? 'text-yellow-600 dark:text-yellow-400'
-                              : 'text-green-600 dark:text-green-400'
-                          }`}
-                        >
-                          {selectedAssessment.burnoutRisk}
-                        </span>
-                      </p>
-                      <p>
-                        <strong>Risk Score:</strong> {selectedAssessment.riskScore} / 100
-                      </p>
+              {/* Inactive Caregiver Detail */}
+              {(selectedAssessment.burnoutRisk as string) === 'inactive' || selectedAssessment.riskScore === -1 ? (
+                <>
+                  <Card className="border-l-4 border-gray-300 dark:border-gray-600 p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                        <UserX className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          {selectedAssessment.caregiverName || `Caregiver ${selectedAssessment.caregiverId.slice(0, 8)}`}
+                        </h3>
+                        <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                          <p>
+                            <strong>Status:</strong>{' '}
+                            <span className="text-gray-500 dark:text-gray-400 uppercase">Inactive</span>
+                          </p>
+                          <p>
+                            <strong>Period Checked:</strong>{' '}
+                            {selectedAssessment.period.start.toLocaleDateString()} -{' '}
+                            {selectedAssessment.period.end.toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </Card>
+                  </Card>
 
-              {/* Risk Score Meter */}
-              <Card className="p-6">
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                  Risk Score Breakdown
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-700 dark:text-gray-300">Risk Level</span>
-                    <span className="font-semibold">{selectedAssessment.riskScore} points</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div
-                      className={`h-3 rounded-full transition-all ${
-                        selectedAssessment.riskScore >= 70
-                          ? 'bg-red-600'
-                          : selectedAssessment.riskScore >= 50
-                          ? 'bg-orange-500'
-                          : selectedAssessment.riskScore >= 30
-                          ? 'bg-yellow-500'
-                          : 'bg-green-500'
-                      }`}
-                      style={{ width: `${Math.min(selectedAssessment.riskScore, 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                    <span>Low (0-29)</span>
-                    <span>Moderate (30-49)</span>
-                    <span>High (50-69)</span>
-                    <span>Critical (70+)</span>
-                  </div>
-                </div>
-              </Card>
+                  <Card className="p-6 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+                    <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-3 flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5" />
+                      Action Recommended
+                    </h4>
+                    <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
+                      This caregiver has no completed shifts in the last 14 days. This could indicate:
+                    </p>
+                    <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-2 ml-4 list-disc">
+                      <li>They may be on leave or vacation</li>
+                      <li>They may have left the agency</li>
+                      <li>They may be experiencing personal difficulties</li>
+                      <li>Their schedule may not have been updated</li>
+                    </ul>
+                    <p className="text-sm text-amber-800 dark:text-amber-200 mt-4 font-medium">
+                      Consider reaching out to check on their status and wellbeing.
+                    </p>
+                  </Card>
+                </>
+              ) : (
+                <>
+                  {/* Active Caregiver Detail */}
+                  <Card className={`border-l-4 ${getRiskColor(selectedAssessment.burnoutRisk)} p-6`}>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                          {selectedAssessment.caregiverName || `Caregiver ${selectedAssessment.caregiverId.slice(0, 8)}`}
+                        </h3>
+
+                        <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                          <p>
+                            <strong>Assessment Date:</strong>{' '}
+                            {selectedAssessment.assessmentDate.toLocaleDateString()}
+                          </p>
+                          <p>
+                            <strong>Period:</strong>{' '}
+                            {selectedAssessment.period.start.toLocaleDateString()} -{' '}
+                            {selectedAssessment.period.end.toLocaleDateString()}
+                          </p>
+                          <p>
+                            <strong>Burnout Risk:</strong>{' '}
+                            <span
+                              className={`font-semibold uppercase ${
+                                selectedAssessment.burnoutRisk === 'critical'
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : selectedAssessment.burnoutRisk === 'high'
+                                  ? 'text-orange-600 dark:text-orange-400'
+                                  : selectedAssessment.burnoutRisk === 'moderate'
+                                  ? 'text-yellow-600 dark:text-yellow-400'
+                                  : 'text-green-600 dark:text-green-400'
+                              }`}
+                            >
+                              {selectedAssessment.burnoutRisk}
+                            </span>
+                          </p>
+                          <p>
+                            <strong>Risk Score:</strong> {selectedAssessment.riskScore} / 100
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Risk Score Meter */}
+                  <Card className="p-6">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                      Risk Score Breakdown
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700 dark:text-gray-300">Risk Level</span>
+                        <span className="font-semibold">{selectedAssessment.riskScore} points</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                        <div
+                          className={`h-3 rounded-full transition-all ${
+                            selectedAssessment.riskScore >= 70
+                              ? 'bg-red-600'
+                              : selectedAssessment.riskScore >= 50
+                              ? 'bg-orange-500'
+                              : selectedAssessment.riskScore >= 30
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(selectedAssessment.riskScore, 100)}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>Low (0-29)</span>
+                        <span>Moderate (30-49)</span>
+                        <span>High (50-69)</span>
+                        <span>Critical (70+)</span>
+                      </div>
+                    </div>
+                  </Card>
 
               {/* Burnout Factors */}
               {selectedAssessment.factors.length > 0 && (
@@ -420,6 +628,8 @@ export default function CaregiverBurnoutPage() {
                 </Card>
               )}
               */}
+                </>
+              )}
             </div>
           )}
         </div>
