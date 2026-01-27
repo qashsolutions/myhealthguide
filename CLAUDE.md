@@ -130,6 +130,26 @@
 
 **Updated:** Jan 26, 2026
 
+#### Summary: Features Hidden from Agency Owners
+
+Agency owners (super admins) manage **business operations** (scheduling, staffing, compliance), NOT hands-on elder care. The following features are hidden because they are per-elder caregiving tools:
+
+**Pages (Redirect to `/dashboard/agency`):**
+- Health Profile, Daily Care, AI Insights, Safety Alerts, Analytics, Elders, Alerts
+
+**Menu Items (MoreMenuDrawer):**
+- Entire Care section (Health Profile, Daily Care)
+- Entire Insights section (AI Insights, Safety Alerts, Analytics)
+
+**Settings Tabs:**
+- Notifications, Group Management, Smart Features, Alert Preferences
+
+**What Owners CAN Access:**
+- Agency Management, Schedule, Care Management, Documents, Caregiver Burnout
+- Settings: Profile, Security & Activity, Subscription, Privacy & Data
+
+---
+
 #### Roles
 
 | Role | Description | Can Login? |
