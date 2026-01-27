@@ -71,10 +71,18 @@ export function IconRail({ onMoreClick }: IconRailProps) {
   ];
 
   if (isMultiAgency && userIsSuperAdmin) {
-    // Agency Owner: Home, Team, Schedule, Elders, Reports, Timesheets
+    // Agency Owner: Home, Team, Schedule, Reports, Timesheets
     navItems.push({ href: '/dashboard/care-management', icon: Users, label: 'Team' });
     navItems.push({ href: '/dashboard/agency/schedule', icon: Calendar, label: 'Schedule' });
-    navItems.push({ href: '/dashboard/elders', icon: Heart, label: 'Elders' });
+    // REMOVED: Elders nav item for agency owners (Jan 26, 2026)
+    // Reason: The /dashboard/elders page is redundant for agency owners because:
+    // 1. /dashboard/agency already shows ALL elders grouped by caregiver
+    // 2. /dashboard/agency provides elder assignment management
+    // 3. /dashboard/agency shows unassigned elders section
+    // 4. Individual elder profiles are accessible from the agency dashboard
+    // The elders page was designed for Family Plan users who don't have the agency dashboard.
+    // For agency owners, it would just duplicate functionality without adding value.
+    // navItems.push({ href: '/dashboard/elders', icon: Heart, label: 'Elders' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
     navItems.push({ href: '/dashboard/timesheet', icon: Clock, label: 'Timesheets' });
   } else if (isMultiAgency) {

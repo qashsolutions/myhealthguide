@@ -79,6 +79,19 @@ export default function EldersPage() {
     (a: any) => a.role === 'super_admin' && a.status === 'active'
   );
 
+  // REDIRECT: Agency owners should use /dashboard/agency instead (Jan 26, 2026)
+  // Reason: This elders page is redundant for agency owners because:
+  // 1. /dashboard/agency already shows ALL elders grouped by caregiver
+  // 2. /dashboard/agency provides elder assignment management
+  // 3. /dashboard/agency shows unassigned elders section
+  // 4. Individual elder profiles are accessible from the agency dashboard
+  // This page remains functional for Family Plan users and caregivers.
+  useEffect(() => {
+    if (isSuperAdmin) {
+      router.replace('/dashboard/agency');
+    }
+  }, [isSuperAdmin, router]);
+
   useEffect(() => {
     fetchElders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
