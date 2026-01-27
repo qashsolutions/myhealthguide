@@ -334,13 +334,15 @@ export function getPlanDisplayInfo(tier: PlanTier | null): { name: string; descr
   let description: string;
   switch (tier) {
     case 'family':
-      description = `${limits.maxElders} elder, ${limits.maxMembers} members`;
+      // Family Plan A: 1 admin + 1 member caring for 1 loved one
+      description = `1 admin + ${limits.maxMembers - 1} member caring for ${limits.maxElders} loved one`;
       break;
     case 'single_agency':
-      description = `${limits.maxElders} elder, ${limits.maxMembers} members, agency features`;
+      // Family Plan B: 1 admin + 3 members caring for 1 loved one
+      description = `1 admin + ${limits.maxMembers - 1} members caring for ${limits.maxElders} loved one`;
       break;
     case 'multi_agency':
-      description = `Up to ${limits.maxElders} elders, ${limits.maxCaregivers} caregivers`;
+      description = `Up to ${limits.maxElders} loved ones, ${limits.maxCaregivers} caregivers`;
       break;
     default:
       description = '';
