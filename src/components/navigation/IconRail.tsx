@@ -103,9 +103,11 @@ export function IconRail({ onMoreClick }: IconRailProps) {
     // this feature can be re-enabled by uncommenting the line below.
     // navItems.push({ href: '/dashboard/timesheet', icon: Clock, label: 'Timesheets' });
   } else if (isMultiAgency) {
-    // Agency Caregiver: Home, Schedule, Reports, Alerts (no Ask AI - they focus on logging)
+    // Agency Caregiver: Home, Schedule, Alerts (no Ask AI - they focus on logging)
     navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });
-    navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+    // REMOVED: Reports (Analytics) nav item for agency caregivers (Jan 27, 2026)
+    // Reason: Analytics page now just redirects to Insights - redundant icon creates bad UX.
+    // navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
     navItems.push({
       href: '/dashboard/safety-alerts',
       icon: AlertTriangle,
@@ -113,8 +115,12 @@ export function IconRail({ onMoreClick }: IconRailProps) {
       badge: unreadCount > 0 ? unreadCount : undefined,
     });
   } else {
-    // Family Plan: Home, Reports, Insights, Alerts
-    navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+    // Family Plan: Home, Insights, Alerts
+    // REMOVED: Reports (Analytics) nav item for Family Plan A/B users (Jan 27, 2026)
+    // Reason: Analytics page now just redirects to Insights - redundant icon creates bad UX.
+    // All analytics functionality consolidated into /dashboard/insights:
+    // - Health Trends tab, Clinical Notes tab, Reports tab (unified medication + nutrition)
+    // navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
     navItems.push({ href: '/dashboard/insights', icon: Sparkles, label: 'Insights' });
     navItems.push({
       href: '/dashboard/safety-alerts',
