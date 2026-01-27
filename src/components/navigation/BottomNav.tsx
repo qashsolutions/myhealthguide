@@ -2,9 +2,10 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, BarChart3, Sparkles, Menu, Calendar, Users, Clipboard } from 'lucide-react';
+import { Home, BarChart3, Sparkles, Menu, Calendar, Users, Clipboard, Heart, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
+import { useElder } from '@/contexts/ElderContext';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,7 @@ export function BottomNav({ onMoreClick }: BottomNavProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { isMultiAgency } = useSubscription();
+  const { selectedElder } = useElder();
   const userIsSuperAdmin = isSuperAdmin(user);
 
   const isActive = (path: string) => {
@@ -46,15 +48,24 @@ export function BottomNav({ onMoreClick }: BottomNavProps) {
     navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
   } else {
-    // Family Plan: Home, Daily Care, Insights, More
-    // Changed from "Reports" (Jan 27, 2026): Reports/Analytics page just redirects to Insights,
-    // making it redundant. Daily Care encourages regular logging and is more useful.
-    navItems.push({ href: '/dashboard/daily-care', icon: Clipboard, label: 'Daily Care' });
+    // Family Plan: Home, Health Profile, Insights, Health Chat (Jan 27, 2026)
+    // Matches desktop IconRail - consistent 4-icon nav across devices.
+    // No hamburger menu needed - Settings accessible from profile page.
+    if (selectedElder) {
+      navItems.push({
+        href: `/dashboard/elder-profile?elderId=${selectedElder.id}`,
+        icon: Heart,
+        label: 'Health Profile',
+      });
+    }
     navItems.push({ href: '/dashboard/insights', icon: Sparkles, label: 'Insights' });
+    navItems.push({ href: '/dashboard/health-chat', icon: MessageSquare, label: 'Health Chat' });
   }
 
-  // More - always last
-  navItems.push({ href: '#more', icon: Menu, label: 'More', action: onMoreClick });
+  // More - only for Multi-Agency users (Family Plan has all 4 items directly accessible)
+  if (isMultiAgency) {
+    navItems.push({ href: '#more', icon: Menu, label: 'More', action: onMoreClick });
+  }
 
   return (
     <nav
