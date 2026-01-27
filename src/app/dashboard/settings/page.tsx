@@ -33,6 +33,8 @@ import { ActivityHistory } from '@/components/settings/ActivityHistory';
 import { AlertPreferencesSettings } from '@/components/settings/AlertPreferencesSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFeatureTracking } from '@/hooks/useFeatureTracking';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
+import { useSubscription as useSubscriptionHook } from '@/lib/subscription';
 import { uploadFileWithQuota } from '@/lib/firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
@@ -103,7 +105,9 @@ export default function SettingsPage() {
   // Feature tracking
   useFeatureTracking('settings');
 
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const { isMultiAgency } = useSubscriptionHook();
+  const userIsSuperAdmin = isSuperAdmin(user);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const [activeTab, setActiveTab] = useState('profile');
@@ -191,14 +195,32 @@ export default function SettingsPage() {
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3 mb-2">
               Advanced
             </p>
-            <Button
-              variant={activeTab === 'ai' ? 'default' : 'ghost'}
-              className="w-full justify-start"
-              onClick={() => setActiveTab('ai')}
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Smart Features
-            </Button>
+            {/* DISABLED FOR AGENCY OWNERS: Smart Features (Jan 26, 2026)
+
+                Reason: Smart Features (AI settings) configure per-elder AI analysis which
+                is not relevant for agency owners who:
+                1. Do NOT directly care for elders
+                2. Focus on business operations (scheduling, staffing, compliance)
+                3. Have already had AI Insights, Analytics, Care features hidden
+
+                Who still has access:
+                - Agency caregivers: Configure AI for their assigned elders
+                - Family Plan A/B admins: Configure AI for their loved ones
+
+                To re-enable for agency owners:
+                1. Remove the condition wrapping this Button
+                2. Update CLAUDE.md documentation
+            */}
+            {!(isMultiAgency && userIsSuperAdmin) && (
+              <Button
+                variant={activeTab === 'ai' ? 'default' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => setActiveTab('ai')}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Smart Features
+              </Button>
+            )}
             <Button
               variant={activeTab === 'alerts' ? 'default' : 'ghost'}
               className="w-full justify-start"

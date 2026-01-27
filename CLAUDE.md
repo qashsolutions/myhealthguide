@@ -379,6 +379,29 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 
 ---
 
+#### Smart Features Setting for Agency Owners (HIDDEN)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Smart Features (AI settings) in Settings page |
+| **Status** | ⏸️ HIDDEN - button hidden in Settings sidebar |
+| **Reason** | Agency owners don't need to configure per-elder AI settings |
+| **Date** | Jan 26, 2026 |
+
+**Why Hidden:**
+1. Smart Features configures per-elder AI analysis settings
+2. Agency owners do NOT directly care for elders
+3. AI Insights, Analytics, and Care features already hidden for same reason
+
+**Current Behavior:**
+- "Smart Features" button hidden in Settings sidebar for super admins
+- Agency caregivers and Family Plan admins still have access
+
+**To Re-enable:**
+1. Remove the `!(isMultiAgency && userIsSuperAdmin)` condition in `src/app/dashboard/settings/page.tsx` (Advanced section)
+
+---
+
 #### Care Section for Agency Owners (HIDDEN)
 
 | Item | Status |
@@ -864,6 +887,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 26, 2026 | Smart Features setting HIDDEN for agency owners |
 | Jan 26, 2026 | Care section HIDDEN for agency owners (Health Profile, Daily Care) |
 | Jan 26, 2026 | Insights section HIDDEN for agency owners (AI Insights, Safety Alerts, Analytics) |
 | Jan 26, 2026 | Documents page SIMPLIFIED - removed category filters, added descriptions |
