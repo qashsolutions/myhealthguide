@@ -233,6 +233,9 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
               Settings
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/help')}>
+              Help
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               Sign Out
