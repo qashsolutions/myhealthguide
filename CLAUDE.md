@@ -21,7 +21,7 @@
    - [Caregiver Invite System](#caregiver-invite-system)
    - [Analytics Tab](#analytics-tab)
    - [Storage Quota](#storage-quota--downgrade-validation)
-   - [Disabled Features](#disabled-features) (Analytics, Timesheets, Elders for owners)
+   - [Disabled Features](#disabled-features) (Analytics, Timesheets, Elders for owners, Documents simplified)
    - [Caregiver Burnout Page](#caregiver-burnout-page)
 5. [Features](#features)
    - [Notification System](#notification-system)
@@ -437,6 +437,41 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 
 ---
 
+#### Documents Page (SIMPLIFIED)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Document storage for agency owners |
+| **Status** | ✅ SIMPLIFIED - category filters removed |
+| **Reason** | Avoid liability from categorizing medical/legal/insurance documents |
+| **Date** | Jan 26, 2026 |
+
+**Changes Made:**
+1. Removed category filters (Medical Records, Insurance, Legal Documents, Care Plans, Other)
+2. Added sort dropdown (Newest First, Oldest First, Name A-Z, Name Z-A)
+3. Added inline editable description field for each document
+4. Removed "View" and "Analyze with AI" buttons (just storage needed)
+5. Updated storage rules to allow both documents AND images
+
+**Current Behavior:**
+- Upload any document (PDF, Word, Excel) or image (JPG, PNG)
+- Add/edit one-line description per document
+- Sort by filename or upload date
+- Delete documents
+- Storage quota enforced per plan (25 MB / 50 MB / 500 MB)
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/documents/page.tsx` | Main documents page |
+| `src/app/api/documents/route.ts` | GET documents list |
+| `src/app/api/documents/description/route.ts` | POST update description |
+| `storage.rules` | Firebase Storage security rules |
+
+**Storage Path:** `documents/{userId}/{elderId}/{filename}`
+
+---
+
 ### Caregiver Burnout Page
 
 **Updated:** Jan 26, 2026
@@ -766,6 +801,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 26, 2026 | Documents page SIMPLIFIED - removed category filters, added descriptions |
 | Jan 26, 2026 | Alerts page HIDDEN for agency owners - uses groups, not agencies |
 | Jan 26, 2026 | Analytics page HIDDEN for agency owners - not actionable for 30+ elders |
 | Jan 26, 2026 | Timesheet feature DISABLED - shift sessions track work time |
