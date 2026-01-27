@@ -57,11 +57,21 @@ import {
   BarChart3,
   ChevronRight,
   Loader2,
+  Pill,
+  Apple,
+  CheckCircle,
+  AlertTriangle,
+  Lightbulb,
+  Droplet,
+  Clock,
 } from 'lucide-react';
-import { subWeeks, startOfDay, endOfDay } from 'date-fns';
+import { subWeeks, startOfDay, endOfDay, format } from 'date-fns';
 import type { TrendsData } from '@/lib/utils/trendsCalculation';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { analyzeNutrition, type NutritionAnalysisReport } from '@/lib/medical/nutritionAnalysis';
+import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
+import type { MedicationAdherencePrediction } from '@/lib/medical/medicationAdherencePrediction';
 
 type TabType = 'trends' | 'clinical-notes' | 'reports';
 
@@ -111,6 +121,8 @@ function InsightsContent() {
   // Use context elder or local selection
   const effectiveElder = selectedElder || localSelectedElder;
   const elderName = effectiveElder?.name || 'Loved One';
+  const groupId = user?.groups?.[0]?.groupId;
+  const elderId = effectiveElder?.id;
 
   // Load elders from group
   useEffect(() => {
@@ -400,7 +412,7 @@ function InsightsContent() {
           )}
 
           {activeTab === 'reports' && (
-            <ReportsTab elderName={elderName} />
+            <ReportsTab elderName={elderName} groupId={groupId} elderId={elderId} />
           )}
 
           {/* Disclaimer */}
@@ -683,67 +695,316 @@ function ClinicalNotesTab({ elderName }: { elderName: string }) {
   );
 }
 
-// Reports Tab Component
-function ReportsTab({ elderName }: { elderName: string }) {
-  return (
-    <div className="space-y-4">
-      <div className="grid sm:grid-cols-2 gap-4">
-        <ReportCard
-          title="Medication Adherence Report"
-          description="Detailed adherence analysis with predictions and patterns"
-          icon={FileText}
-          linkHref="/dashboard/medication-adherence"
-          color="blue"
-        />
-        <ReportCard
-          title="Nutrition Analysis Report"
-          description="Eating patterns, meal tracking, and nutritional insights"
-          icon={FileText}
-          linkHref="/dashboard/nutrition-analysis"
-          color="green"
-        />
-      </div>
-    </div>
-  );
-}
-
-// Report Card Component
-function ReportCard({
-  title,
-  description,
-  icon: Icon,
-  linkHref,
-  color,
+// Unified Health Report Tab Component
+function ReportsTab({
+  elderName,
+  groupId,
+  elderId
 }: {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  linkHref: string;
-  color: 'blue' | 'green';
+  elderName: string;
+  groupId?: string;
+  elderId?: string;
 }) {
-  const colorClasses = {
-    blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-    green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+  const [loading, setLoading] = useState(false);
+  const [medicationData, setMedicationData] = useState<MedicationAdherencePrediction[]>([]);
+  const [nutritionData, setNutritionData] = useState<NutritionAnalysisReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [hasGenerated, setHasGenerated] = useState(false);
+
+  async function generateHealthReport() {
+    if (!groupId || !elderId) {
+      setError('Please select a loved one to generate a report');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Fetch both medication adherence and nutrition data in parallel
+      const [medResponse, nutritionResult] = await Promise.all([
+        authenticatedFetch(`/api/medication-adherence?groupId=${groupId}&elderId=${elderId}`),
+        analyzeNutrition(groupId, elderId, elderName, 7)
+      ]);
+
+      const medData = await medResponse.json();
+
+      if (medData.success) {
+        setMedicationData(medData.predictions.map((p: any) => ({
+          ...p,
+          predictedAt: p.predictedAt ? new Date(p.predictedAt) : null,
+          validUntil: p.validUntil ? new Date(p.validUntil) : null
+        })));
+      }
+
+      setNutritionData(nutritionResult);
+      setHasGenerated(true);
+    } catch (err) {
+      console.error('Error generating health report:', err);
+      setError('Failed to generate health report. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Score color helpers
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600 dark:text-green-400';
+    if (score >= 60) return 'text-blue-600 dark:text-blue-400';
+    if (score >= 40) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
+  };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 80) return 'bg-green-100 dark:bg-green-900/30';
+    if (score >= 60) return 'bg-blue-100 dark:bg-blue-900/30';
+    if (score >= 40) return 'bg-yellow-100 dark:bg-yellow-900/30';
+    return 'bg-red-100 dark:bg-red-900/30';
+  };
+
+  const getTrendIcon = (trend: string) => {
+    if (trend === 'improving') return <TrendingUp className="w-4 h-4 text-green-500" />;
+    if (trend === 'declining') return <AlertTriangle className="w-4 h-4 text-red-500" />;
+    return <Clock className="w-4 h-4 text-gray-500" />;
+  };
+
+  const getRiskColor = (risk: string) => {
+    if (risk === 'low') return 'text-green-600 bg-green-100 dark:bg-green-900/30';
+    if (risk === 'moderate') return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30';
+    return 'text-red-600 bg-red-100 dark:bg-red-900/30';
   };
 
   return (
-    <Card className="p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start gap-3">
-        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0", colorClasses[color])}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-1">{title}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{description}</p>
-          <Link href={linkHref}>
-            <Button variant="outline" size="sm">
-              View Report
-              <ChevronRight className="w-4 h-4 ml-1" />
+    <div className="space-y-6">
+      {/* Generate Report Button */}
+      {!hasGenerated && (
+        <Card className="p-8 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900/30 dark:to-green-900/30 flex items-center justify-center">
+              <BarChart3 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Unified Health Report
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                Generate a comprehensive 7-day report combining medication adherence patterns
+                and nutrition analysis for {elderName}.
+              </p>
+            </div>
+            {error && (
+              <Alert variant="destructive" className="max-w-md">
+                <AlertCircle className="w-4 h-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <Button onClick={generateHealthReport} disabled={loading} size="lg">
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Generating Report...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-5 h-5 mr-2" />
+                  Generate Health Report
+                </>
+              )}
             </Button>
-          </Link>
-        </div>
-      </div>
-    </Card>
+          </div>
+        </Card>
+      )}
+
+      {/* Report Results */}
+      {hasGenerated && (
+        <>
+          {/* Regenerate Button */}
+          <div className="flex justify-end">
+            <Button onClick={generateHealthReport} disabled={loading} variant="outline" size="sm">
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Regenerate Report
+            </Button>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Medication Score */}
+            <Card className="p-4 text-center">
+              <Pill className="w-6 h-6 mx-auto mb-2 text-blue-600" />
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {medicationData.length > 0
+                  ? `${Math.round(medicationData.reduce((sum, m) => sum + (m.currentAdherenceRate || 0), 0) / medicationData.length)}%`
+                  : 'N/A'
+                }
+              </div>
+              <div className="text-xs text-gray-500">Medication Adherence</div>
+            </Card>
+
+            {/* Nutrition Score */}
+            <Card className="p-4 text-center">
+              <Apple className="w-6 h-6 mx-auto mb-2 text-green-600" />
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {nutritionData?.overallScore ?? 'N/A'}
+                {nutritionData?.overallScore && <span className="text-base font-normal">/100</span>}
+              </div>
+              <div className="text-xs text-gray-500">Nutrition Score</div>
+            </Card>
+
+            {/* Meals Tracked */}
+            <Card className="p-4 text-center">
+              <Clock className="w-6 h-6 mx-auto mb-2 text-orange-600" />
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {nutritionData?.totalMeals ?? 0}
+              </div>
+              <div className="text-xs text-gray-500">Meals (7 days)</div>
+            </Card>
+
+            {/* Hydration */}
+            <Card className="p-4 text-center">
+              <Droplet className="w-6 h-6 mx-auto mb-2 text-cyan-600" />
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {nutritionData?.avgWaterPerDay?.toFixed(1) ?? '0'}
+              </div>
+              <div className="text-xs text-gray-500">Avg Glasses/Day</div>
+            </Card>
+          </div>
+
+          {/* Medication Adherence Section */}
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b">
+              <div className="flex items-center gap-3">
+                <Pill className="w-5 h-5 text-blue-600" />
+                <CardTitle className="text-lg">Medication Adherence</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              {medicationData.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No medication data available</p>
+              ) : (
+                <div className="space-y-3">
+                  {medicationData.map((med, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-white">{med.medicationName}</div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          {getTrendIcon(med.trendDirection)}
+                          <span className="capitalize">{med.trendDirection}</span>
+                          <span className={cn("px-2 py-0.5 rounded text-xs font-medium capitalize", getRiskColor(med.riskLevel))}>
+                            {med.riskLevel} risk
+                          </span>
+                        </div>
+                      </div>
+                      <div className={cn("text-xl font-bold", getScoreColor(med.currentAdherenceRate))}>
+                        {med.currentAdherenceRate}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Nutrition Analysis Section */}
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-green-50 dark:bg-green-900/20 border-b">
+              <div className="flex items-center gap-3">
+                <Apple className="w-5 h-5 text-green-600" />
+                <CardTitle className="text-lg">Nutrition Analysis</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              {!nutritionData ? (
+                <p className="text-gray-500 text-center py-4">No nutrition data available</p>
+              ) : (
+                <>
+                  {/* Meal Pattern Grid */}
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                      <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{nutritionData.breakfastCount}</div>
+                      <div className="text-xs text-gray-500">Breakfast</div>
+                    </div>
+                    <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                      <div className="text-lg font-bold text-orange-700 dark:text-orange-400">{nutritionData.lunchCount}</div>
+                      <div className="text-xs text-gray-500">Lunch</div>
+                    </div>
+                    <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                      <div className="text-lg font-bold text-red-700 dark:text-red-400">{nutritionData.dinnerCount}</div>
+                      <div className="text-xs text-gray-500">Dinner</div>
+                    </div>
+                    <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
+                      <div className="text-lg font-bold text-purple-700 dark:text-purple-400">{nutritionData.snackCount}</div>
+                      <div className="text-xs text-gray-500">Snacks</div>
+                    </div>
+                  </div>
+
+                  {/* Insights */}
+                  {nutritionData.positiveInsights.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Positives
+                      </h4>
+                      <div className="space-y-1">
+                        {nutritionData.positiveInsights.slice(0, 3).map((insight, idx) => (
+                          <div key={idx} className="text-sm text-gray-600 dark:text-gray-400 pl-6">
+                            • {insight.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {nutritionData.concerns.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                        Areas to Watch
+                      </h4>
+                      <div className="space-y-1">
+                        {nutritionData.concerns.slice(0, 3).map((concern, idx) => (
+                          <div key={idx} className="text-sm text-gray-600 dark:text-gray-400 pl-6">
+                            • {concern.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {nutritionData.suggestions.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4 text-blue-500" />
+                        Suggestions
+                      </h4>
+                      <div className="space-y-1">
+                        {nutritionData.suggestions.slice(0, 3).map((suggestion, idx) => (
+                          <div key={idx} className="text-sm text-gray-600 dark:text-gray-400 pl-6">
+                            • {suggestion.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Assessment */}
+                  {nutritionData.assessment && (
+                    <div className={cn("p-3 rounded-lg", getScoreBg(nutritionData.overallScore))}>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                        {nutritionData.assessment}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
   );
 }
 

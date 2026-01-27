@@ -347,12 +347,14 @@ function analyzeFoodVariety(entries: DietEntry[]) {
   });
 
   entries.forEach(entry => {
-    const foodItems = entry.items?.map(item => item.toLowerCase()).join(' ') || '';
+    // Normalize items to array (may be string from Firestore)
+    const itemsArr = Array.isArray(entry.items) ? entry.items : (entry.items ? String(entry.items).split(',').map(s => s.trim()) : []);
+    const foodItems = itemsArr.map(item => item.toLowerCase()).join(' ') || '';
     const notes = entry.notes?.toLowerCase() || '';
     const searchText = `${foodItems} ${notes}`;
 
     // Track unique foods
-    entry.items?.forEach(item => {
+    itemsArr.forEach(item => {
       if (item) {
         uniqueFoodsSet.add(item.toLowerCase());
       }
@@ -391,7 +393,9 @@ function analyzeHydration(entries: DietEntry[], days: number) {
 
   entries.forEach(entry => {
     const notes = entry.notes?.toLowerCase() || '';
-    const foodItems = entry.items?.map(item => item.toLowerCase()).join(' ') || '';
+    // Normalize items to array (may be string from Firestore)
+    const itemsArr = Array.isArray(entry.items) ? entry.items : (entry.items ? String(entry.items).split(',').map(s => s.trim()) : []);
+    const foodItems = itemsArr.map(item => item.toLowerCase()).join(' ') || '';
     const searchText = `${foodItems} ${notes}`;
 
     // Count water mentions
