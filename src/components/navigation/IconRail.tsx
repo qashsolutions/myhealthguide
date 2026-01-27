@@ -71,7 +71,7 @@ export function IconRail({ onMoreClick }: IconRailProps) {
   ];
 
   if (isMultiAgency && userIsSuperAdmin) {
-    // Agency Owner: Home, Team, Schedule, Reports, Timesheets
+    // Agency Owner: Home, Team, Schedule, Reports
     navItems.push({ href: '/dashboard/care-management', icon: Users, label: 'Team' });
     navItems.push({ href: '/dashboard/agency/schedule', icon: Calendar, label: 'Schedule' });
     // REMOVED: Elders nav item for agency owners (Jan 26, 2026)
@@ -84,7 +84,15 @@ export function IconRail({ onMoreClick }: IconRailProps) {
     // For agency owners, it would just duplicate functionality without adding value.
     // navItems.push({ href: '/dashboard/elders', icon: Heart, label: 'Elders' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
-    navItems.push({ href: '/dashboard/timesheet', icon: Clock, label: 'Timesheets' });
+    // REMOVED: Timesheets nav item for agency owners (Jan 26, 2026)
+    // Reason: Timesheet management is overhead for small agencies not tracking billing:
+    // 1. Shift sessions already capture all work time (check-in/check-out)
+    // 2. Burnout analysis uses shift session data, not timesheets
+    // 3. Formal approval workflow adds friction without payroll integration
+    // 4. Caregivers see it as extra overhead for small pay
+    // The shift session data is preserved - if billing/payroll is needed later,
+    // this feature can be re-enabled by uncommenting the line below.
+    // navItems.push({ href: '/dashboard/timesheet', icon: Clock, label: 'Timesheets' });
   } else if (isMultiAgency) {
     // Agency Caregiver: Home, Schedule, Reports, Alerts (no Ask AI - they focus on logging)
     navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });

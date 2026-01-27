@@ -1,6 +1,29 @@
 'use client';
 
+/**
+ * TIMESHEET MANAGEMENT PAGE - DISABLED (Jan 26, 2026)
+ *
+ * This feature has been disabled because:
+ * 1. The app is not currently tracking billing/payroll
+ * 2. Shift sessions already capture all work time (check-in/check-out)
+ * 3. Formal timesheet approval workflow adds overhead for caregivers
+ * 4. Small agencies don't need formal timesheet management without payroll integration
+ *
+ * The shift session data is preserved and used by:
+ * - Burnout analysis (uses shift session duration/frequency)
+ * - Schedule management (shows completed shifts)
+ * - Analytics (hours worked reports)
+ *
+ * TO RE-ENABLE THIS FEATURE:
+ * 1. Remove the redirect useEffect below
+ * 2. Uncomment the Timesheet nav items in:
+ *    - src/components/navigation/IconRail.tsx (line ~95)
+ *    - src/components/navigation/MoreMenuDrawer.tsx (line ~209)
+ * 3. Update CLAUDE.md to reflect the change
+ */
+
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +38,22 @@ type TimeRange = 'week' | 'month' | 'all';
 
 export default function TimesheetPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const { selectedElder, availableElders } = useElder();
+
+  // FEATURE DISABLED: Redirect users to appropriate pages
+  // Super admins → Agency dashboard (has shift overview)
+  // Caregivers → Shift handoff (has shift history)
+  const isSuperAdmin = user?.agencies?.some((a: any) => a.role === 'super_admin');
+  useEffect(() => {
+    if (user) {
+      if (isSuperAdmin) {
+        router.replace('/dashboard/agency');
+      } else {
+        router.replace('/dashboard/shift-handoff');
+      }
+    }
+  }, [user, isSuperAdmin, router]);
   const [shifts, setShifts] = useState<ShiftSession[]>([]);
   const [timeRange, setTimeRange] = useState<TimeRange>('week');
   const [loading, setLoading] = useState(false);

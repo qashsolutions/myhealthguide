@@ -21,6 +21,8 @@
    - [Caregiver Invite System](#caregiver-invite-system)
    - [Analytics Tab](#analytics-tab)
    - [Storage Quota](#storage-quota--downgrade-validation)
+   - [Disabled Features](#disabled-features)
+   - [Caregiver Burnout Page](#caregiver-burnout-page)
 5. [Features](#features)
    - [Notification System](#notification-system)
    - [Shift Confirmation System](#shift-confirmation-system)
@@ -152,7 +154,8 @@ Family members **do NOT create accounts**. They are added as email recipients on
 |------|-------|-----------|
 | **Documents** (`/dashboard/documents`) | ✅ Upload/View/Delete | ❌ No access |
 | **Shift Handoff** (`/dashboard/shift-handoff`) | ❌ Not shown | ✅ Full access |
-| **Timesheet** (`/dashboard/timesheet`) | ✅ View all (different page) | ✅ Log own hours |
+| **Timesheet** (`/dashboard/timesheet`) | ⏸️ DISABLED | ⏸️ DISABLED |
+| **Elders** (`/dashboard/elders`) | ⏸️ Redirects to /agency | ✅ View assigned elders |
 | **Caregiver Burnout** (`/dashboard/caregiver-burnout`) | ✅ Monitor team | ❌ No access |
 | **Schedule** (`/dashboard/agency/schedule`) | ✅ Full access | ✅ View own shifts |
 | **Alerts** (`/dashboard/alerts`) | ✅ Read-only | ✅ Read-only |
@@ -165,7 +168,7 @@ Family members **do NOT create accounts**. They are added as email recipients on
 | Caregiver Burnout | ✅ Shown | ❌ Hidden |
 | Alerts | ✅ Shown | ✅ Shown |
 | Shift Handoff | ❌ Hidden | ✅ Shown |
-| Timesheet | ❌ Hidden | ✅ Shown |
+| Timesheet | ⏸️ DISABLED | ⏸️ DISABLED |
 | Family Updates | ❌ Removed (automated) | ❌ Removed (automated) |
 
 ---
@@ -312,6 +315,99 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 | `src/app/api/documents/route.ts` | Returns `storageInfo.isOverQuota` flag |
 | `src/app/dashboard/documents/page.tsx` | UI blocking when over quota |
 | `src/components/subscription/DowngradeBlockedModal.tsx` | Modal showing downgrade blockers |
+
+---
+
+### Disabled Features
+
+**Updated:** Jan 26, 2026
+
+#### Timesheet Management (DISABLED)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Timesheet approval workflow for caregivers |
+| **Status** | ⏸️ DISABLED - code preserved with redirects |
+| **Reason** | Overhead for small agencies not tracking billing; shift sessions capture work time |
+| **Date** | Jan 26, 2026 |
+
+**Why Disabled:**
+1. App is not currently tracking billing/payroll
+2. Shift sessions already capture all work time (check-in/check-out)
+3. Formal timesheet approval adds overhead for caregivers
+4. Small agencies don't need formal timesheet management without payroll integration
+
+**Current Behavior:**
+- `/dashboard/timesheet` redirects agency owners to `/dashboard/agency`
+- `/dashboard/timesheet` redirects caregivers to `/dashboard/shift-handoff`
+- Nav items hidden in IconRail and MoreMenuDrawer
+
+**To Re-enable:**
+1. Remove redirect useEffect in `src/app/dashboard/timesheet/page.tsx`
+2. Uncomment nav items in:
+   - `src/components/navigation/IconRail.tsx` (line ~95)
+   - `src/components/navigation/MoreMenuDrawer.tsx` (line ~209)
+3. Update this documentation
+
+#### Elders Page for Agency Owners (HIDDEN)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Standalone elders list for agency owners |
+| **Status** | ⏸️ HIDDEN - redirects to /dashboard/agency |
+| **Reason** | Redundant - agency dashboard already shows all elders grouped by caregiver |
+| **Date** | Jan 26, 2026 |
+
+**Why Hidden:**
+1. `/dashboard/agency` already shows ALL elders grouped by caregiver
+2. `/dashboard/agency` provides elder assignment management
+3. `/dashboard/agency` shows unassigned elders section
+4. Individual elder profiles accessible from agency dashboard
+5. The elders page was designed for Family Plan users who don't have the agency dashboard
+
+**Current Behavior:**
+- Super admins visiting `/dashboard/elders` are redirected to `/dashboard/agency`
+- Heart icon removed from IconRail for agency owners
+- Caregivers still see the elders page (shows their assigned elders)
+
+**To Re-enable:**
+1. Remove redirect useEffect in `src/app/dashboard/elders/page.tsx`
+2. Uncomment nav item in `src/components/navigation/IconRail.tsx` (line ~85)
+3. Update this documentation
+
+---
+
+### Caregiver Burnout Page
+
+**Updated:** Jan 26, 2026
+
+#### Overview
+
+Redesigned burnout analysis page for agency owners. Shows ALL caregivers (not just those with recent shifts) with summary cards and categorized sections.
+
+#### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Summary Cards** | Total, At Risk, Healthy, Inactive counts at top |
+| **Needs Attention** | High/Critical risk caregivers highlighted first |
+| **Healthy Section** | Moderate/Low risk caregivers |
+| **Inactive Section** | Collapsible - caregivers with no shifts in 14 days |
+
+#### API Changes
+
+| Change | Before | After |
+|--------|--------|-------|
+| Inactive caregivers | Excluded (returned `null`) | Included with `riskScore: -1` |
+| Burnout risk status | `low`, `moderate`, `high`, `critical` | + `inactive` for no recent shifts |
+| Sorting | By risk score only | At-risk first, inactive last |
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/app/api/caregiver-burnout/route.ts` | Returns all caregivers including inactive |
+| `src/app/dashboard/caregiver-burnout/page.tsx` | Redesigned UI with summary cards |
 
 ---
 
@@ -462,8 +558,10 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Role | Bottom Nav Items | Icon Rail Items |
 |------|-----------------|-----------------|
 | Family (Plan A/B) | Home, Reports, Ask AI, More | Home, Reports, Medications, Supplements, Care Logs, Ask AI |
-| Agency Caregiver | Home, Schedule, Reports, Ask AI, More | Home, Schedule, Reports, Medications, Supplements, Care Logs, Ask AI |
-| Agency Owner | Home, Team, Schedule, Reports, More | Home, Team, Schedule, Reports, Analytics, Timesheets |
+| Agency Caregiver | Home, Schedule, Reports, Alerts, More | Home, Schedule, Reports, Alerts |
+| Agency Owner | Home, Team, Schedule, Reports, More | Home, Team, Schedule, Reports |
+
+**Note:** Timesheets and Elders nav items removed for agency owners (Jan 26, 2026). See [Disabled Features](#disabled-features).
 
 ---
 
@@ -608,6 +706,9 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 26, 2026 | Timesheet feature DISABLED - shift sessions track work time |
+| Jan 26, 2026 | Elders page HIDDEN for agency owners - redirects to /agency |
+| Jan 26, 2026 | Caregiver Burnout redesign - summary cards, inactive section |
 | Jan 26, 2026 | Caregiver Invite System (no SMS, offline links) |
 | Jan 26, 2026 | Analytics Tab fixes - removed billing, fixed caregiver names |
 | Jan 26, 2026 | Firestore rules fix - super admin can sync group permissions |

@@ -206,7 +206,12 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
             <>
               <SectionLabel>Care Tools</SectionLabel>
               <MenuItem href="/dashboard/shift-handoff" icon={Clock} label="Shift Handoff" />
+              {/* REMOVED: Timesheet menu item for caregivers (Jan 26, 2026)
+                  Reason: Timesheet management is overhead for small agencies not tracking billing.
+                  Shift sessions already capture all work time (check-in/check-out).
+                  Re-enable by uncommenting if payroll integration is added later.
               <MenuItem href="/dashboard/timesheet" icon={FileCheck} label="Timesheet" />
+              */}
               <MenuItem href="/dashboard/documents" icon={FolderOpen} label="Documents" />
               <MenuItem href="/dashboard/family-updates" icon={Bell} label="Family Updates" />
             </>
