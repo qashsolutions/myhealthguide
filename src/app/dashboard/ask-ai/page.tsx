@@ -41,7 +41,7 @@ import {
   AlertCircle,
   ChevronRight,
   Search,
-  Mic,
+  // Mic, // DISABLED (Jan 27, 2026) - Voice Search feature commented out due to accuracy issues
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -186,13 +186,33 @@ function ChatTab({ elderName }: { elderName: string }) {
           linkHref="/dashboard/health-chat"
           color="purple"
         />
-        <QuickActionCard
-          title="Voice Search"
-          description="Use voice to search and log health information"
-          icon={Mic}
-          linkHref="/dashboard/medications/voice"
-          color="green"
-        />
+{/*
+          VOICE SEARCH FEATURE - DISABLED (Jan 27, 2026)
+
+          Reason: Voice recognition accuracy is inconsistent and does not provide
+          significant value to users in its current state. Key issues:
+          1. Speech-to-text transcription errors lead to incorrect health data entry
+          2. Background noise in caregiving environments causes high error rates
+          3. Medical terminology and medication names are frequently misheard
+          4. Users reported frustration with having to manually correct voice entries
+
+          The feature is being commented out (not deleted) to allow future re-enablement
+          once voice recognition accuracy improves or a more robust solution is implemented.
+
+          TO RE-ENABLE:
+          1. Uncomment the QuickActionCard below
+          2. Verify /dashboard/medications/voice route is functional
+          3. Test voice recognition with common medication names
+          4. Update this documentation with re-enablement date
+
+          <QuickActionCard
+            title="Voice Search"
+            description="Use voice to search and log health information"
+            icon={Mic}
+            linkHref="/dashboard/medications/voice"
+            color="green"
+          />
+        */}
       </div>
 
       {/* Chat Preview */}

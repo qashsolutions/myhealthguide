@@ -13,10 +13,10 @@
 
 ## Subscription Limits Reference
 
-| Plan | Price | Elders | Admin | Members | Storage |
-|------|-------|--------|-------|---------|---------|
-| Family Plan A | $8.99/mo | 1 | 1 | 1 (read-only) | 25 MB |
-| Family Plan B | $10.99/mo | 1 | 1 | 3 (read-only) | 50 MB |
+| Plan | Price | Elders | Admin | Members | Storage | Recipients |
+|------|-------|--------|-------|---------|---------|------------|
+| Family Plan A | $8.99/mo | 1 | 1 | 1 (read-only) | 25 MB | 1 |
+| Family Plan B | $10.99/mo | 1 | 1 | 3 (read-only) | 50 MB | 3 |
 
 ---
 
@@ -43,6 +43,26 @@
 
 ---
 
+## SECTION 2: GROUP MANAGEMENT
+
+### CHUNK FA-2A: Daily Report Recipients
+
+| Test ID | Test Description | Status | Notes |
+|---------|------------------|--------|-------|
+| FA-2A.1 | Navigate to Group Management settings | ✅ PASS | Settings → Group Management |
+| FA-2A.2 | Daily Report Recipients section visible | ✅ PASS | Shows "0/1" counter |
+| FA-2A.3 | Click "+ Add Recipient" | ✅ PASS | Form expanded |
+| FA-2A.4 | Enter email address | ✅ PASS | ramanac+test@gmail.com |
+| FA-2A.5 | Enter recipient name | ✅ PASS | "Test Recipient" |
+| FA-2A.6 | Click Add button | ✅ PASS | Recipient added |
+| FA-2A.7 | Counter updates to 1/1 | ✅ PASS | Shows "1/1 recipients" |
+| FA-2A.8 | Limit enforcement message shown | ✅ PASS | "Maximum 1 recipients for this loved one" |
+| FA-2A.9 | Upgrade option visible | ✅ PASS | "Upgrade" link displayed |
+
+**CHUNK FA-2A RESULT: 9/9 PASS ✅**
+
+---
+
 ## Execution Log
 
 ### Session Started: Jan 27, 2026
@@ -56,4 +76,16 @@
 - Verified "Caring for Loved One A1"
 - Verified Profile shows "Family A Admin"
 - Verified Subscription shows "Family Plan A" at $8.99/mo (Trial)
+
+**10:30 AM - FA-2A Daily Report Recipients Tests (Family Admin A)**
+- Navigated to Settings → Group Management
+- Verified "Daily Report Recipients" section shows 0/1
+- Clicked "+ Add Recipient" to expand form
+- Entered email: ramanac+test@gmail.com
+- Entered name: Test Recipient
+- Clicked Add button - recipient added successfully
+- Verified counter updated to 1/1
+- Verified limit message: "Maximum 1 recipients for this loved one"
+- Upgrade link displayed for users needing more recipients
+- Daily email will be sent at 7 PM PST
 
