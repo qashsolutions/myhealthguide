@@ -1,9 +1,31 @@
 'use client';
 
+/**
+ * DAILY CARE PAGE - HIDDEN FOR AGENCY OWNERS (Jan 26, 2026)
+ *
+ * This page provides daily care logging (medications, supplements, diet, activity).
+ * It is NOT shown for multi-agency owners (super admins) because:
+ * 1. Agency owners do NOT directly care for elders
+ * 2. They manage business operations (scheduling, staffing, compliance)
+ * 3. Daily care logging is the caregiver's responsibility
+ *
+ * WHO CAN ACCESS:
+ * - Agency caregivers - for their assigned elders (max 3 per day)
+ * - Family Plan A/B admins - for their loved ones
+ *
+ * NOTE: Members (all plans) do NOT have login access. They only receive
+ * automated daily health reports via email at 7 PM PST.
+ *
+ * TO RE-ENABLE FOR AGENCY OWNERS:
+ * 1. Remove the redirect useEffect below
+ * 2. Uncomment Care section in MoreMenuDrawer.tsx
+ */
+
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useSubscription } from '@/lib/subscription';
 import { useFeatureTracking, useTabTracking } from '@/hooks/useFeatureTracking';
 import { useElderDataLoader } from '@/hooks/useDataLoader';
 import { Card } from '@/components/ui/card';
@@ -42,6 +64,16 @@ function DailyCareContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { selectedElder } = useElder();
+  const { isMultiAgency } = useSubscription();
+  const userIsSuperAdmin = isSuperAdmin(user);
+
+  // REDIRECT: Agency owners should use /dashboard/agency instead (Jan 26, 2026)
+  // Daily Care is for hands-on caregivers, not agency business operations.
+  useEffect(() => {
+    if (isMultiAgency && userIsSuperAdmin) {
+      router.replace('/dashboard/agency');
+    }
+  }, [isMultiAgency, userIsSuperAdmin, router]);
 
   // Get active tab from URL or default to medications
   const activeTab = (searchParams.get('tab') as TabType) || 'medications';

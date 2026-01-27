@@ -21,7 +21,7 @@
    - [Caregiver Invite System](#caregiver-invite-system)
    - [Analytics Tab](#analytics-tab)
    - [Storage Quota](#storage-quota--downgrade-validation)
-   - [Disabled Features](#disabled-features) (Insights section, Timesheets, Elders for owners, Documents simplified)
+   - [Disabled Features](#disabled-features) (Care section, Insights section, Timesheets, Elders for owners, Documents simplified)
    - [Caregiver Burnout Page](#caregiver-burnout-page)
 5. [Features](#features)
    - [Notification System](#notification-system)
@@ -376,6 +376,36 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
    - `src/components/navigation/IconRail.tsx` (Agency Owner section)
    - `src/components/navigation/MoreMenuDrawer.tsx` (Insights section)
 3. Consider building an aggregated agency-wide view instead of individual elder analytics
+
+---
+
+#### Care Section for Agency Owners (HIDDEN)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Health Profile, Daily Care (medications, supplements, diet, activity) |
+| **Status** | ⏸️ HIDDEN - entire Care section hidden, pages redirect to /dashboard/agency |
+| **Reason** | Agency owners do NOT directly care for elders - that's the caregiver's job |
+| **Date** | Jan 26, 2026 |
+
+**Why Hidden:**
+1. Agency owners do NOT directly provide hands-on care to elders
+2. They manage business operations (scheduling, staffing, compliance)
+3. Health profile management and daily care logging is the caregiver's responsibility
+
+**Current Behavior:**
+- Entire "Care" section hidden in MoreMenuDrawer for agency owners
+- `/dashboard/elder-profile` redirects super admins to `/dashboard/agency`
+- `/dashboard/daily-care` redirects super admins to `/dashboard/agency`
+- Agency caregivers and Family Plan admins still have full access
+
+**Note:** Members (all plans) do NOT have login access. They only receive automated daily email reports.
+
+**To Re-enable:**
+1. Remove redirect useEffect in:
+   - `src/app/dashboard/elder-profile/page.tsx`
+   - `src/app/dashboard/daily-care/page.tsx`
+2. Remove the `!(isMultiAgency && userIsSuperAdmin)` condition in `MoreMenuDrawer.tsx` (Care section)
 
 ---
 
@@ -834,6 +864,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 26, 2026 | Care section HIDDEN for agency owners (Health Profile, Daily Care) |
 | Jan 26, 2026 | Insights section HIDDEN for agency owners (AI Insights, Safety Alerts, Analytics) |
 | Jan 26, 2026 | Documents page SIMPLIFIED - removed category filters, added descriptions |
 | Jan 26, 2026 | Alerts page HIDDEN for agency owners - uses groups, not agencies |

@@ -1,9 +1,32 @@
 'use client';
 
+/**
+ * ELDER PROFILE PAGE - HIDDEN FOR AGENCY OWNERS (Jan 26, 2026)
+ *
+ * This page provides detailed health profile management for individual elders.
+ * It is NOT shown for multi-agency owners (super admins) because:
+ * 1. Agency owners do NOT directly care for elders
+ * 2. They manage business operations (scheduling, staffing, compliance)
+ * 3. Health profile management is the caregiver's responsibility
+ *
+ * WHO CAN ACCESS:
+ * - Agency caregivers - for their assigned elders (max 3 per day)
+ * - Family Plan A/B admins - for their loved ones
+ *
+ * NOTE: Members (all plans) do NOT have login access. They only receive
+ * automated daily health reports via email at 7 PM PST.
+ *
+ * TO RE-ENABLE FOR AGENCY OWNERS:
+ * 1. Remove the redirect useEffect below
+ * 2. Uncomment Care section in MoreMenuDrawer.tsx
+ */
+
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useSubscription } from '@/lib/subscription';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { useFeatureTracking } from '@/hooks/useFeatureTracking';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -37,6 +60,16 @@ export default function ElderProfilePage() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { selectedElder, availableElders } = useElder();
+  const { isMultiAgency } = useSubscription();
+  const userIsSuperAdmin = isSuperAdmin(user);
+
+  // REDIRECT: Agency owners should use /dashboard/agency instead (Jan 26, 2026)
+  // Health Profile is for hands-on caregivers, not agency business operations.
+  useEffect(() => {
+    if (isMultiAgency && userIsSuperAdmin) {
+      router.replace('/dashboard/agency');
+    }
+  }, [isMultiAgency, userIsSuperAdmin, router]);
 
   // Feature tracking
   useFeatureTracking('health_profile');

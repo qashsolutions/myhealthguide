@@ -178,8 +178,24 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
         </div>
 
         <div className="px-2 py-2">
-          {/* Care Section */}
-          {selectedElder && (
+          {/* DISABLED FOR AGENCY OWNERS: Care Section (Jan 26, 2026)
+
+              Reason: Health Profile and Daily Care are hands-on caregiving features.
+              Agency owners (super admins) do NOT directly care for elders - they manage
+              the business operations (scheduling, staffing, compliance, billing).
+
+              Who still has access:
+              - Agency caregivers: Need these to log care activities for their assigned elders
+              - Family Plan A/B admins: Need these to manage care for their loved ones
+
+              NOTE: Members (all plans) do NOT have login access. They only receive
+              automated daily health reports via email at 7 PM PST.
+
+              To re-enable for agency owners:
+              1. Remove the `!(isMultiAgency && userIsSuperAdmin)` condition below
+              2. Update CLAUDE.md documentation
+          */}
+          {selectedElder && !(isMultiAgency && userIsSuperAdmin) && (
             <>
               <SectionLabel>Care</SectionLabel>
               {!userIsReadOnly && (
