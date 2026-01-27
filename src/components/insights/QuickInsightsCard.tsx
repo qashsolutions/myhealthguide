@@ -36,6 +36,11 @@ export function QuickInsightsCard({
   showCollapsible = true,
   compact = false
 }: QuickInsightsCardProps) {
+  // Defensive null check - return null if insights is undefined or missing required fields
+  if (!insights || typeof insights.overallCompliance !== 'number') {
+    return null;
+  }
+
   const content = (
     <div className={`grid ${compact ? 'grid-cols-2 gap-3' : 'grid-cols-2 md:grid-cols-4 gap-4'}`}>
       {/* Medications */}

@@ -257,7 +257,7 @@ export function WeeklySummaryCard({
           </div>
         ) : (
           <div className="space-y-4">
-            {summaries.map((summary) => (
+            {summaries.filter(s => s?.medicationSummary && typeof s.medicationSummary.overallCompliance === 'number').map((summary) => (
               <Collapsible
                 key={summary.id}
                 open={expandedWeek === summary.id}

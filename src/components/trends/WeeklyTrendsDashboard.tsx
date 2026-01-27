@@ -31,6 +31,11 @@ export function WeeklyTrendsDashboard({
 }: WeeklyTrendsDashboardProps) {
   const [selectedWeeks, setSelectedWeeks] = useState<string>('12');
 
+  // Defensive null check - return null if trendsData is undefined or missing required fields
+  if (!trendsData || typeof trendsData.overallCompliance !== 'number' || !Array.isArray(trendsData.weeks)) {
+    return null;
+  }
+
   const handleWeeksChange = (value: string) => {
     setSelectedWeeks(value);
     if (onWeeksChange) {
