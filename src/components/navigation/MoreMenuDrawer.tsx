@@ -232,7 +232,7 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
           {!(isMultiAgency && userIsSuperAdmin) && (
             <>
               <SectionLabel>Insights</SectionLabel>
-              <MenuItem href="/dashboard/ask-ai" icon={MessageSquare} label="AI Insights" />
+              <MenuItem href="/dashboard/insights" icon={MessageSquare} label="AI Insights" />
               <MenuItem href="/dashboard/safety-alerts" icon={AlertTriangle} label="Safety Alerts" />
               {!userIsReadOnly && (
                 <MenuItem href="/dashboard/analytics" icon={BarChart3} label="Analytics" />

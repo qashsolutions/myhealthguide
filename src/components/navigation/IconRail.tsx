@@ -5,7 +5,8 @@ import Link from 'next/link';
 import {
   Home,
   BarChart3,
-  MessageCircle,
+  Sparkles,
+  MessageSquare,
   AlertTriangle,
   Calendar,
   Menu,
@@ -112,9 +113,9 @@ export function IconRail({ onMoreClick }: IconRailProps) {
       badge: unreadCount > 0 ? unreadCount : undefined,
     });
   } else {
-    // Family Plan: Home, Reports, Ask AI, Alerts
+    // Family Plan: Home, Reports, Insights, Alerts
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
-    navItems.push({ href: '/dashboard/ask-ai', icon: MessageCircle, label: 'Ask AI' });
+    navItems.push({ href: '/dashboard/insights', icon: Sparkles, label: 'Insights' });
     navItems.push({
       href: '/dashboard/safety-alerts',
       icon: AlertTriangle,
@@ -188,6 +189,22 @@ export function IconRail({ onMoreClick }: IconRailProps) {
           </TooltipTrigger>
           <TooltipContent side="right" className="text-sm">
             More
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Health Chat - Quick access to AI chat */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/dashboard/health-chat"
+              className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-2"
+              aria-label="Health Chat"
+            >
+              <MessageSquare className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="text-sm">
+            Health Chat
           </TooltipContent>
         </Tooltip>
 

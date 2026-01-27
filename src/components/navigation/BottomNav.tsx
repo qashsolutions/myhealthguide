@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, BarChart3, MessageCircle, Menu, Calendar, Users } from 'lucide-react';
+import { Home, BarChart3, Sparkles, Menu, Calendar, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
@@ -46,9 +46,9 @@ export function BottomNav({ onMoreClick }: BottomNavProps) {
     navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
   } else {
-    // Family Plan: Home, Reports, Ask AI, More
+    // Family Plan: Home, Reports, Insights, More
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
-    navItems.push({ href: '/dashboard/ask-ai', icon: MessageCircle, label: 'Ask AI' });
+    navItems.push({ href: '/dashboard/insights', icon: Sparkles, label: 'Insights' });
   }
 
   // More - always last
