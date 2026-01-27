@@ -51,12 +51,22 @@ export default function CareManagementPage() {
       href: '/dashboard/shift-handoff',
       color: 'blue',
     },
+    // REMOVED: Timesheet for caregivers (Jan 26, 2026)
+    // Reason: Timesheet management is overhead for small agencies not tracking billing.
+    // Shift sessions already capture all work time (check-in/check-out).
+    // {
+    //   title: 'Timesheet',
+    //   description: 'Track your hours worked',
+    //   icon: FileText,
+    //   href: '/dashboard/timesheet',
+    //   color: 'green',
+    // },
     {
-      title: 'Timesheet',
-      description: 'Track your hours worked',
-      icon: FileText,
-      href: '/dashboard/timesheet',
-      color: 'green',
+      title: 'Alerts',
+      description: 'View all notifications and alerts',
+      icon: Bell,
+      href: '/dashboard/alerts',
+      color: 'yellow',
     },
   ];
 
@@ -76,23 +86,26 @@ export default function CareManagementPage() {
       href: '/dashboard/caregiver-burnout',
       color: 'red',
     },
-  ];
-
-  // Features for both roles (read-only, system-generated)
-  const sharedFeatures = [
-    {
-      title: 'Alerts',
-      description: 'View all notifications and alerts',
-      icon: Bell,
-      href: '/dashboard/alerts',
-      color: 'yellow',
-    },
+    // REMOVED: Alerts for agency owners (Jan 26, 2026)
+    // Reason: The /dashboard/alerts page uses group-based alerts which don't work for agency owners
+    // (they have agencies, not groups). Agency owners get notifications via:
+    // - Bell icon in header (user_notifications collection)
+    // - Dashboard Today's Shifts card (shift-related alerts)
+    // - Caregiver Burnout page (team health monitoring)
+    // Caregivers still have access to Alerts page for their assigned elders.
+    // {
+    //   title: 'Alerts',
+    //   description: 'View all notifications and alerts',
+    //   icon: Bell,
+    //   href: '/dashboard/alerts',
+    //   color: 'yellow',
+    // },
   ];
 
   // Combine features based on user role
   const features = userIsSuperAdmin
-    ? [...ownerOnlyFeatures, ...sharedFeatures]
-    : [...caregiverOnlyFeatures, ...sharedFeatures];
+    ? [...ownerOnlyFeatures]
+    : [...caregiverOnlyFeatures];
 
   const colorClasses: Record<string, { bg: string; icon: string }> = {
     blue: { bg: 'bg-blue-100 dark:bg-blue-900/30', icon: 'text-blue-600 dark:text-blue-400' },

@@ -158,7 +158,8 @@ Family members **do NOT create accounts**. They are added as email recipients on
 | **Elders** (`/dashboard/elders`) | ⏸️ Redirects to /agency | ✅ View assigned elders |
 | **Caregiver Burnout** (`/dashboard/caregiver-burnout`) | ✅ Monitor team | ❌ No access |
 | **Schedule** (`/dashboard/agency/schedule`) | ✅ Full access | ✅ View own shifts |
-| **Alerts** (`/dashboard/alerts`) | ✅ Read-only | ✅ Read-only |
+| **Alerts** (`/dashboard/alerts`) | ⏸️ HIDDEN (uses groups) | ✅ View assigned elders |
+| **Analytics** (`/dashboard/analytics`) | ⏸️ HIDDEN (not actionable) | ✅ View assigned elders |
 
 #### Care Management Page Cards
 
@@ -375,6 +376,36 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
    - `src/components/navigation/IconRail.tsx` (Agency Owner section)
    - `src/components/navigation/MoreMenuDrawer.tsx` (Insights section)
 3. Consider building an aggregated agency-wide view instead of individual elder analytics
+
+---
+
+#### Alerts Page for Agency Owners (HIDDEN)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Group-based alerts dashboard |
+| **Status** | ⏸️ HIDDEN - redirects to /dashboard/agency |
+| **Reason** | Uses `user.groups` which agency owners don't have (they have `user.agencies`) |
+| **Date** | Jan 26, 2026 |
+
+**Why Hidden:**
+1. Agency owners have `user.agencies`, not `user.groups` - groupId is always undefined
+2. Page shows "No group found" which is not useful
+3. Agency owners get notifications via other channels:
+   - Bell icon in header (user_notifications collection)
+   - Dashboard Today's Shifts card (shift-related alerts)
+   - Caregiver Burnout page (team health monitoring)
+4. Caregivers still have access for their assigned elders' alerts
+
+**Current Behavior:**
+- Super admins visiting `/dashboard/alerts` are redirected to `/dashboard/agency`
+- Alerts card removed from Care Management page for agency owners
+- Caregivers and Family Plan users still have full access
+
+**To Re-enable:**
+1. Remove redirect useEffect in `src/app/dashboard/alerts/page.tsx`
+2. Add Alerts back to `ownerOnlyFeatures` in `src/app/dashboard/care-management/page.tsx`
+3. Consider building an agency-wide alerts view that queries by agencyId instead of groupId
 
 ---
 
@@ -735,6 +766,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 26, 2026 | Alerts page HIDDEN for agency owners - uses groups, not agencies |
 | Jan 26, 2026 | Analytics page HIDDEN for agency owners - not actionable for 30+ elders |
 | Jan 26, 2026 | Timesheet feature DISABLED - shift sessions track work time |
 | Jan 26, 2026 | Elders page HIDDEN for agency owners - redirects to /agency |
