@@ -369,46 +369,20 @@ export default function DocumentsPage() {
                       </p>
 
                       {/* Actions */}
-                      <div className="flex flex-col gap-2">
-                        <div className="flex gap-2">
+                      {/* REMOVED: View and Analyze with AI buttons (Jan 26, 2026)
+                          Reason: Document storage is sufficient - agency owners just need to store
+                          and retrieve documents, not view them in-app or analyze with AI.
+                          The delete button remains for file management.
+                      */}
+                      <div className="flex gap-2">
+                        {!isReadOnly && (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="flex-1"
-                            disabled={storageInfo?.isOverQuota}
-                            onClick={() => {
-                              if (storageInfo?.isOverQuota) {
-                                setError('Cannot view files - storage is over limit. Please delete files first.');
-                                return;
-                              }
-                              window.open(doc.filePath, '_blank');
-                            }}
-                            title={storageInfo?.isOverQuota ? 'Storage over limit - delete files to view' : 'View document'}
+                            onClick={() => handleDelete(doc)}
                           >
-                            <Eye className="w-3 h-3 mr-1" />
-                            View
-                          </Button>
-                          {!isReadOnly && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(doc)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          )}
-                        </div>
-                        {canAnalyzeDocument(doc.fileType) && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                            disabled={storageInfo?.isOverQuota}
-                            onClick={() => handleAnalyzeDocument(doc)}
-                            title={storageInfo?.isOverQuota ? 'Storage over limit - delete files first' : 'Analyze document with AI'}
-                          >
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Analyze with AI
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Delete
                           </Button>
                         )}
                       </div>
@@ -421,7 +395,9 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
 
-      {/* Document Analysis Dialog */}
+      {/* REMOVED: Document Analysis Dialog (Jan 26, 2026)
+          Reason: Document storage is sufficient - AI analysis feature not needed.
+          Keeping code commented for potential future use.
       <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -455,6 +431,7 @@ export default function DocumentsPage() {
           )}
         </DialogContent>
       </Dialog>
+      */}
     </div>
   );
 }
