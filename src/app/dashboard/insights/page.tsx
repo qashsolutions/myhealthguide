@@ -160,10 +160,34 @@ function InsightsContent() {
         DietService.getEntriesByDateRange(groupId, startDate, endDate, userId, userRole)
       ]);
 
+      // DEBUG: Log data counts
+      console.log('[Insights Debug] groupId:', groupId);
+      console.log('[Insights Debug] elderId:', effectiveElder.id);
+      console.log('[Insights Debug] Date range:', startDate.toISOString(), 'to', endDate.toISOString());
+      console.log('[Insights Debug] All medication logs from Firestore:', allMedicationLogs.length);
+      console.log('[Insights Debug] All diet entries from Firestore:', allDietEntries.length);
+
       const medicationLogs = allMedicationLogs.filter(log => log.elderId === effectiveElder.id);
       const dietEntries = allDietEntries.filter(entry => entry.elderId === effectiveElder.id);
 
+      console.log('[Insights Debug] Filtered medication logs for elder:', medicationLogs.length);
+      console.log('[Insights Debug] Filtered diet entries for elder:', dietEntries.length);
+
+      if (medicationLogs.length > 0) {
+        console.log('[Insights Debug] Sample log statuses:', medicationLogs.slice(0, 5).map(l => l.status));
+        const taken = medicationLogs.filter(l => l.status === 'taken').length;
+        const missed = medicationLogs.filter(l => l.status === 'missed').length;
+        const scheduled = medicationLogs.filter(l => l.status === 'scheduled').length;
+        const skipped = medicationLogs.filter(l => l.status === 'skipped').length;
+        console.log('[Insights Debug] Status breakdown - taken:', taken, 'missed:', missed, 'scheduled:', scheduled, 'skipped:', skipped);
+      }
+
       const trends = calculateWeeklyTrends(medicationLogs, dietEntries, numberOfWeeks);
+      console.log('[Insights Debug] Calculated trends:', {
+        overallCompliance: trends.overallCompliance,
+        totalMissedDoses: trends.totalMissedDoses,
+        weeksCount: trends.weeks.length
+      });
       setTrendsData(trends);
     } catch (error) {
       console.error('Error loading trends data:', error);
