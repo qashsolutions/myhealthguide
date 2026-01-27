@@ -205,15 +205,60 @@ export async function encryptInviteCode(code: string, secretKey?: string): Promi
 }
 
 /**
+ * Check if a code is a legacy plain text invite code (not encrypted)
+ * Legacy codes are 6-8 character alphanumeric strings or prefixed codes like FAM-XXXX
+ */
+function isLegacyPlainTextCode(code: string): boolean {
+  if (!code) return false;
+
+  const normalizedCode = code.toUpperCase().trim();
+
+  // Check for prefixed formats (FAM-XXXX, AGY-XXXX, MAG-C-XXXX, MAG-M-XXXX)
+  if (/^FAM-[A-Z0-9]{4}$/.test(normalizedCode)) return true;
+  if (/^AGY-[A-Z0-9]{4}$/.test(normalizedCode)) return true;
+  if (/^MAG-C-[A-Z0-9]{4}$/.test(normalizedCode)) return true;
+  if (/^MAG-M-[A-Z0-9]{4}$/.test(normalizedCode)) return true;
+
+  // Legacy 6-8 character alphanumeric codes (e.g., "PM2OS5", "ABC123")
+  if (/^[A-Z0-9]{6,8}$/.test(normalizedCode)) return true;
+
+  return false;
+}
+
+/**
  * Decrypt invite code
  * Returns the original code
+ * Handles both encrypted codes and legacy plain text codes
  */
 export async function decryptInviteCode(encryptedCode: string, secretKey?: string): Promise<string> {
-  const key = secretKey || process.env.NEXT_PUBLIC_INVITE_CODE_SECRET || 'default-secret-key';
+  // Handle empty/null codes
+  if (!encryptedCode || encryptedCode.trim() === '') {
+    throw new Error('Invalid invite code');
+  }
 
+  // Check if this is a legacy plain text code (not encrypted)
+  // These codes were stored before encryption was implemented
+  if (isLegacyPlainTextCode(encryptedCode)) {
+    return encryptedCode.toUpperCase().trim();
+  }
+
+  // Try to decode base64 and check if it has enough data for encrypted format
+  // Encrypted format: [12-byte IV] + [encrypted data] -> base64 encoded
+  // Minimum size after decoding should be > 12 bytes (IV) + some encrypted data
   try {
-    // Convert from base64
     const combined = Uint8Array.from(atob(encryptedCode), c => c.charCodeAt(0));
+
+    // If decoded data is too short, it's likely a malformed code or plain text
+    // that happens to be valid base64 but isn't actually encrypted
+    if (combined.length <= 12) {
+      // Check if the original code looks like a plain text code
+      if (/^[A-Z0-9-]{4,10}$/i.test(encryptedCode)) {
+        return encryptedCode.toUpperCase().trim();
+      }
+      throw new Error('Invalid invite code');
+    }
+
+    const key = secretKey || process.env.NEXT_PUBLIC_INVITE_CODE_SECRET || 'default-secret-key';
 
     // Extract IV and encrypted data
     const iv = combined.slice(0, 12);
@@ -246,6 +291,11 @@ export async function decryptInviteCode(encryptedCode: string, secretKey?: strin
     const decoder = new TextDecoder();
     return decoder.decode(decrypted);
   } catch (error) {
+    // If decryption fails, check if it might be a plain text code
+    // that just happened to look like base64
+    if (/^[A-Z0-9-]{4,10}$/i.test(encryptedCode)) {
+      return encryptedCode.toUpperCase().trim();
+    }
     console.error('Error decrypting invite code:', error);
     throw new Error('Invalid invite code');
   }
