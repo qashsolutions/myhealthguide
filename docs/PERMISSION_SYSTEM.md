@@ -26,7 +26,7 @@ MyGuide.Health uses a role-based permission system with three subscription tiers
 | Storage | 25 MB |
 
 ### Family Plan B / Small Agency (`single_agency`)
-- **Price:** $18.99/month
+- **Price:** $10.99/month (Updated Jan 27, 2026)
 - **Trial:** 45 days
 - **Target:** Families with multiple people involved in care
 
@@ -38,7 +38,7 @@ MyGuide.Health uses a role-based permission system with three subscription tiers
 | Storage | 50 MB |
 
 ### Multi-Agency Plan (`multi_agency`)
-- **Price:** $55/elder/month
+- **Price:** $16.99/elder/month (Updated Jan 27, 2026)
 - **Trial:** 30 days
 - **Target:** Professional caregiving agencies
 

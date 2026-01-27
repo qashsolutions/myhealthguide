@@ -62,12 +62,12 @@ if (user.trialEndDate) {
 
 ### Stripe Pricing Configuration
 
-**Current Pricing (in code):**
+**Current Pricing (Updated Jan 27, 2026):**
 | Plan | Price | Stripe Price ID Env Var |
 |------|-------|------------------------|
 | Family Plan A | $8.99/elder/month | `STRIPE_FAMILY_PRICE_ID` |
-| Family Plan B | $18.99/month | `STRIPE_SINGLE_AGENCY_PRICE_ID` |
-| Multi Agency | $55/elder/month | `STRIPE_MULTI_AGENCY_PRICE_ID` |
+| Family Plan B | $10.99/month | `STRIPE_SINGLE_AGENCY_PRICE_ID` |
+| Multi Agency | $16.99/elder/month | `STRIPE_MULTI_AGENCY_PRICE_ID` |
 
 **Source of Truth:**
 - Display pricing: `src/lib/subscription/subscriptionService.ts` (PLAN_CONFIG)

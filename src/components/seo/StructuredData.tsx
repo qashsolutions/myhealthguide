@@ -62,14 +62,14 @@ export function StructuredData() {
       {
         '@type': 'Offer',
         name: 'Family Plan B',
-        price: '18.99',
+        price: '10.99',
         priceCurrency: 'USD',
         description: 'For families with extended care team',
       },
       {
         '@type': 'Offer',
         name: 'Agency Plan',
-        price: '55.00',
+        price: '16.99',
         priceCurrency: 'USD',
         description: 'For caregiving agencies managing multiple clients',
       },
@@ -122,7 +122,7 @@ export function StructuredData() {
         name: 'What is the difference between Family and Agency plans?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Family plans ($8.99-$18.99/month) are designed for individual families caring for 1 loved one. Agency plans ($55/elder/month) are for professional caregiving agencies managing multiple clients with multiple caregivers.',
+          text: 'Family plans ($8.99-$10.99/month) are designed for individual families caring for 1 loved one. Agency plans ($16.99/elder/month) are for professional caregiving agencies managing multiple clients with multiple caregivers.',
         },
       },
       {

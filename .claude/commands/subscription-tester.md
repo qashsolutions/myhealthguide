@@ -17,7 +17,7 @@ Test subscription plans, billing, trials, and plan limits.
 ### Plan B - Family Plan B
 | Feature | Value |
 |---------|-------|
-| Price | $18.99/month |
+| Price | $10.99/month (Updated Jan 27, 2026) |
 | Trial | 45 days |
 | Elders | 1 max |
 | Caregivers | 1 (admin) |
@@ -27,7 +27,7 @@ Test subscription plans, billing, trials, and plan limits.
 ### Plan C - Multi Agency
 | Feature | Value |
 |---------|-------|
-| Price | $55/elder/month |
+| Price | $16.99/elder/month (Updated Jan 27, 2026) |
 | Trial | 30 days |
 | Caregivers | 10 max |
 | Elders/Caregiver | 3 max |

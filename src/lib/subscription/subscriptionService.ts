@@ -95,7 +95,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     id: 'single_agency',
     name: 'Family Plan B',
     subtitle: 'Add up to 3 family members or friends',
-    price: 18.99,
+    price: 10.99, // Updated Jan 27, 2026 (was $18.99)
     priceNote: '/month',
     rank: 2,
     limits: {
@@ -113,7 +113,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanConfig> = {
     id: 'multi_agency',
     name: 'Multi Agency Plan',
     subtitle: 'For professional caregivers',
-    price: 55,
+    price: 16.99, // Updated Jan 27, 2026 (was $55)
     priceNote: '/elder/month',
     rank: 3,
     limits: {

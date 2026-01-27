@@ -1,7 +1,7 @@
 /**
  * Family Plan B RBAC Permission Test Script
  *
- * Family Plan B: $18.99/mo, 1 elder, 1 admin + 3 read-only members
+ * Family Plan B: $10.99/mo, 1 elder, 1 admin + 3 read-only members (Price updated Jan 27, 2026)
  *
  * Tests:
  * - B1 (admin) can VIEW and EDIT their elder
@@ -134,7 +134,7 @@ async function canManageGroup(userId: string, groupId: string): Promise<boolean>
 
 async function runTests() {
   console.log('=== Family Plan B RBAC Tests ===\n');
-  console.log('Plan: Family Plan B ($18.99/mo)');
+  console.log('Plan: Family Plan B ($10.99/mo)');
   console.log('Limits: 1 elder, 1 admin, 3 read-only members\n');
 
   const results: { test: string; passed: boolean; details: string }[] = [];

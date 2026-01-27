@@ -72,8 +72,8 @@ export default function TermsPage() {
             <p className="mb-4">We offer three subscription tiers:</p>
             <ul className="list-disc pl-6 mb-4 space-y-2">
               <li><strong>Family Plan A ($8.99/loved one/month):</strong> 1 admin + 1 member, 1 loved one, 25MB storage</li>
-              <li><strong>Family Plan B ($18.99/month):</strong> 1 admin + 3 members, 1 loved one, 50MB storage</li>
-              <li><strong>Multi Agency Plan ($55/loved one/month):</strong> Up to 30 loved ones, 10 caregivers, 500MB storage</li>
+              <li><strong>Family Plan B ($10.99/month):</strong> 1 admin + 3 members, 1 loved one, 50MB storage</li>
+              <li><strong>Multi Agency Plan ($16.99/loved one/month):</strong> Up to 30 loved ones, 10 caregivers, 500MB storage</li>
             </ul>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">4.2 Billing</h3>

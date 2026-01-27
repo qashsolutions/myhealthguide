@@ -4,6 +4,20 @@ This document contains completed phases, changelogs, and test results.
 
 ---
 
+## Pricing Update (Jan 27, 2026)
+
+**Stripe prices have been updated:**
+
+| Plan | Old Price | New Price |
+|------|-----------|-----------|
+| Family Plan A | $8.99/mo | $8.99/mo (unchanged) |
+| Family Plan B | $18.99/mo | **$10.99/mo** |
+| Multi-Agency | $55/elder/mo | **$16.99/elder/mo** |
+
+> **Note:** Historical test results below reference the old prices. These are preserved for audit purposes.
+
+---
+
 ## E2E-7: Playwright E2E Test Suite (Jan 19, 2026)
 
 ### Overview

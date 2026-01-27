@@ -5,8 +5,10 @@
 | Plan | Price | Target Audience | Max Elders | Max Members | Storage | Trial |
 |------|-------|-----------------|------------|-------------|---------|-------|
 | **Family Plan A** | $8.99/elder/month | Individual caregivers | 1 | 2 | 25 MB | 45 days |
-| **Family Plan B** | $18.99/month | Caregivers + family/friends | 1 | 4 | 50 MB | 45 days |
-| **Multi Agency** | $55/elder/month | Professional caregiver agencies | 30 | 10 caregivers | 500 MB | 30 days |
+| **Family Plan B** | $10.99/month | Caregivers + family/friends | 1 | 4 | 50 MB | 45 days |
+| **Multi Agency** | $16.99/elder/month | Professional caregiver agencies | 30 | 10 caregivers | 500 MB | 30 days |
+
+> **Pricing Updated:** Jan 27, 2026
 
 ---
 
@@ -93,7 +95,7 @@
 
 ---
 
-## Family Plan B — $18.99/month
+## Family Plan B — $10.99/month
 
 **Target:** Family caregivers who want to involve additional family members or friends in tracking their elder's care. Can also be used by families who hire a professional caregiver.
 
@@ -117,7 +119,7 @@
 
 ---
 
-## Multi Agency Plan — $55/elder/month
+## Multi Agency Plan — $16.99/elder/month
 
 **Target:** Professional caregiver agencies managing multiple elders with multiple caregivers.
 
@@ -159,7 +161,7 @@
 
 ### Billing & Subscription
 - **30-Day Free Trial** — Full access to all features
-- **$55/elder/month** — Billed after trial ends
+- **$16.99/elder/month** — Billed after trial ends
 - **Automatic Billing** — Stripe subscription for each elder
 - **Trial Notifications** — Alerts on days 27, 28, 29 before trial ends
 - **Payment Required** — Access blocked if trial ends without payment

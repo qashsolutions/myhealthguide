@@ -58,8 +58,8 @@ test.describe('Subscription - Pricing Page', () => {
     await agenciesTab.click();
     await page.waitForTimeout(500);
 
-    // Multi Agency Plan should show pricing
-    const agencyPrice = page.locator('text=/\\$55/').first();
+    // Multi Agency Plan should show pricing (Updated Jan 27, 2026: $55 → $16.99)
+    const agencyPrice = page.locator('text=/\\$16\\.99/').first();
     await expect(agencyPrice).toBeVisible({ timeout: TEST_CONFIG.timeouts.medium });
 
     // Multi Agency text should be visible

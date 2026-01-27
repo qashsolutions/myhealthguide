@@ -140,7 +140,7 @@ export default function AgencyPage() {
                     Complete solution for professional care agencies
                   </p>
                   <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$55</span>
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$16.99</span>
                     <span className="text-gray-500">/client/month</span>
                   </div>
                   <Link href="/agency/signup">

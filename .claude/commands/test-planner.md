@@ -36,7 +36,7 @@ Generate test cases for all form fields:
 - Test: Cannot add 2nd elder
 - Test: Cannot add 2nd member
 
-#### Plan B - Family Plan B ($18.99/month)
+#### Plan B - Family Plan B ($10.99/month)
 - 45-day free trial
 - 1 caregiver (admin role) - full write access
 - 1 elder maximum
@@ -44,7 +44,7 @@ Generate test cases for all form fields:
 - Test: Cannot add 2nd elder
 - Test: Cannot add 4th member
 
-#### Plan C - Multi Agency ($55/elder/month)
+#### Plan C - Multi Agency ($16.99/elder/month)
 - 30-day free trial
 - 1 superadmin (subscriber)
   - Can add caregivers (max 10)

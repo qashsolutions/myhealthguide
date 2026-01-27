@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
         success: true,
         changeType: 'upgrade',
         message: newPlan === 'multi_agency'
-          ? `Your plan has been upgraded! You have a ${MULTI_AGENCY_TRIAL_DAYS}-day free trial. After the trial, you'll be charged $55 per elder per month.`
+          ? `Your plan has been upgraded! You have a ${MULTI_AGENCY_TRIAL_DAYS}-day free trial. After the trial, you'll be charged $16.99 per elder per month.`
           : 'Your plan has been upgraded immediately. Prorated charges will be applied.',
         newPlan,
         effectiveDate: 'immediate',

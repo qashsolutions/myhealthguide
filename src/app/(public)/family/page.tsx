@@ -69,7 +69,7 @@ export default function FamilyPage() {
     },
     {
       name: 'Family Plan',
-      price: '$18.99',
+      price: '$10.99',
       period: '/month',
       description: 'Best for families sharing care responsibilities',
       features: [

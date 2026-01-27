@@ -6,8 +6,8 @@ import { User, UserRole } from '@/types';
  *
  * Plan tiers:
  * - 'family' = Family Plan A ($8.99)
- * - 'single_agency' = Family Plan B ($18.99)
- * - 'multi_agency' = Multi Agency Plan ($55)
+ * - 'single_agency' = Family Plan B ($10.99) - Updated Jan 27, 2026
+ * - 'multi_agency' = Multi Agency Plan ($16.99) - Updated Jan 27, 2026
  */
 export function isFamilyPlan(user: User | null): boolean {
   if (!user) return false;

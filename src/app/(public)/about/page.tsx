@@ -306,7 +306,7 @@ export default function AboutPage() {
               <h3 className="mt-4 text-xl font-bold text-white">Single Agency Plan</h3>
               <p className="mt-2 text-sm text-blue-100">For families with caregivers</p>
               <div className="mt-4">
-                <span className="text-4xl font-bold text-white">$18.99</span>
+                <span className="text-4xl font-bold text-white">$10.99</span>
                 <span className="text-blue-100">/month</span>
               </div>
               <ul className="mt-6 space-y-3">
@@ -337,7 +337,7 @@ export default function AboutPage() {
               <h3 className="mt-4 text-xl font-bold text-gray-900 dark:text-white">Multi Agency Plan</h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">For professional caregivers</p>
               <div className="mt-4">
-                <span className="text-4xl font-bold text-gray-900 dark:text-white">$55</span>
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">$16.99</span>
                 <span className="text-gray-600 dark:text-gray-400">/loved one/month</span>
               </div>
               <ul className="mt-6 space-y-3">
