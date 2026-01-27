@@ -193,40 +193,35 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
             </>
           )}
 
-          {/* Insights */}
-          <SectionLabel>Insights</SectionLabel>
-          {/* DISABLED FOR AGENCY OWNERS: AI Insights (Jan 26, 2026)
+          {/* DISABLED FOR AGENCY OWNERS: Entire Insights Section (Jan 26, 2026)
 
-              Reason: The AI Insights page (/dashboard/ask-ai) provides elder-specific health
-              questions and conversation features. This is not actionable for agency owners who:
+              Reason: All Insights features (AI Insights, Safety Alerts, Analytics) are
+              elder-specific and not actionable for agency owners who:
               1. Manage 30+ elders across multiple caregivers
               2. Focus on business operations (scheduling, staffing, compliance)
               3. Don't need individual health conversations - that's the caregiver's job
-              4. Have already had Analytics page hidden for similar reasons
 
               Who still has access:
-              - Agency caregivers: Need AI insights for their assigned elders (max 3/day)
-              - Family Plan A/B admins: Need AI insights for their loved ones
+              - Agency caregivers: Need insights for their assigned elders (max 3/day)
+              - Family Plan A/B admins: Need insights for their loved ones
 
               NOTE: Members (all plans) do NOT have login access. They only receive
               automated daily health reports via email at 7 PM PST.
 
               To re-enable for agency owners:
-              1. Remove the condition below wrapping MenuItem
-              2. Consider building an aggregated agency-wide AI summary instead
+              1. Remove the condition wrapping the Insights section below
+              2. Consider building aggregated agency-wide summaries instead
               3. Update CLAUDE.md documentation
           */}
           {!(isMultiAgency && userIsSuperAdmin) && (
-            <MenuItem href="/dashboard/ask-ai" icon={MessageSquare} label="AI Insights" />
-          )}
-          <MenuItem href="/dashboard/safety-alerts" icon={AlertTriangle} label="Safety Alerts" />
-          {/* REMOVED: Analytics for agency owners (Jan 26, 2026)
-              Reason: Individual elder health analytics (medication adherence, nutrition, trends)
-              are not actionable for agency owners managing 30+ elders in daily operations.
-              Caregivers and family plan users still see this for their assigned/cared-for elders.
-          */}
-          {!userIsReadOnly && !(isMultiAgency && userIsSuperAdmin) && (
-            <MenuItem href="/dashboard/analytics" icon={BarChart3} label="Analytics" />
+            <>
+              <SectionLabel>Insights</SectionLabel>
+              <MenuItem href="/dashboard/ask-ai" icon={MessageSquare} label="AI Insights" />
+              <MenuItem href="/dashboard/safety-alerts" icon={AlertTriangle} label="Safety Alerts" />
+              {!userIsReadOnly && (
+                <MenuItem href="/dashboard/analytics" icon={BarChart3} label="Analytics" />
+              )}
+            </>
           )}
 
           {/* Care Tools (Agency Caregivers) */}

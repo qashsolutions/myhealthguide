@@ -1,9 +1,34 @@
 'use client';
 
+/**
+ * SAFETY ALERTS PAGE - HIDDEN FOR AGENCY OWNERS (Jan 26, 2026)
+ *
+ * This page provides elder-specific safety alerts (drug interactions, schedule conflicts, etc).
+ * It is NOT shown for multi-agency owners (super admins) because:
+ * 1. Agency owners focus on business ops (scheduling, staffing, compliance)
+ * 2. Individual elder safety monitoring is the caregiver's responsibility
+ * 3. Managing 30+ elders, per-elder alerts aren't practical for owners
+ * 4. Related features (AI Insights, Analytics) were already hidden for the same reason
+ *
+ * WHO CAN ACCESS:
+ * - Agency caregivers - for their assigned elders (max 3 per day)
+ * - Family Plan A/B admins - for their loved ones
+ *
+ * NOTE: Members (all plans) do NOT have login access. They only receive
+ * automated daily health reports via email at 7 PM PST.
+ *
+ * TO RE-ENABLE FOR AGENCY OWNERS:
+ * 1. Remove the redirect useEffect below
+ * 2. Uncomment Insights section in MoreMenuDrawer.tsx
+ * 3. Consider building an aggregated agency-wide alerts summary instead
+ */
+
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useSubscription } from '@/lib/subscription';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { useTabTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +55,16 @@ function SafetyAlertsContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { selectedElder, availableElders, isLoading: eldersLoading } = useElder();
+  const { isMultiAgency } = useSubscription();
+  const userIsSuperAdmin = isSuperAdmin(user);
+
+  // REDIRECT: Agency owners should use /dashboard/agency instead (Jan 26, 2026)
+  // Safety Alerts is for per-elder monitoring, not agency-wide operations.
+  useEffect(() => {
+    if (isMultiAgency && userIsSuperAdmin) {
+      router.replace('/dashboard/agency');
+    }
+  }, [isMultiAgency, userIsSuperAdmin, router]);
 
   // Get active tab from URL or default to all
   const activeTab = (searchParams.get('tab') as TabType) || 'all';
