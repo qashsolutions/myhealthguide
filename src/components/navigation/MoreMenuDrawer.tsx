@@ -205,7 +205,12 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
                   label="Health Profile"
                 />
               )}
-              <MenuItem href="/dashboard/daily-care" icon={Clipboard} label="Daily Care" />
+              {/* Daily Care: Show only for Agency Caregivers (Jan 27, 2026)
+                  Family Plan users now have Daily Care in BottomNav, so remove from drawer.
+                  Agency Caregivers don't have it in their BottomNav, so keep it here. */}
+              {isMultiAgency && (
+                <MenuItem href="/dashboard/daily-care" icon={Clipboard} label="Daily Care" />
+              )}
             </>
           )}
 

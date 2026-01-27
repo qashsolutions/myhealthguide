@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, BarChart3, Sparkles, Menu, Calendar, Users } from 'lucide-react';
+import { Home, BarChart3, Sparkles, Menu, Calendar, Users, Clipboard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/lib/subscription';
 import { isSuperAdmin } from '@/lib/utils/getUserRole';
@@ -46,8 +46,10 @@ export function BottomNav({ onMoreClick }: BottomNavProps) {
     navItems.push({ href: '/dashboard/shift-handoff', icon: Calendar, label: 'Schedule' });
     navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
   } else {
-    // Family Plan: Home, Reports, Insights, More
-    navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+    // Family Plan: Home, Daily Care, Insights, More
+    // Changed from "Reports" (Jan 27, 2026): Reports/Analytics page just redirects to Insights,
+    // making it redundant. Daily Care encourages regular logging and is more useful.
+    navItems.push({ href: '/dashboard/daily-care', icon: Clipboard, label: 'Daily Care' });
     navItems.push({ href: '/dashboard/insights', icon: Sparkles, label: 'Insights' });
   }
 
