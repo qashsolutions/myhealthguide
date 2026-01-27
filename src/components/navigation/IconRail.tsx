@@ -71,7 +71,7 @@ export function IconRail({ onMoreClick }: IconRailProps) {
   ];
 
   if (isMultiAgency && userIsSuperAdmin) {
-    // Agency Owner: Home, Team, Schedule, Reports
+    // Agency Owner: Home, Team, Schedule
     navItems.push({ href: '/dashboard/care-management', icon: Users, label: 'Team' });
     navItems.push({ href: '/dashboard/agency/schedule', icon: Calendar, label: 'Schedule' });
     // REMOVED: Elders nav item for agency owners (Jan 26, 2026)
@@ -83,7 +83,15 @@ export function IconRail({ onMoreClick }: IconRailProps) {
     // The elders page was designed for Family Plan users who don't have the agency dashboard.
     // For agency owners, it would just duplicate functionality without adding value.
     // navItems.push({ href: '/dashboard/elders', icon: Heart, label: 'Elders' });
-    navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
+    // REMOVED: Reports (Analytics) nav item for agency owners (Jan 26, 2026)
+    // Reason: Individual elder health analytics (medication adherence, nutrition, trends) are not
+    // actionable for agency owners in daily operations:
+    // 1. Agency owners focus on business ops: scheduling, staffing, billing
+    // 2. Medication adherence/nutrition are caregiver/family concerns
+    // 3. Agency owners managing 30+ elders don't need individual health trends
+    // 4. Caregivers still see this for their assigned elders
+    // If value-based care reporting is needed later, consider an aggregated agency-wide view instead.
+    // navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
     // REMOVED: Timesheets nav item for agency owners (Jan 26, 2026)
     // Reason: Timesheet management is overhead for small agencies not tracking billing:
     // 1. Shift sessions already capture all work time (check-in/check-out)

@@ -1,9 +1,33 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+/**
+ * ANALYTICS PAGE - HIDDEN FOR AGENCY OWNERS (Jan 26, 2026)
+ *
+ * This page shows individual elder health analytics (medication adherence, nutrition, health trends).
+ * It is NOT shown for multi-agency owners (super admins) because:
+ * 1. Agency owners focus on business ops (scheduling, staffing, billing) not individual health data
+ * 2. Medication adherence and nutrition are caregiver/family concerns
+ * 3. Agency owners managing 30+ elders don't need individual health trends for daily decisions
+ * 4. Clinical data is more useful for caregivers who directly manage 1-3 elders
+ *
+ * WHO CAN ACCESS:
+ * - Family Plan users (Plan A, Plan B) - for their 1 loved one
+ * - Agency caregivers - for their assigned elders (max 3 per day)
+ *
+ * TO RE-ENABLE FOR AGENCY OWNERS:
+ * 1. Remove the redirect useEffect below
+ * 2. Uncomment nav items in:
+ *    - src/components/navigation/IconRail.tsx (Agency Owner section)
+ *    - src/components/navigation/MoreMenuDrawer.tsx (Insights section)
+ * 3. Consider building an aggregated agency-wide view instead of individual elder analytics
+ */
+
+import { useState, Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
+import { useSubscription } from '@/lib/subscription';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
 import { useTabTracking } from '@/hooks/useFeatureTracking';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +54,17 @@ function AnalyticsContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { selectedElder, availableElders, isLoading: eldersLoading } = useElder();
+  const { isMultiAgency } = useSubscription();
+  const userIsSuperAdmin = isSuperAdmin(user);
+
+  // REDIRECT: Agency owners should use /dashboard/agency instead (Jan 26, 2026)
+  // Individual elder health analytics are not actionable for agency owners.
+  // They manage business operations, not individual health data.
+  useEffect(() => {
+    if (isMultiAgency && userIsSuperAdmin) {
+      router.replace('/dashboard/agency');
+    }
+  }, [isMultiAgency, userIsSuperAdmin, router]);
 
   // Get active tab from URL or default to overview
   const activeTab = (searchParams.get('tab') as TabType) || 'overview';

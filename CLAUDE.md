@@ -21,7 +21,7 @@
    - [Caregiver Invite System](#caregiver-invite-system)
    - [Analytics Tab](#analytics-tab)
    - [Storage Quota](#storage-quota--downgrade-validation)
-   - [Disabled Features](#disabled-features)
+   - [Disabled Features](#disabled-features) (Analytics, Timesheets, Elders for owners)
    - [Caregiver Burnout Page](#caregiver-burnout-page)
 5. [Features](#features)
    - [Notification System](#notification-system)
@@ -348,6 +348,35 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
    - `src/components/navigation/IconRail.tsx` (line ~95)
    - `src/components/navigation/MoreMenuDrawer.tsx` (line ~209)
 3. Update this documentation
+
+#### Analytics Page for Agency Owners (HIDDEN)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Individual elder health analytics (medication adherence, nutrition, trends) |
+| **Status** | ⏸️ HIDDEN - redirects to /dashboard/agency |
+| **Reason** | Not actionable for agency owners managing 30+ elders; caregivers still see it |
+| **Date** | Jan 26, 2026 |
+
+**Why Hidden:**
+1. Agency owners focus on business ops (scheduling, staffing, billing)
+2. Medication adherence and nutrition are caregiver/family concerns
+3. Managing 30+ elders, individual health trends aren't useful for daily decisions
+4. Caregivers still see this page for their assigned elders (max 3 per day)
+
+**Current Behavior:**
+- Super admins visiting `/dashboard/analytics` are redirected to `/dashboard/agency`
+- Reports/Analytics nav items hidden in IconRail and MoreMenuDrawer for agency owners
+- Caregivers and Family Plan users still have full access
+
+**To Re-enable:**
+1. Remove redirect useEffect in `src/app/dashboard/analytics/page.tsx`
+2. Uncomment nav items in:
+   - `src/components/navigation/IconRail.tsx` (Agency Owner section)
+   - `src/components/navigation/MoreMenuDrawer.tsx` (Insights section)
+3. Consider building an aggregated agency-wide view instead of individual elder analytics
+
+---
 
 #### Elders Page for Agency Owners (HIDDEN)
 
@@ -706,6 +735,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 26, 2026 | Analytics page HIDDEN for agency owners - not actionable for 30+ elders |
 | Jan 26, 2026 | Timesheet feature DISABLED - shift sessions track work time |
 | Jan 26, 2026 | Elders page HIDDEN for agency owners - redirects to /agency |
 | Jan 26, 2026 | Caregiver Burnout redesign - summary cards, inactive section |

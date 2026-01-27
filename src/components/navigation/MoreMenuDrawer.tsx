@@ -197,7 +197,12 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
           <SectionLabel>Insights</SectionLabel>
           <MenuItem href="/dashboard/ask-ai" icon={MessageSquare} label="AI Insights" />
           <MenuItem href="/dashboard/safety-alerts" icon={AlertTriangle} label="Safety Alerts" />
-          {!userIsReadOnly && (
+          {/* REMOVED: Analytics for agency owners (Jan 26, 2026)
+              Reason: Individual elder health analytics (medication adherence, nutrition, trends)
+              are not actionable for agency owners managing 30+ elders in daily operations.
+              Caregivers and family plan users still see this for their assigned/cared-for elders.
+          */}
+          {!userIsReadOnly && !(isMultiAgency && userIsSuperAdmin) && (
             <MenuItem href="/dashboard/analytics" icon={BarChart3} label="Analytics" />
           )}
 
