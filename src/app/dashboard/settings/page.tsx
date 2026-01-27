@@ -167,7 +167,27 @@ export default function SettingsPage() {
             </Button>
           </div>
 
-          {/* Collaboration Section */}
+          {/* Collaboration Section
+              DISABLED FOR AGENCY OWNERS: Notifications & Group Management (Jan 26, 2026)
+
+              Reason: These features are not relevant for multi-agency owners (super admins):
+              1. Notifications: Agency owners don't need per-elder notification settings since
+                 they don't directly care for elders. Caregivers handle this.
+              2. Group Management: Agency owners manage their team via Agency Management,
+                 not through group membership. Groups are for family plans.
+
+              Who still has access:
+              - Agency caregivers: Need notification settings for their assigned elders
+              - Family Plan A/B admins: Need to manage their family group
+
+              NOTE: Members (all plans) do NOT have login access. They only receive
+              automated daily health reports via email at 7 PM PST.
+
+              To re-enable for agency owners:
+              1. Remove the conditions wrapping these Buttons
+              2. Update CLAUDE.md documentation
+          */}
+          {!(isMultiAgency && userIsSuperAdmin) && (
           <div className="space-y-1">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3 mb-2">
               Collaboration
@@ -189,6 +209,7 @@ export default function SettingsPage() {
               Group Management
             </Button>
           </div>
+          )}
 
           {/* Advanced Section */}
           <div className="space-y-1">
@@ -221,6 +242,23 @@ export default function SettingsPage() {
                 Smart Features
               </Button>
             )}
+            {/* DISABLED FOR AGENCY OWNERS: Alert Preferences (Jan 26, 2026)
+
+                Reason: Alert Preferences configure per-elder safety alerts which are
+                not relevant for agency owners who:
+                1. Do NOT directly care for elders
+                2. Focus on business operations (scheduling, staffing, compliance)
+                3. Have already had Safety Alerts page hidden for the same reason
+
+                Who still has access:
+                - Agency caregivers: Configure alerts for their assigned elders
+                - Family Plan A/B admins: Configure alerts for their loved ones
+
+                To re-enable for agency owners:
+                1. Remove the condition wrapping this Button
+                2. Update CLAUDE.md documentation
+            */}
+            {!(isMultiAgency && userIsSuperAdmin) && (
             <Button
               variant={activeTab === 'alerts' ? 'default' : 'ghost'}
               className="w-full justify-start"
@@ -229,6 +267,7 @@ export default function SettingsPage() {
               <BellRing className="w-4 h-4 mr-2" />
               Alert Preferences
             </Button>
+            )}
             <Button
               variant={activeTab === 'data' ? 'default' : 'ghost'}
               className="w-full justify-start"

@@ -160,6 +160,23 @@ Family members **do NOT create accounts**. They are added as email recipients on
 | **Schedule** (`/dashboard/agency/schedule`) | ✅ Full access | ✅ View own shifts |
 | **Alerts** (`/dashboard/alerts`) | ⏸️ HIDDEN (uses groups) | ✅ View assigned elders |
 | **Analytics** (`/dashboard/analytics`) | ⏸️ HIDDEN (not actionable) | ✅ View assigned elders |
+| **Health Profile** (`/dashboard/elder-profile`) | ⏸️ Redirects to /agency | ✅ View assigned elders |
+| **Daily Care** (`/dashboard/daily-care`) | ⏸️ Redirects to /agency | ✅ Full access |
+| **AI Insights** (`/dashboard/ask-ai`) | ⏸️ Redirects to /agency | ✅ Full access |
+| **Safety Alerts** (`/dashboard/safety-alerts`) | ⏸️ Redirects to /agency | ✅ Full access |
+
+#### Settings Page Tabs (Owner vs Caregiver)
+
+| Settings Tab | Owner | Caregiver |
+|--------------|-------|-----------|
+| **Profile** | ✅ Shown | ✅ Shown |
+| **Security & Activity** | ✅ Shown | ✅ Shown |
+| **Subscription** | ✅ Shown | ✅ Shown |
+| **Notifications** | ⏸️ HIDDEN (not relevant) | ✅ Shown |
+| **Group Management** | ⏸️ HIDDEN (uses Agency Management) | ✅ Shown |
+| **Smart Features** | ⏸️ HIDDEN (per-elder AI config) | ✅ Shown |
+| **Alert Preferences** | ⏸️ HIDDEN (per-elder alerts) | ✅ Shown |
+| **Privacy & Data** | ✅ Shown | ✅ Shown |
 
 #### Care Management Page Cards
 
@@ -171,6 +188,21 @@ Family members **do NOT create accounts**. They are added as email recipients on
 | Shift Handoff | ❌ Hidden | ✅ Shown |
 | Timesheet | ⏸️ DISABLED | ⏸️ DISABLED |
 | Family Updates | ❌ Removed (automated) | ❌ Removed (automated) |
+
+#### MoreMenuDrawer Sections (Owner vs Caregiver)
+
+| Menu Section/Item | Owner | Caregiver |
+|-------------------|-------|-----------|
+| **Care Section** | ⏸️ HIDDEN | ✅ Shown |
+| - Health Profile | ⏸️ HIDDEN | ✅ Shown |
+| - Daily Care | ⏸️ HIDDEN | ✅ Shown |
+| **Insights Section** | ⏸️ HIDDEN | ✅ Shown |
+| - AI Insights | ⏸️ HIDDEN | ✅ Shown |
+| - Safety Alerts | ⏸️ HIDDEN | ✅ Shown |
+| - Analytics | ⏸️ HIDDEN | ✅ Shown |
+| **Agency Section** | ✅ Shown | ✅ Shown |
+| - Care Management | ✅ Shown | ✅ Shown |
+| - Agency Management | ✅ Shown | ❌ Hidden |
 
 ---
 
