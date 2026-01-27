@@ -7,9 +7,11 @@
  * - Upload documents (PDF, images, Word, Excel)
  * - Add/edit one-line description for each document
  * - Sort by name or date
+ * - Search by filename or description
+ * - Duplicate filename prevention
  * - Delete documents
  *
- * Updated: Jan 26, 2026 - Removed category filters, added description field
+ * Updated: Jan 26, 2026 - Added search, duplicate prevention
  */
 
 import { useState, useEffect } from 'react';
@@ -19,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Upload, Trash2, AlertCircle, FolderOpen, HardDrive, ArrowUpDown, Pencil, Check, X } from 'lucide-react';
+import { FileText, Upload, Trash2, AlertCircle, FolderOpen, HardDrive, Pencil, Check, X, Search } from 'lucide-react';
 import { uploadFileWithQuota, deleteFileWithQuota } from '@/lib/firebase/storage';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { StorageMetadata } from '@/types';
@@ -37,6 +39,7 @@ export default function DocumentsPage() {
   const [storageInfo, setStorageInfo] = useState<{ used: number; limit: number; isOverQuota: boolean } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDescription, setEditDescription] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const isReadOnly = false; // Only owner has access to documents page now
 
@@ -84,6 +87,14 @@ export default function DocumentsPage() {
 
     if (!selectedElder) {
       setError('Please select a loved one first');
+      return;
+    }
+
+    // Check for duplicate filename
+    const existingFile = documents.find(d => d.fileName?.toLowerCase() === file.name.toLowerCase());
+    if (existingFile) {
+      setError(`A file named "${file.name}" already exists. Please rename your file or delete the existing one.`);
+      event.target.value = '';
       return;
     }
 
@@ -167,8 +178,17 @@ export default function DocumentsPage() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  // Sort documents
-  const sortedDocuments = [...documents].sort((a, b) => {
+  // Filter and sort documents
+  const filteredDocuments = documents.filter(doc => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      doc.fileName?.toLowerCase().includes(query) ||
+      doc.description?.toLowerCase().includes(query)
+    );
+  });
+
+  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
     switch (sortBy) {
       case 'name_asc':
         return (a.fileName || '').localeCompare(b.fileName || '');
@@ -258,32 +278,56 @@ export default function DocumentsPage() {
         </Alert>
       )}
 
-      {/* Storage Usage + Sort */}
+      {/* Storage Usage + Search + Sort */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Storage Used</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {formatFileSize(storageInfo?.used || 0)} / {formatFileSize(storageInfo?.limit || 500 * 1024 * 1024)}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Files</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">{documents.length}</p>
+          <div className="flex flex-col gap-4">
+            {/* Storage info row */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Storage Used</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {formatFileSize(storageInfo?.used || 0)} / {formatFileSize(storageInfo?.limit || 500 * 1024 * 1024)}
+                </p>
               </div>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="text-sm border rounded-md px-2 py-1 bg-white dark:bg-gray-800 dark:border-gray-700"
-              >
-                <option value="date_desc">Newest First</option>
-                <option value="date_asc">Oldest First</option>
-                <option value="name_asc">Name A-Z</option>
-                <option value="name_desc">Name Z-A</option>
-              </select>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Files</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{documents.length}</p>
+                </div>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="text-sm border rounded-md px-2 py-1 bg-white dark:bg-gray-800 dark:border-gray-700"
+                >
+                  <option value="date_desc">Newest First</option>
+                  <option value="date_asc">Oldest First</option>
+                  <option value="name_asc">Name A-Z</option>
+                  <option value="name_desc">Name Z-A</option>
+                </select>
+              </div>
             </div>
+
+            {/* Search input */}
+            {documents.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by filename or description..."
+                  className="pl-9"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -300,26 +344,39 @@ export default function DocumentsPage() {
           {sortedDocuments.length === 0 ? (
             <div className="text-center py-12">
               <FolderOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                No documents uploaded yet
-              </p>
-              {!isReadOnly && (
+              {searchQuery ? (
                 <>
-                  <label htmlFor="file-upload-empty">
-                    <Button variant="outline" asChild>
-                      <span>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Your First Document
-                      </span>
-                    </Button>
-                  </label>
-                  <input
-                    id="file-upload-empty"
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
-                  />
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">
+                    No documents match &quot;{searchQuery}&quot;
+                  </p>
+                  <Button variant="outline" onClick={() => setSearchQuery('')}>
+                    Clear Search
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    No documents uploaded yet
+                  </p>
+                  {!isReadOnly && (
+                    <>
+                      <label htmlFor="file-upload-empty">
+                        <Button variant="outline" asChild>
+                          <span>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Your First Document
+                          </span>
+                        </Button>
+                      </label>
+                      <input
+                        id="file-upload-empty"
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
+                      />
+                    </>
+                  )}
                 </>
               )}
             </div>
