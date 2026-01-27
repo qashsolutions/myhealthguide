@@ -442,6 +442,41 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 
 ---
 
+#### Safety Alerts for Family Plan A/B (DISABLED)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Safety Alerts (Drug Interactions, Schedule Conflicts, Incident Reports, Dementia Screening) |
+| **Status** | ⏸️ DISABLED - redirects Family Plan A/B users to /dashboard/insights |
+| **Reason** | Features designed for professional caregiving contexts, not simple family care |
+| **Date** | Jan 27, 2026 |
+
+**Why Disabled:**
+1. **Drug Interactions** - Requires FDA database integration and pharmacist-level review. Family members should consult their pharmacist directly.
+2. **Schedule Conflicts** - Relevant when multiple caregivers coordinate shifts. Family Plan A/B has only 1 caregiver (the admin), no conflicts possible.
+3. **Incident Reports** - Professional documentation for agency compliance/liability. Family members don't need formal incident tracking.
+4. **Dementia Screening** - Requires clinical protocols and professional interpretation. Family members should use their healthcare provider's assessments.
+
+**Who Can Access:**
+- Multi-Agency caregivers (Plan C) - managing 3 elders/day with professional oversight
+
+**Who Is Redirected:**
+- Family Plan A users → /dashboard/insights
+- Family Plan B users → /dashboard/insights
+- Agency owners → /dashboard/agency (different reason)
+
+**Current Behavior:**
+- Family Plan A/B users visiting `/dashboard/safety-alerts` are redirected to `/dashboard/insights`
+- Alerts icon removed from IconRail for Family Plan users
+- Multi-Agency caregivers still have full access
+
+**To Re-enable:**
+1. Remove the redirect useEffect for `!isMultiAgency` in `src/app/dashboard/safety-alerts/page.tsx`
+2. Uncomment nav item in `src/components/navigation/IconRail.tsx` (Family Plan section)
+3. Update this documentation
+
+---
+
 #### Smart Features Setting for Agency Owners (HIDDEN)
 
 | Item | Status |

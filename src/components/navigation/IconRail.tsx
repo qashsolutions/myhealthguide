@@ -115,19 +115,27 @@ export function IconRail({ onMoreClick }: IconRailProps) {
       badge: unreadCount > 0 ? unreadCount : undefined,
     });
   } else {
-    // Family Plan: Home, Insights, Alerts
+    // Family Plan: Home, Insights
     // REMOVED: Reports (Analytics) nav item for Family Plan A/B users (Jan 27, 2026)
     // Reason: Analytics page now just redirects to Insights - redundant icon creates bad UX.
     // All analytics functionality consolidated into /dashboard/insights:
     // - Health Trends tab, Clinical Notes tab, Reports tab (unified medication + nutrition)
     // navItems.push({ href: '/dashboard/analytics', icon: BarChart3, label: 'Reports' });
     navItems.push({ href: '/dashboard/insights', icon: Sparkles, label: 'Insights' });
-    navItems.push({
-      href: '/dashboard/safety-alerts',
-      icon: AlertTriangle,
-      label: 'Alerts',
-      badge: unreadCount > 0 ? unreadCount : undefined,
-    });
+    // REMOVED: Safety Alerts nav item for Family Plan A/B users (Jan 27, 2026)
+    // Reason: Safety Alerts features (Drug Interactions, Schedule Conflicts, Incident Reports,
+    // Dementia Screening) are designed for professional caregiving contexts with multiple
+    // caregivers and clinical oversight. Family Plan users caring for 1 loved one should:
+    // - Consult their pharmacist for drug interactions
+    // - Use their healthcare provider for dementia screening
+    // - Don't need schedule conflict detection (only 1 caregiver)
+    // - Don't need formal incident tracking (not a compliance requirement)
+    // navItems.push({
+    //   href: '/dashboard/safety-alerts',
+    //   icon: AlertTriangle,
+    //   label: 'Alerts',
+    //   badge: unreadCount > 0 ? unreadCount : undefined,
+    // });
   }
 
   return (

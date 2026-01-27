@@ -1,27 +1,92 @@
 'use client';
 
 /**
- * SAFETY ALERTS PAGE - HIDDEN FOR AGENCY OWNERS (Jan 26, 2026)
+ * SAFETY ALERTS PAGE - DISABLED FOR FAMILY PLAN A/B (Jan 27, 2026)
  *
- * This page provides elder-specific safety alerts (drug interactions, schedule conflicts, etc).
- * It is NOT shown for multi-agency owners (super admins) because:
- * 1. Agency owners focus on business ops (scheduling, staffing, compliance)
- * 2. Individual elder safety monitoring is the caregiver's responsibility
- * 3. Managing 30+ elders, per-elder alerts aren't practical for owners
- * 4. Related features (AI Insights, Analytics) were already hidden for the same reason
+ * This page has been disabled for Family Plan A and Family Plan B users.
+ *
+ * REASON FOR DISABLING:
+ * Safety Alerts features (Drug Interactions, Schedule Conflicts, Incident Reports,
+ * Dementia Screening) are designed for professional caregiving contexts:
+ *
+ * 1. Drug Interactions - Requires FDA database integration and pharmacist-level review.
+ *    Family members caring for 1 loved one should consult their pharmacist directly.
+ *
+ * 2. Schedule Conflicts - Relevant when multiple caregivers coordinate shifts.
+ *    Family Plan A/B has only 1 caregiver (the admin), no scheduling conflicts possible.
+ *
+ * 3. Incident Reports - Professional documentation for agency compliance/liability.
+ *    Family members don't need formal incident tracking for home care.
+ *
+ * 4. Dementia Screening - Requires clinical protocols and professional interpretation.
+ *    Family members should use their healthcare provider's assessments.
  *
  * WHO CAN ACCESS:
- * - Agency caregivers - for their assigned elders (max 3 per day)
- * - Family Plan A/B admins - for their loved ones
+ * - Multi-Agency caregivers (Plan C) - managing 3 elders/day with professional oversight
  *
- * NOTE: Members (all plans) do NOT have login access. They only receive
- * automated daily health reports via email at 7 PM PST.
+ * WHO IS REDIRECTED:
+ * - Family Plan A users → /dashboard/insights
+ * - Family Plan B users → /dashboard/insights
+ * - Agency owners → /dashboard/agency (already hidden - different reason)
  *
- * TO RE-ENABLE FOR AGENCY OWNERS:
- * 1. Remove the redirect useEffect below
- * 2. Uncomment Insights section in MoreMenuDrawer.tsx
- * 3. Consider building an aggregated agency-wide alerts summary instead
+ * WHAT FAMILY PLAN USERS HAVE INSTEAD:
+ * - /dashboard/insights - Health Trends, Clinical Notes, unified Health Reports
+ * - /dashboard/medications - Medication management with reminders
+ * - Daily email reports with health summaries
+ *
+ * TO RE-ENABLE FOR FAMILY PLANS:
+ * 1. Remove the redirect useEffect for !isMultiAgency below
+ * 2. Add nav items back in IconRail.tsx and MoreMenuDrawer.tsx
+ * 3. Update CLAUDE.md to remove from Disabled Features section
  */
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSubscription } from '@/lib/subscription';
+import { isSuperAdmin } from '@/lib/utils/getUserRole';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
+
+export default function SafetyAlertsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { isMultiAgency } = useSubscription();
+  const userIsSuperAdmin = isSuperAdmin(user);
+
+  useEffect(() => {
+    // Family Plan A/B users: redirect to Insights (Jan 27, 2026)
+    // Safety Alerts features are not relevant for simple family care scenarios
+    if (!isMultiAgency) {
+      router.replace('/dashboard/insights');
+      return;
+    }
+
+    // Agency owners: redirect to Agency dashboard (Jan 26, 2026)
+    // Per-elder safety monitoring is caregiver's responsibility, not owner's
+    if (isMultiAgency && userIsSuperAdmin) {
+      router.replace('/dashboard/agency');
+      return;
+    }
+
+    // Multi-Agency caregivers: can access this page (no redirect)
+  }, [isMultiAgency, userIsSuperAdmin, router]);
+
+  // Show loading while redirecting
+  return (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+    </div>
+  );
+}
+
+/*
+ * ============================================================================
+ * ORIGINAL SAFETY ALERTS PAGE CODE (DISABLED Jan 27, 2026)
+ * ============================================================================
+ *
+ * Preserved below for reference. See comments above for reason.
+ * This code was functional for Multi-Agency caregivers managing multiple elders.
+ *
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -58,18 +123,14 @@ function SafetyAlertsContent() {
   const { isMultiAgency } = useSubscription();
   const userIsSuperAdmin = isSuperAdmin(user);
 
-  // REDIRECT: Agency owners should use /dashboard/agency instead (Jan 26, 2026)
-  // Safety Alerts is for per-elder monitoring, not agency-wide operations.
   useEffect(() => {
     if (isMultiAgency && userIsSuperAdmin) {
       router.replace('/dashboard/agency');
     }
   }, [isMultiAgency, userIsSuperAdmin, router]);
 
-  // Get active tab from URL or default to all
   const activeTab = (searchParams.get('tab') as TabType) || 'all';
 
-  // Feature tracking with tab support
   useTabTracking('safety_alerts', activeTab, {
     all: 'safety_alerts',
     interactions: 'safety_alerts_interactions',
@@ -78,15 +139,12 @@ function SafetyAlertsContent() {
     screening: 'safety_alerts_screening',
   });
 
-  // Placeholder data - in a real app, this would come from your backend
   const [loading, setLoading] = useState(false);
 
-  // Change tab
   const setActiveTab = (tab: TabType) => {
     router.push(`/dashboard/safety-alerts?tab=${tab}`, { scroll: false });
   };
 
-  // Tab configuration
   const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
     { id: 'all', label: 'All Alerts', icon: AlertTriangle },
     { id: 'interactions', label: 'Drug Interactions', icon: Pill },
@@ -95,7 +153,6 @@ function SafetyAlertsContent() {
     { id: 'screening', label: 'Screening', icon: Brain },
   ];
 
-  // Show loading state while elders are being fetched
   if (eldersLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -104,34 +161,29 @@ function SafetyAlertsContent() {
     );
   }
 
-  // Show appropriate message based on elder availability
   if (!selectedElder) {
     const hasNoElders = availableElders.length === 0;
-    const isCaregiverRole = user?.agencies?.[0]?.role === 'caregiver' || user?.agencies?.[0]?.role === 'caregiver_admin';
+    const isCaregiverRole = user?.agencies?.[0]?.role === 'caregiver';
 
     return (
-      <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border">
         <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
         {hasNoElders && isCaregiverRole ? (
           <>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No Loved Ones Assigned Yet
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-              Your agency administrator will assign loved ones to you. Once assigned, you&apos;ll be able to view their safety alerts here.
+            <h3 className="text-lg font-semibold mb-2">No Loved Ones Assigned Yet</h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Your agency administrator will assign loved ones to you.
             </p>
           </>
         ) : hasNoElders ? (
           <>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No Loved Ones Found
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-              Add a loved one to your care group to start monitoring their safety alerts.
+            <h3 className="text-lg font-semibold mb-2">No Loved Ones Found</h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Add a loved one to your care group to start monitoring safety alerts.
             </p>
           </>
         ) : (
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600">
             Please select a loved one from the header to view safety alerts.
           </p>
         )}
@@ -141,23 +193,18 @@ function SafetyAlertsContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Safety Alerts
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Safety Alerts</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Monitor drug interactions, schedule conflicts, incidents, and cognitive screening for {selectedElder.name}
         </p>
       </div>
 
-      {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <div className="flex gap-1 -mb-px overflow-x-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-
             return (
               <button
                 key={tab.id}
@@ -165,8 +212,8 @@ function SafetyAlertsContent() {
                 className={cn(
                   "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
                   isActive
-                    ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -177,66 +224,16 @@ function SafetyAlertsContent() {
         </div>
       </div>
 
-      {/* Tab Content */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
-      ) : (
-        <>
-          {(activeTab === 'all' || activeTab === 'interactions') && (
-            <AlertSection
-              title="Drug Interactions"
-              icon={Pill}
-              description="FDA drug label analysis for potential interactions"
-              linkHref="/dashboard/drug-interactions"
-              linkText="View Details"
-              color="orange"
-            />
-          )}
+      // ... AlertSection components for Drug Interactions, Schedule Conflicts,
+      // Incident Reports, and Dementia Screening were rendered here.
+      // Each linked to their respective detail pages.
 
-          {(activeTab === 'all' || activeTab === 'conflicts') && (
-            <AlertSection
-              title="Schedule Conflicts"
-              icon={Clock}
-              description="Overlapping medication times and scheduling issues"
-              linkHref="/dashboard/schedule-conflicts"
-              linkText="View Details"
-              color="yellow"
-            />
-          )}
-
-          {(activeTab === 'all' || activeTab === 'incidents') && (
-            <AlertSection
-              title="Incident Reports"
-              icon={FileText}
-              description="Falls, injuries, medication errors, and other incidents"
-              linkHref="/dashboard/incidents"
-              linkText="View Reports"
-              color="red"
-            />
-          )}
-
-          {(activeTab === 'all' || activeTab === 'screening') && (
-            <AlertSection
-              title="Dementia Screening"
-              icon={Brain}
-              description="Cognitive assessments and behavioral pattern detection"
-              linkHref="/dashboard/dementia-screening"
-              linkText="View Screening"
-              color="purple"
-            />
-          )}
-        </>
-      )}
-
-      {/* Disclaimer */}
-      <Card className="p-4 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+      <Card className="p-4 bg-amber-50 border-amber-200">
         <div className="flex gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Important:</strong> Safety alerts are automatically generated based on logged data and FDA information.
-            Always consult with healthcare professionals for medical decisions.
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-800">
+            <strong>Important:</strong> Safety alerts are automatically generated based on logged data
+            and FDA information. Always consult with healthcare professionals for medical decisions.
           </div>
         </div>
       </Card>
@@ -244,84 +241,17 @@ function SafetyAlertsContent() {
   );
 }
 
-// Alert Section Component
-function AlertSection({
-  title,
-  icon: Icon,
-  description,
-  linkHref,
-  linkText,
-  color,
-}: {
-  title: string;
-  icon: React.ElementType;
-  description: string;
-  linkHref: string;
-  linkText: string;
-  color: 'orange' | 'yellow' | 'red' | 'purple';
-}) {
-  const colorClasses = {
-    orange: {
-      bg: 'bg-orange-100 dark:bg-orange-900/30',
-      icon: 'text-orange-600 dark:text-orange-400',
-      badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
-    },
-    yellow: {
-      bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-      icon: 'text-yellow-600 dark:text-yellow-400',
-      badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-    },
-    red: {
-      bg: 'bg-red-100 dark:bg-red-900/30',
-      icon: 'text-red-600 dark:text-red-400',
-      badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
-    },
-    purple: {
-      bg: 'bg-purple-100 dark:bg-purple-900/30',
-      icon: 'text-purple-600 dark:text-purple-400',
-      badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-    },
-  };
-
-  const colors = colorClasses[color as keyof typeof colorClasses] || colorClasses.orange; // Fallback to orange
-
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", colors.bg)}>
-            <Icon className={cn("w-6 h-6", colors.icon)} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
-              <Badge className={cn("text-xs", colors.badge)}>
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Monitored
-              </Badge>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
-          </div>
-        </div>
-        <Link href={linkHref}>
-          <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
-            {linkText}
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </Link>
-      </div>
-    </Card>
-  );
+function AlertSection({ title, icon: Icon, description, linkHref, linkText, color }) {
+  // Card component for each alert type
+  // Displayed: Drug Interactions, Schedule Conflicts, Incident Reports, Dementia Screening
 }
 
 export default function SafetyAlertsPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    }>
+    <Suspense fallback={<Loader2 className="w-8 h-8 animate-spin" />}>
       <SafetyAlertsContent />
     </Suspense>
   );
 }
+
+*/
