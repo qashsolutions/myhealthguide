@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
     const isOverQuota = storageLimit > 0 && storageUsed > storageLimit;
 
     // Get all files for this user - query without orderBy, sort in memory
-    const filesSnap = await db.collection('storageMetadata')
+    // Note: Collection name is 'storage_metadata' (with underscore), matching storage.ts
+    const filesSnap = await db.collection('storage_metadata')
       .where('userId', '==', authResult.userId)
       .get();
 
