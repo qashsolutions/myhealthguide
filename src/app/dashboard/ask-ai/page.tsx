@@ -12,8 +12,10 @@
  *
  * WHO CAN ACCESS:
  * - Agency caregivers - for their assigned elders (max 3 per day)
- * - Family Plan A/B users - for their loved ones
- * - Read-only members - can view insights for their family members
+ * - Family Plan A/B admins - for their loved ones
+ *
+ * NOTE: Members (all plans) do NOT have login access. They only receive
+ * automated daily health reports via email at 7 PM PST.
  *
  * TO RE-ENABLE FOR AGENCY OWNERS:
  * 1. Remove the redirect useEffect below

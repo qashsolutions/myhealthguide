@@ -397,7 +397,9 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 **Current Behavior:**
 - Super admins visiting `/dashboard/ask-ai` are redirected to `/dashboard/agency`
 - AI Insights menu item hidden in MoreMenuDrawer for agency owners
-- Caregivers and Family Plan users still have full access
+- Agency caregivers and Family Plan admins still have full access
+
+**Note:** Members (all plans) do NOT have login access. They only receive automated daily email reports.
 
 **To Re-enable:**
 1. Remove redirect useEffect in `src/app/dashboard/ask-ai/page.tsx`

@@ -206,8 +206,10 @@ export function MoreMenuDrawer({ isOpen, onClose }: MoreMenuDrawerProps) {
 
               Who still has access:
               - Agency caregivers: Need AI insights for their assigned elders (max 3/day)
-              - Family Plan A/B users: Need AI insights for their loved ones
-              - Read-only members: Can view AI insights for their family members
+              - Family Plan A/B admins: Need AI insights for their loved ones
+
+              NOTE: Members (all plans) do NOT have login access. They only receive
+              automated daily health reports via email at 7 PM PST.
 
               To re-enable for agency owners:
               1. Remove the condition below wrapping MenuItem
