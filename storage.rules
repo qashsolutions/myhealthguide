@@ -105,12 +105,12 @@ service firebase.storage {
       // Users can read their own documents
       allow read: if isSignedIn() && isOwner(userId);
 
-      // Users can upload documents to their own folder
+      // Users can upload documents OR images to their own folder
       // Total storage quota is checked in application code before upload
       allow write: if isSignedIn() &&
         isOwner(userId) &&
-        isDocument() &&
-        isValidDocSize();
+        (isDocument() || isImage()) &&
+        (isValidDocSize() || isValidImageSize());
 
       // Users can delete their own documents
       allow delete: if isSignedIn() && isOwner(userId);

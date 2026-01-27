@@ -1,41 +1,43 @@
 'use client';
 
+/**
+ * DOCUMENTS PAGE - Simple document storage for agency owners
+ *
+ * Features:
+ * - Upload documents (PDF, images, Word, Excel)
+ * - Add/edit one-line description for each document
+ * - Sort by name or date
+ * - Delete documents
+ *
+ * Updated: Jan 26, 2026 - Removed category filters, added description field
+ */
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Upload, Trash2, Eye, AlertCircle, FolderOpen, Sparkles, X, HardDrive } from 'lucide-react';
+import { FileText, Upload, Trash2, AlertCircle, FolderOpen, HardDrive, ArrowUpDown, Pencil, Check, X } from 'lucide-react';
 import { uploadFileWithQuota, deleteFileWithQuota } from '@/lib/firebase/storage';
-import { DocumentAnalysisPanel } from '@/components/documents/DocumentAnalysisPanel';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 import type { StorageMetadata } from '@/types';
 import { format } from 'date-fns';
 
-type DocumentCategory = 'medical' | 'insurance' | 'legal' | 'care_plan' | 'other';
+type SortOption = 'name_asc' | 'name_desc' | 'date_asc' | 'date_desc';
 
 export default function DocumentsPage() {
   const { user } = useAuth();
   const { selectedElder } = useElder();
-  const [documents, setDocuments] = useState<StorageMetadata[]>([]);
+  const [documents, setDocuments] = useState<(StorageMetadata & { description?: string })[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | 'all'>('all');
-  const [selectedDocument, setSelectedDocument] = useState<StorageMetadata | null>(null);
-  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('date_desc');
   const [storageInfo, setStorageInfo] = useState<{ used: number; limit: number; isOverQuota: boolean } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDescription, setEditDescription] = useState('');
 
-  // DISABLED: Legacy family_member role check - family members now use Report Recipients (email-only, no accounts)
-  // Family members no longer have app access, so this is always false
-  // const userAgencyRole = user?.agencies?.[0]?.role;
-  // const isReadOnly = userAgencyRole === 'family_member';
   const isReadOnly = false; // Only owner has access to documents page now
 
   useEffect(() => {
@@ -102,12 +104,13 @@ export default function DocumentsPage() {
         setError(result.error || 'Upload failed');
       } else {
         await loadDocuments();
-        // TODO: Send notification to admin about new document
       }
     } catch (err: any) {
       setError('Upload failed: ' + err.message);
     } finally {
       setUploading(false);
+      // Reset file input
+      event.target.value = '';
     }
   };
 
@@ -127,39 +130,57 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleSaveDescription = async (docId: string) => {
+    try {
+      const response = await authenticatedFetch('/api/documents/description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: docId, description: editDescription })
+      });
+
+      if (response.ok) {
+        setDocuments(docs => docs.map(d =>
+          d.id === docId ? { ...d, description: editDescription } : d
+        ));
+        setEditingId(null);
+        setEditDescription('');
+      } else {
+        setError('Failed to save description');
+      }
+    } catch (err) {
+      setError('Failed to save description');
+    }
+  };
+
   const getDocumentIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) return '🖼️';
-    if (fileType.includes('pdf')) return '📄';
-    if (fileType.includes('word') || fileType.includes('document')) return '📝';
-    if (fileType.includes('sheet') || fileType.includes('excel')) return '📊';
+    if (fileType?.startsWith('image/')) return '🖼️';
+    if (fileType?.includes('pdf')) return '📄';
+    if (fileType?.includes('word') || fileType?.includes('document')) return '📝';
+    if (fileType?.includes('sheet') || fileType?.includes('excel')) return '📊';
     return '📎';
   };
 
-  const canAnalyzeDocument = (fileType: string) => {
-    return ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/tiff'].includes(fileType);
-  };
-
-  const handleAnalyzeDocument = (doc: StorageMetadata) => {
-    setSelectedDocument(doc);
-    setShowAnalysisDialog(true);
-  };
-
   const formatFileSize = (bytes: number) => {
+    if (!bytes) return '0 B';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  const filteredDocuments = selectedCategory === 'all'
-    ? documents
-    : documents.filter(doc => {
-        const fileName = doc.fileName.toLowerCase();
-        if (selectedCategory === 'medical') return fileName.includes('medical') || fileName.includes('prescription') || fileName.includes('lab');
-        if (selectedCategory === 'insurance') return fileName.includes('insurance') || fileName.includes('policy');
-        if (selectedCategory === 'legal') return fileName.includes('legal') || fileName.includes('will') || fileName.includes('poa');
-        if (selectedCategory === 'care_plan') return fileName.includes('care') || fileName.includes('plan');
-        return false;
-      });
+  // Sort documents
+  const sortedDocuments = [...documents].sort((a, b) => {
+    switch (sortBy) {
+      case 'name_asc':
+        return (a.fileName || '').localeCompare(b.fileName || '');
+      case 'name_desc':
+        return (b.fileName || '').localeCompare(a.fileName || '');
+      case 'date_asc':
+        return (a.uploadedAt?.getTime() || 0) - (b.uploadedAt?.getTime() || 0);
+      case 'date_desc':
+      default:
+        return (b.uploadedAt?.getTime() || 0) - (a.uploadedAt?.getTime() || 0);
+    }
+  });
 
   if (!selectedElder) {
     return (
@@ -187,7 +208,7 @@ export default function DocumentsPage() {
             Documents
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage documents for {selectedElder.name}
+            Store documents for {selectedElder.name}
           </p>
         </div>
         {!isReadOnly && (
@@ -200,7 +221,7 @@ export default function DocumentsPage() {
               >
                 <span>
                   <Upload className="w-4 h-4 mr-2" />
-                  {uploading ? 'Uploading...' : storageInfo?.isOverQuota ? 'Storage Over Limit' : 'Upload Document'}
+                  {uploading ? 'Uploading...' : storageInfo?.isOverQuota ? 'Storage Over Limit' : 'Upload'}
                 </span>
               </Button>
             </label>
@@ -217,14 +238,10 @@ export default function DocumentsPage() {
       </div>
 
       {error && (
-        <Card className="border-red-500 bg-red-50 dark:bg-red-900/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-              <AlertCircle className="w-5 h-5" />
-              <p>{error}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Storage Over Quota Warning */}
@@ -235,94 +252,56 @@ export default function DocumentsPage() {
             <div className="font-medium mb-1">Storage Over Limit</div>
             <p className="text-sm">
               You&apos;re using {formatFileSize(storageInfo.used)} of {formatFileSize(storageInfo.limit)}.
-              {' '}Delete {formatFileSize(storageInfo.used - storageInfo.limit)} of files to view or upload documents.
+              {' '}Delete {formatFileSize(storageInfo.used - storageInfo.limit)} of files to upload more.
             </p>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Category Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={selectedCategory === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('all')}
-            >
-              All Documents
-            </Button>
-            <Button
-              variant={selectedCategory === 'medical' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('medical')}
-            >
-              Medical Records
-            </Button>
-            <Button
-              variant={selectedCategory === 'insurance' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('insurance')}
-            >
-              Insurance
-            </Button>
-            <Button
-              variant={selectedCategory === 'legal' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('legal')}
-            >
-              Legal Documents
-            </Button>
-            <Button
-              variant={selectedCategory === 'care_plan' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('care_plan')}
-            >
-              Care Plans
-            </Button>
-            <Button
-              variant={selectedCategory === 'other' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('other')}
-            >
-              Other
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Storage Usage */}
+      {/* Storage Usage + Sort */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Storage Used</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                {formatFileSize(documents.reduce((sum, doc) => sum + (doc.fileSize || 0), 0))} / {user?.storageLimit ? formatFileSize(user.storageLimit) : '25 MB'}
+                {formatFileSize(storageInfo?.used || 0)} / {formatFileSize(storageInfo?.limit || 500 * 1024 * 1024)}
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Files</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">{documents.length}</p>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total Files</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">{documents.length}</p>
+              </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="text-sm border rounded-md px-2 py-1 bg-white dark:bg-gray-800 dark:border-gray-700"
+              >
+                <option value="date_desc">Newest First</option>
+                <option value="date_asc">Oldest First</option>
+                <option value="name_asc">Name A-Z</option>
+                <option value="name_desc">Name Z-A</option>
+              </select>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Documents Grid */}
+      {/* Documents List */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Document Library
+            Documents
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredDocuments.length === 0 ? (
+          {sortedDocuments.length === 0 ? (
             <div className="text-center py-12">
               <FolderOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                {selectedCategory === 'all' ? 'No documents uploaded yet' : `No ${selectedCategory.replace('_', ' ')} documents found`}
+                No documents uploaded yet
               </p>
               {!isReadOnly && (
                 <>
@@ -345,93 +324,80 @@ export default function DocumentsPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredDocuments.map((doc) => (
-                <Card key={doc.id} className="border-2">
-                  <CardContent className="pt-6">
-                    <div className="space-y-3">
-                      {/* File Icon and Name */}
-                      <div className="flex items-start gap-3">
-                        <div className="text-3xl">{getDocumentIcon(doc.fileType)}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {doc.fileName}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatFileSize(doc.fileSize)}
-                          </p>
-                        </div>
-                      </div>
+            <div className="space-y-3">
+              {sortedDocuments.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center gap-4 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                >
+                  {/* Icon */}
+                  <div className="text-2xl flex-shrink-0">{getDocumentIcon(doc.fileType)}</div>
 
-                      {/* Upload Date */}
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Uploaded {format(doc.uploadedAt, 'MMM d, yyyy')}
-                      </p>
+                  {/* File Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white truncate">
+                      {doc.fileName}
+                    </p>
 
-                      {/* Actions */}
-                      {/* REMOVED: View and Analyze with AI buttons (Jan 26, 2026)
-                          Reason: Document storage is sufficient - agency owners just need to store
-                          and retrieve documents, not view them in-app or analyze with AI.
-                          The delete button remains for file management.
-                      */}
-                      <div className="flex gap-2">
-                        {!isReadOnly && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(doc)}
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete
-                          </Button>
-                        )}
+                    {/* Description */}
+                    {editingId === doc.id ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          placeholder="Add a description..."
+                          className="h-7 text-sm"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveDescription(doc.id!);
+                            if (e.key === 'Escape') { setEditingId(null); setEditDescription(''); }
+                          }}
+                        />
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleSaveDescription(doc.id!)}>
+                          <Check className="w-4 h-4 text-green-600" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditingId(null); setEditDescription(''); }}>
+                          <X className="w-4 h-4 text-gray-400" />
+                        </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    ) : (
+                      <div className="flex items-center gap-1 mt-1">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {doc.description || <span className="italic">No description</span>}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-5 w-5 p-0 opacity-50 hover:opacity-100"
+                          onClick={() => { setEditingId(doc.id!); setEditDescription(doc.description || ''); }}
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-400 mt-1">
+                      {formatFileSize(doc.fileSize)} • Uploaded {doc.uploadedAt ? format(doc.uploadedAt, 'MMM d, yyyy') : 'Unknown'}
+                    </p>
+                  </div>
+
+                  {/* Delete Button */}
+                  {!isReadOnly && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleDelete(doc)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* REMOVED: Document Analysis Dialog (Jan 26, 2026)
-          Reason: Document storage is sufficient - AI analysis feature not needed.
-          Keeping code commented for potential future use.
-      <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-600" />
-                Document Analysis
-              </DialogTitle>
-            </div>
-            {selectedDocument && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedDocument.fileName}
-              </p>
-            )}
-          </DialogHeader>
-
-          {selectedDocument && user && selectedElder && (
-            <DocumentAnalysisPanel
-              documentId={selectedDocument.id!}
-              fileName={selectedDocument.fileName}
-              fileType={selectedDocument.fileType}
-              filePath={selectedDocument.filePath}
-              fileSize={selectedDocument.fileSize}
-              userId={user.id}
-              groupId={user.groups?.[0]?.groupId || ''}
-              elderId={selectedElder.id!}
-              onAnalysisComplete={() => {
-                // Could refresh documents or show notification
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-      */}
     </div>
   );
 }
