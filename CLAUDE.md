@@ -1182,6 +1182,20 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | FA-5D.9 | Deletion persists after refresh | ✅ PASS |
 | **TOTAL** | **8/8 + 1 N/A** | ✅ **100%** |
 
+#### Supplements Negative Tests (FA-5E)
+
+| Test | Description | Result |
+|------|-------------|--------|
+| FA-5E.1 | Empty supplement name submission | ✅ PASS |
+| FA-5E.2 | Empty dosage submission | ✅ PASS |
+| FA-5E.3 | Empty times submission | ✅ PASS |
+| FA-5E.4 | All fields empty submission | ✅ PASS |
+| FA-5E.5 | Duplicate supplement name | ✅ PASS (Duplicates allowed) |
+| FA-5E.6 | Very long supplement name (~200 chars) | ✅ PASS |
+| FA-5E.7 | XSS payload in supplement name | ✅ PASS (Escaped) |
+| FA-5E.8 | Cancel button discards form data | ✅ PASS |
+| **TOTAL** | **8/8** | ✅ **100%** |
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1200,7 +1214,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Add Supplement Tests | 13 | 13 | ✅ 100% |
 | Edit Supplement Tests | 8 | 8 | ✅ 100% |
 | Delete Supplement Tests | 9 | 8+1 N/A | ✅ 100% |
-| **TOTAL** | **131** | **125+6 N/A** | ✅ **100%** |
+| Supplements Negative Tests | 8 | 8 | ✅ 100% |
+| **TOTAL** | **139** | **133+6 N/A** | ✅ **100%** |
 
 ---
 
@@ -1294,7 +1309,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 131/131 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 139/139 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements incl. Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
