@@ -1072,6 +1072,22 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 **Notes:**
 - FA-4B.5, FA-4B.10: Form uses "Times (comma separated)" field instead of frequency dropdown + time picker
 
+#### Edit Medication Tests (FA-4C)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-4C.1 | Click Edit on existing medication | ✅ PASS |
+| FA-4C.2 | Edit form opens with data pre-filled | ✅ PASS |
+| FA-4C.3 | Modify medication name | ✅ PASS |
+| FA-4C.4 | Modify dosage | ✅ PASS |
+| FA-4C.5 | Modify frequency | ✅ PASS |
+| FA-4C.6 | Modify time | ✅ PASS |
+| FA-4C.7 | Modify instructions | ✅ PASS |
+| FA-4C.8 | Click Save | ✅ PASS |
+| FA-4C.9 | Changes saved successfully | ✅ PASS |
+| FA-4C.10 | Updated medication shows in list | ✅ PASS |
+| **TOTAL** | **10/10** | ✅ **100%** |
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1083,7 +1099,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Edit Elder Tests | 12 | 12 | ✅ 100% |
 | Elder Management Negative Tests | 6 | 5+1 N/A | ✅ 100% |
 | Add Medication Tests | 15 | 13+2 N/A | ✅ 100% |
-| **TOTAL** | **69** | **66+3 N/A** | ✅ **100%** |
+| Edit Medication Tests | 10 | 10 | ✅ 100% |
+| **TOTAL** | **79** | **76+3 N/A** | ✅ **100%** |
 
 ---
 
@@ -1177,7 +1194,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 69/69 tests passed (Login, Dashboard, Navigation, View/Edit Elder, Elder Mgmt Negative, Add Medication) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 79/79 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Add/Edit Medication) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
