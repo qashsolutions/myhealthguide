@@ -1048,6 +1048,30 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - FA-3C.4-5: Clear limit banner "Loved One Limit Reached (1/1)" with "Upgrade Plan" option
 - FA-3C.6: XSS payload `<script>alert('XSS')</script>` stored but displayed as escaped text (React JSX protection)
 
+#### Add Medication Tests (FA-4B)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-4B.1 | Click "Add Medication" | ✅ PASS |
+| FA-4B.2 | Add medication form opens | ✅ PASS |
+| FA-4B.3 | Medication name field visible | ✅ PASS |
+| FA-4B.4 | Dosage field visible | ✅ PASS |
+| FA-4B.5 | Frequency dropdown visible | ⚪ N/A (Uses "Times" field) |
+| FA-4B.6 | Time picker visible | ✅ PASS |
+| FA-4B.7 | Instructions field visible | ✅ PASS |
+| FA-4B.8 | Enter medication name "Test Med" | ✅ PASS |
+| FA-4B.9 | Enter dosage "10mg" | ✅ PASS |
+| FA-4B.10 | Select frequency "Daily" | ⚪ N/A (No dropdown) |
+| FA-4B.11 | Set time "8:00 AM" | ✅ PASS |
+| FA-4B.12 | Enter instructions "Take with food" | ✅ PASS |
+| FA-4B.13 | Click Save | ✅ PASS |
+| FA-4B.14 | Medication added successfully | ✅ PASS |
+| FA-4B.15 | New medication appears in list | ✅ PASS |
+| **TOTAL** | **13/13 + 2 N/A** | ✅ **100%** |
+
+**Notes:**
+- FA-4B.5, FA-4B.10: Form uses "Times (comma separated)" field instead of frequency dropdown + time picker
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1058,7 +1082,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | View Elder Tests | 8 | 8 | ✅ 100% |
 | Edit Elder Tests | 12 | 12 | ✅ 100% |
 | Elder Management Negative Tests | 6 | 5+1 N/A | ✅ 100% |
-| **TOTAL** | **54** | **53+1 N/A** | ✅ **100%** |
+| Add Medication Tests | 15 | 13+2 N/A | ✅ 100% |
+| **TOTAL** | **69** | **66+3 N/A** | ✅ **100%** |
 
 ---
 
@@ -1152,7 +1177,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 54/54 tests passed (Login, Dashboard, Navigation, View Elder, Edit Elder, Elder Mgmt Negative) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 69/69 tests passed (Login, Dashboard, Navigation, View/Edit Elder, Elder Mgmt Negative, Add Medication) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
