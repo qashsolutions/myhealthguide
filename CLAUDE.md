@@ -1012,6 +1012,24 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | FA-3A.12 | Edit button visible | ✅ PASS |
 | **TOTAL** | **8/8 UI features** | ✅ **100%** |
 
+#### Edit Elder Tests (FA-3B)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-3B.1 | Click Edit on elder profile | ✅ PASS |
+| FA-3B.2 | Edit form opens | ✅ PASS |
+| FA-3B.3 | All fields pre-populated | ✅ PASS |
+| FA-3B.4 | Modify elder name (Preferred Name) | ✅ PASS |
+| FA-3B.5 | Modify date of birth | ✅ PASS |
+| FA-3B.6 | Modify address (City) | ✅ PASS |
+| FA-3B.7 | Modify medical conditions | ✅ PASS |
+| FA-3B.8 | Modify allergies | ✅ PASS |
+| FA-3B.9 | Click Save | ✅ PASS |
+| FA-3B.10 | Changes saved successfully | ✅ PASS |
+| FA-3B.11 | Success message shown | ✅ PASS |
+| FA-3B.12 | Changes persist after refresh | ✅ PASS |
+| **TOTAL** | **12/12** | ✅ **100%** |
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1020,7 +1038,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Dashboard Positive Tests | 10 | 10 | ✅ 100% |
 | Dashboard Navigation Tests | 10 | 10 | ✅ 100% |
 | View Elder Tests | 8 | 8 | ✅ 100% |
-| **TOTAL** | **36** | **36** | ✅ **100%** |
+| Edit Elder Tests | 12 | 12 | ✅ 100% |
+| **TOTAL** | **48** | **48** | ✅ **100%** |
 
 ---
 
@@ -1114,7 +1133,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 36/36 tests passed (Login, Dashboard, Navigation, View Elder) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 48/48 tests passed (Login, Dashboard, Navigation, View Elder, Edit Elder) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
