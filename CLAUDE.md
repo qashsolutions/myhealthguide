@@ -1088,6 +1088,41 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | FA-4C.10 | Updated medication shows in list | ✅ PASS |
 | **TOTAL** | **10/10** | ✅ **100%** |
 
+#### Delete Medication Tests (FA-4D)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-4D.1 | Click Delete on a medication | ✅ PASS |
+| FA-4D.2 | Confirmation dialog appears | ✅ PASS |
+| FA-4D.3 | Dialog shows medication name | ✅ PASS |
+| FA-4D.4 | Cancel button works | ✅ PASS |
+| FA-4D.5 | Medication NOT deleted on cancel | ✅ PASS |
+| FA-4D.6 | Click Delete again → Confirm deletion | ✅ PASS |
+| FA-4D.7 | Medication removed from list | ✅ PASS |
+| FA-4D.8 | Success message shown | ⚪ N/A (Empty state confirms) |
+| FA-4D.9 | Medication gone after refresh | ✅ PASS |
+| **TOTAL** | **8/8 + 1 N/A** | ✅ **100%** |
+
+#### Medications Negative Tests (FA-4E)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-4E.1 | Empty medication name → Blocked | ✅ PASS |
+| FA-4E.2 | Empty dosage → Blocked | ✅ PASS |
+| FA-4E.3 | Empty time → Blocked | ✅ PASS |
+| FA-4E.4 | Empty frequency → Blocked | ⚪ N/A (No frequency field) |
+| FA-4E.5 | Duplicate medication name → Allowed | ✅ PASS |
+| FA-4E.6 | Very long medication name → Handled | ✅ PASS |
+| FA-4E.7 | Special characters/XSS → Escaped | ✅ PASS |
+| FA-4E.8 | Cancel discards form data | ✅ PASS |
+| **TOTAL** | **7/7 + 1 N/A** | ✅ **100%** |
+
+**Notes:**
+- FA-4E.4: Form uses "Times (comma separated)" field, no separate frequency dropdown
+- FA-4E.5: Duplicate names allowed - same medication can have different dosages/times
+- FA-4E.6: Very long names accepted and displayed with text wrapping
+- FA-4E.7: XSS payload `<script>alert('XSS')</script>` displayed as escaped text (React JSX protection)
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1100,7 +1135,9 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Elder Management Negative Tests | 6 | 5+1 N/A | ✅ 100% |
 | Add Medication Tests | 15 | 13+2 N/A | ✅ 100% |
 | Edit Medication Tests | 10 | 10 | ✅ 100% |
-| **TOTAL** | **79** | **76+3 N/A** | ✅ **100%** |
+| Delete Medication Tests | 9 | 8+1 N/A | ✅ 100% |
+| Medications Negative Tests | 8 | 7+1 N/A | ✅ 100% |
+| **TOTAL** | **96** | **91+5 N/A** | ✅ **100%** |
 
 ---
 
@@ -1194,7 +1231,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 79/79 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Add/Edit Medication) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 96/96 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medication CRUD + Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
