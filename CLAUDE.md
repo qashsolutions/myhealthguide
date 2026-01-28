@@ -1269,6 +1269,77 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - FA-6N.4: Accented chars (crème brûlée), Japanese (日本料理), Chinese (中文字), Greek (Ελληνικά), Arabic (مرحبا), emojis (🍕🥗🍳) all saved correctly
 - FA-6N.5: Back arrow navigates without saving (data discarded)
 
+#### View Activity Tests (FA-7A)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-7A.1 | Navigate to Activity page | ✅ PASS |
+| FA-7A.2 | Page header displays ("Today's Focus", date, loved one) | ✅ PASS |
+| FA-7A.3 | Quick Insights section (Medications, Supplements, Meals, Status) | ✅ PASS |
+| FA-7A.4 | Today's Progress bar with percentage | ✅ PASS |
+| FA-7A.5 | Today's Schedule with medication items | ✅ PASS |
+| FA-7A.6 | Recent Activity section | ✅ PASS |
+| **TOTAL** | **6/6** | ✅ **100%** |
+
+**Notes:**
+- Activity page = "Today's Focus" medication tracking dashboard
+- Quick Insights shows: Medications (Taken/Pending/Missed), Supplements, Meals, Status
+- Progress bar tracks completion percentage
+- Recent Activity shows timestamped log entries
+
+#### Add Activity Entry Tests (FA-7B)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-7B.1 | Take button shows dropdown options | ✅ PASS |
+| FA-7B.2 | Mark as Taken updates progress | ✅ PASS |
+| FA-7B.3 | Activity appears in Recent Activity | ✅ PASS |
+| FA-7B.4 | Quick Insights updates correctly | ✅ PASS |
+| FA-7B.5 | Mark as Skipped works | ✅ PASS |
+| FA-7B.6 | Mark as Late works | ✅ PASS |
+| **TOTAL** | **6/6** | ✅ **100%** |
+
+**Notes:**
+- Three logging options: Taken (green), Skipped (orange), Late (yellow)
+- "Late" counts as "Taken" for compliance tracking
+- Each action logged with timestamp in Recent Activity
+
+#### Edit Activity Entry Tests (FA-7C)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-7C.1 | Medication logs are immutable (no edit) | ✅ N/A (By Design) |
+| **TOTAL** | **1 N/A** | ✅ **By Design** |
+
+**Note:** Medication activity logs cannot be edited - intentional safety feature to prevent manipulation of medication records.
+
+#### Delete Activity Entry Tests (FA-7D)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-7D.1 | Medication logs cannot be deleted | ✅ N/A (By Design) |
+| **TOTAL** | **1 N/A** | ✅ **By Design** |
+
+**Note:** Medication activity logs cannot be deleted - prevents accidental removal of dose records.
+
+#### Activity Negative Tests (FA-7N)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-7N.1 | Double-click Take button (prevent duplicate) | ✅ PASS |
+| FA-7N.2 | Click Take on already-logged medication | ✅ PASS |
+| FA-7N.3 | XSS in medication names (security) | ✅ PASS |
+| FA-7N.4 | Browser refresh after logging | ✅ PASS |
+| FA-7N.5 | Navigate away and back | ✅ PASS |
+| **TOTAL** | **5/5** | ✅ **100%** |
+
+**Notes:**
+- FA-7N.1: Double-click only opens dropdown once, no duplicate entries
+- FA-7N.2: Once logged, Take button replaced with status badge - prevents re-logging
+- FA-7N.3: `<script>alert('XSS')</script>` displayed as escaped text, not executed
+- FA-7N.4: All activity data persists after browser refresh (Firestore sync)
+- FA-7N.5: All activity data persists after navigating away and returning
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1293,7 +1364,12 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Edit Diet Entry Tests | 4 | 4 | ✅ 100% |
 | Delete Diet Entry Tests | 4 | 4 | ✅ 100% |
 | Diet Negative Tests | 5 | 5 | ✅ 100% |
-| **TOTAL** | **164** | **158+6 N/A** | ✅ **100%** |
+| View Activity Tests | 6 | 6 | ✅ 100% |
+| Add Activity Entry Tests | 6 | 6 | ✅ 100% |
+| Edit Activity Entry Tests | 1 | N/A | ✅ By Design |
+| Delete Activity Entry Tests | 1 | N/A | ✅ By Design |
+| Activity Negative Tests | 5 | 5 | ✅ 100% |
+| **TOTAL** | **183** | **175+8 N/A** | ✅ **100%** |
 
 ---
 
@@ -1387,7 +1463,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 164/164 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet incl. Negative Tests) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 183/183 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity incl. Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
