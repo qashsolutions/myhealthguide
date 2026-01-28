@@ -6,7 +6,7 @@ import { AlertCard } from './AlertCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bell, BellOff, Filter, RefreshCw } from 'lucide-react';
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { handleRefillAlertAction } from '@/lib/ai/medicationRefillPrediction';
@@ -31,7 +31,8 @@ export function AlertCenter({ groupId, elderId, compact = false }: AlertCenterPr
     let q = query(
       collection(db, 'alerts'),
       where('groupId', '==', groupId),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(100) // Prevent BloomFilter errors on large result sets
     );
 
     // Filter by elder if provided
@@ -39,19 +40,32 @@ export function AlertCenter({ groupId, elderId, compact = false }: AlertCenterPr
       q = query(q, where('elderId', '==', elderId));
     }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const alertsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        expiresAt: doc.data().expiresAt?.toDate(),
-        dismissedAt: doc.data().dismissedAt?.toDate(),
-        actionedAt: doc.data().actionedAt?.toDate()
-      })) as Alert[];
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const alertsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate(),
+          expiresAt: doc.data().expiresAt?.toDate(),
+          dismissedAt: doc.data().dismissedAt?.toDate(),
+          actionedAt: doc.data().actionedAt?.toDate()
+        })) as Alert[];
 
-      setAlerts(alertsData);
-      setLoading(false);
-    });
+        setAlerts(alertsData);
+        setLoading(false);
+      },
+      (error) => {
+        // BloomFilter errors are non-fatal and can be safely ignored
+        // They occur when the SDK's internal bloom filter has issues
+        if (error.message?.includes('BloomFilter')) {
+          console.warn('Firestore BloomFilter warning (non-fatal):', error.name);
+        } else {
+          console.error('Alert listener error:', error);
+        }
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, [groupId, elderId, user?.id]);
