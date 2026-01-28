@@ -1340,6 +1340,95 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - FA-7N.4: All activity data persists after browser refresh (Firestore sync)
 - FA-7N.5: All activity data persists after navigating away and returning
 
+#### View Insights Tests (FA-8A)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-8A.1 | Navigate to Insights page | ✅ PASS |
+| FA-8A.2 | Page header displays ("Smart Insights", elder name) | ✅ PASS |
+| FA-8A.3 | Three tabs visible (Health Trends, Clinical Notes, Reports) | ✅ PASS |
+| FA-8A.4 | Export button visible | ✅ PASS |
+| FA-8A.5 | Refresh button visible | ✅ PASS |
+| **TOTAL** | **5/5** | ✅ **100%** |
+
+**Notes:**
+- Smart Insights page with AI-powered health analytics
+- Three-tab navigation for different analysis types
+- Export and Refresh action buttons in header
+
+#### Health Trends Tab Tests (FA-8B)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-8B.1 | Health Trends tab loads by default | ✅ PASS |
+| FA-8B.2 | Weekly Summaries section visible | ✅ PASS |
+| FA-8B.3 | Generate First Summary button (when no data) | ✅ PASS |
+| FA-8B.4 | Weekly Health Trends section visible | ✅ PASS |
+| FA-8B.5 | Overall Compliance card (percentage, status) | ✅ PASS |
+| FA-8B.6 | Total Missed Doses card | ✅ PASS |
+| FA-8B.7 | Avg Meals/Week card | ✅ PASS |
+| FA-8B.8 | Medication Compliance Trend chart (12 weeks) | ✅ PASS |
+| **TOTAL** | **8/8** | ✅ **100%** |
+
+**Notes:**
+- Compliance shown as percentage with status (e.g., "66.7% - Needs Improvement")
+- 12-week trend chart with Target 90% and Minimum 75% reference lines
+- Missed Doses Trend chart shows weekly missed dose counts
+
+#### Clinical Notes Tab Tests (FA-8C)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-8C.1 | Clinical Notes tab loads | ✅ PASS |
+| FA-8C.2 | Generate Clinical Notes section visible | ✅ PASS |
+| FA-8C.3 | Description text explains purpose | ✅ PASS |
+| FA-8C.4 | "What's Included" list visible | ✅ PASS |
+| FA-8C.5 | AI disclaimer visible | ✅ PASS |
+| **TOTAL** | **5/5** | ✅ **100%** |
+
+**Notes:**
+- Clinical Notes for doctor visit preparation
+- Includes: Medication summary, Recent vital signs, Health observations, Recommended discussion points
+- AI disclaimer: "AI provides data analysis only, not medical advice"
+
+#### Reports Tab Tests (FA-8D)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-8D.1 | Reports tab loads | ✅ PASS |
+| FA-8D.2 | Unified Health Report section visible | ✅ PASS |
+| FA-8D.3 | Generate Health Report button | ✅ PASS |
+| FA-8D.4 | Report generates successfully | ✅ PASS |
+| FA-8D.5 | Summary cards display (Medication Adherence, Nutrition Score, Meals, Glasses/Day) | ✅ PASS |
+| FA-8D.6 | Medication Adherence section | ✅ PASS |
+| FA-8D.7 | Nutrition Analysis section | ✅ PASS |
+| FA-8D.8 | Regenerate Report button appears | ✅ PASS |
+| FA-8D.9 | AI disclaimer visible | ✅ PASS |
+| **TOTAL** | **9/9** | ✅ **100%** |
+
+**Notes:**
+- Unified 7-day health report combining medication adherence + nutrition analysis
+- Summary cards show N/A when no data available
+- Reports generated on-demand (not persisted to database)
+
+#### Insights Negative Tests (FA-8N)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-8N.1 | Rapid click Generate Report button (prevent duplicate) | ✅ PASS |
+| FA-8N.2 | Tab switching during generation | ✅ PASS |
+| FA-8N.3 | Browser refresh persistence | ✅ PASS |
+| FA-8N.4 | XSS in displayed data (elder name, values) | ✅ PASS |
+| FA-8N.5 | Navigate away and back | ✅ PASS |
+| **TOTAL** | **5/5** | ✅ **100%** |
+
+**Notes:**
+- FA-8N.1: Button shows loading spinner, prevents double-clicks
+- FA-8N.2: Tab switching works bi-directionally without issues
+- FA-8N.3: Underlying Firestore data persists; reports regenerate on-demand (expected behavior)
+- FA-8N.4: React JSX escapes all text content, Recharts library escapes chart data
+- FA-8N.5: All data loads correctly after navigating away and returning
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1369,7 +1458,12 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Edit Activity Entry Tests | 1 | N/A | ✅ By Design |
 | Delete Activity Entry Tests | 1 | N/A | ✅ By Design |
 | Activity Negative Tests | 5 | 5 | ✅ 100% |
-| **TOTAL** | **183** | **175+8 N/A** | ✅ **100%** |
+| View Insights Tests | 5 | 5 | ✅ 100% |
+| Health Trends Tab Tests | 8 | 8 | ✅ 100% |
+| Clinical Notes Tab Tests | 5 | 5 | ✅ 100% |
+| Reports Tab Tests | 9 | 9 | ✅ 100% |
+| Insights Negative Tests | 5 | 5 | ✅ 100% |
+| **TOTAL** | **215** | **207+8 N/A** | ✅ **100%** |
 
 ---
 
@@ -1463,7 +1557,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 183/183 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity incl. Negative Tests) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 215/215 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights incl. Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
