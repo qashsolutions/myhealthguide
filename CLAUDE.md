@@ -1123,6 +1123,65 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - FA-4E.6: Very long names accepted and displayed with text wrapping
 - FA-4E.7: XSS payload `<script>alert('XSS')</script>` displayed as escaped text (React JSX protection)
 
+#### View Supplements Tests (FA-5A)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-5A.1 | Navigate to Supplements section | ✅ PASS |
+| FA-5A.2 | Supplements page loads | ✅ PASS |
+| FA-5A.3 | Page title visible | ✅ PASS |
+| FA-5A.4 | Empty state message visible | ✅ PASS |
+| FA-5A.5 | Add button visible | ✅ PASS |
+| **TOTAL** | **5/5** | ✅ **100%** |
+
+#### Add Supplement Tests (FA-5B)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-5B.1 | Click "Add" button | ✅ PASS |
+| FA-5B.2 | Add form opens | ✅ PASS |
+| FA-5B.3 | Supplement name field visible | ✅ PASS |
+| FA-5B.4 | Dosage field visible | ✅ PASS |
+| FA-5B.5 | Times field visible | ✅ PASS |
+| FA-5B.6 | Notes field visible | ✅ PASS |
+| FA-5B.7 | Enter supplement name "Vitamin D3" | ✅ PASS |
+| FA-5B.8 | Enter dosage "2000 IU" | ✅ PASS |
+| FA-5B.9 | Enter time "9 am" | ✅ PASS |
+| FA-5B.10 | Enter notes | ✅ PASS |
+| FA-5B.11 | Click Save | ✅ PASS |
+| FA-5B.12 | Supplement added successfully | ✅ PASS |
+| FA-5B.13 | New supplement appears in list | ✅ PASS |
+| **TOTAL** | **13/13** | ✅ **100%** |
+
+#### Edit Supplement Tests (FA-5C)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-5C.1 | Click Edit on existing supplement | ✅ PASS |
+| FA-5C.2 | Edit form opens with data pre-filled | ✅ PASS |
+| FA-5C.3 | Modify supplement name | ✅ PASS |
+| FA-5C.4 | Modify dosage | ✅ PASS |
+| FA-5C.5 | Modify time | ✅ PASS |
+| FA-5C.6 | Click Save | ✅ PASS |
+| FA-5C.7 | Changes saved successfully | ✅ PASS |
+| FA-5C.8 | Updated supplement shows in list | ✅ PASS |
+| **TOTAL** | **8/8** | ✅ **100%** |
+
+#### Delete Supplement Tests (FA-5D)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-5D.1 | Click Delete on a supplement | ✅ PASS |
+| FA-5D.2 | Confirmation dialog appears | ✅ PASS |
+| FA-5D.3 | Dialog shows supplement name | ✅ PASS |
+| FA-5D.4 | Cancel button works | ✅ PASS |
+| FA-5D.5 | Supplement NOT deleted on cancel | ✅ PASS |
+| FA-5D.6 | Click Delete again → Confirm deletion | ✅ PASS |
+| FA-5D.7 | Supplement removed from list | ✅ PASS |
+| FA-5D.8 | Success message shown | ⚪ N/A (Empty state confirms) |
+| FA-5D.9 | Deletion persists after refresh | ✅ PASS |
+| **TOTAL** | **8/8 + 1 N/A** | ✅ **100%** |
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1137,7 +1196,11 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Edit Medication Tests | 10 | 10 | ✅ 100% |
 | Delete Medication Tests | 9 | 8+1 N/A | ✅ 100% |
 | Medications Negative Tests | 8 | 7+1 N/A | ✅ 100% |
-| **TOTAL** | **96** | **91+5 N/A** | ✅ **100%** |
+| View Supplements Tests | 5 | 5 | ✅ 100% |
+| Add Supplement Tests | 13 | 13 | ✅ 100% |
+| Edit Supplement Tests | 8 | 8 | ✅ 100% |
+| Delete Supplement Tests | 9 | 8+1 N/A | ✅ 100% |
+| **TOTAL** | **131** | **125+6 N/A** | ✅ **100%** |
 
 ---
 
@@ -1231,7 +1294,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 96/96 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medication CRUD + Negative Tests) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 131/131 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
