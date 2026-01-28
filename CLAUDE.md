@@ -1196,6 +1196,79 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | FA-5E.8 | Cancel button discards form data | ✅ PASS |
 | **TOTAL** | **8/8** | ✅ **100%** |
 
+#### View Diet Tests (FA-6A)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-6A.1 | Navigate to Diet page | ✅ PASS |
+| FA-6A.2 | Page header displays | ✅ PASS |
+| FA-6A.3 | Empty state shown | ✅ PASS |
+| FA-6A.4 | Action buttons shown | ✅ PASS |
+| FA-6A.5 | Today's Nutrition card | ✅ PASS |
+| FA-6A.6 | Week navigation | ✅ PASS |
+| **TOTAL** | **6/6** | ✅ **100%** |
+
+**Notes:**
+- Page shows "Diet Tracking", "Log meals and monitor nutrition"
+- Empty state: "No meals logged yet for Loved One A1"
+- Buttons: "Log Your First Meal", "+ Log Meal", "Voice Log"
+- Today's Nutrition card with calories chart and macros breakdown
+
+#### Add Diet Entry Tests (FA-6B)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-6B.1 | Click "Log Your First Meal" | ✅ PASS |
+| FA-6B.2 | Form fields display | ✅ PASS |
+| FA-6B.3 | Fill form with breakfast entry | ✅ PASS |
+| FA-6B.4 | Save entry | ✅ PASS |
+| FA-6B.5 | AI nutrition analysis | ✅ PASS |
+| FA-6B.6 | Food tags parsed | ✅ PASS |
+| **TOTAL** | **6/6** | ✅ **100%** |
+
+**Notes:**
+- Form fields: Loved One, Meal Type, What was eaten, Smart Nutrition Analysis button
+- AI analysis shows: calories, carbs, protein, fat, Nutrition Score (0-100)
+- Food tags automatically parsed from description
+
+#### Edit Diet Entry Tests (FA-6C)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-6C.1 | Click Edit button | ✅ PASS |
+| FA-6C.2 | Pre-filled data shown | ✅ PASS |
+| FA-6C.3 | Modify food items | ✅ PASS |
+| FA-6C.4 | Save changes | ✅ PASS |
+| **TOTAL** | **4/4** | ✅ **100%** |
+
+#### Delete Diet Entry Tests (FA-6D)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-6D.1 | Click Delete button | ✅ PASS |
+| FA-6D.2 | Confirmation dialog appears | ✅ PASS |
+| FA-6D.3 | Confirm delete | ✅ PASS |
+| FA-6D.4 | Return to empty state | ✅ PASS |
+| **TOTAL** | **4/4** | ✅ **100%** |
+
+#### Diet Negative Tests (FA-6N)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-6N.1 | Empty meal entry submission | ✅ PASS (blocked) |
+| FA-6N.2 | Very long text (600+ chars) | ✅ PASS |
+| FA-6N.3 | XSS/Script injection | ✅ PASS (escaped) |
+| FA-6N.4 | Special characters (Unicode, emojis) | ✅ PASS |
+| FA-6N.5 | Cancel button behavior | ✅ PASS |
+| **TOTAL** | **5/5** | ✅ **100%** |
+
+**Notes:**
+- FA-6N.1: Empty "What was eaten?" field blocks submission silently
+- FA-6N.2: Long text saved successfully, AI parsed 25+ food tags
+- FA-6N.3: `<script>alert('XSS')</script>` displayed as escaped text, not executed
+- FA-6N.4: Accented chars (crème brûlée), Japanese (日本料理), Chinese (中文字), Greek (Ελληνικά), Arabic (مرحبا), emojis (🍕🥗🍳) all saved correctly
+- FA-6N.5: Back arrow navigates without saving (data discarded)
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1215,7 +1288,12 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Edit Supplement Tests | 8 | 8 | ✅ 100% |
 | Delete Supplement Tests | 9 | 8+1 N/A | ✅ 100% |
 | Supplements Negative Tests | 8 | 8 | ✅ 100% |
-| **TOTAL** | **139** | **133+6 N/A** | ✅ **100%** |
+| View Diet Tests | 6 | 6 | ✅ 100% |
+| Add Diet Entry Tests | 6 | 6 | ✅ 100% |
+| Edit Diet Entry Tests | 4 | 4 | ✅ 100% |
+| Delete Diet Entry Tests | 4 | 4 | ✅ 100% |
+| Diet Negative Tests | 5 | 5 | ✅ 100% |
+| **TOTAL** | **164** | **158+6 N/A** | ✅ **100%** |
 
 ---
 
@@ -1309,7 +1387,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 139/139 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements incl. Negative Tests) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 164/164 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet incl. Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
