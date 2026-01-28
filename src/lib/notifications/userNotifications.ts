@@ -229,7 +229,12 @@ export function subscribeToNotifications(
 
     callback(notifications);
   }, (error) => {
-    console.error('Error in notification subscription:', error);
+    // BloomFilter errors are non-fatal SDK issues - log as warning
+    if (error.message?.includes('BloomFilter')) {
+      console.warn('Firestore BloomFilter warning (non-fatal):', error.name);
+    } else {
+      console.error('Error in notification subscription:', error);
+    }
   });
 }
 

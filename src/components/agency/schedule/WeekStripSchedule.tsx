@@ -247,7 +247,12 @@ export function WeekStripSchedule({ agencyId, userId }: WeekStripScheduleProps) 
         setLoading(false);
       },
       (error) => {
-        console.error('Error listening to shifts:', error);
+        // BloomFilter errors are non-fatal SDK issues - log as warning
+        if (error.message?.includes('BloomFilter')) {
+          console.warn('Firestore BloomFilter warning (non-fatal):', error.name);
+        } else {
+          console.error('Error listening to shifts:', error);
+        }
         setLoading(false);
       }
     );
