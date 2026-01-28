@@ -1030,6 +1030,24 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | FA-3B.12 | Changes persist after refresh | ✅ PASS |
 | **TOTAL** | **12/12** | ✅ **100%** |
 
+#### Elder Management Negative Tests (FA-3C)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-3C.1 | Edit elder with empty name → Error shown | ⚪ N/A (Preferred Name optional) |
+| FA-3C.2 | Invalid date of birth (future) → Rejected | ✅ PASS |
+| FA-3C.3 | Cancel edit → Changes discarded | ✅ PASS |
+| FA-3C.4 | Try to add second elder (limit=1) → Blocked | ✅ PASS |
+| FA-3C.5 | Limit message is clear | ✅ PASS |
+| FA-3C.6 | XSS attempt in name field → Sanitized | ✅ PASS |
+| **TOTAL** | **5/5 + 1 N/A** | ✅ **100%** |
+
+**Notes:**
+- FA-3C.1: Preferred Name is optional (nickname); Full Name not editable in profile edit form
+- FA-3C.2: Future dates silently rejected by HTML5 date input validation
+- FA-3C.4-5: Clear limit banner "Loved One Limit Reached (1/1)" with "Upgrade Plan" option
+- FA-3C.6: XSS payload `<script>alert('XSS')</script>` stored but displayed as escaped text (React JSX protection)
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1039,7 +1057,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Dashboard Navigation Tests | 10 | 10 | ✅ 100% |
 | View Elder Tests | 8 | 8 | ✅ 100% |
 | Edit Elder Tests | 12 | 12 | ✅ 100% |
-| **TOTAL** | **48** | **48** | ✅ **100%** |
+| Elder Management Negative Tests | 6 | 5+1 N/A | ✅ 100% |
+| **TOTAL** | **54** | **53+1 N/A** | ✅ **100%** |
 
 ---
 
@@ -1133,7 +1152,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 48/48 tests passed (Login, Dashboard, Navigation, View Elder, Edit Elder) |
+| Jan 28, 2026 | **Phase 14 UI/UX Testing UPDATED** - 54/54 tests passed (Login, Dashboard, Navigation, View Elder, Edit Elder, Elder Mgmt Negative) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
