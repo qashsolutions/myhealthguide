@@ -376,7 +376,33 @@ Cleaned up Analytics tab for Multi-Agency SuperAdmins. Removed billing-related m
 
 ### Disabled Features
 
-**Updated:** Jan 27, 2026
+**Updated:** Jan 29, 2026
+
+#### Health Records / Vital Signs (NOT BUILT - BY DESIGN)
+
+| Item | Status |
+|------|--------|
+| **Feature** | Dedicated page for recording vital signs (blood pressure, weight, temperature) |
+| **Status** | ⚪ NOT BUILT - intentional design decision |
+| **Reason** | Minimize screens for caregivers; vitals logged via existing Notes/Symptoms |
+| **Date** | Jan 29, 2026 |
+
+**Design Decision:**
+1. Caregivers log vitals as free-text in **Notes** or **Symptoms** tabs (Health Profile)
+2. AI parses notes for SOAP generation and reports
+3. No separate "Health Records" screen needed - reduces caregiver cognitive load
+4. TypeScript types exist (`vitalSigns` in `src/types/index.ts`) if structured entry needed later
+
+**Current Workflow for Vitals:**
+- Log in Health Profile → Notes tab: "Blood pressure 125/82, feeling good"
+- Log in Health Profile → Symptoms tab: For recurring observations with severity
+- AI extracts vitals for Clinical Notes and SOAP reports
+
+**If Structured Vitals Needed Later:**
+- Option: Add "Quick Vitals" accordion to existing Symptoms tab (no new screen)
+- Types already defined in `src/types/index.ts` lines 915-918
+
+---
 
 #### Timesheet Management (DISABLED)
 
