@@ -8,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ValidationError } from '@/components/ui/ValidationError';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { SupplementService } from '@/lib/firebase/supplements';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
+import { useNameValidation } from '@/hooks/useNameValidation';
 
 export default function NewSupplementPage() {
   const router = useRouter();
@@ -35,6 +37,9 @@ export default function NewSupplementPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Name validation hook
+  const { validateField, getError, getSuggestion, applySuggestion, clearError } = useNameValidation();
 
   // Pre-fill elder selection from context or auto-select if only one
   useEffect(() => {
@@ -70,6 +75,12 @@ export default function NewSupplementPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate name field before submission
+    if (!validateField('name', formData.name, 'supplement')) {
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -208,9 +219,21 @@ export default function NewSupplementPage() {
                   id="name"
                   placeholder="Vitamin D"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => {
+                    setFormData({...formData, name: e.target.value});
+                    clearError('name');
+                  }}
+                  onBlur={() => validateField('name', formData.name, 'supplement')}
                   required
                   className="placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                />
+                <ValidationError
+                  error={getError('name')}
+                  suggestion={getSuggestion('name')}
+                  onApplySuggestion={() => {
+                    const suggested = applySuggestion('name');
+                    if (suggested) setFormData({...formData, name: suggested});
+                  }}
                 />
               </div>
 

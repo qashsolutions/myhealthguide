@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ValidationError } from '@/components/ui/ValidationError';
 import { DietAnalysisPanel } from '@/components/ai/DietAnalysisPanel';
 import { analyzeDietEntryWithParsing } from '@/lib/ai/geminiService';
 import { DietAnalysis } from '@/types';
@@ -20,6 +21,7 @@ import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
 import { DietService } from '@/lib/firebase/diet';
 import { createDietEntryOfflineAware } from '@/lib/offline';
+import { useNameValidation } from '@/hooks/useNameValidation';
 
 export default function NewDietEntryPage() {
   const router = useRouter();
@@ -40,6 +42,9 @@ export default function NewDietEntryPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Name validation hook (for diet, skip word count check)
+  const { validateField, getError, getSuggestion, applySuggestion, clearError } = useNameValidation();
 
   // Pre-fill elder selection from context or auto-select if only one
   useEffect(() => {
@@ -63,6 +68,11 @@ export default function NewDietEntryPage() {
   const handleAnalyze = async () => {
     if (!freeformInput.trim() && parsedItems.length === 0) {
       setError('Please describe what was eaten');
+      return;
+    }
+
+    // Validate input before expensive AI call (skip word count for diet descriptions)
+    if (!validateField('foodDescription', freeformInput, 'food', { skipWordCount: true })) {
       return;
     }
 
@@ -142,6 +152,11 @@ export default function NewDietEntryPage() {
 
     if (!freeformInput.trim() && parsedItems.length === 0) {
       setError('Please describe what was eaten');
+      return;
+    }
+
+    // Validate input before save (skip word count for diet descriptions)
+    if (!validateField('foodDescription', freeformInput, 'food', { skipWordCount: true })) {
       return;
     }
 
@@ -409,9 +424,19 @@ export default function NewDietEntryPage() {
                 onChange={(e) => {
                   setFreeformInput(e.target.value);
                   setAnalysis(null); // Clear analysis when input changes
+                  clearError('foodDescription');
                 }}
+                onBlur={() => validateField('foodDescription', freeformInput, 'food', { skipWordCount: true })}
                 placeholder="Describe the meal in your own words, e.g., 'boiled chicken with rice and steamed vegetables' or 'oatmeal with banana and honey'"
                 className="min-h-[100px] placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              <ValidationError
+                error={getError('foodDescription')}
+                suggestion={getSuggestion('foodDescription')}
+                onApplySuggestion={() => {
+                  const suggested = applySuggestion('foodDescription');
+                  if (suggested) setFreeformInput(suggested);
+                }}
               />
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Just type naturally - our smart system will understand and analyze the meal

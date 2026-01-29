@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ValidationError } from '@/components/ui/ValidationError';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { MedicationService } from '@/lib/firebase/medications';
 import { isReadOnlyForElderCare } from '@/lib/utils/getUserRole';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
+import { useNameValidation } from '@/hooks/useNameValidation';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { Medication } from '@/types';
@@ -41,6 +43,9 @@ export default function EditMedicationPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Name validation hook
+  const { validateField, getError, getSuggestion, applySuggestion, clearError } = useNameValidation();
 
   // Determine user's role for HIPAA audit logging
   const getUserRole = useCallback((): 'admin' | 'caregiver' | 'member' => {
@@ -96,6 +101,12 @@ export default function EditMedicationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate name field before submission
+    if (!validateField('name', formData.name, 'medication')) {
+      return;
+    }
+
     setSaving(true);
     setError('');
 
@@ -231,8 +242,20 @@ export default function EditMedicationPage() {
                     id="name"
                     placeholder="Lisinopril"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({...formData, name: e.target.value});
+                      clearError('name');
+                    }}
+                    onBlur={() => validateField('name', formData.name, 'medication')}
                     required
+                  />
+                  <ValidationError
+                    error={getError('name')}
+                    suggestion={getSuggestion('name')}
+                    onApplySuggestion={() => {
+                      const suggested = applySuggestion('name');
+                      if (suggested) setFormData({...formData, name: suggested});
+                    }}
                   />
                 </div>
 

@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ValidationError } from '@/components/ui/ValidationError';
 import { useAuth } from '@/contexts/AuthContext';
 import { useElder } from '@/contexts/ElderContext';
 import { DietService } from '@/lib/firebase/diet';
 import { EmailVerificationGate } from '@/components/auth/EmailVerificationGate';
 import { TrialExpirationGate } from '@/components/auth/TrialExpirationGate';
+import { useNameValidation } from '@/hooks/useNameValidation';
 import { Loader2, ArrowLeft, Utensils } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -32,6 +34,9 @@ export default function EditDietEntryPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Name validation hook (for diet, skip word count check)
+  const { validateField, getError, getSuggestion, applySuggestion, clearError } = useNameValidation();
 
   // Determine user's role for HIPAA audit logging
   const getUserRole = useCallback((): 'admin' | 'caregiver' | 'member' => {
@@ -83,6 +88,12 @@ export default function EditDietEntryPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate items field before submission (skip word count for diet)
+    if (!validateField('items', formData.items, 'food', { skipWordCount: true })) {
+      return;
+    }
+
     setSaving(true);
     setError('');
 
@@ -213,9 +224,21 @@ export default function EditDietEntryPage() {
                     id="items"
                     placeholder="e.g., Scrambled eggs, Toast, Orange juice"
                     value={formData.items}
-                    onChange={(e) => setFormData({...formData, items: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({...formData, items: e.target.value});
+                      clearError('items');
+                    }}
+                    onBlur={() => validateField('items', formData.items, 'food', { skipWordCount: true })}
                     rows={3}
                     required
+                  />
+                  <ValidationError
+                    error={getError('items')}
+                    suggestion={getSuggestion('items')}
+                    onApplySuggestion={() => {
+                      const suggested = applySuggestion('items');
+                      if (suggested) setFormData({...formData, items: suggested});
+                    }}
                   />
                   <p className="text-xs text-gray-500">Separate each food item with a comma</p>
                 </div>
