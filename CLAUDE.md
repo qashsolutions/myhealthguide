@@ -1530,6 +1530,32 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - FA-9N.4: Multiple rapid clicks only send one message (debounced)
 - FA-9N.5: Chat history clears on refresh - expected behavior for stateless Data Summary Tool (privacy benefit)
 
+#### Emergency Contacts Positive Tests (FA-8A)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-8A.1 | Navigate to Emergency Contacts tab | ✅ PASS |
+| FA-8A.2 | Contact list loads (empty state shown) | ✅ PASS |
+| FA-8A.3 | "Add Contact" button visible | ✅ PASS |
+| FA-8A.4 | Click Add Contact → dialog opens | ✅ PASS |
+| FA-8A.5 | Name field visible (required *) | ✅ PASS |
+| FA-8A.6 | Relationship field visible | ✅ PASS |
+| FA-8A.7 | Phone field visible (required *) | ✅ PASS |
+| FA-8A.8 | Email field visible | ✅ PASS |
+| FA-8A.9 | Add contact with all fields (Name, Relationship, Phone, Email) | ✅ PASS |
+| FA-8A.10 | Contact saved successfully (appears in list with badges) | ✅ PASS |
+| FA-8A.11 | Edit contact → dialog opens with pre-filled data, "Update" button | ✅ PASS |
+| FA-8A.12 | Delete contact → contact removed from list | ✅ PASS |
+| FA-8A.13 | Mark contact as primary → "Primary" badge + yellow highlight | ✅ PASS |
+| **TOTAL** | **13/13** | ✅ **100%** |
+
+**Notes:**
+- Form fields: Name*, Relationship, Contact Type (dropdown), Phone*, Alternate Phone, Email, Address, Special Instructions, Primary checkbox
+- Contact types available: Family (default dropdown)
+- Primary contacts get star icon, yellow "Primary" badge, highlighted card background, and separate "Primary Contacts" section header
+- Edit dialog shows "Update" button (not "Save")
+- Info banner: "Keep emergency contacts up to date. Mark primary contacts who should be reached first in emergencies."
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1569,7 +1595,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | AI Response Tests | 5 | 5 | ✅ 100% |
 | Chat History Tests | 4 | 4 | ✅ 100% |
 | Health Chat Negative Tests | 5 | 5 | ✅ 100% |
-| **TOTAL** | **242** | **234+8 N/A** | ✅ **100%** |
+| Emergency Contacts Positive Tests | 13 | 13 | ✅ 100% |
+| **TOTAL** | **255** | **247+8 N/A** | ✅ **100%** |
 
 ---
 
@@ -1654,7 +1681,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 ### Test Summary
 
-- 257/257 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 242 - some N/A by design)
+- 270/270 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 255 - some N/A by design)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -1663,7 +1690,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 28, 2026 | **Phase 14 UI/UX Testing COMPLETE** - 242/242 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat incl. Negative Tests) |
+| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 255/255 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts incl. Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
