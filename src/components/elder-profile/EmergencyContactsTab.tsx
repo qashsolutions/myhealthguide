@@ -66,6 +66,7 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
     isPrimary: false,
     specialInstructions: '',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadContacts();
@@ -97,6 +98,7 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
       isPrimary: false,
       specialInstructions: '',
     });
+    setFormErrors({});
     setShowDialog(true);
   };
 
@@ -113,11 +115,49 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
       isPrimary: contact.isPrimary || false,
       specialInstructions: contact.specialInstructions || '',
     });
+    setFormErrors({});
     setShowDialog(true);
   };
 
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required.';
+    }
+
+    const phoneTrimmed = formData.phone.trim();
+    if (!phoneTrimmed) {
+      errors.phone = 'Phone number is required.';
+    } else {
+      // Phone must contain only digits, spaces, dashes, parentheses, plus sign, and dots
+      const phoneClean = phoneTrimmed.replace(/[\s\-().+]/g, '');
+      if (!/^\d{7,15}$/.test(phoneClean)) {
+        errors.phone = 'Enter a valid phone number (7-15 digits).';
+      }
+    }
+
+    const altPhoneTrimmed = formData.alternatePhone.trim();
+    if (altPhoneTrimmed) {
+      const altClean = altPhoneTrimmed.replace(/[\s\-().+]/g, '');
+      if (!/^\d{7,15}$/.test(altClean)) {
+        errors.alternatePhone = 'Enter a valid phone number (7-15 digits).';
+      }
+    }
+
+    const emailTrimmed = formData.email.trim();
+    if (emailTrimmed) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+        errors.email = 'Enter a valid email address.';
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.phone.trim()) return;
+    if (!validateForm()) return;
 
     setSaving(true);
     try {
@@ -312,9 +352,10 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
                 <Label>Name *</Label>
                 <Input
                   value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  onChange={e => { setFormData({ ...formData, name: e.target.value }); setFormErrors(prev => { const n = { ...prev }; delete n.name; return n; }); }}
                   placeholder="Contact name"
                 />
+                {formErrors.name && <p className="text-xs text-red-600">{formErrors.name}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Relationship</Label>
@@ -351,19 +392,21 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
                 <Label>Phone *</Label>
                 <Input
                   value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={e => { setFormData({ ...formData, phone: e.target.value }); setFormErrors(prev => { const n = { ...prev }; delete n.phone; return n; }); }}
                   placeholder="Primary phone"
                   type="tel"
                 />
+                {formErrors.phone && <p className="text-xs text-red-600">{formErrors.phone}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Alternate Phone</Label>
                 <Input
                   value={formData.alternatePhone}
-                  onChange={e => setFormData({ ...formData, alternatePhone: e.target.value })}
+                  onChange={e => { setFormData({ ...formData, alternatePhone: e.target.value }); setFormErrors(prev => { const n = { ...prev }; delete n.alternatePhone; return n; }); }}
                   placeholder="Secondary phone"
                   type="tel"
                 />
+                {formErrors.alternatePhone && <p className="text-xs text-red-600">{formErrors.alternatePhone}</p>}
               </div>
             </div>
 
@@ -371,10 +414,11 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
               <Label>Email</Label>
               <Input
                 value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                onChange={e => { setFormData({ ...formData, email: e.target.value }); setFormErrors(prev => { const n = { ...prev }; delete n.email; return n; }); }}
                 placeholder="Email address"
                 type="email"
               />
+              {formErrors.email && <p className="text-xs text-red-600">{formErrors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -415,7 +459,7 @@ export function EmergencyContactsTab({ elderId, groupId, userId }: EmergencyCont
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || !formData.name.trim() || !formData.phone.trim()}
+              disabled={saving}
             >
               {saving ? 'Saving...' : editingContact ? 'Update' : 'Add Contact'}
             </Button>
