@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationSettings as NotificationSettingsComponent } from '@/components/notifications/NotificationSettings';
 import { NotificationHistory } from '@/components/notifications/NotificationHistory';
 import { GroupService } from '@/lib/firebase/groups';
+import { AuthService } from '@/lib/firebase/auth';
 import { AgencyService } from '@/lib/firebase/agencies';
 import { MemberCard } from '@/components/group/MemberCard';
 import { InviteCodeDialog } from '@/components/group/InviteCodeDialog';
@@ -680,9 +681,10 @@ function SecurityActivitySettings() {
     try {
       setChangingPassword(true);
 
-      // In production, call Firebase reauthenticate and updatePassword
-      // For now, show success message
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await AuthService.changePasswordWithReauth(
+        passwordForm.currentPassword,
+        passwordForm.newPassword
+      );
 
       setPasswordSuccess('Password updated successfully!');
       setPasswordForm({
@@ -690,8 +692,25 @@ function SecurityActivitySettings() {
         newPassword: '',
         confirmPassword: ''
       });
-    } catch (error) {
-      setPasswordError('Failed to update password. Please try again.');
+    } catch (error: unknown) {
+      const firebaseError = error as { code?: string; message?: string };
+      switch (firebaseError.code) {
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          setPasswordError('Current password is incorrect');
+          break;
+        case 'auth/too-many-requests':
+          setPasswordError('Too many attempts. Please try again later.');
+          break;
+        case 'auth/weak-password':
+          setPasswordError('New password is too weak. Please choose a stronger password.');
+          break;
+        case 'auth/requires-recent-login':
+          setPasswordError('Session expired. Please sign out and sign back in, then try again.');
+          break;
+        default:
+          setPasswordError(firebaseError.message || 'Failed to update password. Please try again.');
+      }
     } finally {
       setChangingPassword(false);
     }

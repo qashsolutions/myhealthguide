@@ -14,7 +14,8 @@ import {
   EmailAuthProvider,
   linkWithCredential,
   ConfirmationResult,
-  reload
+  reload,
+  reauthenticateWithCredential
 } from 'firebase/auth';
 import { auth, db } from './config';
 import { doc, setDoc, getDoc, updateDoc, query, collection, where, getDocs, deleteField } from 'firebase/firestore';
@@ -1061,6 +1062,24 @@ export class AuthService {
       passwordResetRequired: false,
       passwordSetupRequired: false // Clear the caregiver password setup requirement
     });
+  }
+
+  /**
+   * Change password with re-authentication
+   * Verifies current password before allowing update (HIPAA-compliant)
+   */
+  static async changePasswordWithReauth(currentPassword: string, newPassword: string): Promise<void> {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !currentUser.email) {
+      throw new Error('No user signed in or email not available');
+    }
+
+    // Re-authenticate with current password
+    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+
+    // Validate and update password (reuses existing validation + Firestore tracking)
+    await AuthService.changePassword(newPassword);
   }
 
   /**
