@@ -1556,6 +1556,23 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - Edit dialog shows "Update" button (not "Save")
 - Info banner: "Keep emergency contacts up to date. Mark primary contacts who should be reached first in emergencies."
 
+#### Emergency Contacts Negative Tests (FA-8B)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-8B.1 | Empty name → Error "Name is required." | ✅ PASS |
+| FA-8B.2 | Empty phone → Error "Phone number is required." | ✅ PASS |
+| FA-8B.3 | Invalid phone "abc" → Error "Enter a valid phone number (7-15 digits)." | ✅ PASS |
+| FA-8B.4 | Invalid email "notanemail" → Error "Enter a valid email address." | ✅ PASS |
+| FA-8B.5 | Cancel add → No contact created | ✅ PASS |
+| **TOTAL** | **5/5** | ✅ **100%** |
+
+**Notes:**
+- FA-8B.3: Phone validation strips formatting chars (+, -, (), spaces, dots), then checks for 7-15 digits
+- FA-8B.4: Email validation uses regex `^[^\s@]+@[^\s@]+\.[^\s@]+$` (only validated if provided, email is optional)
+- Inline red error messages shown below each field, cleared when user types
+- FA-8B.3 and FA-8B.4 initially FAILED (no format validation), fixed in commit `3a7db10`
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1596,7 +1613,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Chat History Tests | 4 | 4 | ✅ 100% |
 | Health Chat Negative Tests | 5 | 5 | ✅ 100% |
 | Emergency Contacts Positive Tests | 13 | 13 | ✅ 100% |
-| **TOTAL** | **255** | **247+8 N/A** | ✅ **100%** |
+| Emergency Contacts Negative Tests | 5 | 5 | ✅ 100% |
+| **TOTAL** | **260** | **252+8 N/A** | ✅ **100%** |
 
 ---
 
@@ -1681,7 +1699,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 ### Test Summary
 
-- 270/270 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 255 - some N/A by design)
+- 275/275 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 260 - some N/A by design)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -1690,7 +1708,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 255/255 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts incl. Negative Tests) |
+| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 260/260 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts incl. Positive + Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
