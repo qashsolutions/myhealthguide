@@ -160,51 +160,58 @@ export async function POST(req: NextRequest) {
       // DOWNGRADE: Schedule for end of billing period using subscription schedule
 
       // Check if there's already a schedule attached
-      let scheduleId = subscription.schedule as string | null;
+      let existingScheduleId = subscription.schedule as string | null;
 
-      if (scheduleId) {
-        // Update existing schedule
-        const schedule = await stripe.subscriptionSchedules.retrieve(scheduleId);
-
-        // Release the existing schedule and create a new one
-        await stripe.subscriptionSchedules.release(scheduleId);
+      if (existingScheduleId) {
+        // Release the existing schedule before creating a new one
+        await stripe.subscriptionSchedules.release(existingScheduleId);
       }
 
-      // Create a new subscription schedule
-      const schedule = await stripe.subscriptionSchedules.create({
-        from_subscription: stripeSubscriptionId,
-      });
-
-      // Update the schedule with phases
+      // Create a new subscription schedule and update with phases
       const currentPeriodEnd = subscription.current_period_end;
+      let schedule;
 
-      await stripe.subscriptionSchedules.update(schedule.id, {
-        phases: [
-          {
-            items: [
-              {
-                price: subscription.items.data[0].price.id, // Current price
-                quantity: 1,
-              },
-            ],
-            start_date: subscription.current_period_start,
-            end_date: currentPeriodEnd,
+      try {
+        schedule = await stripe.subscriptionSchedules.create({
+          from_subscription: stripeSubscriptionId,
+        });
+
+        await stripe.subscriptionSchedules.update(schedule.id, {
+          end_behavior: 'release',
+          phases: [
+            {
+              items: [
+                {
+                  price: subscription.items.data[0].price.id, // Current price
+                  quantity: 1,
+                },
+              ],
+              end_date: currentPeriodEnd,
+              // No start_date — Phase 0 inherits from the schedule
+            },
+            {
+              items: [
+                {
+                  price: newPriceId, // New (lower) price
+                  quantity: 1,
+                },
+              ],
+              // No start_date — inherits from Phase 0's end_date
+              // Last phase with end_behavior: 'release' — no end_date needed
+            },
+          ],
+          metadata: {
+            userId,
+            pendingDowngrade: newPlan,
           },
-          {
-            items: [
-              {
-                price: newPriceId, // New (lower) price
-                quantity: 1,
-              },
-            ],
-            start_date: currentPeriodEnd,
-          },
-        ],
-        metadata: {
-          userId,
-          pendingDowngrade: newPlan,
-        },
-      } as any);
+        } as any);
+      } catch (scheduleError) {
+        // Clean up orphaned schedule if creation succeeded but update failed
+        if (schedule?.id) {
+          await stripe.subscriptionSchedules.release(schedule.id).catch(() => {});
+        }
+        throw scheduleError;
+      }
 
       // Update Firestore with pending change
       await adminDb.collection('users').doc(userId).update({
