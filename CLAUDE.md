@@ -1600,6 +1600,27 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - FA-9A.12: No edit/resend functionality for email-only recipients (not applicable)
 - FA-9A.14: Member removal shows transient permissions error but succeeds on reload
 
+#### Member Management Negative Tests (FA-9B)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-9B.1 | Plan A at limit (1 recipient) → Add button hidden | ✅ PASS |
+| FA-9B.2 | Error shows Plan A limit ("Maximum 1 recipients for this loved one") | ✅ PASS |
+| FA-9B.3 | Upgrade prompt shown (orange "Upgrade" link) | ✅ PASS |
+| FA-9B.4 | Plan B can add up to 3 recipients | ✅ PASS |
+| FA-9B.5 | Plan B at 3/3 → Add button hidden, 4th blocked | ✅ PASS |
+| FA-9B.6 | Error shows Plan B limit ("Maximum 3 recipients for this loved one. Upgrade") | ✅ PASS |
+| FA-9B.7 | Invalid email ("notavalidemail") → "Please enter a valid email address" | ✅ PASS |
+| FA-9B.8 | Existing member email as recipient → Allowed by design (recipients are email-only) | ✅ PASS |
+| **TOTAL** | **8/8** | ✅ **100%** |
+
+**Notes:**
+- Plan A limit: 1 recipient per loved one. When at limit, "+ Add Recipient" button is hidden entirely.
+- Plan B limit: 3 recipients per loved one. Same hiding behavior at limit.
+- Both plans show orange "Maximum N recipients for this loved one. Upgrade" message at limit.
+- FA-9B.8: Adding an existing group member's email as a report recipient is allowed by design (recipients are email-only, separate from Member Permissions).
+- Invalid email validation: "Please enter a valid email address" shown in red below email field.
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1642,7 +1663,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Emergency Contacts Positive Tests | 13 | 13 | ✅ 100% |
 | Emergency Contacts Negative Tests | 5 | 5 | ✅ 100% |
 | Member Management Tests | 14 | 13+1 N/A | ✅ 100% |
-| **TOTAL** | **274** | **265+9 N/A** | ✅ **100%** |
+| Member Management Negative Tests | 8 | 8 | ✅ 100% |
+| **TOTAL** | **282** | **273+9 N/A** | ✅ **100%** |
 
 ---
 
@@ -1727,7 +1749,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 ### Test Summary
 
-- 289/289 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 274 - some N/A by design)
+- 297/297 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 282 - some N/A by design)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -1736,7 +1758,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 274/274 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts, Member Management incl. Positive + Negative Tests) |
+| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 282/282 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts, Member Management incl. Positive + Negative Tests, Plan Limit Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
