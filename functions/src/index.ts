@@ -3566,6 +3566,16 @@ export const sendDailyFamilyNotes9PM = functions
 export const triggerDailyFamilyNotes = functions
   .runWith({ timeoutSeconds: 300, memory: '256MB' })
   .https.onRequest(async (req, res) => {
+    // CORS headers
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
     // Only allow POST
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });
