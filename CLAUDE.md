@@ -720,6 +720,47 @@ Redesigned burnout analysis page for agency owners. Shows ALL caregivers (not ju
 
 ## Features
 
+### Input Validation (Medications, Supplements, Diet)
+
+**Added:** Jan 30, 2026
+
+#### Overview
+
+Prevents gibberish/accidental long inputs that cause expensive API processing. Validates medication names, supplement names, and diet item fields with fuzzy matching suggestions.
+
+#### Validation Rules
+
+| Rule | Constraint |
+|------|-----------|
+| **Max word length** | 15 characters per word |
+| **Max word count** | 2 words per entry (skippable for diet descriptions) |
+| **Repeated characters** | Blocked if >60% same character (e.g., "aaaaaaa") |
+| **Keyboard mash** | Blocked (e.g., "asdfgh", "qwerty") |
+
+#### Fuzzy Matching
+
+When input is invalid, the system suggests the closest known word using Levenshtein distance. Word lists contain ~100+ common medications, supplements, and foods.
+
+Example: `"Liisinopril"` → "Did you mean **Lisinopril**?"
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/validation/nameValidator.ts` | Core validation + Levenshtein fuzzy matching |
+| `src/lib/validation/wordLists.ts` | Common medications, supplements, foods (~100+ each) |
+| `src/hooks/useNameValidation.ts` | React hook (follows `useProfanityCheck` pattern) |
+| `src/components/ui/ValidationError.tsx` | Reusable error display with suggestion button |
+
+#### Integration
+
+- **onBlur**: Validation runs when user leaves field
+- **On submit**: Final validation blocks form submission
+- **While typing**: Errors cleared (optimistic UX)
+- **Suggestion click**: Replaces input value, clears error
+
+---
+
 ### Notification System
 
 **Updated:** Jan 25, 2026
@@ -1784,6 +1825,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
+| Jan 30, 2026 | **Input Validation** - Medications, Supplements, Diet name fields validated (max 15 chars/word, max 2 words, gibberish detection, fuzzy matching suggestions) |
+| Jan 30, 2026 | **Trial Duration** - All plans changed from 45/30 days to 15 days |
 | Jan 29, 2026 | **Phase 14 UI/UX Testing** - 294/294 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts, Member Management, Billing Access incl. Positive + Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
