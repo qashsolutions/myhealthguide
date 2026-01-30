@@ -28,8 +28,9 @@ import { getAuth, Auth } from 'firebase-admin/auth';
 
 // ============= Constants =============
 const DEFAULT_PASSWORD = 'AbcD12!$';
-const TRIAL_DAYS = 45;
-const AGENCY_TRIAL_DAYS = 30;
+// Mirrored from src/lib/subscription/subscriptionService.ts (scripts can't use path aliases)
+const TRIAL_DAYS = 45;          // TRIAL_DURATION_DAYS
+const AGENCY_TRIAL_DAYS = 30;   // MULTI_AGENCY_TRIAL_DAYS
 
 // ============= Types =============
 interface SeedUser {

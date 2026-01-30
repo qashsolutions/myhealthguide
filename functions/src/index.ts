@@ -30,6 +30,10 @@ admin.initializeApp();
 // ============= SHIFT OFFER TIMEOUT =============
 export { processShiftOfferTimeouts } from './shiftOfferTimeout';
 
+// ============= TRIAL DURATION CONSTANTS =============
+// Mirrored from src/lib/subscription/subscriptionService.ts (Cloud Functions can't import from src/)
+const TRIAL_DURATION_DAYS = 45;
+
 // ============= SCHEDULED FUNCTIONS =============
 
 /**
@@ -140,7 +144,7 @@ export const sendTrialExpirationWarnings = functions.pubsub
         if (daysRemaining === 3) {
           shouldNotify = true;
           title = '⏰ Trial Ending in 3 Days';
-          body = 'Your 45-day trial ends in 3 days. Subscribe now to keep your health data and continue using all features.';
+          body = `Your ${TRIAL_DURATION_DAYS}-day trial ends in 3 days. Subscribe now to keep your health data and continue using all features.`;
         } else if (daysRemaining === 1) {
           shouldNotify = true;
           title = '⚠️ Trial Ending Tomorrow';

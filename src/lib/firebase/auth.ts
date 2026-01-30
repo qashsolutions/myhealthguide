@@ -21,6 +21,7 @@ import { doc, setDoc, getDoc, updateDoc, query, collection, where, getDocs, dele
 import { User } from '@/types';
 import { hashPhoneNumber, formatPhoneNumber } from '@/lib/utils/phoneUtils';
 import { GroupService } from './groups';
+import { TRIAL_DURATION_DAYS } from '@/lib/subscription';
 
 export class AuthService {
   /**
@@ -56,9 +57,9 @@ export class AuthService {
     // Create user document in Firestore
     const phoneHash = userData.phoneNumber ? hashPhoneNumber(userData.phoneNumber) : '';
 
-    // Set trial dates - 45 days from now
+    // Set trial dates
     const now = new Date();
-    const trialEnd = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000);
+    const trialEnd = new Date(now.getTime() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
     // Password expires in 75 days (HIPAA compliance)
     const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000);
 
@@ -84,7 +85,7 @@ export class AuthService {
         }
       },
       trialStartDate: now,              // Set to current date
-      trialEndDate: trialEnd,            // Set to 45 days from now
+      trialEndDate: trialEnd,            // Set to TRIAL_DURATION_DAYS from now
       gracePeriodStartDate: null,        // Set when trial expires
       gracePeriodEndDate: null,          // Set when trial expires (48 hours after)
       dataExportRequested: false,        // User hasn't requested export yet

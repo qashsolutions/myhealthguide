@@ -6,6 +6,7 @@ import { CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { TRIAL_DURATION_DAYS } from '@/lib/subscription';
 
 export default function SubscriptionSuccessPage() {
   const searchParams = useSearchParams();
@@ -92,10 +93,10 @@ export default function SubscriptionSuccessPage() {
             {isOnTrial ? (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>🎉 You&apos;re on a 45-day free trial!</strong>
+                  <strong>🎉 You&apos;re on a {TRIAL_DURATION_DAYS}-day free trial!</strong>
                 </p>
                 <p className="text-sm text-blue-700 dark:text-blue-200 mt-2">
-                  Your trial ends in 45 days. You won&apos;t be charged until then. Cancel anytime
+                  Your trial ends in {TRIAL_DURATION_DAYS} days. You won&apos;t be charged until then. Cancel anytime
                   during the trial period for a full refund.
                 </p>
               </div>

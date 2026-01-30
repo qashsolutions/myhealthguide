@@ -12,6 +12,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Mirrored from src/lib/subscription/subscriptionService.ts (scripts can't use path aliases)
+const TRIAL_DURATION_DAYS = 45;
+
 // Test account to restore
 const TEST_EMAIL = 'ramanac+b2@gmail.com';
 
@@ -53,9 +56,9 @@ async function main() {
   console.log(`User ID: ${userId}`);
   console.log(`Current Status: ${currentData.subscriptionStatus}`);
 
-  // Restore to trial with 45 days remaining
+  // Restore to trial with full trial duration remaining
   const now = new Date();
-  const trialEndDate = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000); // 45 days from now
+  const trialEndDate = new Date(now.getTime() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
   await db.collection('users').doc(userId).update({
     subscriptionStatus: 'trial',
