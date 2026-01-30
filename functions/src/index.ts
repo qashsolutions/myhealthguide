@@ -3556,6 +3556,46 @@ export const sendDailyFamilyNotes9PM = functions
     return processDailyFamilyNotes('9PM-fallback');
   });
 
+// ============= MANUAL TRIGGER: Test Daily Family Notes =============
+
+/**
+ * HTTP-callable function to manually trigger daily family notes
+ * Used for testing: POST /triggerDailyFamilyNotes
+ * Requires admin auth token in Authorization header
+ */
+export const triggerDailyFamilyNotes = functions
+  .runWith({ timeoutSeconds: 300, memory: '256MB' })
+  .https.onRequest(async (req, res) => {
+    // Only allow POST
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    // Verify auth token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    try {
+      const token = authHeader.split('Bearer ')[1];
+      await admin.auth().verifyIdToken(token);
+    } catch {
+      res.status(401).json({ error: 'Invalid token' });
+      return;
+    }
+
+    try {
+      const result = await processDailyFamilyNotes('manual-test');
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error in manual trigger:', error);
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Internal error' });
+    }
+  });
+
 // ============= DIET ENTRY NOTIFICATION TRIGGER =============
 
 /**
