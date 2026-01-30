@@ -358,7 +358,7 @@ async function fixOrphanedUser(email: string): Promise<void> {
   console.log('========================================');
   console.log(`\nUser ${email} has been fixed!`);
   console.log('They can now sign in and will have:');
-  console.log('  - 45-day free trial');
+  console.log(`  - ${TRIAL_DAYS}-day free trial`);
   console.log('  - Their own family group');
   console.log('  - Admin permissions');
   console.log('\nThey should sign in again at https://www.myguide.health/login');

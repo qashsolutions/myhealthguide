@@ -118,7 +118,7 @@ export class AuthService {
     if (!userData.pendingInviteCode) {
       // Create a default group for the user (Family Plan)
       // Note: Agencies are only created when user upgrades to Multi-Agency plan
-      const trialEndDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
+      const trialEndDate = new Date(Date.now() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
       // Create group for Family Plan
       const group = await GroupService.createGroup({
@@ -432,7 +432,7 @@ export class AuthService {
       }
 
       const now = new Date();
-      const trialEnd = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000);
+      const trialEnd = new Date(now.getTime() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
       // Password expires in 75 days (HIPAA compliance) - for phone signups, set when they add email/password
       const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000);
 
@@ -495,7 +495,7 @@ export class AuthService {
 
       // Create default group for the user (Family Plan)
       // Note: Agencies are only created when user upgrades to Multi-Agency plan
-      const trialEndDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
+      const trialEndDate = new Date(Date.now() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
       // Create group for Family Plan
       const group = await GroupService.createGroup({
@@ -593,7 +593,7 @@ export class AuthService {
       }
 
       const now = new Date();
-      const trialEnd = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000);
+      const trialEnd = new Date(now.getTime() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
       const passwordExpiry = new Date(now.getTime() + 75 * 24 * 60 * 60 * 1000);
 
       const user: User = {
@@ -651,7 +651,7 @@ export class AuthService {
 
       // Create default group for the user (Family Plan)
       // Note: Agencies are only created when user upgrades to Multi-Agency plan
-      const trialEndDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
+      const trialEndDate = new Date(Date.now() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
       const group = await GroupService.createGroup({
         name: `${userData.firstName}'s Family`,
