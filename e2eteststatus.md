@@ -76,7 +76,7 @@
 
 | Test | Expected | Status |
 |------|----------|--------|
-| Trial period starts | 45 days (Plan A/B), 30 days (Plan C) | Assumed |
+| Trial period starts | 15 days (all plans) | Assumed |
 | Pricing page shows correct prices | $8.99, $18.99, $55 | Assumed |
 | Stripe checkout loads | Checkout form | Assumed |
 

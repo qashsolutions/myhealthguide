@@ -130,7 +130,7 @@ export function StructuredData() {
         name: 'Is there a free trial?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes! Family plans include a 45-day free trial and Agency plans include a 30-day free trial. No credit card required to start.',
+          text: 'Yes! All plans include a 15-day free trial. No credit card required to start.',
         },
       },
       {

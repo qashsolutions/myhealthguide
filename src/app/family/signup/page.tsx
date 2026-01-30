@@ -112,7 +112,7 @@ export default function FamilySignupPage() {
         <CardHeader>
           <CardTitle>Create Your Account</CardTitle>
           <CardDescription>
-            Start your 45-day free trial - no credit card required
+            Start your 15-day free trial - no credit card required
           </CardDescription>
         </CardHeader>
         <CardContent>

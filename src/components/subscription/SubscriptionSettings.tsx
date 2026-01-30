@@ -117,7 +117,7 @@ export function SubscriptionSettings() {
   const subscriptionStartDate = convertFirestoreTimestamp(user?.subscriptionStartDate);
 
   // Calculate trial day based on plan type
-  // Family Plans A/B: 45 days, Multi Agency: 30 days, Free trial defaults to Family Plan A (45 days)
+  // All plans: 15 days trial
   const trialDuration = user?.subscriptionTier === 'multi_agency'
     ? MULTI_AGENCY_TRIAL_DAYS
     : TRIAL_DURATION_DAYS;

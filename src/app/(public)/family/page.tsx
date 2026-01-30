@@ -115,7 +115,7 @@ export default function FamilyPage() {
             </Link>
           </div>
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            45-day free trial • No credit card required • HIPAA compliant
+            15-day free trial • No credit card required • HIPAA compliant
           </p>
         </div>
       </section>
@@ -212,7 +212,7 @@ export default function FamilyPage() {
           </p>
           <Link href="/family/signup">
             <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
-              Start Your Free 45-Day Trial
+              Start Your Free 15-Day Trial
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>

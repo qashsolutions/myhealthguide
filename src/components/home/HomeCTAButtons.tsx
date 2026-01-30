@@ -83,7 +83,7 @@ export default function HomeCTAButtons() {
       <div className="mt-10 flex items-center justify-center gap-x-6">
         <Link href="/signup">
           <Button size="lg" className="text-lg px-8">
-            Start 45-Day Free Trial
+            Start 15-Day Free Trial
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </Link>

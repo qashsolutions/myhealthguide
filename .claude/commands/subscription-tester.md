@@ -8,7 +8,7 @@ Test subscription plans, billing, trials, and plan limits.
 | Feature | Value |
 |---------|-------|
 | Price | $8.99/month |
-| Trial | 45 days |
+| Trial | 15 days |
 | Elders | 1 max |
 | Caregivers | 1 (admin) |
 | Members | 1 (read-only) |
@@ -18,7 +18,7 @@ Test subscription plans, billing, trials, and plan limits.
 | Feature | Value |
 |---------|-------|
 | Price | $10.99/month (Updated Jan 27, 2026) |
-| Trial | 45 days |
+| Trial | 15 days |
 | Elders | 1 max |
 | Caregivers | 1 (admin) |
 | Members | 3 (read-only) |
@@ -28,7 +28,7 @@ Test subscription plans, billing, trials, and plan limits.
 | Feature | Value |
 |---------|-------|
 | Price | $16.99/elder/month (Updated Jan 27, 2026) |
-| Trial | 30 days |
+| Trial | 15 days |
 | Caregivers | 10 max |
 | Elders/Caregiver | 3 max |
 | Members/Elder | 2 max |
@@ -40,8 +40,8 @@ Test subscription plans, billing, trials, and plan limits.
 
 ### Trial Period Tests
 
-#### Plan A & B (45-day trial)
-- [ ] New signup starts 45-day trial
+#### Plan A & B (15-day trial)
+- [ ] New signup starts 15-day trial
 - [ ] Trial countdown displays correctly
 - [ ] Full access during trial
 - [ ] Warning at 7 days remaining
@@ -50,8 +50,8 @@ Test subscription plans, billing, trials, and plan limits.
 - [ ] Can subscribe after trial expires
 - [ ] Trial dates stored correctly in Firestore
 
-#### Plan C (30-day trial)
-- [ ] New signup starts 30-day trial
+#### Plan C (15-day trial)
+- [ ] New signup starts 15-day trial
 - [ ] Trial countdown displays correctly
 - [ ] Full access during trial
 - [ ] Trial expiry behavior

@@ -86,7 +86,7 @@ isReadOnlyForElderCare(user) // Read-only + super admin (neither can log care)
 | Aspect | Family Plan A | Family Plan B | Multi-Agency |
 |--------|---------------|---------------|--------------|
 | **Price** | $8.99/elder/mo | $10.99/mo | $16.99/elder/mo |
-| **Trial** | 45 days | 45 days | 30 days |
+| **Trial** | 15 days | 15 days | 15 days |
 | **Max Elders** | 1 | 1 | 30 total |
 | **Max Group Members** | 2 (1 admin + 1 member) | 4 (1 admin + 3 members) | 4 per group |
 | **Max Report Recipients** | 1 email | 3 emails | 2 per elder |

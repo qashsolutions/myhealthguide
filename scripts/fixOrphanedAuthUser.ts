@@ -22,7 +22,7 @@ import { getAuth, Auth } from 'firebase-admin/auth';
 
 // ============= Constants =============
 // Mirrored from src/lib/subscription/subscriptionService.ts (scripts can't use path aliases)
-const TRIAL_DAYS = 45; // TRIAL_DURATION_DAYS
+const TRIAL_DAYS = 15; // TRIAL_DURATION_DAYS
 
 // ============= Initialize Firebase Admin =============
 let app: App;

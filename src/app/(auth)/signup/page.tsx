@@ -161,7 +161,7 @@ function SignupPageContent() {
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
           <CardDescription>
-            Start your 45-day free trial - no credit card required
+            Start your 15-day free trial - no credit card required
           </CardDescription>
         </CardHeader>
         <CardContent>

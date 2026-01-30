@@ -4,9 +4,9 @@
 
 | Plan | Price | Target Audience | Max Elders | Max Members | Storage | Trial |
 |------|-------|-----------------|------------|-------------|---------|-------|
-| **Family Plan A** | $8.99/elder/month | Individual caregivers | 1 | 2 | 25 MB | 45 days |
-| **Family Plan B** | $10.99/month | Caregivers + family/friends | 1 | 4 | 50 MB | 45 days |
-| **Multi Agency** | $16.99/elder/month | Professional caregiver agencies | 30 | 10 caregivers | 500 MB | 30 days |
+| **Family Plan A** | $8.99/elder/month | Individual caregivers | 1 | 2 | 25 MB | 15 days |
+| **Family Plan B** | $10.99/month | Caregivers + family/friends | 1 | 4 | 50 MB | 15 days |
+| **Multi Agency** | $16.99/elder/month | Professional caregiver agencies | 30 | 10 caregivers | 500 MB | 15 days |
 
 > **Pricing Updated:** Jan 27, 2026
 
@@ -160,7 +160,7 @@
   - Customizable analysis period
 
 ### Billing & Subscription
-- **30-Day Free Trial** — Full access to all features
+- **15-Day Free Trial** — Full access to all features
 - **$16.99/elder/month** — Billed after trial ends
 - **Automatic Billing** — Stripe subscription for each elder
 - **Trial Notifications** — Alerts on days 27, 28, 29 before trial ends
@@ -199,7 +199,7 @@
 | Timesheet Tracking | ❌ | ❌ | ✅ |
 | Max Elders | 1 | 1 | 30 |
 | Max Members | 1 admin + 1 | 1 admin + 3 | 10 caregivers |
-| Free Trial | 45 days | 45 days | 30 days |
+| Free Trial | 15 days | 15 days | 15 days |
 
 ---
 

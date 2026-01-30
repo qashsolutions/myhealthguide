@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Mirrored from src/lib/subscription/subscriptionService.ts (scripts can't use path aliases)
-const TRIAL_DURATION_DAYS = 45;
+const TRIAL_DURATION_DAYS = 15;
 
 // Test account to restore
 const TEST_EMAIL = 'ramanac+b2@gmail.com';

@@ -74,8 +74,7 @@ if (user.trialEndDate) {
 - Stripe charges: Determined by the price ID in environment variables
 
 **Trial Periods:**
-- Family Plan A & B: 45 days (TRIAL_DURATION_DAYS)
-- Multi Agency: 30 days (MULTI_AGENCY_TRIAL_DAYS)
+- All plans: 15 days (TRIAL_DURATION_DAYS / MULTI_AGENCY_TRIAL_DAYS)
 
 ---
 

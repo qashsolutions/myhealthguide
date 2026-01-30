@@ -119,9 +119,9 @@
 
 | Plan | Price | Trial | Elders | Caregivers | Members | Storage |
 |------|-------|-------|--------|------------|---------|---------|
-| **Plan A** (Family) | $8.99/mo | 45 days | 1 | 1 (admin) | 1 (read-only) | 25 MB |
-| **Plan B** (Family) | $10.99/mo | 45 days | 1 | 1 (admin) | 3 (read-only) | 50 MB |
-| **Plan C** (Multi Agency) | $16.99/elder/mo | 30 days | 3/caregiver | 10 max | 2/elder (read-only) | 500 MB |
+| **Plan A** (Family) | $8.99/mo | 15 days | 1 | 1 (admin) | 1 (read-only) | 25 MB |
+| **Plan B** (Family) | $10.99/mo | 15 days | 1 | 1 (admin) | 3 (read-only) | 50 MB |
+| **Plan C** (Multi Agency) | $16.99/elder/mo | 15 days | 3/caregiver | 10 max | 2/elder (read-only) | 500 MB |
 
 > **Pricing Updated:** Jan 27, 2026 - Plan B: $18.99→$10.99, Multi-Agency: $55→$16.99
 

@@ -166,7 +166,7 @@ export default function LandingPage() {
               Ready to transform your caregiving?
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-blue-100">
-              Start your 45-day free trial today. No credit card required.
+              Start your 15-day free trial today. No credit card required.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link href="/signup">

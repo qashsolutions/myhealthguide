@@ -18,7 +18,7 @@ export interface User {
   agencies: AgencyMembership[];
   preferences: UserPreferences;
   trialStartDate: Date | null; // Date of FIRST USE (not signup)
-  trialEndDate: Date | null; // 45 days from first use
+  trialEndDate: Date | null; // 15 days from first use
   gracePeriodStartDate: Date | null; // When trial expired (48-hour countdown begins)
   gracePeriodEndDate: Date | null; // When data will be deleted (48 hours after expiration)
   dataExportRequested: boolean; // Whether user requested data export during grace period

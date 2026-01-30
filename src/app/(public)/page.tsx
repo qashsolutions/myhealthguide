@@ -63,7 +63,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-              Free 45-day trial &bull; No credit card required &bull; HIPAA Compliant
+              Free 15-day trial &bull; No credit card required &bull; HIPAA Compliant
             </p>
           </div>
         </div>

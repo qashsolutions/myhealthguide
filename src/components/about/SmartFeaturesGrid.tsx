@@ -277,7 +277,7 @@ function PreviewModal({
             onClick={onSignUp}
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
           >
-            Try Free for 45 Days
+            Try Free for 15 Days
           </button>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
             No credit card required

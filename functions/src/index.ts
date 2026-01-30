@@ -32,7 +32,7 @@ export { processShiftOfferTimeouts } from './shiftOfferTimeout';
 
 // ============= TRIAL DURATION CONSTANTS =============
 // Mirrored from src/lib/subscription/subscriptionService.ts (Cloud Functions can't import from src/)
-const TRIAL_DURATION_DAYS = 45;
+const TRIAL_DURATION_DAYS = 15;
 
 // ============= SCHEDULED FUNCTIONS =============
 

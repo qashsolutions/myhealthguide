@@ -113,7 +113,7 @@ export default function AgencySignupPage() {
         <CardHeader>
           <CardTitle>Create Agency Account</CardTitle>
           <CardDescription>
-            Start your 30-day free trial - no credit card required
+            Start your 15-day free trial - no credit card required
           </CardDescription>
         </CardHeader>
         <CardContent>

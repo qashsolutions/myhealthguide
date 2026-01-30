@@ -89,7 +89,7 @@ export default function AgencyPage() {
             </Link>
           </div>
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            30-day free trial • No credit card required • HIPAA compliant
+            15-day free trial • No credit card required • HIPAA compliant
           </p>
         </div>
       </section>
@@ -145,7 +145,7 @@ export default function AgencyPage() {
                   </div>
                   <Link href="/agency/signup">
                     <Button size="lg" className="w-full bg-purple-600 hover:bg-purple-700">
-                      Start 30-Day Free Trial
+                      Start 15-Day Free Trial
                       <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                   </Link>
@@ -183,7 +183,7 @@ export default function AgencyPage() {
           </p>
           <Link href="/agency/signup">
             <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
-              Start Your Free 30-Day Trial
+              Start Your Free 15-Day Trial
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>

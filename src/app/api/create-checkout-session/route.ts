@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     // Create Checkout Session
     // When a user subscribes (pays), they start their paid subscription immediately
-    // No trial period - the 45-day free trial is BEFORE they subscribe (handled separately)
+    // No trial period - the 15-day free trial is BEFORE they subscribe (handled separately)
     const sessionConfig: any = {
       mode: 'subscription',
       payment_method_types: ['card'],
