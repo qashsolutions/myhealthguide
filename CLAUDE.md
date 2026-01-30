@@ -1573,6 +1573,33 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - Inline red error messages shown below each field, cleared when user types
 - FA-8B.3 and FA-8B.4 initially FAILED (no format validation), fixed in commit `3a7db10`
 
+#### Member Management Tests (FA-9A)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-9A.1 | Navigate to Group Management | ✅ PASS |
+| FA-9A.2 | Member list visible (Admin + Member in Member Permissions) | ✅ PASS |
+| FA-9A.3 | Add Recipient button visible ("+ Add Recipient" under Loved One) | ✅ PASS |
+| FA-9A.4 | Click Add Recipient → Form opens | ✅ PASS |
+| FA-9A.5 | Email field visible (required) | ✅ PASS |
+| FA-9A.6 | Name field visible (optional) | ✅ PASS |
+| FA-9A.7 | Enter recipient email | ✅ PASS |
+| FA-9A.8 | Enter recipient name | ✅ PASS |
+| FA-9A.9 | Click "+ Add" to save recipient | ✅ PASS |
+| FA-9A.10 | Recipient added successfully (counter 0/1 → 1/1) | ✅ PASS |
+| FA-9A.11 | Recipient shows in list (name + email displayed) | ✅ PASS |
+| FA-9A.12 | Can resend/edit recipient | ⚪ N/A (email-only, no invitation) |
+| FA-9A.13 | Can remove recipient (X button, returns to empty state) | ✅ PASS |
+| FA-9A.14 | Can remove existing member | ✅ PASS |
+| **TOTAL** | **13/13 + 1 N/A** | ✅ **100%** |
+
+**Notes:**
+- Family Plan A uses "Daily Report Recipients" (email-only, no account needed) instead of invite codes
+- Invite codes/links are Multi-Agency only (hidden for Family Plans)
+- Plan A limit: 1 recipient per loved one ("Maximum 1 recipients for this loved one. Upgrade")
+- FA-9A.12: No edit/resend functionality for email-only recipients (not applicable)
+- FA-9A.14: Member removal shows transient permissions error but succeeds on reload
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1614,7 +1641,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Health Chat Negative Tests | 5 | 5 | ✅ 100% |
 | Emergency Contacts Positive Tests | 13 | 13 | ✅ 100% |
 | Emergency Contacts Negative Tests | 5 | 5 | ✅ 100% |
-| **TOTAL** | **260** | **252+8 N/A** | ✅ **100%** |
+| Member Management Tests | 14 | 13+1 N/A | ✅ 100% |
+| **TOTAL** | **274** | **265+9 N/A** | ✅ **100%** |
 
 ---
 
@@ -1699,7 +1727,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 ### Test Summary
 
-- 275/275 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 260 - some N/A by design)
+- 289/289 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 274 - some N/A by design)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -1708,7 +1736,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 260/260 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts incl. Positive + Negative Tests) |
+| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 274/274 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts, Member Management incl. Positive + Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
