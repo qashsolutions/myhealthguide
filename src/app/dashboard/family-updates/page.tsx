@@ -6,7 +6,7 @@ import { useElder } from '@/contexts/ElderContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, Loader2, Heart, Edit, Send, Eye, RefreshCw, CheckCircle } from 'lucide-react';
-import { generateWeeklyFamilyUpdate, type FamilyUpdateReport } from '@/lib/medical/familyUpdateReports';
+import type { FamilyUpdateReport } from '@/lib/medical/familyUpdateReports';
 import { authenticatedFetch } from '@/lib/api/authenticatedFetch';
 
 export default function FamilyUpdatesPage() {
@@ -74,11 +74,31 @@ export default function FamilyUpdatesPage() {
 
     setGenerating(true);
     try {
-      const newReport = await generateWeeklyFamilyUpdate(groupId, elderId, elderName);
-      await loadReports();
-      setSelectedReport(newReport);
-      setEditedNarrative(newReport.narrativeText);
-      setEditMode(true); // Auto-enter edit mode for new reports
+      const response = await authenticatedFetch('/api/family-updates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId, elderId, elderName }),
+      });
+      const data = await response.json();
+
+      if (data.success && data.report) {
+        const newReport: FamilyUpdateReport = {
+          ...data.report,
+          weekEnding: data.report.weekEnding ? new Date(data.report.weekEnding) : new Date(),
+          dateRange: {
+            start: data.report.dateRange?.start ? new Date(data.report.dateRange.start) : new Date(),
+            end: data.report.dateRange?.end ? new Date(data.report.dateRange.end) : new Date(),
+          },
+          generatedAt: data.report.generatedAt ? new Date(data.report.generatedAt) : new Date(),
+          sentAt: data.report.sentAt ? new Date(data.report.sentAt) : undefined,
+        };
+        await loadReports();
+        setSelectedReport(newReport);
+        setEditedNarrative(newReport.narrativeText);
+        setEditMode(true);
+      } else {
+        console.error('Error generating report:', data.error);
+      }
     } catch (error) {
       console.error('Error generating report:', error);
     } finally {
