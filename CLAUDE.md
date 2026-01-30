@@ -124,6 +124,7 @@
 | **Plan C** (Multi Agency) | $16.99/elder/mo | 15 days | 3/caregiver | 10 max | 2/elder (read-only) | 500 MB |
 
 > **Pricing Updated:** Jan 27, 2026 - Plan B: $18.99→$10.99, Multi-Agency: $55→$16.99
+> **Trial Updated:** Jan 30, 2026 - All plans: 45/30 days→15 days
 
 ---
 
