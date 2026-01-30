@@ -137,18 +137,14 @@ export function SubscriptionSettings() {
     : 999;
   const isWithinRefundWindow = daysSinceSubscriptionStart <= PRICING.REFUND_WINDOW_DAYS;
 
-  // Distinguish between free trial (no Stripe) and subscribed trial (with Stripe)
+  // Check if user has an active Stripe subscription
   const hasPaidSubscription = !!user?.stripeSubscriptionId;
   // Check if user has Stripe customer ID (needed for billing portal)
   const hasStripeCustomer = !!user?.stripeCustomerId;
-  // Check if user has selected a plan (subscriptionTier is set and not default/empty)
-  const hasSelectedPlan = !!user?.subscriptionTier && ['family', 'single_agency', 'multi_agency'].includes(user.subscriptionTier);
-  // Subscribed trial: has Stripe subscription OR has selected a plan during trial
-  const isSubscribedTrial = user?.subscriptionStatus === 'trial' && (hasPaidSubscription || hasSelectedPlan);
-  // Free trial: trial status but hasn't selected a plan yet
-  const isFreeTrialActive = user?.subscriptionStatus === 'trial' && !hasPaidSubscription && !hasSelectedPlan && trialDaysLeft > 0;
+  // Free trial: trial status without a Stripe subscription
+  const isFreeTrialActive = user?.subscriptionStatus === 'trial' && !hasPaidSubscription && trialDaysLeft > 0;
   const isExpired = user?.subscriptionStatus === 'expired';
-  const isActive = user?.subscriptionStatus === 'active' || isSubscribedTrial;
+  const isActive = user?.subscriptionStatus === 'active';
   const isCanceled = user?.subscriptionStatus === 'canceled';
   const inGracePeriod = isExpired && gracePeriodEndDate && new Date() < gracePeriodEndDate;
   const cancelAtPeriodEnd = user?.cancelAtPeriodEnd || false;
@@ -555,39 +551,26 @@ export function SubscriptionSettings() {
           {isActive && user?.subscriptionTier && (
             <div className={`mb-4 p-4 rounded-lg border ${
               cancelAtPeriodEnd ? 'bg-yellow-50 border-yellow-200' :
-              isSubscribedTrial ? 'bg-blue-50 border-blue-200' :
               'bg-green-50 border-green-200'
             }`}>
               <div className="flex items-center gap-2 mb-1">
                 {cancelAtPeriodEnd ? (
                   <Clock className="h-5 w-5 text-yellow-600" />
-                ) : isSubscribedTrial ? (
-                  <Clock className="h-5 w-5 text-blue-600" />
                 ) : (
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 )}
                 <span className={`text-xl font-semibold ${
                   cancelAtPeriodEnd ? 'text-yellow-800' :
-                  isSubscribedTrial ? 'text-blue-800' :
                   'text-green-800'
                 }`}>
                   {PLANS[user.subscriptionTier as keyof typeof PLANS]?.name || 'Active'}
                 </span>
-                {isSubscribedTrial && (
-                  <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Trial</span>
-                )}
               </div>
-              <p className={cancelAtPeriodEnd ? 'text-yellow-700' : isSubscribedTrial ? 'text-blue-700' : 'text-green-700'}>
+              <p className={cancelAtPeriodEnd ? 'text-yellow-700' : 'text-green-700'}>
                 ${PLANS[user.subscriptionTier as keyof typeof PLANS]?.price}/loved one/month
               </p>
-              {/* Show trial info for subscribed trial users */}
-              {isSubscribedTrial && trialEndDate && (
-                <p className="text-sm text-blue-600 mt-1">
-                  Trial Day {currentTrialDay} of {trialDuration} • Ends {format(trialEndDate, 'MMMM dd, yyyy')}
-                </p>
-              )}
-              {/* Show billing date for active (non-trial) users */}
-              {!isSubscribedTrial && currentPeriodEnd && (
+              {/* Show billing date for active users */}
+              {currentPeriodEnd && (
                 <p className="text-sm text-gray-600 mt-1">
                   {cancelAtPeriodEnd
                     ? `Access until ${format(currentPeriodEnd, 'MMMM dd, yyyy')}`
@@ -892,9 +875,7 @@ export function SubscriptionSettings() {
           <CardHeader>
             <CardTitle className="text-gray-700">Cancel Subscription</CardTitle>
             <CardDescription>
-              {isSubscribedTrial
-                ? `Cancel during your trial to avoid being charged. Your access will end when the trial expires${trialEndDate ? ` on ${format(trialEndDate, 'MMMM dd, yyyy')}` : ''}.`
-                : isWithinRefundWindow
+              {isWithinRefundWindow
                 ? `You're within the ${PRICING.REFUND_WINDOW_DAYS}-day refund window. Cancelling now will provide a full refund.`
                 : `Cancelling will keep your access until ${currentPeriodEnd ? format(currentPeriodEnd, 'MMMM dd, yyyy') : 'end of billing period'}.`}
             </CardDescription>
@@ -923,7 +904,7 @@ export function SubscriptionSettings() {
           <CardContent>
             <div className="space-y-4">
               {/* Payment Method Display */}
-              {(hasPaidSubscription || hasSelectedPlan) && (
+              {hasPaidSubscription && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-white rounded-md border border-gray-200">
@@ -932,9 +913,7 @@ export function SubscriptionSettings() {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">Payment Method on File</p>
                       <p className="text-xs text-gray-500">
-                        {isSubscribedTrial
-                          ? 'Your card will be charged when your trial ends'
-                          : 'Your card will be charged on your next billing date'}
+                        Your card will be charged on your next billing date
                       </p>
                     </div>
                   </div>
@@ -1026,18 +1005,7 @@ export function SubscriptionSettings() {
           <DialogHeader>
             <DialogTitle>Cancel Subscription</DialogTitle>
             <DialogDescription>
-              {isSubscribedTrial && !hasPaidSubscription ? (
-                <>
-                  You are currently on a <strong>free trial</strong>.
-                  <br /><br />
-                  Cancelling will:
-                  <ul className="list-disc ml-5 mt-2">
-                    <li>Immediately end your trial</li>
-                    <li><strong>You will not be charged</strong></li>
-                    <li>Remove access to premium features</li>
-                  </ul>
-                </>
-              ) : isWithinRefundWindow ? (
+              {isWithinRefundWindow ? (
                 <>
                   You are within the <strong>{PRICING.REFUND_WINDOW_DAYS}-day refund window</strong>.
                   <br /><br />
@@ -1071,7 +1039,7 @@ export function SubscriptionSettings() {
               onClick={executeCancelSubscription}
               disabled={actionLoading === 'cancel'}
             >
-              {actionLoading === 'cancel' ? 'Processing...' : isSubscribedTrial && !hasPaidSubscription ? 'Cancel Trial' : 'Cancel Subscription'}
+              {actionLoading === 'cancel' ? 'Processing...' : 'Cancel Subscription'}
             </Button>
           </DialogFooter>
         </DialogContent>
