@@ -1621,6 +1621,30 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - FA-9B.8: Adding an existing group member's email as a report recipient is allowed by design (recipients are email-only, separate from Member Permissions).
 - Invalid email validation: "Please enter a valid email address" shown in red below email field.
 
+#### Billing Access Positive Tests (FA-10A)
+
+| Test | Description | Status |
+|------|-------------|--------|
+| FA-10A.1 | Navigate to Billing/Subscription | ✅ PASS |
+| FA-10A.2 | Billing page loads | ✅ PASS |
+| FA-10A.3 | Current plan displayed ("Current Subscription Status" card) | ✅ PASS |
+| FA-10A.4 | Plan name correct: "Family Plan A" with "Trial" badge | ✅ PASS |
+| FA-10A.5 | Price displayed: "$8.99/loved one/month" | ✅ PASS |
+| FA-10A.6 | Trial status shown: blue "Trial" badge | ✅ PASS |
+| FA-10A.7 | Days remaining: "Trial Day 11 of 45 · Ends March 05, 2026" | ✅ PASS |
+| FA-10A.8 | "Manage Billing" button visible | ✅ PASS |
+| FA-10A.9 | Payment method visible: "Payment Method on File" + "Update Payment Method" | ✅ PASS |
+| FA-10A.10 | Billing history visible: "View Billing History" button | ✅ PASS |
+| FA-10A.11 | Can upgrade: "Upgrade" button on Plan B and Multi Agency cards | ✅ PASS |
+| FA-10A.12 | Can cancel: "Cancel Subscription" button with trial end date | ✅ PASS |
+| **TOTAL** | **12/12** | ✅ **100%** |
+
+**Notes:**
+- Subscription page shows: Current Subscription Status, Change Your Plan (3 plan cards), Cancel Subscription, Billing Information
+- Plan A card marked "Current Plan" (disabled button), Plan B and Multi Agency show "Upgrade" buttons
+- Cancel section: "Cancel during your trial to avoid being charged. Your access will end when the trial expires on March 05, 2026."
+- Billing Information: "Payment Method on File", "Update Payment Method", "View Billing History"
+
 #### Phase 14 Test Summary
 
 | Category | Tests | Passed | Status |
@@ -1664,7 +1688,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Emergency Contacts Negative Tests | 5 | 5 | ✅ 100% |
 | Member Management Tests | 14 | 13+1 N/A | ✅ 100% |
 | Member Management Negative Tests | 8 | 8 | ✅ 100% |
-| **TOTAL** | **282** | **273+9 N/A** | ✅ **100%** |
+| Billing Access Positive Tests | 12 | 12 | ✅ 100% |
+| **TOTAL** | **294** | **285+9 N/A** | ✅ **100%** |
 
 ---
 
@@ -1749,7 +1774,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 ### Test Summary
 
-- 297/297 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 282 - some N/A by design)
+- 309/309 tests passed (Phase 12: 65, Phase 13: 18, Phase 14: 294 - some N/A by design)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -1758,7 +1783,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 282/282 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts, Member Management incl. Positive + Negative Tests, Plan Limit Tests) |
+| Jan 29, 2026 | **Phase 14 UI/UX Testing** - 294/294 tests passed (Login, Dashboard, Navigation, Elder Mgmt, Medications, Supplements, Diet, Activity, Insights, Health Chat, Emergency Contacts, Member Management, Billing Access incl. Positive + Negative Tests) |
 | Jan 27, 2026 | Family Plan navigation simplified - 4 icons, no hamburger menu |
 | Jan 27, 2026 | Analytics page DISABLED for all users - redirects to Insights |
 | Jan 27, 2026 | Safety Alerts DISABLED for Family Plan A/B - redirects to Insights |
