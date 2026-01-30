@@ -227,10 +227,14 @@ export async function POST(req: NextRequest) {
         accessUntil: currentPeriodEnd.toISOString(),
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error cancelling subscription:', error);
+    let userMessage = 'Failed to cancel subscription. Please try again or contact support.';
+    if (error?.type === 'StripeInvalidRequestError' && error?.code === 'resource_missing') {
+      userMessage = 'Your subscription data needs to be refreshed. Please sign out and sign back in, then try again.';
+    }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { error: userMessage },
       { status: 500 }
     );
   }
@@ -283,10 +287,14 @@ export async function DELETE(req: NextRequest) {
       success: true,
       message: 'Your subscription has been reactivated. You will continue to be billed normally.',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error reactivating subscription:', error);
+    let userMessage = 'Failed to reactivate subscription. Please try again or contact support.';
+    if (error?.type === 'StripeInvalidRequestError' && error?.code === 'resource_missing') {
+      userMessage = 'Your subscription data needs to be refreshed. Please sign out and sign back in, then try again.';
+    }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { error: userMessage },
       { status: 500 }
     );
   }

@@ -223,10 +223,15 @@ export async function POST(req: NextRequest) {
         currentPlanEnds: effectiveDate.toISOString(),
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error changing plan:', error);
+    // Sanitize Stripe errors - don't expose internal IDs to the client
+    let userMessage = 'Failed to change plan. Please try again or contact support.';
+    if (error?.type === 'StripeInvalidRequestError' && error?.code === 'resource_missing') {
+      userMessage = 'Your subscription data needs to be refreshed. Please sign out and sign back in, then try again. If the issue persists, contact support.';
+    }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { error: userMessage },
       { status: 500 }
     );
   }
@@ -283,10 +288,14 @@ export async function DELETE(req: NextRequest) {
       success: true,
       message: 'Pending plan change has been cancelled.',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error cancelling plan change:', error);
+    let userMessage = 'Failed to cancel plan change. Please try again or contact support.';
+    if (error?.type === 'StripeInvalidRequestError' && error?.code === 'resource_missing') {
+      userMessage = 'Your subscription data needs to be refreshed. Please sign out and sign back in, then try again.';
+    }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { error: userMessage },
       { status: 500 }
     );
   }

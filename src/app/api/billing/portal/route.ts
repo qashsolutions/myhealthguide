@@ -61,10 +61,14 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating billing portal session:', error);
+    let userMessage = 'Unable to access billing portal. Please try again or contact support.';
+    if (error?.type === 'StripeInvalidRequestError' && error?.code === 'resource_missing') {
+      userMessage = 'Unable to access billing portal. Your billing data needs to be refreshed. Please sign out and sign back in, then try again.';
+    }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { error: userMessage },
       { status: 500 }
     );
   }
