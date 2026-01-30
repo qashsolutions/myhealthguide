@@ -25,10 +25,16 @@ function getWebhookSecret(): string {
 
 // Helper to extract plan key from price ID or plan name
 function extractPlanKey(subscription: Stripe.Subscription): string | null {
-  // Try from metadata first
+  // Try from metadata first — map display names to internal keys
   const planName = subscription.metadata.planName;
   if (planName) {
-    return planName.toLowerCase().replace(' plan', '').replace(' ', '_');
+    const nameMap: Record<string, string> = {
+      'family plan a': 'family',
+      'family plan b': 'single_agency',
+      'multi agency plan': 'multi_agency',
+    };
+    const mapped = nameMap[planName.toLowerCase()];
+    if (mapped) return mapped;
   }
 
   // Try from price ID
