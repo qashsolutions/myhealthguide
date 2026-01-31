@@ -167,3 +167,61 @@
 - Elder profile click-through → `/dashboard/elder-profile?elderId=...` with "Loved One B1's Health Profile"
 - Medications click-through → `/dashboard/daily-care?tab=medications` with "No Medications" empty state
 - Insights click-through → `/dashboard/insights` with "Smart Insights" page
+
+---
+
+## PB-4A: View Health Profile — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-4A.1 | Navigate to Health Profile | PASS |
+| PB-4A.2 | Elder profile visible | PASS |
+| PB-4A.3 | Elder name displayed | PASS |
+| PB-4A.4 | Elder photo visible (if set) | N/A (not set) |
+| PB-4A.5 | Date of birth visible | N/A (not set) |
+| PB-4A.6 | Age calculated correctly | N/A (needs DOB) |
+| PB-4A.7 | Gender visible | N/A (not set) |
+| PB-4A.8 | Medical conditions visible | PASS |
+| PB-4A.9 | Allergies visible | PASS |
+| PB-4A.10 | Doctor information visible | N/A (not set) |
+| PB-4A.11 | Emergency contacts visible | PASS |
+| PB-4A.12 | Edit button visible | PASS |
+| **TOTAL** | **7/7 + 5 N/A** | **PASS** |
+
+**Notes:**
+- Health Profile at `/dashboard/elder-profile?elderId=...` shows "Loved One B1's Health Profile"
+- 7 tabs: Profile, Conditions, Allergies, Symptoms, Notes, Contacts, Insights
+- Profile tab: Full Name "Loved One B1", Age "Not specified", Edit button visible
+- "No additional profile information added yet." with "Add Profile Details" button
+- Conditions tab: "No health conditions recorded yet." with "+ Add Condition" button
+- Allergies tab: "No allergies recorded yet." with "+ Add Allergy" button
+- Contacts tab: "Emergency Contacts" section with "No emergency contacts added yet." and "+ Add Contact" button
+- 5 fields N/A because this is a fresh elder with no profile data populated (photo, DOB, age, gender, doctor)
+
+---
+
+## PB-4B: Edit Elder Profile — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-4B.1 | Click Edit on elder profile | PASS |
+| PB-4B.2 | Edit form opens | PASS |
+| PB-4B.3 | All fields pre-populated | PASS |
+| PB-4B.4 | Modify elder name (Preferred Name → "Bobby B") | PASS |
+| PB-4B.5 | Modify date of birth (1950-06-15) | PASS |
+| PB-4B.6 | Modify medical conditions (added "Hypertension") | PASS |
+| PB-4B.7 | Modify allergies (added "Penicillin", Reaction: Hives) | PASS |
+| PB-4B.8 | Click Save | PASS |
+| PB-4B.9 | Changes saved successfully | PASS |
+| PB-4B.10 | Success message shown | PASS |
+| PB-4B.11 | Changes persist after refresh | PASS |
+| **TOTAL** | **11/11** | **PASS** |
+
+**Notes:**
+- Profile tab: Edit button opens inline edit form with all fields pre-populated
+- Selected "Exact Date of Birth" radio, set DOB to 1950-06-15 → displays as "Jun 14, 1950" (timezone offset in date picker)
+- Preferred Name set to "Bobby B" → page title updated to "Bobby B's Health Profile"
+- Age calculated correctly: 75 years
+- Conditions tab: Added "Hypertension" via "+ Add Condition" dialog → shows with "moderate" and "active" badges
+- Allergies tab: Added "Penicillin" via "+ Add Allergy" dialog → shows "Medication" type, "moderate" severity, "Reaction: Hives"
+- All changes persisted after full page refresh (Cmd+R)

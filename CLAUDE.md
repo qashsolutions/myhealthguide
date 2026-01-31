@@ -1858,7 +1858,9 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Navigation Structure (PB-2B) | 12 | 12 | ✅ 100% |
 | Settings & Notifications (PB-2C) | 6 | 6 | ✅ 100% |
 | Dashboard Home (PB-3A) | 9 | 9 | ✅ 100% |
-| **TOTAL SO FAR** | **61** | **61** | ✅ **100%** |
+| View Health Profile (PB-4A) | 12 | 7+5 N/A | ✅ 100% |
+| Edit Elder Profile (PB-4B) | 11 | 11 | ✅ 100% |
+| **TOTAL SO FAR** | **84** | **84** | ✅ **100%** |
 
 **Key Observations:**
 - Navigation identical to Plan A: 4 icons (Home, Health Profile, Insights, Health Chat), no hamburger menu
@@ -1866,6 +1868,8 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 - Settings > Subscription shows "Family Plan B" at $10.99/loved one/month
 - All 8 settings tabs visible
 - Login error messages are generic (no information leakage)
+- Health Profile: 7 tabs (Profile, Conditions, Allergies, Symptoms, Notes, Contacts, Insights)
+- Edit Profile: Preferred Name, DOB, Conditions, Allergies all save and persist after refresh
 - Detailed results: `docs/PLAN_B_TEST_RESULTS.md`
 
 ---
@@ -1951,7 +1955,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 ### Test Summary
 
-- 394/394 tests passed (Phase 12: 65, Phase 13: 18, Phase 14 Plan A: 332, Phase 14 Plan B: 61 so far - some N/A by design)
+- 417/417 tests passed (Phase 12: 65, Phase 13: 18, Phase 14 Plan A: 332, Phase 14 Plan B: 84 so far - some N/A by design)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -1960,7 +1964,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 31, 2026 | **Phase 14 Plan B Testing IN PROGRESS** - 61/61 tests passed so far (Login +/-, Dashboard, Navigation Structure, Settings & Notifications, Dashboard Home). Test account: `ramanac+b1@gmail.com` |
+| Jan 31, 2026 | **Phase 14 Plan B Testing IN PROGRESS** - 84/84 tests passed so far (Login +/-, Dashboard, Navigation, Settings, Dashboard Home, View/Edit Health Profile). Test account: `ramanac+b1@gmail.com` |
 | Jan 30, 2026 | **FA-11B Settings Negative Tests** - 4/4 passed + 1 N/A (Wrong password rejected, short password blocked, mismatch blocked, cancel discards). Fixed password change stub → real Firebase `reauthenticateWithCredential` |
 | Jan 30, 2026 | **FA-11A Settings & Profile Tests** - 10/10 passed + 2 N/A (Profile, Password, Notifications, Push, Save/Persist) |
 | Jan 30, 2026 | **Input Validation** - Medications, Supplements, Diet name fields validated (max 15 chars/word, max 2 words, gibberish detection, fuzzy matching suggestions) |
