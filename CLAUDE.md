@@ -1856,7 +1856,9 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 | Dashboard Positive (PB-2A) | 17 | 17 | ✅ 100% |
 | Admin Login Negative (PB-1B) | 6 | 6 | ✅ 100% |
 | Navigation Structure (PB-2B) | 12 | 12 | ✅ 100% |
-| **TOTAL SO FAR** | **46** | **46** | ✅ **100%** |
+| Settings & Notifications (PB-2C) | 6 | 6 | ✅ 100% |
+| Dashboard Home (PB-3A) | 9 | 9 | ✅ 100% |
+| **TOTAL SO FAR** | **61** | **61** | ✅ **100%** |
 
 **Key Observations:**
 - Navigation identical to Plan A: 4 icons (Home, Health Profile, Insights, Health Chat), no hamburger menu
@@ -1949,7 +1951,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 ### Test Summary
 
-- 372/372 tests passed (Phase 12: 65, Phase 13: 18, Phase 14 Plan A: 332, Phase 14 Plan B: 46 so far - some N/A by design)
+- 394/394 tests passed (Phase 12: 65, Phase 13: 18, Phase 14 Plan A: 332, Phase 14 Plan B: 61 so far - some N/A by design)
 - All 3 subscription plans live and verified
 - HIPAA compliance verified
 - SEO infrastructure complete
@@ -1958,7 +1960,7 @@ Claude.ai-inspired navigation redesign. Responsive icon rail (desktop) and botto
 
 | Date | Update |
 |------|--------|
-| Jan 31, 2026 | **Phase 14 Plan B Testing IN PROGRESS** - 46/46 tests passed so far (Login Positive/Negative, Dashboard, Navigation Structure). Test account: `ramanac+b1@gmail.com` |
+| Jan 31, 2026 | **Phase 14 Plan B Testing IN PROGRESS** - 61/61 tests passed so far (Login +/-, Dashboard, Navigation Structure, Settings & Notifications, Dashboard Home). Test account: `ramanac+b1@gmail.com` |
 | Jan 30, 2026 | **FA-11B Settings Negative Tests** - 4/4 passed + 1 N/A (Wrong password rejected, short password blocked, mismatch blocked, cancel discards). Fixed password change stub → real Firebase `reauthenticateWithCredential` |
 | Jan 30, 2026 | **FA-11A Settings & Profile Tests** - 10/10 passed + 2 N/A (Profile, Password, Notifications, Push, Save/Persist) |
 | Jan 30, 2026 | **Input Validation** - Medications, Supplements, Diet name fields validated (max 15 chars/word, max 2 words, gibberish detection, fuzzy matching suggestions) |

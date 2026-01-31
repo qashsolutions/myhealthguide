@@ -118,3 +118,52 @@
 - Insights → `/dashboard/insights` with "Smart Insights" page, Health Trends/Clinical Notes/Reports tabs
 - Health Chat → `/dashboard/health-chat` with "Health Records Lookup" page, suggestion chips, voice input
 - Smart Features Terms of Use modal appeared on first Health Chat visit (consent not yet given for this account)
+
+---
+
+## PB-2C: Navigation — Settings & Notifications
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-2C.1 | Settings icon/link visible | PASS |
+| PB-2C.2 | Click Settings → Settings page loads | PASS |
+| PB-2C.3 | All 8 Settings tabs visible | PASS |
+| PB-2C.4 | Notifications bell icon visible | PASS |
+| PB-2C.5 | Click bell → Notification dropdown opens | PASS |
+| PB-2C.6 | Back to Home from any page works | PASS |
+| **TOTAL** | **6/6** | **PASS** |
+
+**Notes:**
+- At mobile viewport (790px), no avatar dropdown visible in header — only bell icon
+- Settings accessible via direct URL `/dashboard/settings` or via "Notification Settings" link in bell dropdown
+- Settings page shows all 8 tabs: Profile, Security & Activity, Subscription (ACCOUNT), Notifications, Group Management (COLLABORATION), Smart Features, Alert Preferences, Privacy & Data (ADVANCED) + Sign Out
+- Profile shows avatar "FB", First Name "Family", Last Name "B Admin", email masked `r***1@g***.com` (Verified), phone verified
+- Bell icon shows badge "2" with dropdown: "Mark all read", 2x "Weekly Summary Ready" (6 days ago), "Notification Settings"
+- Home button in bottom nav returns to `/dashboard` from Settings page
+
+---
+
+## PB-3A: Dashboard — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-3A.1 | Dashboard Home loads | PASS |
+| PB-3A.2 | Elder/Loved one summary visible | PASS |
+| PB-3A.3 | Quick action buttons visible | PASS |
+| PB-3A.4 | Recent activity visible | PASS |
+| PB-3A.5 | Upcoming medications/reminders visible | PASS |
+| PB-3A.6 | Alerts section visible | PASS |
+| PB-3A.7 | Can click through to elder profile | PASS |
+| PB-3A.8 | Can click through to medications | PASS |
+| PB-3A.9 | Can click through to insights | PASS |
+| **TOTAL** | **9/9** | **PASS** |
+
+**Notes:**
+- Dashboard greeting: "Good morning, Family" with "Caring for Loved One B1"
+- 4 quick action icons: Medications, Supplements, Diet, Notes — link to `/dashboard/daily-care?tab=...`
+- View Stats (collapsible): Medications 0, Supplements 0, Compliance --, Meals Today 0 (no data logged)
+- Weekly/Monthly Summary collapsible section present
+- Bell icon with 2 unread notifications ("Weekly Summary Ready")
+- Elder profile click-through → `/dashboard/elder-profile?elderId=...` with "Loved One B1's Health Profile"
+- Medications click-through → `/dashboard/daily-care?tab=medications` with "No Medications" empty state
+- Insights click-through → `/dashboard/insights` with "Smart Insights" page
