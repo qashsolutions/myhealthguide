@@ -2270,6 +2270,24 @@ function detectConcerningSympoms(note: string): { isConcern: boolean; severity: 
   return { isConcern: false, severity: 'amber' };
 }
 
+// Medication definition with log status for daily report
+interface MedicationDetail {
+  name: string;
+  dosage: string;
+  times: string[];
+  status: 'taken' | 'missed' | 'pending'; // from logs, or 'pending' if no log
+  notes?: string;
+}
+
+// Supplement definition with log status for daily report
+interface SupplementDetail {
+  name: string;
+  dosage: string;
+  times: string[];
+  status: 'taken' | 'pending'; // from logs, or 'pending' if no log
+  notes?: string;
+}
+
 interface DailyReportEmailData {
   elderName: string;
   date: string;
@@ -2287,6 +2305,9 @@ interface DailyReportEmailData {
   totalCalories?: number;
   // Flagged concerns for prominent display
   flaggedConcerns?: FlaggedConcern[];
+  // Medication and supplement definitions with status
+  medicationDetails?: MedicationDetail[];
+  supplementDetails?: SupplementDetail[];
 }
 
 /**
@@ -2304,10 +2325,11 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
   const textMuted = '#6b7280'; // Gray-500
 
   // Determine medication status color
-  const medStatusColor = data.medicationsMissed > 0 ? warningColor : successColor;
-  const medStatusText = data.medicationsMissed === 0
-    ? '✓ All medications taken'
-    : `⚠ ${data.medicationsMissed} missed`;
+  const pendingMedsHtml = data.medicationsTotal - data.medicationsTaken - data.medicationsMissed;
+  const medStatusColor = data.medicationsMissed > 0 ? warningColor : (pendingMedsHtml > 0 ? '#d97706' : successColor);
+  const medStatusText = data.medicationsMissed > 0
+    ? `⚠ ${data.medicationsMissed} missed`
+    : (pendingMedsHtml > 0 ? `○ ${pendingMedsHtml} pending` : '✓ All taken');
 
   // Build alert section if there are active alerts
   let alertSection = '';
@@ -2535,9 +2557,9 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
                     <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
                       <tr>
                         <td style="padding: 16px; text-align: center;">
-                          <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.supplementsTaken}</p>
+                          <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${brandColor};">${data.supplementsTaken}/${data.supplementDetails ? data.supplementDetails.length : data.supplementsTaken}</p>
                           <p style="margin: 4px 0 0 0; font-size: 12px; color: ${textMuted}; text-transform: uppercase; letter-spacing: 0.5px;">Supplements</p>
-                          <p style="margin: 8px 0 0 0; font-size: 12px; color: ${successColor}; font-weight: 500;">Logged today</p>
+                          <p style="margin: 8px 0 0 0; font-size: 12px; color: ${data.supplementDetails && data.supplementDetails.length > data.supplementsTaken ? '#d97706' : successColor}; font-weight: 500;">${data.supplementDetails && data.supplementDetails.length > data.supplementsTaken ? `○ ${data.supplementDetails.length - data.supplementsTaken} pending` : '✓ All taken'}</p>
                         </td>
                       </tr>
                     </table>
@@ -2546,6 +2568,84 @@ function generateDailyReportEmailHTML(data: DailyReportEmailData): string {
               </table>
             </td>
           </tr>
+
+          <!-- Medication Details Section -->
+          ${data.medicationDetails && data.medicationDetails.length > 0 ? `
+          <tr>
+            <td style="padding: 0 20px 20px 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+                <tr>
+                  <td style="padding: 16px;">
+                    <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: ${textColor};">
+                      💊 Medications
+                    </p>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      ${data.medicationDetails.map(med => {
+                        const sColor = med.status === 'taken' ? successColor : (med.status === 'missed' ? warningColor : '#9ca3af');
+                        const sText = med.status === 'taken' ? '✓ Taken' : (med.status === 'missed' ? '✗ Missed' : '○ Pending');
+                        const timeText = med.times.length > 0 ? med.times.join(', ') : '';
+                        return `
+                      <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="vertical-align: top;">
+                                <p style="margin: 0; font-weight: 600; color: ${textColor}; font-size: 14px;">${med.name} <span style="font-weight: 400; color: ${textMuted}; font-size: 12px;">${med.dosage}</span></p>
+                                ${timeText ? `<p style="margin: 2px 0 0 0; color: ${textMuted}; font-size: 12px;">${timeText}</p>` : ''}
+                              </td>
+                              <td style="vertical-align: top; text-align: right; width: 80px;">
+                                <span style="color: ${sColor}; font-weight: 600; font-size: 12px;">${sText}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>`;
+                      }).join('')}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>` : ''}
+
+          <!-- Supplement Details Section -->
+          ${data.supplementDetails && data.supplementDetails.length > 0 ? `
+          <tr>
+            <td style="padding: 0 20px 20px 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${bgColor}; border-radius: 8px;">
+                <tr>
+                  <td style="padding: 16px;">
+                    <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: ${textColor};">
+                      🌿 Supplements
+                    </p>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      ${data.supplementDetails.map(supp => {
+                        const sColor = supp.status === 'taken' ? successColor : '#9ca3af';
+                        const sText = supp.status === 'taken' ? '✓ Taken' : '○ Pending';
+                        const timeText = supp.times.length > 0 ? supp.times.join(', ') : '';
+                        return `
+                      <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="vertical-align: top;">
+                                <p style="margin: 0; font-weight: 600; color: ${textColor}; font-size: 14px;">${supp.name} <span style="font-weight: 400; color: ${textMuted}; font-size: 12px;">${supp.dosage}</span></p>
+                                ${timeText ? `<p style="margin: 2px 0 0 0; color: ${textMuted}; font-size: 12px;">${timeText}</p>` : ''}
+                              </td>
+                              <td style="vertical-align: top; text-align: right; width: 80px;">
+                                <span style="color: ${sColor}; font-weight: 600; font-size: 12px;">${sText}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>`;
+                      }).join('')}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>` : ''}
 
           <!-- Diet Details Section -->
           ${dietSection}
@@ -2686,19 +2786,24 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
          .font('Helvetica')
          .text('MEDICATIONS', 50, yPos + 55, { width: cardWidth, align: 'center' });
 
-      const medStatusColor = data.medicationsMissed > 0 ? warningRed : successGreen;
-      const medStatusText = data.medicationsMissed === 0 ? 'All taken' : `${data.medicationsMissed} missed`;
+      const pendingMeds = data.medicationsTotal - data.medicationsTaken - data.medicationsMissed;
+      const medStatusColor = data.medicationsMissed > 0 ? warningRed : (pendingMeds > 0 ? amberColor : successGreen);
+      const medStatusText = data.medicationsMissed > 0
+        ? `${data.medicationsMissed} missed`
+        : (pendingMeds > 0 ? `${pendingMeds} pending` : 'All taken');
       doc.fillColor(medStatusColor)
          .fontSize(11)
          .font('Helvetica-Bold')
          .text(medStatusText, 50, yPos + 75, { width: cardWidth, align: 'center' });
 
       // Supplements
+      const totalSupps = data.supplementDetails ? data.supplementDetails.length : data.supplementsTaken;
+      const pendingSupps = totalSupps - data.supplementsTaken;
       doc.rect(80 + cardWidth, yPos, cardWidth, 100).fill('#f3f4f6');
       doc.fillColor(brandBlue)
          .fontSize(36)
          .font('Helvetica-Bold')
-         .text(`${data.supplementsTaken}`, 80 + cardWidth, yPos + 15, {
+         .text(`${data.supplementsTaken}/${totalSupps}`, 80 + cardWidth, yPos + 15, {
            width: cardWidth,
            align: 'center'
          });
@@ -2706,12 +2811,145 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
          .fontSize(10)
          .font('Helvetica')
          .text('SUPPLEMENTS', 80 + cardWidth, yPos + 55, { width: cardWidth, align: 'center' });
-      doc.fillColor(successGreen)
+      const suppStatusColor = pendingSupps > 0 ? amberColor : successGreen;
+      const suppStatusText = pendingSupps > 0 ? `${pendingSupps} pending` : 'All taken';
+      doc.fillColor(suppStatusColor)
          .fontSize(11)
          .font('Helvetica-Bold')
-         .text('Logged today', 80 + cardWidth, yPos + 75, { width: cardWidth, align: 'center' });
+         .text(suppStatusText, 80 + cardWidth, yPos + 75, { width: cardWidth, align: 'center' });
 
       yPos += 115;
+
+      // ============= MEDICATIONS DETAIL SECTION =============
+      if (data.medicationDetails && data.medicationDetails.length > 0) {
+        // Check if we need a new page
+        if (yPos > doc.page.height - 200) {
+          doc.addPage();
+          yPos = 50;
+        }
+
+        doc.fillColor(textGray)
+           .fontSize(16)
+           .font('Helvetica-Bold')
+           .text('Medications', 50, yPos);
+
+        yPos += 25;
+
+        for (const med of data.medicationDetails) {
+          if (yPos > doc.page.height - 60) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          const statusColor = med.status === 'taken' ? successGreen : (med.status === 'missed' ? warningRed : '#9ca3af');
+          const statusLabel = med.status === 'taken' ? '[OK] Taken' : (med.status === 'missed' ? '[X] Missed' : '[-] Pending');
+          const timeStr = med.times.length > 0 ? med.times.join(', ') : '';
+
+          // Row background
+          doc.rect(50, yPos, doc.page.width - 100, 28).fill('#f9fafb');
+          doc.rect(50, yPos, doc.page.width - 100, 28).stroke('#e5e7eb');
+
+          // Status indicator bar on left
+          doc.rect(50, yPos, 4, 28).fill(statusColor);
+
+          // Medication name + dosage
+          doc.fillColor(textGray)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(med.name, 62, yPos + 7);
+
+          const nameWidth = doc.widthOfString(med.name);
+          if (med.dosage) {
+            doc.fillColor(lightGray)
+               .fontSize(10)
+               .font('Helvetica')
+               .text(` ${med.dosage}`, 62 + nameWidth + 4, yPos + 8);
+          }
+
+          // Time on right side
+          if (timeStr) {
+            doc.fillColor(lightGray)
+               .fontSize(9)
+               .font('Helvetica')
+               .text(timeStr, doc.page.width - 200, yPos + 3, { width: 140, align: 'right' });
+          }
+
+          // Status on right
+          doc.fillColor(statusColor)
+             .fontSize(10)
+             .font('Helvetica-Bold')
+             .text(statusLabel, doc.page.width - 200, yPos + 15, { width: 140, align: 'right' });
+
+          yPos += 32;
+        }
+
+        yPos += 10;
+      }
+
+      // ============= SUPPLEMENTS DETAIL SECTION =============
+      if (data.supplementDetails && data.supplementDetails.length > 0) {
+        if (yPos > doc.page.height - 200) {
+          doc.addPage();
+          yPos = 50;
+        }
+
+        doc.fillColor(textGray)
+           .fontSize(16)
+           .font('Helvetica-Bold')
+           .text('Supplements', 50, yPos);
+
+        yPos += 25;
+
+        for (const supp of data.supplementDetails) {
+          if (yPos > doc.page.height - 60) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          const statusColor = supp.status === 'taken' ? successGreen : '#9ca3af';
+          const statusLabel = supp.status === 'taken' ? '[OK] Taken' : '[-] Pending';
+          const timeStr = supp.times.length > 0 ? supp.times.join(', ') : '';
+
+          // Row background
+          doc.rect(50, yPos, doc.page.width - 100, 28).fill('#f9fafb');
+          doc.rect(50, yPos, doc.page.width - 100, 28).stroke('#e5e7eb');
+
+          // Status indicator bar on left
+          doc.rect(50, yPos, 4, 28).fill(statusColor);
+
+          // Supplement name + dosage
+          doc.fillColor(textGray)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(supp.name, 62, yPos + 7);
+
+          const nameWidth = doc.widthOfString(supp.name);
+          if (supp.dosage) {
+            doc.fillColor(lightGray)
+               .fontSize(10)
+               .font('Helvetica')
+               .text(` ${supp.dosage}`, 62 + nameWidth + 4, yPos + 8);
+          }
+
+          // Time on right side
+          if (timeStr) {
+            doc.fillColor(lightGray)
+               .fontSize(9)
+               .font('Helvetica')
+               .text(timeStr, doc.page.width - 200, yPos + 3, { width: 140, align: 'right' });
+          }
+
+          // Status on right
+          doc.fillColor(statusColor)
+             .fontSize(10)
+             .font('Helvetica-Bold')
+             .text(statusLabel, doc.page.width - 200, yPos + 15, { width: 140, align: 'right' });
+
+          yPos += 32;
+        }
+
+        yPos += 10;
+      }
 
       // ============= CONCERNS SECTION =============
       if (data.flaggedConcerns && data.flaggedConcerns.length > 0) {
@@ -2961,21 +3199,21 @@ async function generateDailyReportPDF(data: DailyReportEmailData): Promise<Buffe
         yPos += 10;
       }
 
-      // Footer - always at bottom of last page
-      // Calculate footer position: near bottom of current page
-      const footerY = doc.page.height - 60;
+      // Footer - placed right after content with spacing
+      yPos += 30;
 
-      // Only add page if content overlaps footer area
-      if (yPos > footerY - 20) {
+      // If we're too close to the bottom, add a new page
+      if (yPos > doc.page.height - 60) {
         doc.addPage();
+        yPos = 50;
       }
 
       doc.fillColor(lightGray)
          .fontSize(10)
          .font('Helvetica')
-         .text('Generated by MyGuide Health', 50, footerY, { align: 'center', width: doc.page.width - 100 });
+         .text('Generated by MyGuide Health', 50, yPos, { align: 'center', width: doc.page.width - 100 });
 
-      doc.text('For more details, log in at www.myguide.health', 50, footerY + 15, {
+      doc.text('For more details, log in at www.myguide.health', 50, yPos + 15, {
         align: 'center',
         width: doc.page.width - 100,
         link: 'https://www.myguide.health'
@@ -3001,8 +3239,10 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
 
   try {
     const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
+    // Use PST (America/Los_Angeles) for "today" to match the cron schedule timezone
+    const pstDateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD
+    const [year, month, day] = pstDateStr.split('-').map(Number);
+    const todayStart = new Date(Date.UTC(year, month - 1, day, 8, 0, 0)); // Midnight PST = 8 AM UTC
     const todayTimestamp = admin.firestore.Timestamp.fromDate(todayStart);
 
     // Get all active groups
@@ -3052,8 +3292,8 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
         }
         // ================================================
 
-        // Gather today's activity data
-        const [medsSnapshot, supplementsSnapshot, dietSnapshot, alertsSnapshot] = await Promise.all([
+        // Gather today's activity data AND definitions
+        const [medsSnapshot, supplementsSnapshot, dietSnapshot, alertsSnapshot, medDefsSnapshot, suppDefsSnapshot] = await Promise.all([
           // Medication logs for today (use scheduledTime - indexed field)
           admin.firestore()
             .collection('medication_logs')
@@ -3082,21 +3322,125 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
             .where('elderId', '==', elderId)
             .where('status', '==', 'active')
             .limit(3)
+            .get(),
+          // Medication definitions (all active medications for this elder)
+          admin.firestore()
+            .collection('medications')
+            .where('groupId', '==', groupId)
+            .where('elderId', '==', elderId)
+            .get(),
+          // Supplement definitions (all active supplements for this elder)
+          admin.firestore()
+            .collection('supplements')
+            .where('groupId', '==', groupId)
+            .where('elderId', '==', elderId)
             .get()
         ]);
 
         // Calculate stats
-        const totalMeds = medsSnapshot.size;
+        const totalMedDefs = medDefsSnapshot.size; // Total defined medications
+        const totalMedLogs = medsSnapshot.size; // Total medication logs today
         const takenMeds = medsSnapshot.docs.filter(doc => doc.data().status === 'taken').length;
         const missedMeds = medsSnapshot.docs.filter(doc => doc.data().status === 'missed').length;
+        // Use the greater of definitions or logs for total count
+        const totalMeds = Math.max(totalMedDefs, totalMedLogs);
+        const totalSuppDefs = suppDefsSnapshot.size; // Total defined supplements
         const supplementsTaken = supplementsSnapshot.size;
         const mealsLogged = dietSnapshot.size;
         const activeAlerts = alertsSnapshot.size;
 
-        // Skip if no activity today
-        if (totalMeds === 0 && supplementsTaken === 0 && mealsLogged === 0) {
-          console.log(`No activity for elder ${elderId}, skipping daily note`);
+        // Skip if no activity today AND no definitions exist
+        if (totalMeds === 0 && totalSuppDefs === 0 && supplementsTaken === 0 && mealsLogged === 0) {
+          console.log(`No activity or definitions for elder ${elderId}, skipping daily note`);
           continue;
+        }
+
+        // Build medication details: merge definitions with logs
+        const medicationDetails: MedicationDetail[] = [];
+        const loggedMedNames = new Set<string>();
+
+        // Map logs by medication name for lookup
+        const medLogsByName = new Map<string, any>();
+        for (const logDoc of medsSnapshot.docs) {
+          const logData = logDoc.data();
+          const medName = (logData.medicationName || '').toLowerCase();
+          if (medName) medLogsByName.set(medName, logData);
+        }
+
+        // Add all defined medications with their log status
+        for (const medDefDoc of medDefsSnapshot.docs) {
+          const medDef = medDefDoc.data();
+          const medName = medDef.name || medDef.medicationName || '';
+          const medNameLower = medName.toLowerCase();
+          const log = medLogsByName.get(medNameLower);
+          loggedMedNames.add(medNameLower);
+
+          medicationDetails.push({
+            name: medName,
+            dosage: medDef.dosage || '',
+            times: medDef.times ? (Array.isArray(medDef.times) ? medDef.times : [medDef.times]) : [],
+            status: log ? (log.status === 'taken' ? 'taken' : 'missed') : 'pending',
+            notes: log?.notes || undefined
+          });
+        }
+
+        // Add any logged medications not in definitions (edge case)
+        for (const logDoc of medsSnapshot.docs) {
+          const logData = logDoc.data();
+          const medName = (logData.medicationName || '').toLowerCase();
+          if (!loggedMedNames.has(medName) && medName) {
+            medicationDetails.push({
+              name: logData.medicationName || 'Unknown',
+              dosage: logData.dosage || '',
+              times: [],
+              status: logData.status === 'taken' ? 'taken' : 'missed',
+              notes: logData.notes || undefined
+            });
+          }
+        }
+
+        // Build supplement details: merge definitions with logs
+        const supplementDetails: SupplementDetail[] = [];
+        const loggedSuppNames = new Set<string>();
+
+        // Map supplement logs by name
+        const suppLogsByName = new Map<string, any>();
+        for (const logDoc of supplementsSnapshot.docs) {
+          const logData = logDoc.data();
+          const suppName = (logData.supplementName || '').toLowerCase();
+          if (suppName) suppLogsByName.set(suppName, logData);
+        }
+
+        // Add all defined supplements with their log status
+        for (const suppDefDoc of suppDefsSnapshot.docs) {
+          const suppDef = suppDefDoc.data();
+          const suppName = suppDef.name || suppDef.supplementName || '';
+          const suppNameLower = suppName.toLowerCase();
+          const log = suppLogsByName.get(suppNameLower);
+          loggedSuppNames.add(suppNameLower);
+
+          supplementDetails.push({
+            name: suppName,
+            dosage: suppDef.dosage || '',
+            times: suppDef.times ? (Array.isArray(suppDef.times) ? suppDef.times : [suppDef.times]) : [],
+            status: log ? 'taken' : 'pending',
+            notes: log?.notes || undefined
+          });
+        }
+
+        // Add any logged supplements not in definitions
+        for (const logDoc of supplementsSnapshot.docs) {
+          const logData = logDoc.data();
+          const suppName = (logData.supplementName || '').toLowerCase();
+          if (!loggedSuppNames.has(suppName) && suppName) {
+            supplementDetails.push({
+              name: logData.supplementName || 'Unknown',
+              dosage: logData.dosage || '',
+              times: [],
+              status: 'taken',
+              notes: logData.notes || undefined
+            });
+          }
         }
 
         // Generate summary message
@@ -3104,16 +3448,27 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
 
         // Medication summary
         if (totalMeds > 0) {
-          if (missedMeds === 0) {
+          const pendingMedCount = totalMeds - takenMeds - missedMeds;
+          if (takenMeds === totalMeds) {
             summaryParts.push(`All ${takenMeds} medication${takenMeds > 1 ? 's' : ''} taken`);
-          } else {
+          } else if (missedMeds > 0) {
             summaryParts.push(`${takenMeds}/${totalMeds} meds taken, ${missedMeds} missed`);
+          } else if (pendingMedCount > 0) {
+            summaryParts.push(`${pendingMedCount} medication${pendingMedCount > 1 ? 's' : ''} pending`);
           }
         }
 
         // Supplements
-        if (supplementsTaken > 0) {
-          summaryParts.push(`${supplementsTaken} supplement${supplementsTaken > 1 ? 's' : ''}`);
+        if (totalSuppDefs > 0 || supplementsTaken > 0) {
+          const totalSuppsForSummary = Math.max(totalSuppDefs, supplementsTaken);
+          const pendingSuppCount = totalSuppsForSummary - supplementsTaken;
+          if (supplementsTaken === totalSuppsForSummary && supplementsTaken > 0) {
+            summaryParts.push(`All ${supplementsTaken} supplement${supplementsTaken > 1 ? 's' : ''} taken`);
+          } else if (pendingSuppCount > 0) {
+            summaryParts.push(`${pendingSuppCount} supplement${pendingSuppCount > 1 ? 's' : ''} pending`);
+          } else if (supplementsTaken > 0) {
+            summaryParts.push(`${supplementsTaken} supplement${supplementsTaken > 1 ? 's' : ''}`);
+          }
         }
 
         // Diet
@@ -3195,12 +3550,20 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
           }
         }
 
-        // Notes from diet entries
+        // Notes from diet entries (skip notes that just duplicate the food items list)
         for (const dietDoc of dietSnapshot.docs) {
           const diet = dietDoc.data();
           if (diet.notes && diet.notes.trim()) {
             const mealType = diet.meal || 'meal';
             const noteText = diet.notes.trim();
+            const items = diet.items || [];
+
+            // Skip if the note is just the food description (duplicates items list)
+            const itemsJoined = items.join(', ').toLowerCase();
+            const noteLower = noteText.toLowerCase();
+            const isDuplicate = itemsJoined && (noteLower === itemsJoined || items.some((item: string) => item.toLowerCase() === noteLower));
+            if (isDuplicate) continue;
+
             const { isConcern, severity } = detectConcerningSympoms(noteText);
 
             caregiverNotes.push({
@@ -3327,7 +3690,10 @@ async function processDailyFamilyNotes(triggerTime: string): Promise<{ success: 
           caregiverNotes: caregiverNotes.length > 0 ? caregiverNotes : undefined,
           totalCalories: totalCalories > 0 ? totalCalories : undefined,
           // Flagged concerns for prominent display
-          flaggedConcerns: flaggedConcerns.length > 0 ? flaggedConcerns : undefined
+          flaggedConcerns: flaggedConcerns.length > 0 ? flaggedConcerns : undefined,
+          // Medication and supplement definitions with status
+          medicationDetails: medicationDetails.length > 0 ? medicationDetails : undefined,
+          supplementDetails: supplementDetails.length > 0 ? supplementDetails : undefined
         };
 
         // Create notification for each recipient
