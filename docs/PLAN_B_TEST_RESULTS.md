@@ -225,3 +225,213 @@
 - Conditions tab: Added "Hypertension" via "+ Add Condition" dialog → shows with "moderate" and "active" badges
 - Allergies tab: Added "Penicillin" via "+ Add Allergy" dialog → shows "Medication" type, "moderate" severity, "Reaction: Hives"
 - All changes persisted after full page refresh (Cmd+R)
+
+---
+
+## PB-4C: Health Profile — NEGATIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-4C.1 | Edit elder with empty name → Error shown | N/A (Preferred Name optional) |
+| PB-4C.2 | Invalid date of birth (future) → Rejected | PASS |
+| PB-4C.3 | Cancel edit → Changes discarded | PASS |
+| PB-4C.4 | Try to add second elder (limit=1) → Blocked | PASS |
+| PB-4C.5 | Limit message is clear | PASS |
+| **TOTAL** | **4/4 + 1 N/A** | **PASS** |
+
+**Notes:**
+- PB-4C.1: Preferred Name is optional (nickname); Full Name not editable in profile edit form. Empty preferred name is valid.
+- PB-4C.2: Future dates silently rejected by HTML5 date input validation (browser prevents manual future date entry). Programmatic input can bypass but native UI blocks it.
+- PB-4C.3: Cancel button discards unsaved changes — typed "SHOULD NOT SAVE" then clicked Cancel, UI reverted to previous "Bobby B" value.
+- PB-4C.4: "Add Loved One" button has lock icon and is disabled when limit reached. Clicking does nothing.
+- PB-4C.5: Clear limit banner "Loved One Limit Reached (1/1)" with "Upgrade your plan to add more loved ones, or archive an existing one to free up a slot." and "Upgrade Plan" button.
+
+---
+
+## PB-5A: View Medications — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-5A.1 | Navigate to Medications (via Dashboard) | PASS |
+| PB-5A.2 | Medication list loads | PASS |
+| PB-5A.3 | Each medication shows name | PASS |
+| PB-5A.4 | Each medication shows dosage | PASS |
+| PB-5A.5 | Each medication shows frequency | N/A (Uses "Times" field) |
+| PB-5A.6 | Each medication shows time(s) | PASS |
+| PB-5A.7 | Each medication shows instructions | PASS |
+| PB-5A.8 | "Add Medication" button visible | PASS |
+| PB-5A.9 | Edit button on each medication | PASS |
+| PB-5A.10 | Delete button on each medication | PASS |
+| **TOTAL** | **9/9 + 1 N/A** | **PASS** |
+
+**Notes:**
+- Navigated via `/dashboard/daily-care?tab=medications` — shows "No Medications" empty state initially
+- Added "Lisinopril" (10mg, 8 am, Take with food) to populate the list
+- Medications page at `/dashboard/medications` shows card with: Name ("Lisinopril"), "Active" badge, Dosage ("10mg"), Time ("8, am"), Start Date ("Jan 30, 2026"), Instructions ("Take with food" in italic)
+- PB-5A.5: No separate frequency dropdown — form uses "Times (comma separated)" field
+- "+" button (blue circle) and "Voice Log" button in top-right for adding medications
+- Edit and Delete buttons visible on each medication card
+
+---
+
+## PB-5B: Add Medication — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-5B.1 | Click "Add Medication" | PASS |
+| PB-5B.2 | Add medication form opens | PASS |
+| PB-5B.3 | Medication name field visible | PASS |
+| PB-5B.4 | Dosage field visible | PASS |
+| PB-5B.5 | Frequency dropdown visible | N/A (Uses "Times" field) |
+| PB-5B.6 | Time picker visible | PASS |
+| PB-5B.7 | Instructions field visible | PASS |
+| PB-5B.8 | Enter medication name "TestMedB" | PASS |
+| PB-5B.9 | Enter dosage "20mg" | PASS |
+| PB-5B.10 | Select frequency "Twice Daily" | N/A (No frequency dropdown) |
+| PB-5B.11 | Set times "8 am, 8 pm" | PASS |
+| PB-5B.12 | Enter instructions "Take before meals" | PASS |
+| PB-5B.13 | Click Save | PASS |
+| PB-5B.14 | Medication added successfully | PASS |
+| PB-5B.15 | New medication appears in list | PASS |
+| **TOTAL** | **13/13 + 2 N/A** | **PASS** |
+
+**Notes:**
+- Clicked "+" button → navigated to `/dashboard/medications/new`
+- Form fields: Loved One (pre-filled "Bobby B"), Medication Name, Dosage, Times (comma separated), Start Date, Instructions (Optional)
+- PB-5B.5/PB-5B.10: No frequency dropdown — uses "Times (comma separated)" free text field
+- Originally entered "Test Med PlanB" → validation blocked with "Please use 2 words or fewer. You entered 3 words." — changed to "TestMedB" (input validation working correctly)
+- Times field required ref-based input (coordinate clicks didn't populate)
+- Submit button required ref-based click (coordinate click hit textarea instead)
+- Medications list now shows 2 cards: "TestMedB" (20mg, 8 am/8 pm) and "Lisinopril" (10mg, 8 am)
+
+---
+
+## PB-5C: Edit/Delete Medication — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-5C.1 | Click Edit on existing medication | PASS |
+| PB-5C.2 | Edit form opens with data pre-filled | PASS |
+| PB-5C.3 | Modify medication name (TestMedB → Metformin) | PASS |
+| PB-5C.4 | Modify dosage (20mg → 500mg) | PASS |
+| PB-5C.5 | Click Save | PASS |
+| PB-5C.6 | Changes saved successfully | PASS |
+| PB-5C.7 | Click Delete on a medication | PASS |
+| PB-5C.8 | Confirmation dialog appears | PASS |
+| PB-5C.9 | Cancel delete → Medication NOT deleted | PASS |
+| PB-5C.10 | Confirm delete → Medication removed | PASS |
+| **TOTAL** | **10/10** | **PASS** |
+
+**Notes:**
+- Edit form at `/dashboard/medications/{id}/edit` pre-filled with all fields: Loved One (disabled), Medication Name, Dosage, Times, Start Date, End Date, Instructions
+- Changed name from "TestMedB" to "Metformin" and dosage from "20mg" to "500mg" — both saved correctly
+- Medications list updated immediately after save, showing "Metformin" with "500mg"
+- Delete confirmation dialog: "Delete Medication — Are you sure you want to delete "Metformin"? This action cannot be undone." with Cancel and Delete buttons
+- Cancel dismissed dialog, medication remained in list (2 cards still visible)
+- Confirm delete removed "Metformin" — only "Lisinopril" remains in list
+
+---
+
+## PB-5D: Medication — NEGATIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-5D.1 | Empty medication name → Blocked | PASS |
+| PB-5D.2 | Empty dosage → Blocked | PASS |
+| PB-5D.3 | Empty time → Blocked | PASS |
+| PB-5D.4 | Cancel add form → No medication added | PASS |
+| PB-5D.5 | Special characters/XSS in name → Handled | PASS |
+| **TOTAL** | **5/5** | **PASS** |
+
+**Notes:**
+- PB-5D.1: HTML5 `required` attribute blocks submission, focuses on empty Medication Name field with blue border
+- PB-5D.2: HTML5 `required` blocks submission with name "Aspirin" filled but dosage empty, focuses on Dosage field
+- PB-5D.3: HTML5 `required` blocks submission with name and dosage filled but Times empty, focuses on Times field
+- PB-5D.4: Cancel navigates back to `/dashboard/medications` — only "Lisinopril" in list, "Aspirin" was NOT added
+- PB-5D.5: XSS payload `<script>alert(1)</script>` blocked by input validation: "is too long (max 15 characters)". No script execution, displayed as escaped text. React JSX protection + name validation provide double defense
+
+---
+
+## PB-6A: View Supplements — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-6A.1 | Navigate to Supplements section | PASS |
+| PB-6A.2 | Supplements page loads | PASS |
+| PB-6A.3 | Page title visible ("Supplements", count "0") | PASS |
+| PB-6A.4 | Empty state message visible | PASS |
+| PB-6A.5 | Add button visible | PASS |
+| **TOTAL** | **5/5** | **PASS** |
+
+**Notes:**
+- Daily Care tab at `/dashboard/daily-care?tab=supplements` shows "No Supplements" with "+ Add Supplement" button
+- Standalone page at `/dashboard/supplements` shows "No supplements added yet for Loved One B1" with "Add Your First Supplement" button and "+" blue circle
+- Both entry points work correctly
+
+---
+
+## PB-6B: Add Supplement — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-6B.1 | Click "+" button | PASS |
+| PB-6B.2 | Add form opens | PASS |
+| PB-6B.3 | Supplement name field visible | PASS |
+| PB-6B.4 | Dosage field visible | PASS |
+| PB-6B.5 | Times field visible | PASS |
+| PB-6B.6 | Notes field visible | PASS |
+| PB-6B.7 | Enter supplement name "Vitamin D3" | PASS |
+| PB-6B.8 | Enter dosage "2000 IU" | PASS |
+| PB-6B.9 | Enter time "9 am" | PASS |
+| PB-6B.10 | Enter notes "Take with breakfast" | PASS |
+| PB-6B.11 | Click Save | PASS |
+| PB-6B.12 | Supplement added successfully | PASS |
+| PB-6B.13 | New supplement appears in list | PASS |
+| **TOTAL** | **13/13** | **PASS** |
+
+**Notes:**
+- Form at `/dashboard/supplements/new` with fields: Loved One (pre-filled "Loved One B1"), Supplement Name, Dosage, Times (comma separated), Notes (Optional)
+- All fields populated via ref-based form_input for reliability
+- Supplement card shows: "Vitamin D3", Dosage "2000 IU", Time "9, am", "Take with breakfast" in italic
+- Edit and Delete buttons visible on card
+
+---
+
+## PB-6C: Edit Supplement — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-6C.1 | Click Edit on existing supplement | PASS |
+| PB-6C.2 | Edit form opens with data pre-filled | PASS |
+| PB-6C.3 | Modify supplement name (Vitamin D3 → Fish Oil) | PASS |
+| PB-6C.4 | Modify dosage (2000 IU → 1000mg) | PASS |
+| PB-6C.5 | Click Save | PASS |
+| PB-6C.6 | Changes saved successfully | PASS |
+| PB-6C.7 | Updated supplement shows in list | PASS |
+| **TOTAL** | **7/7** | **PASS** |
+
+**Notes:**
+- Edit form at `/dashboard/supplements/{id}/edit` pre-filled with all fields: Loved One (disabled), Supplement Name, Dosage, Times, Notes
+- Changed name from "Vitamin D3" to "Fish Oil" and dosage from "2000 IU" to "1000mg"
+- Supplements list updated immediately after save
+
+---
+
+## PB-6D: Delete Supplement — POSITIVE TESTS
+
+| Test | Description | Status |
+|------|-------------|--------|
+| PB-6D.1 | Click Delete on a supplement | PASS |
+| PB-6D.2 | Confirmation dialog appears | PASS |
+| PB-6D.3 | Dialog shows supplement name ("Fish Oil") | PASS |
+| PB-6D.4 | Cancel button works | PASS |
+| PB-6D.5 | Supplement NOT deleted on cancel | PASS |
+| PB-6D.6 | Click Delete again → Confirm deletion | PASS |
+| PB-6D.7 | Supplement removed from list | PASS |
+| PB-6D.8 | Returns to empty state | PASS |
+| **TOTAL** | **8/8** | **PASS** |
+
+**Notes:**
+- Delete confirmation dialog: "Delete Supplement — Are you sure you want to delete "Fish Oil"? This action cannot be undone." with Cancel and Delete buttons
+- Cancel dismissed dialog, "Fish Oil" card remained in list
+- Confirm delete removed supplement, returned to empty state "No supplements added yet for Loved One B1"
