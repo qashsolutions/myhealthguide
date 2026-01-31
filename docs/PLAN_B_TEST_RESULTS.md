@@ -435,3 +435,82 @@
 - Delete confirmation dialog: "Delete Supplement — Are you sure you want to delete "Fish Oil"? This action cannot be undone." with Cancel and Delete buttons
 - Cancel dismissed dialog, "Fish Oil" card remained in list
 - Confirm delete removed supplement, returned to empty state "No supplements added yet for Loved One B1"
+
+---
+
+## PB-6A (Consolidated): Supplements CRUD — 12 Tests
+
+| Test | Description | Result |
+|------|-------------|--------|
+| PB-6A.1 | Navigate to Supplements page | PASS |
+| PB-6A.2 | Supplements list loads (empty state) | PASS |
+| PB-6A.3 | Add button visible | PASS |
+| PB-6A.4 | Click Add → form opens | PASS |
+| PB-6A.5 | Form fields visible (Name, Dosage, Times, Notes) | PASS |
+| PB-6A.6 | Enter supplement name "Omega-3" | PASS |
+| PB-6A.7 | Enter dosage "1200mg" | PASS |
+| PB-6A.8 | Enter time "8 am" | PASS |
+| PB-6A.9 | Click Add Supplement → saved | PASS |
+| PB-6A.10 | "Omega-3" card visible in list (1200mg, 8 am) | PASS |
+| PB-6A.11 | Edit supplement: name→"Magnesium", dosage→"400mg" → saved, list updated | PASS |
+| PB-6A.12 | Delete supplement: confirmation dialog → confirm → empty state | PASS |
+| **TOTAL** | **12/12** | **PASS** |
+
+**Notes:**
+- Add form at `/dashboard/supplements/new` with Loved One (disabled), Supplement Name, Dosage, Times (comma separated), Notes (Optional)
+- Edit form pre-filled with existing values, changed "Omega-3"→"Magnesium" and "1200mg"→"400mg", saved successfully
+- Delete confirmation: "Delete Supplement — Are you sure you want to delete "Magnesium"? This action cannot be undone."
+- After delete, empty state: "No supplements added yet for Loved One B1"
+
+---
+
+## PB-6B: Supplements — NEGATIVE TESTS
+
+| Test | Description | Result |
+|------|-------------|--------|
+| PB-6B.1 | Empty name → HTML5 required blocks submission | PASS |
+| PB-6B.2 | Name filled, empty dosage → HTML5 required blocks submission | PASS |
+| PB-6B.3 | Cancel add → back to list, no supplement saved | PASS |
+| **TOTAL** | **3/3** | **PASS** |
+
+**Notes:**
+- PB-6B.1: Clicked "Add Supplement" with all fields empty. Supplement Name field received focus (blue border), form stayed on page — HTML5 `required` validation blocked submission
+- PB-6B.2: Entered "Zinc" in name, left Dosage empty. Dosage field received focus (blue border), form stayed on page — HTML5 `required` validation blocked submission
+- PB-6B.3: Clicked Cancel → navigated back to `/dashboard/supplements`, empty state "No supplements added yet for Loved One B1" — "Zinc" was NOT saved
+
+---
+
+## PB-7A: Diet CRUD — POSITIVE TESTS
+
+| Test | Description | Result |
+|------|-------------|--------|
+| PB-7A.1 | Navigate to Diet page, empty state visible | PASS |
+| PB-7A.2 | Click "+ Log Meal" → form opens at `/dashboard/diet/new` | PASS |
+| PB-7A.3 | Enter "Oatmeal with banana and honey, orange juice" as Breakfast | PASS |
+| PB-7A.4 | Save Entry → meal card visible with AI analysis (300 cal, 65/100 score, food tags) | PASS |
+| PB-7A.5 | Click Edit → form pre-filled (Meal Type, Food Items, Notes, AI analysis notice) | PASS |
+| PB-7A.6 | Change to Lunch, food items → "grilled chicken, rice, steamed broccoli" → saved | PASS |
+| PB-7A.7 | Click Delete → confirmation dialog → confirm → empty state | PASS |
+| **TOTAL** | **7/7** | **PASS** |
+
+**Notes:**
+- PB-7A.1: "Diet Tracking — Log meals and monitor nutrition", empty state "No meals logged yet for Loved One B1", Voice Log and + Log Meal buttons
+- PB-7A.2: Form fields: Loved One (disabled), Meal Type (Breakfast default), "What was eaten?" textarea, Smart Nutrition Analysis button, Save Entry button
+- PB-7A.4: AI auto-analyzed meal: 300 cal, 30g carbs, 15g protein, 12g fat, Nutrition Score 65/100, food tags (oatmeal, banana, honey, orange juice), "Includes fruit"
+- PB-7A.5: Edit form shows "Food Items (comma separated)" with parsed tags, Notes with original description, AI analysis notice: "This entry has AI nutrition analysis (Score: 65/100). Editing items will preserve the existing analysis."
+- PB-7A.6: Changed Meal Type Breakfast→Lunch, food items updated, Nutrition Score preserved at 65/100
+- PB-7A.7: Delete confirmation: "Are you sure you want to delete this lunch entry (grilled chicken, rice...)? This action cannot be undone."
+
+---
+
+## PB-7B: Diet — NEGATIVE TESTS
+
+| Test | Description | Result |
+|------|-------------|--------|
+| PB-7B.1 | Save with empty "What was eaten?" → blocked | PASS |
+| PB-7B.2 | Cancel edit → changes discarded, original data preserved | PASS |
+| **TOTAL** | **2/2** | **PASS** |
+
+**Notes:**
+- PB-7B.1: Clicked "Save Entry" with empty textarea. Button appeared muted/disabled, form stayed on page — submission blocked
+- PB-7B.2: Added "Scrambled eggs and toast" meal, clicked Edit, changed food items to "pizza, soda, fries", clicked Cancel → returned to list showing original "scrambled eggs, toast" tags unchanged
